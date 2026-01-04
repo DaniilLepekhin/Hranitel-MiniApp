@@ -130,8 +130,10 @@ export const authMiddleware = new Elysia({ name: 'auth' })
     }
   })
   .onBeforeHandle(({ user, authError, set }) => {
+    logger.info({ user: user ? 'present' : 'missing', authError }, 'Auth middleware check');
     if (!user) {
       set.status = 401;
+      logger.warn({ authError }, 'Unauthorized access attempt');
       return {
         success: false,
         error: 'Unauthorized',
