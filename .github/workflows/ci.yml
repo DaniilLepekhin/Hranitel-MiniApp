@@ -209,6 +209,9 @@ jobs:
           script: |
             cd /opt/academy-miniapp
 
+            # Login to GitHub Container Registry
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
             # Pull latest images
             docker compose pull
 
