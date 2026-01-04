@@ -193,7 +193,7 @@ jobs:
         with:
           host: 2.58.98.41
           username: root
-          password: ${{ secrets.SERVER_PASSWORD }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "deploy/*"
           target: "/opt/academy-miniapp"
           strip_components: 1
@@ -204,7 +204,7 @@ jobs:
         with:
           host: 2.58.98.41
           username: root
-          password: ${{ secrets.SERVER_PASSWORD }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /opt/academy-miniapp
 
