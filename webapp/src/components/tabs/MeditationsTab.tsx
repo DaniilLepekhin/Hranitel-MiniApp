@@ -35,7 +35,10 @@ export function MeditationsTab() {
 
   const logSessionMutation = useMutation({
     mutationFn: (data: { meditationId: string; durationListened: number; completed: boolean }) =>
-      meditationsApi.logSession(data.meditationId, data.durationListened, data.completed),
+      meditationsApi.logSession(data.meditationId, {
+        durationListened: data.durationListened,
+        completed: data.completed
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meditation-stats'] });
     },
@@ -185,7 +188,7 @@ export function MeditationsTab() {
                 </span>
                 <span className="flex items-center gap-1">
                   <Headphones className="w-4 h-4" />
-                  {meditations[0].sessionsCount || 0} прослушиваний
+                  Медитация
                 </span>
               </div>
             </div>
