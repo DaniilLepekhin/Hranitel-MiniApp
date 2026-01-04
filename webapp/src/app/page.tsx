@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Navigation, TabType } from '@/components/ui/Navigation';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
-import { authApi, coursesApi, meditationsApi, gamificationApi } from '@/lib/api';
+import { authApi, coursesApi, meditationsApi, gamificationApi, setAuthToken } from '@/lib/api';
 
 // Tab Components
 import { HomeTab } from '@/components/tabs/HomeTab';
@@ -18,7 +18,14 @@ import { ProfileTab } from '@/components/tabs/ProfileTab';
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const { user: tgUser, isReady, initData, webApp } = useTelegram();
-  const { user, setUser, isLoading, setLoading } = useAuthStore();
+  const { user, token, setUser, isLoading, setLoading } = useAuthStore();
+
+  // Initialize auth token from store
+  useEffect(() => {
+    if (token) {
+      setAuthToken(token);
+    }
+  }, [token]);
 
   // Auth
   useEffect(() => {
@@ -29,7 +36,8 @@ export default function Home() {
         if (initData) {
           // Telegram WebApp auth
           const response = await authApi.login(initData, webApp?.initDataUnsafe);
-          setUser(response.user);
+          setUser(response.user, response.token);
+          setAuthToken(response.token);
         } else if (tgUser) {
           // Dev mode - try to get existing session
           try {

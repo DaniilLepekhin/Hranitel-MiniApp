@@ -4,6 +4,15 @@ interface ApiOptions extends RequestInit {
   params?: Record<string, string | number | undefined>;
 }
 
+// Token management
+let authToken: string | null = null;
+
+export const setAuthToken = (token: string | null) => {
+  authToken = token;
+};
+
+export const getAuthToken = () => authToken;
+
 class ApiClient {
   private baseUrl: string;
 
@@ -29,12 +38,19 @@ class ApiClient {
       }
     }
 
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...init.headers,
+    };
+
+    // Add auth token if available
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
     const response = await fetch(url, {
       ...init,
-      headers: {
-        'Content-Type': 'application/json',
-        ...init.headers,
-      },
+      headers,
       credentials: 'include',
     });
 

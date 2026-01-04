@@ -4,9 +4,10 @@ import type { User } from '@/lib/api';
 
 interface AuthState {
   user: User | null;
+  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  setUser: (user: User | null) => void;
+  setUser: (user: User | null, token?: string | null) => void;
   setLoading: (loading: boolean) => void;
   logout: () => void;
 }
@@ -15,12 +16,14 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
+      token: null,
       isAuthenticated: false,
       isLoading: true,
 
-      setUser: (user) =>
+      setUser: (user, token) =>
         set({
           user,
+          token: token !== undefined ? token : undefined,
           isAuthenticated: !!user,
           isLoading: false,
         }),
@@ -31,6 +34,7 @@ export const useAuthStore = create<AuthState>()(
       logout: () =>
         set({
           user: null,
+          token: null,
           isAuthenticated: false,
           isLoading: false,
         }),
@@ -39,6 +43,7 @@ export const useAuthStore = create<AuthState>()(
       name: 'auth-storage',
       partialize: (state) => ({
         user: state.user,
+        token: state.token,
         isAuthenticated: state.isAuthenticated,
       }),
     }
