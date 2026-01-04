@@ -1,0 +1,70 @@
+# Environment variables
+.env
+.env.local
+.env.production
+.env.development
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+bun-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+drizzle/
+
+# Logs
+logs/
+*.log
+
+# OS
+Thumbs.db
+
+# Docker
+.dockerignore
+
+# Temporary
+tmp/
+temp/
+deploy/
+
+# SSL certificates (if stored locally)
+*.pem
+*.key
+*.crt
+
+# Backups
+*.sql
+backup/
+
+# Secrets (NEVER commit!)
+SECRETS_FOR_GITHUB.txt
+SECRETS_QUICK_COPY.md
+*_SECRETS*.txt
+*_SECRETS*.md
