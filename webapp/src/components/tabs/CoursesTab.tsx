@@ -101,10 +101,10 @@ export function CoursesTab() {
               category={course.category}
               isFavorite={course.isFavorite}
               isLocked={course.isLocked}
-              lessonsCount={course.lessonsCount}
+              lessonsCount={undefined}
               progress={
                 course.progress
-                  ? (course.progress.completedDays.length / (course.lessonsCount || 10)) * 100
+                  ? (course.progress.completedDays.length / 10) * 100
                   : undefined
               }
             />
