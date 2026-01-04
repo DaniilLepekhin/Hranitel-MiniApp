@@ -3,7 +3,6 @@ import { logger } from '@/utils/logger';
 
 const seedCourses = [
   {
-    id: 'course-1',
     title: 'Основы медитации',
     description: 'Познакомьтесь с базовыми техниками медитации и осознанности',
     category: 'mindset' as const,
@@ -12,7 +11,6 @@ const seedCourses = [
     sortOrder: 1,
   },
   {
-    id: 'course-2',
     title: 'Управление стрессом',
     description: 'Научитесь справляться со стрессом и тревогой',
     category: 'health' as const,
@@ -21,7 +19,6 @@ const seedCourses = [
     sortOrder: 2,
   },
   {
-    id: 'course-3',
     title: 'Осознанные отношения',
     description: 'Построение гармоничных отношений через осознанность',
     category: 'mindset' as const,
@@ -30,7 +27,6 @@ const seedCourses = [
     sortOrder: 3,
   },
   {
-    id: 'course-4',
     title: 'Здоровый сон',
     description: 'Улучшите качество сна с помощью специальных техник',
     category: 'health' as const,
@@ -39,7 +35,6 @@ const seedCourses = [
     sortOrder: 4,
   },
   {
-    id: 'course-5',
     title: 'Продуктивность и фокус',
     description: 'Повысьте концентрацию и эффективность работы',
     category: 'mindset' as const,
@@ -48,7 +43,6 @@ const seedCourses = [
     sortOrder: 5,
   },
   {
-    id: 'course-6',
     title: 'Духовное пробуждение',
     description: 'Глубокие практики для духовного развития',
     category: 'spiritual' as const,

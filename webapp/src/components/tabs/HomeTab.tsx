@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { Flame, Star, TrendingUp } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { coursesApi, gamificationApi } from '@/lib/api';
@@ -8,6 +9,7 @@ import { CourseCard } from '@/components/ui/Card';
 
 export function HomeTab() {
   const { user } = useAuthStore();
+  const router = useRouter();
 
   const { data: coursesData } = useQuery({
     queryKey: ['courses'],
@@ -128,6 +130,13 @@ export function HomeTab() {
                   ? (course.progress.completedDays.length / 10) * 100
                   : undefined
               }
+              onClick={() => {
+                if (course.isLocked) {
+                  // TODO: Show PRO upgrade modal
+                  return;
+                }
+                router.push(`/course/${course.id}`);
+              }}
             />
           ))}
         </div>

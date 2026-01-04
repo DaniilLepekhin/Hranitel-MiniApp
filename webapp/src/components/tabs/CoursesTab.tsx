@@ -2,20 +2,19 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { Search, Filter, BookOpen, Star, Lock, ChevronRight } from 'lucide-react';
 import { coursesApi } from '@/lib/api';
 import { CourseCard } from '@/components/ui/Card';
 
-type Category = 'all' | 'self_development' | 'meditation' | 'relationships' | 'health' | 'career' | 'spirituality';
+type Category = 'all' | 'mindset' | 'spiritual' | 'esoteric' | 'health';
 
 const categories: { value: Category; label: string; emoji: string }[] = [
   { value: 'all', label: 'Все', emoji: '📚' },
-  { value: 'self_development', label: 'Развитие', emoji: '🌱' },
-  { value: 'meditation', label: 'Медитации', emoji: '🧘' },
-  { value: 'relationships', label: 'Отношения', emoji: '❤️' },
+  { value: 'mindset', label: 'Развитие', emoji: '🧠' },
+  { value: 'spiritual', label: 'Духовность', emoji: '✨' },
+  { value: 'esoteric', label: 'Эзотерика', emoji: '🔮' },
   { value: 'health', label: 'Здоровье', emoji: '💪' },
-  { value: 'career', label: 'Карьера', emoji: '💼' },
-  { value: 'spirituality', label: 'Духовность', emoji: '✨' },
 ];
 
 export function CoursesTab() {
@@ -154,10 +153,22 @@ function CourseCardExtended({
   lessonsCount,
   progress,
 }: CourseCardExtendedProps) {
+  const router = useRouter();
   const categoryEmoji = categories.find((c) => c.value === category)?.emoji || '📖';
 
+  const handleClick = () => {
+    if (isLocked) {
+      // TODO: Show PRO upgrade modal
+      return;
+    }
+    router.push(`/course/${id}`);
+  };
+
   return (
-    <div className="glass rounded-3xl overflow-hidden hover:shadow-xl transition-all duration-300 active:scale-[0.98]">
+    <div
+      onClick={handleClick}
+      className="glass rounded-3xl overflow-hidden hover:shadow-xl transition-all duration-300 active:scale-[0.98] cursor-pointer"
+    >
       <div className="flex">
         {/* Cover Image */}
         <div className="relative w-28 h-28 flex-shrink-0">
