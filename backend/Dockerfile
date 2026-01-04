@@ -23,8 +23,8 @@ COPY --from=build /app/tsconfig.json ./
 COPY --from=build /app/drizzle.config.ts ./
 
 # Create non-root user
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 elysia
+RUN groupadd --system --gid 1001 nodejs && \
+    useradd --system --uid 1001 -g nodejs elysia
 USER elysia
 
 EXPOSE 3001
