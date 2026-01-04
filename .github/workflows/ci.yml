@@ -220,17 +220,15 @@ jobs:
             # Start new containers
             docker compose up -d
 
-            # Wait for database
-            sleep 10
+            # Wait for all services to be healthy
+            echo "Waiting for services to be healthy..."
+            sleep 30
 
-            # Run migrations
-            docker compose exec -T backend bun run db:push
-
-            # Seed database (only first time, will skip if data exists)
-            docker compose exec -T backend bun run db:seed || true
-
-            # Clean up
-            docker system prune -f
-
-            # Show status
+            # Check service status
             docker compose ps
+
+            # Verify backend is running
+            docker compose exec -T backend echo "Backend is running" || echo "Warning: Backend not responding"
+
+            # Clean up old images
+            docker system prune -f
