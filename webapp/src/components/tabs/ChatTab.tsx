@@ -154,10 +154,16 @@ export function ChatTab() {
 
         // Transcribe audio
         try {
-          const result = await aiApi.transcribe(audioBlob);
-          if (result.text) {
-            setMessage(result.text);
-          }
+          // Convert Blob to base64
+          const reader = new FileReader();
+          reader.readAsDataURL(audioBlob);
+          reader.onloadend = async () => {
+            const base64Audio = reader.result?.toString().split(',')[1] || '';
+            const result = await aiApi.transcribe(base64Audio);
+            if (result.text) {
+              setMessage(result.text);
+            }
+          };
         } catch (error) {
           console.error('Transcription error:', error);
         }
