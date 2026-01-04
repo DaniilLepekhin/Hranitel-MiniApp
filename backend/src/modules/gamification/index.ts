@@ -7,8 +7,13 @@ export const gamificationModule = new Elysia({ prefix: '/gamification', tags: ['
   // Get user gamification stats
   .get(
     '/stats',
-    async ({ user }) => {
-      const stats = await gamificationService.getUserStats(user!.id);
+    async ({ user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
+      const stats = await gamificationService.getUserStats(user.id);
 
       if (!stats) {
         return {
@@ -32,10 +37,15 @@ export const gamificationModule = new Elysia({ prefix: '/gamification', tags: ['
   // Get XP history
   .get(
     '/xp-history',
-    async ({ user, query }) => {
+    async ({ user, query, set }) => {
+      if (!user) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
       const { days = 7 } = query;
 
-      const history = await gamificationService.getXPHistory(user!.id, 100);
+      const history = await gamificationService.getXPHistory(user.id, 100);
 
       // Filter by days
       const cutoffDate = new Date();
@@ -72,8 +82,13 @@ export const gamificationModule = new Elysia({ prefix: '/gamification', tags: ['
   // Get achievements
   .get(
     '/achievements',
-    async ({ user }) => {
-      const achievements = await gamificationService.getUserAchievements(user!.id);
+    async ({ user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
+      const achievements = await gamificationService.getUserAchievements(user.id);
 
       return {
         success: true,
@@ -89,10 +104,15 @@ export const gamificationModule = new Elysia({ prefix: '/gamification', tags: ['
   // Manual XP add (for testing)
   .post(
     '/add-xp',
-    async ({ user, body }) => {
+    async ({ user, body, set }) => {
+      if (!user) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
       const { amount, reason } = body;
 
-      const result = await gamificationService.addXP(user!.id, amount, reason);
+      const result = await gamificationService.addXP(user.id, amount, reason);
 
       return {
         success: true,
