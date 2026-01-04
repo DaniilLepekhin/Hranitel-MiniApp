@@ -12,6 +12,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "bun run src/db/seed.ts",
+    "webhook:setup": "bun run src/setup-webhook.ts",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit"
   },
