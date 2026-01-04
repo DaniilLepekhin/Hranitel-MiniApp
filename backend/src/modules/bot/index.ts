@@ -181,7 +181,18 @@ bot.callbackQuery('meditations', async (ctx) => {
 
 // Error handler
 bot.catch((err) => {
-  logger.error({ error: err }, 'Bot error');
+  const error = err.error;
+  logger.error({
+    error: error instanceof Error ? {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    } : error,
+    ctx: {
+      updateType: err.ctx.update ? Object.keys(err.ctx.update).filter(k => k !== 'update_id') : [],
+      updateId: err.ctx.update?.update_id
+    }
+  }, 'Bot error');
 });
 
 // Elysia module
@@ -202,10 +213,17 @@ export const botModule = new Elysia({ prefix: '/bot', tags: ['Bot'] })
 
       try {
         // Handle update
+        logger.info({ update: body }, 'Processing webhook update');
         await bot.handleUpdate(body as Parameters<typeof bot.handleUpdate>[0]);
         return { ok: true };
       } catch (error) {
-        logger.error({ error }, 'Webhook error');
+        logger.error({
+          error: error instanceof Error ? {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+          } : error
+        }, 'Webhook error');
         return { ok: false };
       }
     },
