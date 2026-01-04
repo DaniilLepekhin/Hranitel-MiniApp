@@ -1,5 +1,5 @@
 server {
-    server_name mindandsoul_academy_webapp.daniillepekhin.com;
+    server_name mindandsoul.academy.daniillepekhin.com;
 
     # Frontend (Next.js webapp)
     location / {
