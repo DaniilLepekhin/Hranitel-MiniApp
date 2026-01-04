@@ -37,7 +37,6 @@ coverage/
 *.db
 *.sqlite
 *.sqlite3
-drizzle/
 
 # Logs
 logs/
@@ -61,6 +60,7 @@ deploy/
 
 # Backups
 *.sql
+!backend/drizzle/**/*.sql
 backup/
 
 # Secrets (NEVER commit!)
