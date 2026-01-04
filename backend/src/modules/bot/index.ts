@@ -10,6 +10,9 @@ import { gamificationService } from '@/modules/gamification/service';
 // Initialize bot
 export const bot = new Bot(config.TELEGRAM_BOT_TOKEN);
 
+// Initialize bot info (required for webhooks)
+await bot.init();
+
 // Bot commands
 bot.command('start', async (ctx) => {
   const webAppUrl = config.WEBAPP_URL;
