@@ -105,8 +105,7 @@ export default function CoursePage({ params }: { params: Promise<{ id: string }>
                 key={day.id}
                 onClick={() => {
                   if (!isLocked) {
-                    // TODO: Navigate to lesson page
-                    console.log('Open lesson', day.id);
+                    router.push(`/course/${id}/lesson/${day.dayNumber}`);
                   }
                 }}
                 disabled={isLocked}
