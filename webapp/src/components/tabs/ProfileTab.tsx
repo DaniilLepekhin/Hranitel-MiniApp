@@ -16,7 +16,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
-import { gamificationApi, usersApi } from '@/lib/api';
+import { gamificationApi } from '@/lib/api';
 
 const LEVEL_TITLES = [
   'Новичок',
@@ -52,8 +52,8 @@ export function ProfileTab() {
   });
 
   const stats = statsData?.stats;
-  const achievements = achievementsData?.achievements || [];
-  const leaderboard = leaderboardData?.users || [];
+  const achievements = achievementsData?.achievements.unlocked || [];
+  const leaderboard = leaderboardData?.leaderboard || [];
 
   const levelTitle = LEVEL_TITLES[Math.min((stats?.level || 1) - 1, LEVEL_TITLES.length - 1)];
 
@@ -128,20 +128,20 @@ export function ProfileTab() {
           />
           <StatCard
             icon={<Target className="w-5 h-5" />}
-            value={stats.totalLessons || 0}
-            label="Уроков пройдено"
+            value={stats.level}
+            label="Уровень"
             gradient="from-purple-400 to-indigo-500"
           />
           <StatCard
             icon={<Zap className="w-5 h-5" />}
-            value={stats.totalMeditations || 0}
-            label="Медитаций"
+            value={stats.experience}
+            label="Опыт"
             gradient="from-emerald-400 to-teal-500"
           />
           <StatCard
             icon={<Calendar className="w-5 h-5" />}
-            value={stats.activeDays || 0}
-            label="Активных дней"
+            value={stats.streak}
+            label="Активность"
             gradient="from-blue-400 to-cyan-500"
           />
         </div>
@@ -152,7 +152,7 @@ export function ProfileTab() {
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold text-gray-900">Достижения</h2>
           <span className="text-sm text-gray-500">
-            {achievements.filter((a) => a.unlockedAt).length} / {achievements.length}
+            {achievementsData?.achievements.unlockedCount || 0} / {achievementsData?.achievements.total || 0}
           </span>
         </div>
 
