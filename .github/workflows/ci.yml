@@ -168,7 +168,6 @@ jobs:
         run: |
           mkdir -p deploy
           cp docker-compose.prod.yml deploy/docker-compose.yml
-          cp -r nginx deploy/
           cat > deploy/.env << EOF
           DATABASE_URL=postgresql://postgres:${{ secrets.DB_PASSWORD }}@postgres:5432/academy_miniapp
           POSTGRES_USER=postgres

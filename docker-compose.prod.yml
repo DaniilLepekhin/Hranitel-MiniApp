@@ -41,6 +41,8 @@ services:
     image: ghcr.io/daniillepekhin/academy_miniapp_2.0-backend:latest
     container_name: academy-backend
     restart: always
+    ports:
+      - "127.0.0.1:3001:3001"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379
@@ -73,26 +75,11 @@ services:
     image: ghcr.io/daniillepekhin/academy_miniapp_2.0-webapp:latest
     container_name: academy-webapp
     restart: always
-    networks:
-      - web
-    depends_on:
-      - backend
-
-  # Nginx reverse proxy
-  nginx:
-    image: nginx:1.27-alpine
-    container_name: academy-nginx
-    restart: always
     ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - "127.0.0.1:3000:3000"
     networks:
       - web
     depends_on:
-      - webapp
       - backend
 
 volumes:
