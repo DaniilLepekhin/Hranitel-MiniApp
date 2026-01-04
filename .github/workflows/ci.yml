@@ -151,7 +151,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            NEXT_PUBLIC_API_URL=${{ secrets.API_URL }}
+            NEXT_PUBLIC_API_URL=https://mindandsoul.academy.daniillepekhin.com
 
   # Deploy to Production
   deploy:
@@ -184,7 +184,7 @@ jobs:
           WEBAPP_URL=https://mindandsoul.academy.daniillepekhin.com
           API_URL=https://mindandsoul.academy.daniillepekhin.com/api/v1
           CORS_ORIGIN=https://mindandsoul.academy.daniillepekhin.com
-          NEXT_PUBLIC_API_URL=https://mindandsoul.academy.daniillepekhin.com/api/v1
+          NEXT_PUBLIC_API_URL=https://mindandsoul.academy.daniillepekhin.com
           NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=${{ secrets.TELEGRAM_BOT_USERNAME }}
           EOF
 
