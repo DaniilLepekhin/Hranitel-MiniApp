@@ -38,8 +38,8 @@ export function CoursesTab() {
     <div className="px-4 pt-6 pb-24">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Курсы</h1>
-        <p className="text-gray-600">Выберите курс для обучения</p>
+        <h1 className="text-2xl font-bold text-white mb-1">Курсы</h1>
+        <p className="text-gray-300">Выберите курс для обучения</p>
       </div>
 
       {/* Search */}

@@ -89,6 +89,10 @@ body {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Force dark text inside cards */
+.card *:not(.text-white):not([class*="text-white"]):not([class*="bg-gradient"]) {
   color: #1f2937;
 }
 
@@ -97,6 +101,9 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.card-light *:not(.text-white):not([class*="text-white"]):not([class*="bg-gradient"]) {
   color: #1f2937;
 }
 

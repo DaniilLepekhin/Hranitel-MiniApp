@@ -147,8 +147,8 @@ export function MeditationsTab() {
 
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Медитации</h1>
-        <p className="text-gray-600">Найдите свой момент покоя</p>
+        <h1 className="text-2xl font-bold text-white mb-1">Медитации</h1>
+        <p className="text-gray-300">Найдите свой момент покоя</p>
       </div>
 
       {/* Featured Meditation */}
@@ -197,7 +197,7 @@ export function MeditationsTab() {
       )}
 
       {/* Meditations Grid */}
-      <h2 className="text-lg font-bold text-gray-900 mb-3">Все медитации</h2>
+      <h2 className="text-lg font-bold text-white mb-3">Все медитации</h2>
 
       {isLoading ? (
         <div className="grid grid-cols-2 gap-3">

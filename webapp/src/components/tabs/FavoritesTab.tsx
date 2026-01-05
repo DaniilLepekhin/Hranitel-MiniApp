@@ -26,9 +26,9 @@ export function FavoritesTab() {
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center">
             <Heart className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Избранное</h1>
+          <h1 className="text-2xl font-bold text-white">Избранное</h1>
         </div>
-        <p className="text-gray-600">
+        <p className="text-gray-300">
           {favorites.length > 0
             ? `${favorites.length} ${favorites.length === 1 ? 'курс' : favorites.length < 5 ? 'курса' : 'курсов'}`
             : 'Добавьте курсы в избранное'}

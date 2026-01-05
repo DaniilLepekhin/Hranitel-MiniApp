@@ -30,10 +30,10 @@ export function HomeTab() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-white">
             Привет, {user?.firstName || 'друг'}! 👋
           </h1>
-          <p className="text-gray-600 mt-1">Как ты себя чувствуешь сегодня?</p>
+          <p className="text-gray-300 mt-1">Как ты себя чувствуешь сегодня?</p>
         </div>
         {user?.photoUrl ? (
           <img
@@ -115,7 +115,7 @@ export function HomeTab() {
 
       {/* Recommended Courses */}
       <div className="mb-6">
-        <h2 className="text-lg font-bold text-gray-900 mb-3">Рекомендуемые курсы</h2>
+        <h2 className="text-lg font-bold text-white mb-3">Рекомендуемые курсы</h2>
         <div className="space-y-3">
           {courses.map((course) => (
             <CourseCardCompact
