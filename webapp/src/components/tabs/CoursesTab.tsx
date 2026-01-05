@@ -76,7 +76,7 @@ export function CoursesTab() {
       {isLoading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="glass rounded-3xl h-32 animate-pulse" />
+            <div key={i} className="card rounded-3xl h-32 animate-pulse" />
           ))}
         </div>
       ) : filteredCourses.length === 0 ? (
@@ -189,7 +189,7 @@ function CourseCardExtended({
   return (
     <div
       onClick={handleClick}
-      className="glass rounded-3xl overflow-hidden hover:shadow-xl transition-all duration-300 active:scale-[0.98] cursor-pointer"
+      className="card rounded-3xl overflow-hidden hover:shadow-xl transition-all duration-300 active:scale-[0.98] cursor-pointer"
     >
       <div className="flex">
         {/* Cover Image */}

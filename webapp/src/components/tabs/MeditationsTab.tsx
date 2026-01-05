@@ -202,7 +202,7 @@ export function MeditationsTab() {
       {isLoading ? (
         <div className="grid grid-cols-2 gap-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="glass rounded-2xl aspect-square animate-pulse" />
+            <div key={i} className="card rounded-2xl aspect-square animate-pulse" />
           ))}
         </div>
       ) : (
@@ -352,7 +352,7 @@ export function MeditationsTab() {
       {selectedMeditation && !showPlayer && isPlaying && (
         <div
           onClick={() => setShowPlayer(true)}
-          className="fixed bottom-28 left-4 right-4 glass rounded-2xl p-3 flex items-center gap-3 shadow-xl cursor-pointer z-40"
+          className="fixed bottom-28 left-4 right-4 card rounded-2xl p-3 flex items-center gap-3 shadow-xl cursor-pointer z-40"
         >
           <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
             {selectedMeditation.coverUrl ? (
@@ -406,7 +406,7 @@ function MeditationCard({ meditation, onPlay, isCurrentlyPlaying }: MeditationCa
   return (
     <div
       onClick={onPlay}
-      className="glass rounded-2xl overflow-hidden cursor-pointer hover:shadow-lg transition-all active:scale-[0.98]"
+      className="card rounded-2xl overflow-hidden cursor-pointer hover:shadow-lg transition-all active:scale-[0.98]"
     >
       <div className="aspect-square relative">
         {meditation.coverUrl ? (

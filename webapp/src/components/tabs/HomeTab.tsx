@@ -51,7 +51,7 @@ export function HomeTab() {
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="glass rounded-2xl p-4 text-center">
+          <div className="card rounded-2xl p-4 text-center">
             <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center">
               <Flame className="w-5 h-5 text-white" />
             </div>
@@ -59,7 +59,7 @@ export function HomeTab() {
             <p className="text-xs text-gray-500">Дней подряд</p>
           </div>
 
-          <div className="glass rounded-2xl p-4 text-center">
+          <div className="card rounded-2xl p-4 text-center">
             <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center">
               <Star className="w-5 h-5 text-white" />
             </div>
@@ -67,7 +67,7 @@ export function HomeTab() {
             <p className="text-xs text-gray-500">Уровень</p>
           </div>
 
-          <div className="glass rounded-2xl p-4 text-center">
+          <div className="card rounded-2xl p-4 text-center">
             <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
               <TrendingUp className="w-5 h-5 text-white" />
             </div>
@@ -79,7 +79,7 @@ export function HomeTab() {
 
       {/* XP Progress */}
       {stats && (
-        <div className="glass rounded-2xl p-4 mb-6">
+        <div className="card rounded-2xl p-4 mb-6">
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-medium text-gray-700">
               Прогресс до уровня {stats.level + 1}
@@ -100,13 +100,13 @@ export function HomeTab() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3 mb-6">
-        <button className="glass rounded-2xl p-4 text-left hover:shadow-lg transition-shadow">
+        <button className="card rounded-2xl p-4 text-left hover:shadow-lg transition-shadow">
           <span className="text-2xl mb-2 block">🧘</span>
           <h3 className="font-semibold text-gray-900">Медитация дня</h3>
           <p className="text-sm text-gray-500">5-10 минут</p>
         </button>
 
-        <button className="glass rounded-2xl p-4 text-left hover:shadow-lg transition-shadow">
+        <button className="card rounded-2xl p-4 text-left hover:shadow-lg transition-shadow">
           <span className="text-2xl mb-2 block">📖</span>
           <h3 className="font-semibold text-gray-900">Продолжить</h3>
           <p className="text-sm text-gray-500">Курс обучения</p>
@@ -187,7 +187,7 @@ function CourseCardCompact({
   return (
     <div
       onClick={handleClick}
-      className="glass rounded-3xl overflow-hidden hover:shadow-xl transition-all duration-300 active:scale-[0.98] cursor-pointer"
+      className="card rounded-3xl overflow-hidden hover:shadow-xl transition-all duration-300 active:scale-[0.98] cursor-pointer"
     >
       <div className="flex">
         {/* Cover Image */}

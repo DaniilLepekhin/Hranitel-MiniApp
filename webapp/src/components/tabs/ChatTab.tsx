@@ -236,7 +236,7 @@ export function ChatTab() {
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
                   <Bot className="w-4 h-4 text-white" />
                 </div>
-                <div className="glass rounded-2xl rounded-tl-none px-4 py-3 max-w-[80%]">
+                <div className="card rounded-2xl rounded-tl-none px-4 py-3 max-w-[80%]">
                   <p className="text-gray-800 whitespace-pre-wrap">{streamingContent}</p>
                   <span className="inline-block w-1 h-4 bg-purple-500 animate-pulse ml-1" />
                 </div>
@@ -249,7 +249,7 @@ export function ChatTab() {
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
                   <Bot className="w-4 h-4 text-white" />
                 </div>
-                <div className="glass rounded-2xl rounded-tl-none px-4 py-3">
+                <div className="card rounded-2xl rounded-tl-none px-4 py-3">
                   <div className="flex gap-1">
                     <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
                     <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce animation-delay-100" />
@@ -348,7 +348,7 @@ function MessageBubble({ message }: MessageBubbleProps) {
         className={`max-w-[80%] px-4 py-3 ${
           isUser
             ? 'bg-gradient-to-br from-orange-400 to-pink-500 text-white rounded-2xl rounded-tr-none'
-            : 'glass rounded-2xl rounded-tl-none'
+            : 'card rounded-2xl rounded-tl-none'
         }`}
       >
         <p className={`whitespace-pre-wrap ${isUser ? 'text-white' : 'text-gray-800'}`}>

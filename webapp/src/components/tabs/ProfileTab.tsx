@@ -64,7 +64,7 @@ export function ProfileTab() {
   return (
     <div className="px-4 pt-6 pb-24">
       {/* Profile Header */}
-      <div className="glass rounded-3xl p-6 mb-6 text-center">
+      <div className="card rounded-3xl p-6 mb-6 text-center">
         {/* Avatar */}
         <div className="relative inline-block mb-4">
           {user?.photoUrl ? (
@@ -178,7 +178,7 @@ export function ProfileTab() {
       <div className="mb-6">
         <h2 className="text-lg font-bold text-gray-900 mb-3">Таблица лидеров</h2>
 
-        <div className="glass rounded-2xl overflow-hidden">
+        <div className="card rounded-2xl overflow-hidden">
           {leaderboard.slice(0, 5).map((entry, index) => (
             <div
               key={entry.id}
@@ -234,7 +234,7 @@ export function ProfileTab() {
 
       {/* Pro Subscription */}
       {!user?.isPro && (
-        <div className="glass rounded-3xl p-5 mb-6 bg-gradient-to-r from-purple-500/10 to-pink-500/10">
+        <div className="card rounded-3xl p-5 mb-6 bg-gradient-to-r from-purple-500/10 to-pink-500/10">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
               <Crown className="w-7 h-7 text-white" />
@@ -251,7 +251,7 @@ export function ProfileTab() {
       )}
 
       {/* Settings Menu */}
-      <div className="glass rounded-2xl overflow-hidden">
+      <div className="card rounded-2xl overflow-hidden">
         <MenuItem
           icon={<Settings className="w-5 h-5" />}
           label="Настройки"
@@ -287,7 +287,7 @@ interface StatCardProps {
 
 function StatCard({ icon, value, label, gradient }: StatCardProps) {
   return (
-    <div className="glass rounded-2xl p-4">
+    <div className="card rounded-2xl p-4">
       <div
         className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white mb-2`}
       >

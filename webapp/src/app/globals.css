@@ -68,29 +68,36 @@ body {
   display: none;
 }
 
-/* Glass effect */
+/* Glass effect - for navigation and overlays on dark background */
 .glass {
-  /* Dark theme - current */
   background: rgba(45, 47, 46, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-
-  /* Light theme - original (uncomment to restore) */
-  /* background: rgba(255, 255, 255, 0.9); */
-  /* border: none; */
 }
 
 .glass-light {
-  /* Dark theme - current */
   background: rgba(45, 47, 46, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+}
 
-  /* Light theme - original (uncomment to restore) */
-  /* background: rgba(255, 255, 255, 0.6); */
-  /* border: none; */
+/* Card style - white/light cards for content on dark background */
+.card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #1f2937;
+}
+
+.card-light {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #1f2937;
 }
 
 /* Animations */
