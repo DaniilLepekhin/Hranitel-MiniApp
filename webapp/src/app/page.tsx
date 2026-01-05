@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Maximize2, Minimize2 } from 'lucide-react';
 import { Navigation, TabType } from '@/components/ui/Navigation';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
@@ -11,14 +12,24 @@ import { authApi, coursesApi, meditationsApi, gamificationApi, setAuthToken } fr
 // Tab Components
 import { HomeTab } from '@/components/tabs/HomeTab';
 import { CoursesTab } from '@/components/tabs/CoursesTab';
+import { FavoritesTab } from '@/components/tabs/FavoritesTab';
 import { MeditationsTab } from '@/components/tabs/MeditationsTab';
 import { ChatTab } from '@/components/tabs/ChatTab';
 import { ProfileTab } from '@/components/tabs/ProfileTab';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
-  const { user: tgUser, isReady, initData, webApp } = useTelegram();
+  const { user: tgUser, isReady, initData, webApp, requestFullscreen, exitFullscreen, isFullscreen, haptic } = useTelegram();
   const { user, token, setUser, isLoading, setLoading } = useAuthStore();
+
+  const toggleFullscreen = () => {
+    haptic.impact('medium');
+    if (isFullscreen) {
+      exitFullscreen();
+    } else {
+      requestFullscreen();
+    }
+  };
 
   // Initialize auth token from store
   useEffect(() => {
@@ -86,6 +97,7 @@ export default function Home() {
   const tabComponents: Record<TabType, React.ReactNode> = {
     home: <HomeTab />,
     courses: <CoursesTab />,
+    favorites: <FavoritesTab />,
     meditations: <MeditationsTab />,
     chat: <ChatTab />,
     profile: <ProfileTab />,
@@ -98,6 +110,21 @@ export default function Home() {
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-orange-400 to-pink-400 rounded-full blur-3xl opacity-20 -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-full blur-3xl opacity-20 translate-y-1/2 -translate-x-1/2" />
       </div>
+
+      {/* Fullscreen Toggle Button */}
+      {webApp && (
+        <button
+          onClick={toggleFullscreen}
+          className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center active:scale-95 transition-all hover:bg-white"
+          aria-label={isFullscreen ? 'Выйти из полноэкранного режима' : 'Полноэкранный режим'}
+        >
+          {isFullscreen ? (
+            <Minimize2 className="w-5 h-5 text-gray-700" />
+          ) : (
+            <Maximize2 className="w-5 h-5 text-gray-700" />
+          )}
+        </button>
+      )}
 
       {/* Content */}
       <AnimatePresence mode="wait">

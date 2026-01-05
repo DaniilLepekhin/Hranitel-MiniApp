@@ -1,10 +1,11 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { Flame, Star, TrendingUp, BookOpen, Lock } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { coursesApi, gamificationApi } from '@/lib/api';
+import { useTelegram } from '@/hooks/useTelegram';
 
 export function HomeTab() {
   const { user } = useAuthStore();
@@ -160,10 +161,27 @@ function CourseCardCompact({
   progress,
 }: CourseCardCompactProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { haptic } = useTelegram();
+
+  const favoriteMutation = useMutation({
+    mutationFn: () => coursesApi.toggleFavorite(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      queryClient.invalidateQueries({ queryKey: ['favorites'] });
+      haptic.notification('success');
+    },
+  });
 
   const handleClick = () => {
     if (isLocked) return;
     router.push(`/course/${id}`);
+  };
+
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    haptic.impact('light');
+    favoriteMutation.mutate();
   };
 
   return (
@@ -193,12 +211,19 @@ function CourseCardCompact({
             </div>
           )}
 
-          {/* Favorite badge */}
-          {isFavorite && (
-            <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center">
-              <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
-            </div>
-          )}
+          {/* Favorite button */}
+          <button
+            onClick={handleFavoriteClick}
+            disabled={favoriteMutation.isPending}
+            className="absolute top-2 left-2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center active:scale-95 transition-all hover:bg-white shadow-md"
+            aria-label={isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
+          >
+            <Star
+              className={`w-4 h-4 transition-all ${
+                isFavorite ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'
+              }`}
+            />
+          </button>
         </div>
 
         {/* Content */}

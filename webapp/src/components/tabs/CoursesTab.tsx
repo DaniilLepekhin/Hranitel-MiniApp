@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { Search, Filter, BookOpen, Star, Lock, ChevronRight } from 'lucide-react';
 import { coursesApi } from '@/lib/api';
 import { CourseCard } from '@/components/ui/Card';
+import { useTelegram } from '@/hooks/useTelegram';
 
 type Category = 'all' | 'mindset' | 'spiritual' | 'esoteric' | 'health';
 
@@ -106,6 +107,7 @@ export function CoursesTab() {
                   ? (course.progress.completedDays.length / 10) * 100
                   : undefined
               }
+              onFavoriteChange={() => {}}
             />
           ))}
         </div>
@@ -140,6 +142,7 @@ interface CourseCardExtendedProps {
   isLocked?: boolean;
   lessonsCount?: number | null;
   progress?: number;
+  onFavoriteChange?: () => void;
 }
 
 function CourseCardExtended({
@@ -152,9 +155,22 @@ function CourseCardExtended({
   isLocked,
   lessonsCount,
   progress,
+  onFavoriteChange,
 }: CourseCardExtendedProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { haptic } = useTelegram();
   const categoryEmoji = categories.find((c) => c.value === category)?.emoji || '📖';
+
+  const favoriteMutation = useMutation({
+    mutationFn: () => coursesApi.toggleFavorite(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      queryClient.invalidateQueries({ queryKey: ['favorites'] });
+      haptic.notification(isFavorite ? 'success' : 'success');
+      onFavoriteChange?.();
+    },
+  });
 
   const handleClick = () => {
     if (isLocked) {
@@ -162,6 +178,12 @@ function CourseCardExtended({
       return;
     }
     router.push(`/course/${id}`);
+  };
+
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    haptic.impact('light');
+    favoriteMutation.mutate();
   };
 
   return (
@@ -191,12 +213,19 @@ function CourseCardExtended({
             </div>
           )}
 
-          {/* Favorite badge */}
-          {isFavorite && (
-            <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center">
-              <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
-            </div>
-          )}
+          {/* Favorite button */}
+          <button
+            onClick={handleFavoriteClick}
+            disabled={favoriteMutation.isPending}
+            className="absolute top-2 left-2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center active:scale-95 transition-all hover:bg-white shadow-md"
+            aria-label={isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
+          >
+            <Star
+              className={`w-4 h-4 transition-all ${
+                isFavorite ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'
+              }`}
+            />
+          </button>
         </div>
 
         {/* Content */}
