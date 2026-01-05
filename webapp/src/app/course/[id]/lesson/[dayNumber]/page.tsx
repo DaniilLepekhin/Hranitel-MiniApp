@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle, Play, Pause, Volume2, FileText, Video } from 'lucide-react';
 import { coursesApi } from '@/lib/api';
 import { useState, useRef, useEffect } from 'react';
+import { useAuthStore } from '@/store/auth';
+import { replaceContentPlaceholders } from '@/lib/content';
 
 export default function LessonPage({
   params,
@@ -15,6 +17,7 @@ export default function LessonPage({
   const router = useRouter();
   const { id, dayNumber } = use(params);
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -208,7 +211,7 @@ export default function LessonPage({
           <div className="glass rounded-3xl p-6 mb-4">
             <div className="prose prose-sm max-w-none">
               <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-                {lesson.content}
+                {replaceContentPlaceholders(lesson.content, user || undefined)}
               </div>
             </div>
           </div>
@@ -222,7 +225,7 @@ export default function LessonPage({
               Добро пожаловать
             </h3>
             <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-              {lesson.welcomeContent}
+              {replaceContentPlaceholders(lesson.welcomeContent, user || undefined)}
             </div>
           </div>
         )}
@@ -235,7 +238,7 @@ export default function LessonPage({
               О курсе
             </h3>
             <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-              {lesson.courseInfo}
+              {replaceContentPlaceholders(lesson.courseInfo, user || undefined)}
             </div>
           </div>
         )}
@@ -248,7 +251,7 @@ export default function LessonPage({
               Гид по медитации
             </h3>
             <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-              {lesson.meditationGuide}
+              {replaceContentPlaceholders(lesson.meditationGuide, user || undefined)}
             </div>
           </div>
         )}
@@ -261,7 +264,7 @@ export default function LessonPage({
               Дополнительно
             </h3>
             <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-              {lesson.additionalContent}
+              {replaceContentPlaceholders(lesson.additionalContent, user || undefined)}
             </div>
           </div>
         )}
@@ -274,7 +277,7 @@ export default function LessonPage({
               Подарок
             </h3>
             <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-              {lesson.giftContent}
+              {replaceContentPlaceholders(lesson.giftContent, user || undefined)}
             </div>
           </div>
         )}
