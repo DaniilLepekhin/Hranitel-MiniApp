@@ -3,10 +3,16 @@
 /* YourBest Design System */
 :root {
   /* Colors */
-  --color-bg-start: #F7E9DA;
-  --color-bg-end: #FDE3CC;
-  --color-text-primary: #1f2937;
-  --color-text-secondary: #6b7280;
+  /* Dark theme - current */
+  --color-bg-start: #212322;
+  --color-bg-end: #212322;
+
+  /* Light theme - original (uncomment to restore) */
+  /* --color-bg-start: #F7E9DA; */
+  /* --color-bg-end: #FDE3CC; */
+
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #d1d5db;
 
   /* Safe areas */
   --safe-area-top: env(safe-area-inset-top, 0px);
@@ -64,15 +70,27 @@ body {
 
 /* Glass effect */
 .glass {
-  background: rgba(255, 255, 255, 0.9);
+  /* Dark theme - current */
+  background: rgba(45, 47, 46, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+
+  /* Light theme - original (uncomment to restore) */
+  /* background: rgba(255, 255, 255, 0.9); */
+  /* border: none; */
 }
 
 .glass-light {
-  background: rgba(255, 255, 255, 0.6);
+  /* Dark theme - current */
+  background: rgba(45, 47, 46, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+
+  /* Light theme - original (uncomment to restore) */
+  /* background: rgba(255, 255, 255, 0.6); */
+  /* border: none; */
 }
 
 /* Animations */

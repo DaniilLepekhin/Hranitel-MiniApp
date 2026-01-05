@@ -107,21 +107,21 @@ export default function Home() {
     <main className="min-h-screen pb-24">
       {/* Decorative blobs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-orange-400 to-pink-400 rounded-full blur-3xl opacity-20 -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-full blur-3xl opacity-20 translate-y-1/2 -translate-x-1/2" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-orange-400 to-pink-400 rounded-full blur-3xl opacity-10 -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-full blur-3xl opacity-10 translate-y-1/2 -translate-x-1/2" />
       </div>
 
       {/* Fullscreen Toggle Button */}
       {webApp && (
         <button
           onClick={toggleFullscreen}
-          className="fixed bottom-24 right-4 z-50 w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center active:scale-95 transition-all hover:bg-white"
+          className="fixed bottom-24 right-4 z-50 w-12 h-12 rounded-full bg-gray-800/90 backdrop-blur-sm shadow-lg flex items-center justify-center active:scale-95 transition-all hover:bg-gray-800 border border-white/10"
           aria-label={isFullscreen ? 'Выйти из полноэкранного режима' : 'Полноэкранный режим'}
         >
           {isFullscreen ? (
-            <Minimize2 className="w-5 h-5 text-gray-700" />
+            <Minimize2 className="w-5 h-5 text-gray-300" />
           ) : (
-            <Maximize2 className="w-5 h-5 text-gray-700" />
+            <Maximize2 className="w-5 h-5 text-gray-300" />
           )}
         </button>
       )}
