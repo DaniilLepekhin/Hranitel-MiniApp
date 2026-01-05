@@ -2,10 +2,9 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { Flame, Star, TrendingUp } from 'lucide-react';
+import { Flame, Star, TrendingUp, BookOpen, Lock } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { coursesApi, gamificationApi } from '@/lib/api';
-import { CourseCard } from '@/components/ui/Card';
 
 export function HomeTab() {
   const { user } = useAuthStore();
@@ -118,11 +117,13 @@ export function HomeTab() {
         <h2 className="text-lg font-bold text-gray-900 mb-3">Рекомендуемые курсы</h2>
         <div className="space-y-3">
           {courses.map((course) => (
-            <CourseCard
+            <CourseCardCompact
               key={course.id}
+              id={course.id}
               title={course.title}
               description={course.description}
               coverUrl={course.coverUrl}
+              category={course.category}
               isFavorite={course.isFavorite}
               isLocked={course.isLocked}
               progress={
@@ -130,15 +131,98 @@ export function HomeTab() {
                   ? (course.progress.completedDays.length / 10) * 100
                   : undefined
               }
-              onClick={() => {
-                if (course.isLocked) {
-                  // TODO: Show PRO upgrade modal
-                  return;
-                }
-                router.push(`/course/${course.id}`);
-              }}
             />
           ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface CourseCardCompactProps {
+  id: string;
+  title: string;
+  description?: string | null;
+  coverUrl?: string | null;
+  category?: string | null;
+  isFavorite?: boolean;
+  isLocked?: boolean;
+  progress?: number;
+}
+
+function CourseCardCompact({
+  id,
+  title,
+  description,
+  coverUrl,
+  isFavorite,
+  isLocked,
+  progress,
+}: CourseCardCompactProps) {
+  const router = useRouter();
+
+  const handleClick = () => {
+    if (isLocked) return;
+    router.push(`/course/${id}`);
+  };
+
+  return (
+    <div
+      onClick={handleClick}
+      className="glass rounded-3xl overflow-hidden hover:shadow-xl transition-all duration-300 active:scale-[0.98] cursor-pointer"
+    >
+      <div className="flex">
+        {/* Cover Image */}
+        <div className="relative w-28 h-28 flex-shrink-0">
+          {coverUrl ? (
+            <img
+              src={coverUrl}
+              alt={title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center">
+              <BookOpen className="w-8 h-8 text-white" />
+            </div>
+          )}
+
+          {/* Lock overlay */}
+          {isLocked && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <Lock className="w-6 h-6 text-white" />
+            </div>
+          )}
+
+          {/* Favorite badge */}
+          {isFavorite && (
+            <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center">
+              <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+            </div>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
+          <div>
+            <h3 className="font-bold text-gray-900 text-base mb-1 line-clamp-2">
+              {title}
+            </h3>
+            {description && (
+              <p className="text-xs text-gray-500 line-clamp-2">{description}</p>
+            )}
+          </div>
+
+          {/* Progress bar */}
+          {progress !== undefined && progress > 0 && (
+            <div className="mt-2">
+              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-purple-400 to-indigo-500 rounded-full transition-all"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
