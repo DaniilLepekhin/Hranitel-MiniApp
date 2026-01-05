@@ -182,7 +182,7 @@ jobs:
           NODE_ENV=production
           PORT=3001
           WEBAPP_URL=https://mindandsoul.academy.daniillepekhin.com
-          API_URL=https://mindandsoul.academy.daniillepekhin.com/api/v1
+          API_URL=https://mindandsoul.academy.daniillepekhin.com
           CORS_ORIGIN=https://mindandsoul.academy.daniillepekhin.com
           NEXT_PUBLIC_API_URL=https://mindandsoul.academy.daniillepekhin.com
           NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=${{ secrets.TELEGRAM_BOT_USERNAME }}
