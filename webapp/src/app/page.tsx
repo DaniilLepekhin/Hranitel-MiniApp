@@ -115,7 +115,7 @@ export default function Home() {
       {webApp && (
         <button
           onClick={toggleFullscreen}
-          className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center active:scale-95 transition-all hover:bg-white"
+          className="fixed bottom-24 right-4 z-50 w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center active:scale-95 transition-all hover:bg-white"
           aria-label={isFullscreen ? 'Выйти из полноэкранного режима' : 'Полноэкранный режим'}
         >
           {isFullscreen ? (
