@@ -18,6 +18,7 @@ import { meditationsModule } from '@/modules/meditations';
 import { gamificationModule } from '@/modules/gamification';
 import { aiModule } from '@/modules/ai';
 import { botModule } from '@/modules/bot';
+import { setupWebhook } from '@/setup-webhook';
 
 const app = new Elysia()
   // Global plugins
@@ -99,6 +100,13 @@ logger.info(
   },
   `🚀 Academy MiniApp 2.0 Backend is running`
 );
+
+// Setup Telegram webhook
+if (!isDevelopment) {
+  setupWebhook().catch((error) => {
+    logger.error({ error }, 'Failed to setup webhook on startup');
+  });
+}
 
 // Graceful shutdown
 const shutdown = async (signal: string) => {
