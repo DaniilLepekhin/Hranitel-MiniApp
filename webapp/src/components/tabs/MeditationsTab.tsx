@@ -261,7 +261,7 @@ export function MeditationsTab() {
           </div>
 
           {/* Info & Controls */}
-          <div className="p-6 pb-12">
+          <div className="p-6 pb-32">
             {/* Title */}
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold text-white mb-2">
@@ -352,7 +352,7 @@ export function MeditationsTab() {
       {selectedMeditation && !showPlayer && isPlaying && (
         <div
           onClick={() => setShowPlayer(true)}
-          className="fixed bottom-20 left-4 right-4 glass rounded-2xl p-3 flex items-center gap-3 shadow-xl cursor-pointer"
+          className="fixed bottom-28 left-4 right-4 glass rounded-2xl p-3 flex items-center gap-3 shadow-xl cursor-pointer z-40"
         >
           <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
             {selectedMeditation.coverUrl ? (

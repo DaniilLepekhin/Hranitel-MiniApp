@@ -72,6 +72,7 @@ export function useTelegram() {
   const [webApp, setWebApp] = useState<WebApp | null>(null);
   const [user, setUser] = useState<TelegramUser | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
@@ -79,7 +80,19 @@ export function useTelegram() {
     if (tg) {
       setWebApp(tg);
       setUser(tg.initDataUnsafe?.user || null);
+      setIsFullscreen(tg.isFullscreen || false);
       setIsReady(true);
+
+      // Listen for fullscreen changes
+      const handleFullscreenChange = () => {
+        setIsFullscreen(tg.isFullscreen || false);
+      };
+
+      tg.onEvent('fullscreenChanged', handleFullscreenChange);
+
+      return () => {
+        tg.offEvent('fullscreenChanged', handleFullscreenChange);
+      };
     } else {
       // Development fallback
       setUser({
@@ -134,7 +147,7 @@ export function useTelegram() {
     haptic,
     requestFullscreen,
     exitFullscreen,
-    isFullscreen: webApp?.isFullscreen || false,
+    isFullscreen,
     initData: webApp?.initData || '',
     MainButton: webApp?.MainButton,
     BackButton: webApp?.BackButton,
