@@ -220,17 +220,17 @@ export function MeditationsTab() {
 
       {/* Full Screen Player */}
       {showPlayer && selectedMeditation && (
-        <div className="fixed inset-0 z-50 bg-gradient-to-b from-[#1a1a2e] to-[#16213e] flex flex-col">
+        <div className="fixed inset-x-0 top-0 bottom-24 z-50 bg-gradient-to-b from-[#1a1a2e] to-[#16213e] flex flex-col">
           {/* Close button */}
           <button
             onClick={closePlayer}
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center"
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center z-10"
           >
             <X className="w-5 h-5 text-white" />
           </button>
 
           {/* Cover Art */}
-          <div className="flex-1 flex items-center justify-center p-8">
+          <div className="flex-1 flex items-center justify-center p-8 pb-4">
             <div className="relative">
               {/* Animated rings */}
               <div
@@ -261,21 +261,21 @@ export function MeditationsTab() {
           </div>
 
           {/* Info & Controls */}
-          <div className="p-6 pb-32">
+          <div className="p-6 pb-6">
             {/* Title */}
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-white mb-2">
+            <div className="text-center mb-4">
+              <h2 className="text-xl font-bold text-white mb-1">
                 {selectedMeditation.title}
               </h2>
               {selectedMeditation.description && (
-                <p className="text-white/60 text-sm line-clamp-2">
+                <p className="text-white/60 text-xs line-clamp-1">
                   {selectedMeditation.description}
                 </p>
               )}
             </div>
 
             {/* Progress bar */}
-            <div className="mb-4">
+            <div className="mb-3">
               <input
                 type="range"
                 min={0}
@@ -303,10 +303,10 @@ export function MeditationsTab() {
             </div>
 
             {/* Controls */}
-            <div className="flex items-center justify-center gap-6">
+            <div className="flex items-center justify-center gap-4">
               <button
                 onClick={toggleMute}
-                className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center"
+                className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center"
               >
                 {isMuted ? (
                   <VolumeX className="w-5 h-5 text-white" />
@@ -317,30 +317,30 @@ export function MeditationsTab() {
 
               <button
                 onClick={() => skip(-15)}
-                className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center"
+                className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center"
               >
-                <SkipBack className="w-6 h-6 text-white" />
+                <SkipBack className="w-5 h-5 text-white" />
               </button>
 
               <button
                 onClick={togglePlay}
-                className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30"
+                className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30"
               >
                 {isPlaying ? (
-                  <Pause className="w-10 h-10 text-white" />
+                  <Pause className="w-8 h-8 text-white" />
                 ) : (
-                  <Play className="w-10 h-10 text-white ml-1" />
+                  <Play className="w-8 h-8 text-white ml-0.5" />
                 )}
               </button>
 
               <button
                 onClick={() => skip(15)}
-                className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center"
+                className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center"
               >
-                <SkipForward className="w-6 h-6 text-white" />
+                <SkipForward className="w-5 h-5 text-white" />
               </button>
 
-              <button className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+              <button className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
                 <Heart className="w-5 h-5 text-white" />
               </button>
             </div>
