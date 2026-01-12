@@ -139,7 +139,7 @@ export function MiniPlayer() {
   return (
     <>
       {/* Global audio element - always mounted when meditation selected */}
-      <audio ref={audioRef} crossOrigin="anonymous" preload="metadata" />
+      <audio ref={audioRef} preload="auto" />
 
       {/* Mini Player UI - only show when full player is hidden */}
       {!showFullPlayer && (
