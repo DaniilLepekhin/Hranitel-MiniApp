@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Play,
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { meditationsApi } from '@/lib/api';
 import type { Meditation } from '@/lib/api';
+import { usePlayerStore } from '@/store/player';
 
 // Local storage key for favorite meditations
 const FAVORITES_KEY = 'meditation_favorites';
@@ -27,7 +28,7 @@ function getFavorites(): string[] {
   return stored ? JSON.parse(stored) : [];
 }
 
-function toggleFavorite(id: string): boolean {
+function toggleFavoriteStorage(id: string): boolean {
   const favorites = getFavorites();
   const index = favorites.indexOf(id);
   if (index > -1) {
@@ -42,16 +43,31 @@ function toggleFavorite(id: string): boolean {
 }
 
 export function MeditationsTab() {
-  const [selectedMeditation, setSelectedMeditation] = useState<Meditation | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [isMuted, setIsMuted] = useState(false);
-  const [showPlayer, setShowPlayer] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
-
-  const audioRef = useRef<HTMLAudioElement>(null);
   const queryClient = useQueryClient();
+
+  // Global player state
+  const {
+    selectedMeditation,
+    isPlaying,
+    currentTime,
+    duration,
+    isMuted,
+    showFullPlayer,
+    setMeditation,
+    setIsPlaying,
+    setCurrentTime,
+    setIsMuted,
+    setShowFullPlayer,
+    seekTo,
+    closePlayer,
+  } = usePlayerStore();
+
+  // Skip forward/backward by seconds
+  const skip = (seconds: number) => {
+    const newTime = Math.max(0, Math.min(duration, currentTime + seconds));
+    seekTo(newTime);
+  };
 
   // Load favorites on mount
   useEffect(() => {
@@ -76,110 +92,45 @@ export function MeditationsTab() {
 
   const meditations = meditationsData?.meditations || [];
 
-  // Audio event handlers
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
-    const handleLoadedMetadata = () => setDuration(audio.duration);
-    const handleEnded = () => {
-      setIsPlaying(false);
-      if (selectedMeditation) {
-        logSessionMutation.mutate({
-          meditationId: selectedMeditation.id,
-          durationListened: Math.floor(audio.duration),
-          completed: true,
-        });
-      }
-    };
-
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('ended', handleEnded);
-
-    return () => {
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('ended', handleEnded);
-    };
-  }, [selectedMeditation]);
-
   const playMeditation = (meditation: Meditation) => {
-    setSelectedMeditation(meditation);
-    setShowPlayer(true);
+    setMeditation(meditation);
+    setShowFullPlayer(true);
     setCurrentTime(0);
-
-    if (audioRef.current) {
-      audioRef.current.src = meditation.audioUrl || '';
-      audioRef.current.play();
-      setIsPlaying(true);
-    }
+    setIsPlaying(true);
   };
 
   const togglePlay = () => {
-    if (!audioRef.current) return;
-
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play();
-    }
     setIsPlaying(!isPlaying);
   };
 
-  const seekTo = (time: number) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = time;
-      setCurrentTime(time);
-    }
-  };
-
-  const skip = (seconds: number) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = Math.max(0, Math.min(duration, currentTime + seconds));
-    }
-  };
-
   const toggleMute = () => {
-    if (audioRef.current) {
-      audioRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
-    }
+    setIsMuted(!isMuted);
   };
 
   // Toggle favorite for current meditation
   const handleToggleFavorite = () => {
     if (!selectedMeditation) return;
-    const isFav = toggleFavorite(selectedMeditation.id);
+    toggleFavoriteStorage(selectedMeditation.id);
     setFavorites(getFavorites());
   };
 
   const isFavorite = selectedMeditation ? favorites.includes(selectedMeditation.id) : false;
 
-  // Minimize player - audio continues playing
+  // Minimize player - audio continues playing via MiniPlayer
   const minimizePlayer = () => {
-    setShowPlayer(false);
-    // Audio continues playing in background
+    setShowFullPlayer(false);
   };
 
   // Close player completely - stops audio
-  const closePlayer = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      if (selectedMeditation && currentTime > 10) {
-        logSessionMutation.mutate({
-          meditationId: selectedMeditation.id,
-          durationListened: Math.floor(currentTime),
-          completed: currentTime >= duration * 0.9,
-        });
-      }
+  const handleClosePlayer = () => {
+    if (selectedMeditation && currentTime > 10) {
+      logSessionMutation.mutate({
+        meditationId: selectedMeditation.id,
+        durationListened: Math.floor(currentTime),
+        completed: currentTime >= duration * 0.9,
+      });
     }
-    setShowPlayer(false);
-    setIsPlaying(false);
-    setSelectedMeditation(null);
-    setCurrentTime(0);
-    setDuration(0);
+    closePlayer();
   };
 
   const formatTime = (seconds: number) => {
@@ -190,9 +141,6 @@ export function MeditationsTab() {
 
   return (
     <div className="px-4 pt-6 pb-24">
-      {/* Hidden audio element */}
-      <audio ref={audioRef} />
-
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">Медитации</h1>
@@ -268,7 +216,7 @@ export function MeditationsTab() {
       )}
 
       {/* Full Screen Player */}
-      {showPlayer && selectedMeditation && (
+      {showFullPlayer && selectedMeditation && (
         <div className="fixed inset-0 z-[100] bg-gradient-to-b from-[#1a1a2e] to-[#16213e] flex flex-col">
           {/* Background image */}
           <div className="absolute inset-0">
@@ -291,7 +239,7 @@ export function MeditationsTab() {
             </button>
             <span className="text-white/60 text-sm">Сейчас играет</span>
             <button
-              onClick={closePlayer}
+              onClick={handleClosePlayer}
               className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center"
             >
               <X className="w-5 h-5 text-white" />
@@ -325,7 +273,7 @@ export function MeditationsTab() {
             </div>
           </div>
 
-          {/* Info & Controls - increased bottom padding */}
+          {/* Info & Controls */}
           <div className="relative z-10 px-6 pb-32">
             {/* Title */}
             <div className="text-center mb-4">
@@ -413,78 +361,6 @@ export function MeditationsTab() {
                   className={`w-5 h-5 ${isFavorite ? 'text-red-500 fill-red-500' : 'text-white'}`}
                 />
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Mini Player - shows when player is minimized but audio is playing or paused */}
-      {selectedMeditation && !showPlayer && (
-        <div className="fixed bottom-28 left-4 right-4 z-50">
-          <div
-            className="bg-[#1a1a2e] backdrop-blur-xl rounded-2xl p-3 shadow-2xl border border-white/10"
-            onClick={() => setShowPlayer(true)}
-          >
-            <div className="flex items-center gap-3">
-              {/* Cover */}
-              <div className="w-11 h-11 rounded-xl overflow-hidden flex-shrink-0">
-                {selectedMeditation.coverUrl ? (
-                  <img
-                    src={selectedMeditation.coverUrl}
-                    alt={selectedMeditation.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-                    <Headphones className="w-5 h-5 text-white" />
-                  </div>
-                )}
-              </div>
-
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-white truncate text-sm">
-                  {selectedMeditation.title}
-                </h4>
-                <p className="text-xs text-white/60">
-                  {formatTime(currentTime)} / {formatTime(duration)}
-                </p>
-              </div>
-
-              {/* Controls - only play/pause and close */}
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    togglePlay();
-                  }}
-                  className="w-9 h-9 rounded-full bg-emerald-500 flex items-center justify-center"
-                >
-                  {isPlaying ? (
-                    <Pause className="w-4 h-4 text-white" />
-                  ) : (
-                    <Play className="w-4 h-4 text-white ml-0.5" />
-                  )}
-                </button>
-
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    closePlayer();
-                  }}
-                  className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center"
-                >
-                  <X className="w-3.5 h-3.5 text-white" />
-                </button>
-              </div>
-            </div>
-
-            {/* Mini progress bar */}
-            <div className="mt-2 h-1 bg-white/20 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-emerald-400 rounded-full transition-all"
-                style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
-              />
             </div>
           </div>
         </div>

@@ -5,8 +5,10 @@ import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { Navigation, TabType } from '@/components/ui/Navigation';
+import { MiniPlayer } from '@/components/ui/MiniPlayer';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
+import { usePlayerStore } from '@/store/player';
 import { authApi, coursesApi, meditationsApi, gamificationApi, setAuthToken } from '@/lib/api';
 
 // Tab Components
@@ -111,17 +113,17 @@ export default function Home() {
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-full blur-3xl opacity-10 translate-y-1/2 -translate-x-1/2" />
       </div>
 
-      {/* Fullscreen Toggle Button - hidden on meditations tab to avoid overlap with mini player */}
-      {webApp && activeTab !== 'meditations' && (
+      {/* Fullscreen Toggle Button */}
+      {webApp && (
         <button
           onClick={toggleFullscreen}
-          className="fixed bottom-24 right-4 z-40 w-12 h-12 rounded-full bg-gray-800/90 backdrop-blur-sm shadow-lg flex items-center justify-center active:scale-95 transition-all hover:bg-gray-800 border border-white/10"
+          className="fixed bottom-[140px] right-4 z-40 w-10 h-10 rounded-full bg-gray-800/90 backdrop-blur-sm shadow-lg flex items-center justify-center active:scale-95 transition-all hover:bg-gray-800 border border-white/10"
           aria-label={isFullscreen ? 'Выйти из полноэкранного режима' : 'Полноэкранный режим'}
         >
           {isFullscreen ? (
-            <Minimize2 className="w-5 h-5 text-gray-300" />
+            <Minimize2 className="w-4 h-4 text-gray-300" />
           ) : (
-            <Maximize2 className="w-5 h-5 text-gray-300" />
+            <Maximize2 className="w-4 h-4 text-gray-300" />
           )}
         </button>
       )}
@@ -139,6 +141,9 @@ export default function Home() {
           {tabComponents[activeTab]}
         </motion.div>
       </AnimatePresence>
+
+      {/* Mini Player - Global, persists across tabs */}
+      <MiniPlayer />
 
       {/* Navigation */}
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
