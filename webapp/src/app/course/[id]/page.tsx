@@ -5,10 +5,13 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Lock, Play, CheckCircle } from 'lucide-react';
 import { coursesApi } from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
+import { replaceContentPlaceholders } from '@/lib/content';
 
 export default function CoursePage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { id } = use(params);
+  const { user } = useAuthStore();
 
   const { data, isLoading } = useQuery({
     queryKey: ['course', id],
@@ -140,7 +143,7 @@ export default function CoursePage({ params }: { params: Promise<{ id: string }>
                     <h4 className="font-semibold text-white">{day.title}</h4>
                     {day.content && (
                       <p className="text-sm text-gray-400 line-clamp-1 mt-0.5">
-                        {day.content.substring(0, 50)}...
+                        {replaceContentPlaceholders(day.content, user || undefined).substring(0, 50)}...
                       </p>
                     )}
                   </div>
