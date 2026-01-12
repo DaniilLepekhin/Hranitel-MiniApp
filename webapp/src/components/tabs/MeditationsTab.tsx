@@ -18,6 +18,29 @@ import {
 import { meditationsApi } from '@/lib/api';
 import type { Meditation } from '@/lib/api';
 
+// Local storage key for favorite meditations
+const FAVORITES_KEY = 'meditation_favorites';
+
+function getFavorites(): string[] {
+  if (typeof window === 'undefined') return [];
+  const stored = localStorage.getItem(FAVORITES_KEY);
+  return stored ? JSON.parse(stored) : [];
+}
+
+function toggleFavorite(id: string): boolean {
+  const favorites = getFavorites();
+  const index = favorites.indexOf(id);
+  if (index > -1) {
+    favorites.splice(index, 1);
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+    return false;
+  } else {
+    favorites.push(id);
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+    return true;
+  }
+}
+
 export function MeditationsTab() {
   const [selectedMeditation, setSelectedMeditation] = useState<Meditation | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -25,9 +48,15 @@ export function MeditationsTab() {
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [showPlayer, setShowPlayer] = useState(false);
+  const [favorites, setFavorites] = useState<string[]>([]);
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const queryClient = useQueryClient();
+
+  // Load favorites on mount
+  useEffect(() => {
+    setFavorites(getFavorites());
+  }, []);
 
   const { data: meditationsData, isLoading } = useQuery({
     queryKey: ['meditations'],
@@ -118,6 +147,15 @@ export function MeditationsTab() {
       setIsMuted(!isMuted);
     }
   };
+
+  // Toggle favorite for current meditation
+  const handleToggleFavorite = () => {
+    if (!selectedMeditation) return;
+    const isFav = toggleFavorite(selectedMeditation.id);
+    setFavorites(getFavorites());
+  };
+
+  const isFavorite = selectedMeditation ? favorites.includes(selectedMeditation.id) : false;
 
   // Minimize player - audio continues playing
   const minimizePlayer = () => {
@@ -223,6 +261,7 @@ export function MeditationsTab() {
               meditation={meditation}
               onPlay={() => playMeditation(meditation)}
               isCurrentlyPlaying={selectedMeditation?.id === meditation.id && isPlaying}
+              isFavorite={favorites.includes(meditation.id)}
             />
           ))}
         </div>
@@ -270,7 +309,7 @@ export function MeditationsTab() {
               </div>
 
               {/* Cover image */}
-              <div className="w-56 h-56 rounded-full overflow-hidden shadow-2xl">
+              <div className="w-48 h-48 rounded-full overflow-hidden shadow-2xl">
                 {selectedMeditation.coverUrl ? (
                   <img
                     src={selectedMeditation.coverUrl}
@@ -279,18 +318,18 @@ export function MeditationsTab() {
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-                    <Headphones className="w-20 h-20 text-white/80" />
+                    <Headphones className="w-16 h-16 text-white/80" />
                   </div>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Info & Controls */}
-          <div className="relative z-10 px-6 pb-12">
+          {/* Info & Controls - increased bottom padding */}
+          <div className="relative z-10 px-6 pb-32">
             {/* Title */}
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-white mb-1">
+            <div className="text-center mb-4">
+              <h2 className="text-xl font-bold text-white mb-1">
                 {selectedMeditation.title}
               </h2>
               {selectedMeditation.description && (
@@ -301,7 +340,7 @@ export function MeditationsTab() {
             </div>
 
             {/* Progress bar */}
-            <div className="mb-6">
+            <div className="mb-4">
               <input
                 type="range"
                 min={0}
@@ -322,17 +361,17 @@ export function MeditationsTab() {
                   }%, rgba(255,255,255,0.2) 100%)`,
                 }}
               />
-              <div className="flex justify-between text-white/60 text-sm mt-2">
+              <div className="flex justify-between text-white/60 text-sm mt-1">
                 <span>{formatTime(currentTime)}</span>
                 <span>{formatTime(duration)}</span>
               </div>
             </div>
 
             {/* Controls */}
-            <div className="flex items-center justify-center gap-6">
+            <div className="flex items-center justify-center gap-4">
               <button
                 onClick={toggleMute}
-                className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center"
+                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"
               >
                 {isMuted ? (
                   <VolumeX className="w-5 h-5 text-white" />
@@ -343,31 +382,36 @@ export function MeditationsTab() {
 
               <button
                 onClick={() => skip(-15)}
-                className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center"
+                className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center"
               >
-                <SkipBack className="w-6 h-6 text-white" />
+                <SkipBack className="w-5 h-5 text-white" />
               </button>
 
               <button
                 onClick={togglePlay}
-                className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30"
+                className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30"
               >
                 {isPlaying ? (
-                  <Pause className="w-10 h-10 text-white" />
+                  <Pause className="w-8 h-8 text-white" />
                 ) : (
-                  <Play className="w-10 h-10 text-white ml-1" />
+                  <Play className="w-8 h-8 text-white ml-1" />
                 )}
               </button>
 
               <button
                 onClick={() => skip(15)}
-                className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center"
+                className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center"
               >
-                <SkipForward className="w-6 h-6 text-white" />
+                <SkipForward className="w-5 h-5 text-white" />
               </button>
 
-              <button className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
-                <Heart className="w-5 h-5 text-white" />
+              <button
+                onClick={handleToggleFavorite}
+                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"
+              >
+                <Heart
+                  className={`w-5 h-5 ${isFavorite ? 'text-red-500 fill-red-500' : 'text-white'}`}
+                />
               </button>
             </div>
           </div>
@@ -456,9 +500,10 @@ interface MeditationCardProps {
   meditation: Meditation;
   onPlay: () => void;
   isCurrentlyPlaying: boolean;
+  isFavorite: boolean;
 }
 
-function MeditationCard({ meditation, onPlay, isCurrentlyPlaying }: MeditationCardProps) {
+function MeditationCard({ meditation, onPlay, isCurrentlyPlaying, isFavorite }: MeditationCardProps) {
   return (
     <div
       onClick={onPlay}
@@ -495,6 +540,13 @@ function MeditationCard({ meditation, onPlay, isCurrentlyPlaying }: MeditationCa
             </div>
           )}
         </div>
+
+        {/* Favorite indicator */}
+        {isFavorite && (
+          <div className="absolute top-2 left-2">
+            <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+          </div>
+        )}
 
         {/* Info */}
         <div className="absolute bottom-2 left-2 right-2">
