@@ -87,10 +87,10 @@ export function ProfileTab() {
         </div>
 
         {/* Name */}
-        <h1 className="text-xl font-bold text-white mb-1">
-          {user?.firstName} {user?.lastName}
+        <h1 className="text-xl font-bold text-gray-900 mb-1">
+          {user?.firstName}
         </h1>
-        <p className="text-gray-400 mb-4">@{user?.username || 'user'}</p>
+        <p className="text-gray-500 mb-4">@{user?.username || 'user'}</p>
 
         {/* Level title */}
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-amber-100 to-orange-100">
@@ -151,7 +151,7 @@ export function ProfileTab() {
       {/* Achievements */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold text-white">Достижения</h2>
+          <h2 className="text-lg font-bold text-gray-900">Достижения</h2>
           <span className="text-sm text-gray-500">
             {achievementsData?.achievements.unlockedCount || 0} / {achievementsData?.achievements.total || 0}
           </span>
@@ -175,63 +175,63 @@ export function ProfileTab() {
         )}
       </div>
 
-      {/* Leaderboard */}
-      <div className="mb-6">
-        <h2 className="text-lg font-bold text-white mb-3">Таблица лидеров</h2>
+      {/* Leaderboard - временно скрыто */}
+      {/* TODO: включить когда будет больше пользователей
+      {leaderboard.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-3">Таблица лидеров</h2>
 
-        <div className="card rounded-2xl overflow-hidden">
-          {leaderboard.slice(0, 5).map((entry, index) => (
-            <div
-              key={entry.id}
-              className={`flex items-center gap-3 p-3 ${
-                index !== leaderboard.length - 1 ? 'border-b border-gray-100' : ''
-              } ${entry.id === user?.id ? 'bg-amber-50' : ''}`}
-            >
-              {/* Rank */}
+          <div className="card rounded-2xl overflow-hidden">
+            {leaderboard.slice(0, 5).map((entry, index) => (
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                  index === 0
-                    ? 'bg-gradient-to-br from-yellow-400 to-amber-500 text-white'
-                    : index === 1
-                    ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-white'
-                    : index === 2
-                    ? 'bg-gradient-to-br from-orange-300 to-orange-400 text-white'
-                    : 'bg-gray-100 text-gray-600'
-                }`}
+                key={entry.id}
+                className={`flex items-center gap-3 p-3 ${
+                  index !== leaderboard.length - 1 ? 'border-b border-gray-100' : ''
+                } ${entry.id === user?.id ? 'bg-amber-50' : ''}`}
               >
-                {index + 1}
-              </div>
-
-              {/* Avatar */}
-              {entry.photoUrl ? (
-                <img
-                  src={entry.photoUrl}
-                  alt={entry.firstName || 'User'}
-                  className="w-10 h-10 rounded-full"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center text-white font-bold">
-                  {entry.firstName?.[0] || '?'}
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                    index === 0
+                      ? 'bg-gradient-to-br from-yellow-400 to-amber-500 text-white'
+                      : index === 1
+                      ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-white'
+                      : index === 2
+                      ? 'bg-gradient-to-br from-orange-300 to-orange-400 text-white'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  {index + 1}
                 </div>
-              )}
 
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900 truncate">
-                  {entry.firstName} {entry.lastName?.[0]}.
-                </p>
-                <p className="text-xs text-gray-500">Уровень {entry.level}</p>
-              </div>
+                {entry.photoUrl ? (
+                  <img
+                    src={entry.photoUrl}
+                    alt={entry.firstName || 'User'}
+                    className="w-10 h-10 rounded-full"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center text-white font-bold">
+                    {entry.firstName?.[0] || '?'}
+                  </div>
+                )}
 
-              {/* XP */}
-              <div className="text-right">
-                <p className="font-bold text-gray-900">{entry.experience}</p>
-                <p className="text-xs text-gray-500">XP</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 truncate">
+                    {entry.firstName} {entry.lastName?.[0]}.
+                  </p>
+                  <p className="text-xs text-gray-500">Уровень {entry.level}</p>
+                </div>
+
+                <div className="text-right">
+                  <p className="font-bold text-gray-900">{entry.experience}</p>
+                  <p className="text-xs text-gray-500">XP</p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+      */}
 
       {/* Pro Subscription */}
       {!user?.isPro && (
