@@ -13,6 +13,7 @@ import {
   Clock,
   Headphones,
   X,
+  ChevronDown,
 } from 'lucide-react';
 import { meditationsApi } from '@/lib/api';
 import type { Meditation } from '@/lib/api';
@@ -118,6 +119,13 @@ export function MeditationsTab() {
     }
   };
 
+  // Minimize player - audio continues playing
+  const minimizePlayer = () => {
+    setShowPlayer(false);
+    // Audio continues playing in background
+  };
+
+  // Close player completely - stops audio
   const closePlayer = () => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -132,6 +140,8 @@ export function MeditationsTab() {
     setShowPlayer(false);
     setIsPlaying(false);
     setSelectedMeditation(null);
+    setCurrentTime(0);
+    setDuration(0);
   };
 
   const formatTime = (seconds: number) => {
@@ -220,31 +230,47 @@ export function MeditationsTab() {
 
       {/* Full Screen Player */}
       {showPlayer && selectedMeditation && (
-        <div className="fixed inset-0 z-[100] bg-gradient-to-b from-[#1a1a2e] to-[#16213e] flex flex-col pb-24">
-          {/* Close button */}
-          <button
-            onClick={closePlayer}
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center z-10"
-          >
-            <X className="w-5 h-5 text-white" />
-          </button>
+        <div className="fixed inset-0 z-[100] bg-gradient-to-b from-[#1a1a2e] to-[#16213e] flex flex-col">
+          {/* Background image */}
+          <div className="absolute inset-0">
+            {selectedMeditation.coverUrl && (
+              <img
+                src={selectedMeditation.coverUrl}
+                alt=""
+                className="w-full h-full object-cover opacity-20 blur-2xl"
+              />
+            )}
+          </div>
+
+          {/* Header */}
+          <div className="relative z-10 flex items-center justify-between p-4">
+            <button
+              onClick={minimizePlayer}
+              className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center"
+            >
+              <ChevronDown className="w-6 h-6 text-white" />
+            </button>
+            <span className="text-white/60 text-sm">Сейчас играет</span>
+            <button
+              onClick={closePlayer}
+              className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center"
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
+          </div>
 
           {/* Cover Art */}
-          <div className="flex-1 flex items-center justify-center p-6">
+          <div className="relative z-10 flex-1 flex items-center justify-center px-8">
             <div className="relative">
               {/* Animated rings */}
-              <div
-                className={`absolute inset-0 rounded-full ${
-                  isPlaying ? 'animate-pulse-ring' : ''
-                }`}
-              >
+              <div className={`absolute inset-0 rounded-full ${isPlaying ? 'animate-pulse' : ''}`}>
                 <div className="absolute inset-[-15px] rounded-full border-2 border-emerald-500/20" />
                 <div className="absolute inset-[-30px] rounded-full border-2 border-emerald-500/10" />
                 <div className="absolute inset-[-45px] rounded-full border-2 border-emerald-500/5" />
               </div>
 
               {/* Cover image */}
-              <div className="w-52 h-52 rounded-full overflow-hidden shadow-2xl">
+              <div className="w-56 h-56 rounded-full overflow-hidden shadow-2xl">
                 {selectedMeditation.coverUrl ? (
                   <img
                     src={selectedMeditation.coverUrl}
@@ -261,28 +287,28 @@ export function MeditationsTab() {
           </div>
 
           {/* Info & Controls */}
-          <div className="px-6 pb-8">
+          <div className="relative z-10 px-6 pb-12">
             {/* Title */}
-            <div className="text-center mb-4">
-              <h2 className="text-xl font-bold text-white mb-1">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-white mb-1">
                 {selectedMeditation.title}
               </h2>
               {selectedMeditation.description && (
-                <p className="text-white/60 text-xs line-clamp-1">
+                <p className="text-white/60 text-sm line-clamp-1">
                   {selectedMeditation.description}
                 </p>
               )}
             </div>
 
             {/* Progress bar */}
-            <div className="mb-3">
+            <div className="mb-6">
               <input
                 type="range"
                 min={0}
                 max={duration || 100}
                 value={currentTime}
                 onChange={(e) => seekTo(Number(e.target.value))}
-                className="w-full h-1 bg-white/20 rounded-full appearance-none cursor-pointer
+                className="w-full h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer
                   [&::-webkit-slider-thumb]:appearance-none
                   [&::-webkit-slider-thumb]:w-4
                   [&::-webkit-slider-thumb]:h-4
@@ -303,10 +329,10 @@ export function MeditationsTab() {
             </div>
 
             {/* Controls */}
-            <div className="flex items-center justify-center gap-4">
+            <div className="flex items-center justify-center gap-6">
               <button
                 onClick={toggleMute}
-                className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center"
+                className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center"
               >
                 {isMuted ? (
                   <VolumeX className="w-5 h-5 text-white" />
@@ -317,30 +343,30 @@ export function MeditationsTab() {
 
               <button
                 onClick={() => skip(-15)}
-                className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center"
+                className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center"
               >
-                <SkipBack className="w-5 h-5 text-white" />
+                <SkipBack className="w-6 h-6 text-white" />
               </button>
 
               <button
                 onClick={togglePlay}
-                className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30"
+                className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30"
               >
                 {isPlaying ? (
-                  <Pause className="w-8 h-8 text-white" />
+                  <Pause className="w-10 h-10 text-white" />
                 ) : (
-                  <Play className="w-8 h-8 text-white ml-0.5" />
+                  <Play className="w-10 h-10 text-white ml-1" />
                 )}
               </button>
 
               <button
                 onClick={() => skip(15)}
-                className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center"
+                className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center"
               >
-                <SkipForward className="w-5 h-5 text-white" />
+                <SkipForward className="w-6 h-6 text-white" />
               </button>
 
-              <button className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
+              <button className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
                 <Heart className="w-5 h-5 text-white" />
               </button>
             </div>
@@ -348,48 +374,78 @@ export function MeditationsTab() {
         </div>
       )}
 
-      {/* Mini Player */}
-      {selectedMeditation && !showPlayer && isPlaying && (
-        <div
-          onClick={() => setShowPlayer(true)}
-          className="fixed bottom-28 left-4 right-4 card rounded-2xl p-3 flex items-center gap-3 shadow-xl cursor-pointer z-40"
-        >
-          <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
-            {selectedMeditation.coverUrl ? (
-              <img
-                src={selectedMeditation.coverUrl}
-                alt={selectedMeditation.title}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-                <Headphones className="w-5 h-5 text-white" />
+      {/* Mini Player - shows when player is minimized but audio is playing or paused */}
+      {selectedMeditation && !showPlayer && (
+        <div className="fixed bottom-24 left-4 right-4 z-40">
+          <div className="bg-[#1a1a2e]/95 backdrop-blur-xl rounded-2xl p-3 shadow-xl border border-white/10">
+            <div className="flex items-center gap-3">
+              {/* Cover */}
+              <div
+                className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer"
+                onClick={() => setShowPlayer(true)}
+              >
+                {selectedMeditation.coverUrl ? (
+                  <img
+                    src={selectedMeditation.coverUrl}
+                    alt={selectedMeditation.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
+                    <Headphones className="w-5 h-5 text-white" />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          <div className="flex-1 min-w-0">
-            <h4 className="font-medium text-gray-900 truncate">
-              {selectedMeditation.title}
-            </h4>
-            <p className="text-sm text-gray-500">
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </p>
-          </div>
+              {/* Info */}
+              <div
+                className="flex-1 min-w-0 cursor-pointer"
+                onClick={() => setShowPlayer(true)}
+              >
+                <h4 className="font-medium text-white truncate text-sm">
+                  {selectedMeditation.title}
+                </h4>
+                <p className="text-xs text-white/60">
+                  {formatTime(currentTime)} / {formatTime(duration)}
+                </p>
+              </div>
 
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              togglePlay();
-            }}
-            className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center"
-          >
-            {isPlaying ? (
-              <Pause className="w-5 h-5 text-white" />
-            ) : (
-              <Play className="w-5 h-5 text-white ml-0.5" />
-            )}
-          </button>
+              {/* Controls */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    togglePlay();
+                  }}
+                  className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center"
+                >
+                  {isPlaying ? (
+                    <Pause className="w-5 h-5 text-white" />
+                  ) : (
+                    <Play className="w-5 h-5 text-white ml-0.5" />
+                  )}
+                </button>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    closePlayer();
+                  }}
+                  className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"
+                >
+                  <X className="w-4 h-4 text-white" />
+                </button>
+              </div>
+            </div>
+
+            {/* Mini progress bar */}
+            <div className="mt-2 h-1 bg-white/10 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-emerald-400 rounded-full transition-all"
+                style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>
