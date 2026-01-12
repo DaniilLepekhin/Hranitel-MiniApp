@@ -49,6 +49,7 @@ export function ProfileTab() {
   const { data: leaderboardData } = useQuery({
     queryKey: ['leaderboard'],
     queryFn: () => gamificationApi.leaderboard(10),
+    enabled: !!user,
   });
 
   const stats = statsData?.stats;
