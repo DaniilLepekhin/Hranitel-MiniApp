@@ -220,7 +220,7 @@ export function MeditationsTab() {
 
       {/* Full Screen Player */}
       {showPlayer && selectedMeditation && (
-        <div className="fixed inset-0 z-[100] bg-gradient-to-b from-[#1a1a2e] to-[#16213e] flex flex-col">
+        <div className="fixed inset-0 z-[100] bg-gradient-to-b from-[#1a1a2e] to-[#16213e] flex flex-col pb-24">
           {/* Close button */}
           <button
             onClick={closePlayer}
@@ -230,7 +230,7 @@ export function MeditationsTab() {
           </button>
 
           {/* Cover Art */}
-          <div className="flex-1 flex items-center justify-center p-8 pb-4">
+          <div className="flex-1 flex items-center justify-center p-6">
             <div className="relative">
               {/* Animated rings */}
               <div
@@ -238,13 +238,13 @@ export function MeditationsTab() {
                   isPlaying ? 'animate-pulse-ring' : ''
                 }`}
               >
-                <div className="absolute inset-[-20px] rounded-full border-2 border-emerald-500/20" />
-                <div className="absolute inset-[-40px] rounded-full border-2 border-emerald-500/10" />
-                <div className="absolute inset-[-60px] rounded-full border-2 border-emerald-500/5" />
+                <div className="absolute inset-[-15px] rounded-full border-2 border-emerald-500/20" />
+                <div className="absolute inset-[-30px] rounded-full border-2 border-emerald-500/10" />
+                <div className="absolute inset-[-45px] rounded-full border-2 border-emerald-500/5" />
               </div>
 
               {/* Cover image */}
-              <div className="w-64 h-64 rounded-full overflow-hidden shadow-2xl">
+              <div className="w-52 h-52 rounded-full overflow-hidden shadow-2xl">
                 {selectedMeditation.coverUrl ? (
                   <img
                     src={selectedMeditation.coverUrl}
@@ -253,7 +253,7 @@ export function MeditationsTab() {
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-                    <Headphones className="w-24 h-24 text-white/80" />
+                    <Headphones className="w-20 h-20 text-white/80" />
                   </div>
                 )}
               </div>
@@ -261,7 +261,7 @@ export function MeditationsTab() {
           </div>
 
           {/* Info & Controls */}
-          <div className="p-6 pb-6">
+          <div className="px-6 pb-8">
             {/* Title */}
             <div className="text-center mb-4">
               <h2 className="text-xl font-bold text-white mb-1">
