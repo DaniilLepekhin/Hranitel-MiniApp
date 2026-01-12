@@ -200,7 +200,7 @@ export function ChatTab() {
             <Sparkles className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="font-bold text-gray-900">AI Помощник</h1>
+            <h1 className="font-bold text-white">AI Помощник</h1>
             <p className="text-xs text-gray-500">Всегда на связи</p>
           </div>
         </div>
@@ -380,10 +380,10 @@ function EmptyState() {
         <Sparkles className="w-10 h-10 text-white" />
       </div>
 
-      <h2 className="text-xl font-bold text-gray-900 mb-2">
+      <h2 className="text-xl font-bold text-white mb-2">
         Привет! Я ваш AI помощник
       </h2>
-      <p className="text-gray-600 mb-6">
+      <p className="text-gray-300 mb-6">
         Задайте мне любой вопрос о медитации, осознанности или личностном росте
       </p>
 
@@ -391,7 +391,7 @@ function EmptyState() {
         {suggestions.map((suggestion, index) => (
           <button
             key={index}
-            className="w-full glass rounded-xl px-4 py-3 text-left text-gray-700 hover:shadow-md transition-all"
+            className="w-full glass rounded-xl px-4 py-3 text-left text-gray-200 hover:shadow-md transition-all"
           >
             {suggestion}
           </button>

@@ -208,7 +208,7 @@ export default function LessonPage({
 
         {/* Main Content */}
         {lesson.content && (
-          <div className="glass rounded-3xl p-6 mb-4">
+          <div className="card rounded-3xl p-6 mb-4">
             <div className="prose prose-sm max-w-none">
               <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
                 {replaceContentPlaceholders(lesson.content, user || undefined)}
@@ -219,7 +219,7 @@ export default function LessonPage({
 
         {/* Welcome Content */}
         {lesson.welcomeContent && (
-          <div className="glass rounded-3xl p-6 mb-4 bg-gradient-to-br from-purple-50 to-indigo-50">
+          <div className="card rounded-3xl p-6 mb-4 bg-gradient-to-br from-purple-50 to-indigo-50">
             <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
               <span className="text-xl">👋</span>
               Добро пожаловать
@@ -232,7 +232,7 @@ export default function LessonPage({
 
         {/* Course Info */}
         {lesson.courseInfo && (
-          <div className="glass rounded-3xl p-6 mb-4">
+          <div className="card rounded-3xl p-6 mb-4">
             <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
               <FileText className="w-5 h-5 text-purple-500" />
               О курсе
@@ -245,7 +245,7 @@ export default function LessonPage({
 
         {/* Meditation Guide */}
         {lesson.meditationGuide && (
-          <div className="glass rounded-3xl p-6 mb-4 bg-gradient-to-br from-indigo-50 to-purple-50">
+          <div className="card rounded-3xl p-6 mb-4 bg-gradient-to-br from-indigo-50 to-purple-50">
             <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
               <span className="text-xl">🧘</span>
               Гид по медитации
@@ -258,7 +258,7 @@ export default function LessonPage({
 
         {/* Additional Content */}
         {lesson.additionalContent && (
-          <div className="glass rounded-3xl p-6 mb-4">
+          <div className="card rounded-3xl p-6 mb-4">
             <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
               <span className="text-xl">✨</span>
               Дополнительно
@@ -271,7 +271,7 @@ export default function LessonPage({
 
         {/* Gift Content */}
         {lesson.giftContent && (
-          <div className="glass rounded-3xl p-6 mb-4 bg-gradient-to-br from-pink-50 to-purple-50">
+          <div className="card rounded-3xl p-6 mb-4 bg-gradient-to-br from-pink-50 to-purple-50">
             <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
               <span className="text-xl">🎁</span>
               Подарок
@@ -284,7 +284,7 @@ export default function LessonPage({
 
         {/* Stream Link */}
         {lesson.streamLink && (
-          <div className="glass rounded-3xl p-6 mb-4">
+          <div className="card rounded-3xl p-6 mb-4">
             <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
               <Video className="w-5 h-5 text-purple-500" />
               Трансляция
@@ -303,7 +303,7 @@ export default function LessonPage({
 
         {/* PDF Download */}
         {lesson.pdfUrl && (
-          <div className="glass rounded-3xl p-6 mb-4">
+          <div className="card rounded-3xl p-6 mb-4">
             <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
               <FileText className="w-5 h-5 text-purple-500" />
               Материалы

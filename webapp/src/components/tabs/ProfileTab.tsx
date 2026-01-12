@@ -86,10 +86,10 @@ export function ProfileTab() {
         </div>
 
         {/* Name */}
-        <h1 className="text-xl font-bold text-gray-900 mb-1">
+        <h1 className="text-xl font-bold text-white mb-1">
           {user?.firstName} {user?.lastName}
         </h1>
-        <p className="text-gray-500 mb-4">@{user?.username || 'user'}</p>
+        <p className="text-gray-400 mb-4">@{user?.username || 'user'}</p>
 
         {/* Level title */}
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-amber-100 to-orange-100">
@@ -100,7 +100,7 @@ export function ProfileTab() {
         {/* XP Progress */}
         {stats && (
           <div className="mt-6">
-            <div className="flex justify-between text-sm text-gray-600 mb-2">
+            <div className="flex justify-between text-sm text-gray-400 mb-2">
               <span>{stats.experience} XP</span>
               <span>След. уровень: {stats.xpNeededForNextLevel} XP</span>
             </div>

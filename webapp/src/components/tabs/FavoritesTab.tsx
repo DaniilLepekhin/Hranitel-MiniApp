@@ -47,10 +47,10 @@ export function FavoritesTab() {
           <div className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-pink-100 to-rose-100 flex items-center justify-center">
             <Heart className="w-10 h-10 text-pink-400" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">
+          <h3 className="text-lg font-semibold text-white mb-2">
             Пока нет избранных курсов
           </h3>
-          <p className="text-gray-500 mb-6">
+          <p className="text-gray-400 mb-6">
             Нажмите на звёздочку на курсе, чтобы добавить его в избранное
           </p>
           <button
