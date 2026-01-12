@@ -137,9 +137,9 @@ export default function CoursePage({ params }: { params: Promise<{ id: string }>
 
                   {/* Lesson Info */}
                   <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900">{day.title}</h4>
+                    <h4 className="font-semibold text-white">{day.title}</h4>
                     {day.content && (
-                      <p className="text-sm text-gray-500 line-clamp-1 mt-0.5">
+                      <p className="text-sm text-gray-400 line-clamp-1 mt-0.5">
                         {day.content.substring(0, 50)}...
                       </p>
                     )}
