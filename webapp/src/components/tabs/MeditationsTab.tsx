@@ -220,7 +220,7 @@ export function MeditationsTab() {
 
       {/* Full Screen Player */}
       {showPlayer && selectedMeditation && (
-        <div className="fixed inset-x-0 top-0 bottom-24 z-50 bg-gradient-to-b from-[#1a1a2e] to-[#16213e] flex flex-col">
+        <div className="fixed inset-0 z-[100] bg-gradient-to-b from-[#1a1a2e] to-[#16213e] flex flex-col">
           {/* Close button */}
           <button
             onClick={closePlayer}
