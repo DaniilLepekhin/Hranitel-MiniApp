@@ -63,7 +63,7 @@ export function CoursesTab() {
             className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all ${
               selectedCategory === category.value
                 ? 'bg-gradient-to-r from-purple-400 to-indigo-500 text-white shadow-lg'
-                : 'glass text-gray-700 hover:shadow-md'
+                : 'glass text-gray-200 hover:shadow-md'
             }`}
           >
             <span>{category.emoji}</span>
@@ -82,10 +82,10 @@ export function CoursesTab() {
       ) : filteredCourses.length === 0 ? (
         <div className="text-center py-12">
           <BookOpen className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">
+          <h3 className="text-lg font-semibold text-white mb-2">
             Курсы не найдены
           </h3>
-          <p className="text-gray-500">
+          <p className="text-gray-400">
             Попробуйте изменить поисковый запрос или категорию
           </p>
         </div>
@@ -120,8 +120,8 @@ export function CoursesTab() {
             <Star className="w-6 h-6 text-white" />
           </div>
           <div className="flex-1">
-            <h3 className="font-bold text-gray-900">Получите PRO доступ</h3>
-            <p className="text-sm text-gray-600">
+            <h3 className="font-bold text-white">Получите PRO доступ</h3>
+            <p className="text-sm text-gray-300">
               Откройте все курсы и медитации
             </p>
           </div>

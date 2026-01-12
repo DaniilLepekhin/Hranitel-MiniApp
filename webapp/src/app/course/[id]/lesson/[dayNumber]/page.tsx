@@ -103,7 +103,7 @@ export default function LessonPage({
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Урок не найден</h2>
+          <h2 className="text-2xl font-bold text-white mb-2">Урок не найден</h2>
           <button
             onClick={() => router.back()}
             className="text-purple-600 hover:underline"
@@ -127,8 +127,8 @@ export default function LessonPage({
             <ArrowLeft className="w-5 h-5 text-gray-700" />
           </button>
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-gray-500">Урок {lesson.dayNumber}</p>
-            <h1 className="text-sm font-bold text-gray-900 truncate">{lesson.title}</h1>
+            <p className="text-xs text-gray-400">Урок {lesson.dayNumber}</p>
+            <h1 className="text-sm font-bold text-white truncate">{lesson.title}</h1>
           </div>
           {isCompleted && (
             <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
@@ -204,7 +204,7 @@ export default function LessonPage({
         )}
 
         {/* Lesson Title */}
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">{lesson.title}</h2>
+        <h2 className="text-2xl font-bold text-white mb-4">{lesson.title}</h2>
 
         {/* Main Content */}
         {lesson.content && (
