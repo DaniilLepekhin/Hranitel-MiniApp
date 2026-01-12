@@ -27,13 +27,24 @@ export function MiniPlayer() {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handleTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+      // Also check duration on time update in case metadata wasn't loaded
+      if (audio.duration && !isNaN(audio.duration) && audio.duration > 0) {
+        setDuration(audio.duration);
+      }
+    };
     const handleLoadedMetadata = () => {
       if (audio.duration && !isNaN(audio.duration)) {
         setDuration(audio.duration);
       }
     };
     const handleDurationChange = () => {
+      if (audio.duration && !isNaN(audio.duration)) {
+        setDuration(audio.duration);
+      }
+    };
+    const handleCanPlay = () => {
       if (audio.duration && !isNaN(audio.duration)) {
         setDuration(audio.duration);
       }
@@ -46,6 +57,8 @@ export function MiniPlayer() {
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('durationchange', handleDurationChange);
+    audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('canplaythrough', handleCanPlay);
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
 
@@ -53,6 +66,8 @@ export function MiniPlayer() {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('durationchange', handleDurationChange);
+      audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('canplaythrough', handleCanPlay);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
     };
@@ -65,12 +80,10 @@ export function MiniPlayer() {
 
     const audioUrl = selectedMeditation.audioUrl;
 
-    // Only reload if URL actually changed (compare without base URL)
-    if (!audio.src.includes(audioUrl.split('/').pop() || '')) {
-      audio.src = audioUrl;
-      audio.load();
-    }
-  }, [selectedMeditation?.audioUrl]);
+    // Set source and load
+    audio.src = audioUrl;
+    audio.load();
+  }, [selectedMeditation?.id]); // Use id instead of audioUrl for cleaner comparison
 
   // Control play/pause separately
   useEffect(() => {
@@ -126,7 +139,7 @@ export function MiniPlayer() {
   return (
     <>
       {/* Global audio element - always mounted when meditation selected */}
-      <audio ref={audioRef} />
+      <audio ref={audioRef} crossOrigin="anonymous" preload="metadata" />
 
       {/* Mini Player UI - only show when full player is hidden */}
       {!showFullPlayer && (
