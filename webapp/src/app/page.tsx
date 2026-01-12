@@ -111,11 +111,11 @@ export default function Home() {
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-full blur-3xl opacity-10 translate-y-1/2 -translate-x-1/2" />
       </div>
 
-      {/* Fullscreen Toggle Button */}
-      {webApp && (
+      {/* Fullscreen Toggle Button - hidden on meditations tab to avoid overlap with mini player */}
+      {webApp && activeTab !== 'meditations' && (
         <button
           onClick={toggleFullscreen}
-          className="fixed bottom-24 right-4 z-50 w-12 h-12 rounded-full bg-gray-800/90 backdrop-blur-sm shadow-lg flex items-center justify-center active:scale-95 transition-all hover:bg-gray-800 border border-white/10"
+          className="fixed bottom-24 right-4 z-40 w-12 h-12 rounded-full bg-gray-800/90 backdrop-blur-sm shadow-lg flex items-center justify-center active:scale-95 transition-all hover:bg-gray-800 border border-white/10"
           aria-label={isFullscreen ? 'Выйти из полноэкранного режима' : 'Полноэкранный режим'}
         >
           {isFullscreen ? (

@@ -420,14 +420,14 @@ export function MeditationsTab() {
 
       {/* Mini Player - shows when player is minimized but audio is playing or paused */}
       {selectedMeditation && !showPlayer && (
-        <div className="fixed bottom-24 left-4 right-4 z-40">
-          <div className="bg-[#1a1a2e]/95 backdrop-blur-xl rounded-2xl p-3 shadow-xl border border-white/10">
+        <div className="fixed bottom-28 left-4 right-4 z-50">
+          <div
+            className="bg-[#1a1a2e] backdrop-blur-xl rounded-2xl p-3 shadow-2xl border border-white/10"
+            onClick={() => setShowPlayer(true)}
+          >
             <div className="flex items-center gap-3">
               {/* Cover */}
-              <div
-                className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer"
-                onClick={() => setShowPlayer(true)}
-              >
+              <div className="w-11 h-11 rounded-xl overflow-hidden flex-shrink-0">
                 {selectedMeditation.coverUrl ? (
                   <img
                     src={selectedMeditation.coverUrl}
@@ -442,10 +442,7 @@ export function MeditationsTab() {
               </div>
 
               {/* Info */}
-              <div
-                className="flex-1 min-w-0 cursor-pointer"
-                onClick={() => setShowPlayer(true)}
-              >
+              <div className="flex-1 min-w-0">
                 <h4 className="font-medium text-white truncate text-sm">
                   {selectedMeditation.title}
                 </h4>
@@ -454,19 +451,19 @@ export function MeditationsTab() {
                 </p>
               </div>
 
-              {/* Controls */}
-              <div className="flex items-center gap-2">
+              {/* Controls - only play/pause and close */}
+              <div className="flex items-center gap-1">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     togglePlay();
                   }}
-                  className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center"
+                  className="w-9 h-9 rounded-full bg-emerald-500 flex items-center justify-center"
                 >
                   {isPlaying ? (
-                    <Pause className="w-5 h-5 text-white" />
+                    <Pause className="w-4 h-4 text-white" />
                   ) : (
-                    <Play className="w-5 h-5 text-white ml-0.5" />
+                    <Play className="w-4 h-4 text-white ml-0.5" />
                   )}
                 </button>
 
@@ -475,15 +472,15 @@ export function MeditationsTab() {
                     e.stopPropagation();
                     closePlayer();
                   }}
-                  className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"
+                  className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center"
                 >
-                  <X className="w-4 h-4 text-white" />
+                  <X className="w-3.5 h-3.5 text-white" />
                 </button>
               </div>
             </div>
 
             {/* Mini progress bar */}
-            <div className="mt-2 h-1 bg-white/10 rounded-full overflow-hidden">
+            <div className="mt-2 h-1 bg-white/20 rounded-full overflow-hidden">
               <div
                 className="h-full bg-emerald-400 rounded-full transition-all"
                 style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
