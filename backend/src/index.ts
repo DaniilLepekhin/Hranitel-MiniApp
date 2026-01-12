@@ -33,27 +33,32 @@ const app = new Elysia()
     })
   )
   // Swagger docs (only in development)
-  .use(
-    swagger({
-      path: '/docs',
-      documentation: {
-        info: {
-          title: 'Academy MiniApp 2.0 API',
-          version: '1.0.0',
-          description: 'API for Academy MiniApp 2.0 - Telegram WebApp for courses and meditations',
-        },
-        tags: [
-          { name: 'Auth', description: 'Authentication endpoints' },
-          { name: 'Users', description: 'User management' },
-          { name: 'Courses', description: 'Courses and lessons' },
-          { name: 'Meditations', description: 'Meditations' },
-          { name: 'Gamification', description: 'XP, levels, achievements' },
-          { name: 'AI', description: 'AI chat' },
-          { name: 'Bot', description: 'Telegram bot' },
-        ],
-      },
-    })
-  )
+  .use((app) => {
+    if (isDevelopment) {
+      return app.use(
+        swagger({
+          path: '/docs',
+          documentation: {
+            info: {
+              title: 'Academy MiniApp 2.0 API',
+              version: '1.0.0',
+              description: 'API for Academy MiniApp 2.0 - Telegram WebApp for courses and meditations',
+            },
+            tags: [
+              { name: 'Auth', description: 'Authentication endpoints' },
+              { name: 'Users', description: 'User management' },
+              { name: 'Courses', description: 'Courses and lessons' },
+              { name: 'Meditations', description: 'Meditations' },
+              { name: 'Gamification', description: 'XP, levels, achievements' },
+              { name: 'AI', description: 'AI chat' },
+              { name: 'Bot', description: 'Telegram bot' },
+            ],
+          },
+        })
+      );
+    }
+    return app;
+  })
   // Request logging
   .derive(() => ({ requestStartTime: Date.now() }))
   .onAfterHandle(({ request, path, set, requestStartTime }) => {
@@ -69,7 +74,6 @@ const app = new Elysia()
     status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: config.NODE_ENV,
   }))
   // Root
   .get('/', () => ({

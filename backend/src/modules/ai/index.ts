@@ -146,7 +146,7 @@ export const aiModule = new Elysia({ prefix: '/ai', tags: ['AI'] })
         // Save user message
         await db.insert(chatMessages).values({
           userId: user!.id,
-          role: 'assistant',
+          role: 'user',
           content: message,
         });
 

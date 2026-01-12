@@ -223,6 +223,36 @@ export const coursesModule = new Elysia({ prefix: '/courses', tags: ['Courses'] 
         };
       }
 
+      // Get total days for this course
+      const [totalDaysResult] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(courseDays)
+        .where(eq(courseDays.courseId, id));
+
+      const totalDays = totalDaysResult?.count || 0;
+
+      // Validate bounds on completedDay
+      if (completedDay !== undefined) {
+        if (completedDay < 1 || (totalDays > 0 && completedDay > totalDays)) {
+          set.status = 400;
+          return {
+            success: false,
+            error: `Invalid completedDay: must be between 1 and ${totalDays}`,
+          };
+        }
+      }
+
+      // Validate bounds on currentDay
+      if (currentDay !== undefined) {
+        if (currentDay < 1 || (totalDays > 0 && currentDay > totalDays)) {
+          set.status = 400;
+          return {
+            success: false,
+            error: `Invalid currentDay: must be between 1 and ${totalDays}`,
+          };
+        }
+      }
+
       // Get existing progress
       const [existingProgress] = await db
         .select()

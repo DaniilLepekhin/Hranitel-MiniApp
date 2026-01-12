@@ -92,7 +92,7 @@ export const authModule = new Elysia({ prefix: '/auth', tags: ['Auth'] })
           value: token,
           httpOnly: true,
           secure: config.NODE_ENV === 'production',
-          sameSite: 'none',
+          sameSite: config.NODE_ENV === 'production' ? 'strict' : 'lax',
           path: '/',
           maxAge: 30 * 24 * 60 * 60, // 30 days
         });
@@ -195,7 +195,7 @@ export const authModule = new Elysia({ prefix: '/auth', tags: ['Auth'] })
           value: newToken,
           httpOnly: true,
           secure: config.NODE_ENV === 'production',
-          sameSite: 'none',
+          sameSite: config.NODE_ENV === 'production' ? 'strict' : 'lax',
           path: '/',
           maxAge: 30 * 24 * 60 * 60,
         });

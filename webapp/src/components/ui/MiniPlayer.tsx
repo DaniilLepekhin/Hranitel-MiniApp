@@ -154,8 +154,11 @@ export function MiniPlayer() {
                 <div className="flex items-center gap-1.5 mt-1">
                   <div className="flex-1 h-1 bg-white/20 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-emerald-400 rounded-full transition-all"
-                      style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
+                      className="h-full bg-emerald-400 rounded-full"
+                      style={{
+                        width: `${(currentTime / (duration || 1)) * 100}%`,
+                        transition: 'width 0.1s linear'
+                      }}
                     />
                   </div>
                   <span className="text-[9px] text-white/50 tabular-nums w-8">
