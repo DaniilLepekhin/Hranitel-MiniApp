@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import { Play, Pause, X, Headphones } from 'lucide-react';
 import { usePlayerStore } from '@/store/player';
 
@@ -22,70 +22,47 @@ export function MiniPlayer() {
     closePlayer,
   } = usePlayerStore();
 
-  // Audio event handlers - always active when meditation is selected
-  useEffect(() => {
-    const audio = audioRef.current;
+  // Handle audio element ref callback to attach events immediately
+  const handleAudioRef = useCallback((audio: HTMLAudioElement | null) => {
     if (!audio) return;
 
-    const handleTimeUpdate = () => {
+    // Store ref
+    (audioRef as React.MutableRefObject<HTMLAudioElement | null>).current = audio;
+
+    // Attach event handlers directly
+    audio.ontimeupdate = () => {
       setCurrentTime(audio.currentTime);
-      // Also check duration on time update in case metadata wasn't loaded
       if (audio.duration && !isNaN(audio.duration) && audio.duration > 0) {
         setDuration(audio.duration);
       }
     };
-    const handleLoadedMetadata = () => {
+
+    audio.onloadedmetadata = () => {
       if (audio.duration && !isNaN(audio.duration)) {
         setDuration(audio.duration);
       }
-    };
-    const handleDurationChange = () => {
-      if (audio.duration && !isNaN(audio.duration)) {
-        setDuration(audio.duration);
-      }
-    };
-    const handleCanPlay = () => {
-      if (audio.duration && !isNaN(audio.duration)) {
-        setDuration(audio.duration);
-      }
-    };
-    const handleEnded = () => setIsPlaying(false);
-    const handleError = (e: Event) => {
-      console.error('Audio error:', e);
     };
 
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('durationchange', handleDurationChange);
-    audio.addEventListener('canplay', handleCanPlay);
-    audio.addEventListener('canplaythrough', handleCanPlay);
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('error', handleError);
+    audio.ondurationchange = () => {
+      if (audio.duration && !isNaN(audio.duration)) {
+        setDuration(audio.duration);
+      }
+    };
 
-    return () => {
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('durationchange', handleDurationChange);
-      audio.removeEventListener('canplay', handleCanPlay);
-      audio.removeEventListener('canplaythrough', handleCanPlay);
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('error', handleError);
+    audio.oncanplay = () => {
+      if (audio.duration && !isNaN(audio.duration)) {
+        setDuration(audio.duration);
+      }
+    };
+
+    audio.onended = () => setIsPlaying(false);
+
+    audio.onerror = () => {
+      console.error('Audio error');
     };
   }, [setCurrentTime, setDuration, setIsPlaying]);
 
-  // Load audio source when meditation changes
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !selectedMeditation?.audioUrl) return;
-
-    const audioUrl = selectedMeditation.audioUrl;
-
-    // Set source and load
-    audio.src = audioUrl;
-    audio.load();
-  }, [selectedMeditation?.id]); // Use id instead of audioUrl for cleaner comparison
-
-  // Control play/pause separately
+  // Control play/pause
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !selectedMeditation?.audioUrl) return;
@@ -138,8 +115,12 @@ export function MiniPlayer() {
 
   return (
     <>
-      {/* Global audio element - always mounted when meditation selected */}
-      <audio ref={audioRef} preload="auto" />
+      {/* Global audio element - src set directly, events via ref callback */}
+      <audio
+        ref={handleAudioRef}
+        src={selectedMeditation.audioUrl || ''}
+        preload="auto"
+      />
 
       {/* Mini Player UI - only show when full player is hidden */}
       {!showFullPlayer && (
