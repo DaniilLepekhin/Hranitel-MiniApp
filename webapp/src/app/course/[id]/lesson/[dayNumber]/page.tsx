@@ -33,8 +33,12 @@ export default function LessonPage({
   const updateProgressMutation = useMutation({
     mutationFn: (data: { currentDay?: number; completedDay?: number }) =>
       coursesApi.updateProgress(id, data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['course', id] });
+      // Redirect to course page (table of contents) after completing lesson
+      if (variables.completedDay) {
+        router.push(`/course/${id}`);
+      }
     },
   });
 

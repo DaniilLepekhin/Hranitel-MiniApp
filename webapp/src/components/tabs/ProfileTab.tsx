@@ -151,7 +151,7 @@ export function ProfileTab() {
       {/* Achievements */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold text-gray-900">Достижения</h2>
+          <h2 className="text-lg font-bold text-white">Достижения</h2>
           <span className="text-sm text-gray-500">
             {achievementsData?.achievements.unlockedCount || 0} / {achievementsData?.achievements.total || 0}
           </span>
