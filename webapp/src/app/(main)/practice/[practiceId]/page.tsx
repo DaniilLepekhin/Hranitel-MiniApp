@@ -31,7 +31,7 @@ export default function PracticePage() {
   // Fetch videos/audio for practice
   const { data: videosData } = useQuery({
     queryKey: ['content', practiceId, 'videos'],
-    queryFn: () => contentApi.getDirectVideos(practiceId),
+    queryFn: () => contentApi.getItemVideos(practiceId),
     enabled: !!practiceId,
   });
 
@@ -76,7 +76,7 @@ export default function PracticePage() {
     tracks: videos.map(video => ({
       id: video.id,
       title: video.title,
-      url: video.url,
+      url: video.videoUrl,
       duration: video.durationSeconds,
       thumbnail: video.thumbnailUrl,
     })),

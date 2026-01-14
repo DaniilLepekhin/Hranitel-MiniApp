@@ -613,6 +613,7 @@ export interface ContentItem {
   title: string;
   description?: string | null;
   coverUrl?: string | null;
+  thumbnailUrl?: string | null; // Миниатюра для списков
   keyNumber?: number | null; // 1-12 для связи с ключами
   monthProgram: boolean; // Программа месяца
   orderIndex: number;
