@@ -16,31 +16,26 @@ const tabs = [
     id: 'home' as TabType,
     label: 'Главная',
     icon: Home,
-    emoji: '🏠',
   },
   {
     id: 'path' as TabType,
     label: 'Путь',
     icon: Key,
-    emoji: '🗝️',
   },
   {
     id: 'chats' as TabType,
     label: 'Чаты',
     icon: MessageCircle,
-    emoji: '💬',
   },
   {
     id: 'shop' as TabType,
     label: 'Магазин',
     icon: ShoppingBag,
-    emoji: '🛍️',
   },
   {
     id: 'profile' as TabType,
     label: 'Профиль',
     icon: User,
-    emoji: '👤',
   },
 ];
 
@@ -61,26 +56,27 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
 
+            const Icon = tab.icon;
+
             return (
               <button
                 key={tab.id}
                 onClick={() => handleTabClick(tab.id)}
                 className={clsx(
-                  'flex-1 flex flex-col items-center py-2 px-2 rounded-xl transition-all duration-300',
+                  'flex-1 flex flex-col items-center py-2.5 px-2 rounded-xl transition-all duration-300',
                   isActive
                     ? 'bg-[#8b0000] text-white shadow-md scale-105'
                     : 'text-[#6b5a4a] hover:text-[#3d2f1f]'
                 )}
               >
-                <span
+                <Icon
                   className={clsx(
-                    'w-6 h-6 flex items-center justify-center rounded-full text-sm',
-                    isActive && 'bg-white/20'
+                    'w-6 h-6 transition-transform duration-300',
+                    isActive ? 'scale-110' : 'scale-100'
                   )}
-                >
-                  {tab.emoji}
-                </span>
-                <span className="text-[10px] font-medium mt-0.5">{tab.label}</span>
+                  strokeWidth={isActive ? 2.5 : 2}
+                />
+                <span className="text-[10px] font-medium mt-1">{tab.label}</span>
               </button>
             );
           })}
