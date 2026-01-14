@@ -116,11 +116,11 @@ export default function ContentDetailPage() {
           id: firstVideo.id,
           type: 'audio',
           title: firstVideo.title,
-          description: firstVideo.description || item.description,
+          description: firstVideo.description || item.description || undefined,
           url: firstVideo.videoUrl,
-          coverUrl: item.coverUrl || item.thumbnailUrl,
-          thumbnailUrl: firstVideo.thumbnailUrl,
-          durationSeconds: firstVideo.durationSeconds,
+          coverUrl: item.coverUrl || item.thumbnailUrl || undefined,
+          thumbnailUrl: firstVideo.thumbnailUrl || undefined,
+          durationSeconds: firstVideo.durationSeconds || undefined,
         };
 
         setMedia(mediaItem, videoData.timecodes);
