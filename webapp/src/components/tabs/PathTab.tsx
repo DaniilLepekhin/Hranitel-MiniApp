@@ -21,18 +21,18 @@ const coursesApi = {
 
 // 12 месяцев программы
 const monthThemes = [
-  { key: 1, theme: 'Идентичность', emoji: '🎯', color: 'from-red-400 to-pink-500' },
-  { key: 2, theme: 'Ниша и смысл', emoji: '🎨', color: 'from-orange-400 to-amber-500' },
-  { key: 3, theme: 'Деньги и ресурсы', emoji: '💰', color: 'from-yellow-400 to-orange-500' },
-  { key: 4, theme: 'Дом и корни', emoji: '🏡', color: 'from-green-400 to-emerald-500' },
-  { key: 5, theme: 'Творчество', emoji: '🎭', color: 'from-teal-400 to-cyan-500' },
-  { key: 6, theme: 'Служение', emoji: '🙏', color: 'from-blue-400 to-indigo-500' },
-  { key: 7, theme: 'Отношения', emoji: '💝', color: 'from-purple-400 to-pink-500' },
-  { key: 8, theme: 'Трансформация', emoji: '🔥', color: 'from-pink-400 to-rose-500' },
-  { key: 9, theme: 'Мировоззрение', emoji: '🌍', color: 'from-indigo-400 to-purple-500' },
-  { key: 10, theme: 'Карьера', emoji: '👔', color: 'from-violet-400 to-fuchsia-500' },
-  { key: 11, theme: 'Сообщество', emoji: '👥', color: 'from-cyan-400 to-blue-500' },
-  { key: 12, theme: 'Духовность', emoji: '✨', color: 'from-amber-400 to-yellow-500' },
+  { key: 1, theme: 'Идентичность', emoji: '🎯' },
+  { key: 2, theme: 'Ниша и смысл', emoji: '🎨' },
+  { key: 3, theme: 'Деньги и ресурсы', emoji: '💰' },
+  { key: 4, theme: 'Дом и корни', emoji: '🏡' },
+  { key: 5, theme: 'Творчество', emoji: '🎭' },
+  { key: 6, theme: 'Служение', emoji: '🙏' },
+  { key: 7, theme: 'Отношения', emoji: '💝' },
+  { key: 8, theme: 'Трансформация', emoji: '🔥' },
+  { key: 9, theme: 'Мировоззрение', emoji: '🌍' },
+  { key: 10, theme: 'Карьера', emoji: '👔' },
+  { key: 11, theme: 'Сообщество', emoji: '👥' },
+  { key: 12, theme: 'Духовность', emoji: '✨' },
 ];
 
 export function PathTab() {
@@ -81,53 +81,51 @@ export function PathTab() {
     <div className="px-4 pt-6 pb-8">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent mb-2">
-          🗝️ Путь 12 Ключей
-        </h1>
-        <p className="text-gray-400 text-sm">
+        <h1 className="section-title">Путь 12 Ключей</h1>
+        <p className="text-[#6b5a4a] text-sm text-center">
           Год трансформации через 12 посвящений
         </p>
       </div>
 
       {/* Progress Stats */}
-      <Card className="mb-6 bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/20">
+      <Card className="p-4 mb-6 bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10 border-[#8b4513]/30">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-gray-400 text-sm mb-1">Твой прогресс</p>
+            <p className="text-[#6b5a4a] text-sm mb-1">Твой прогресс</p>
             <div className="flex items-center gap-3">
-              <p className="text-4xl font-bold text-white">{completedKeys.length}</p>
+              <p className="text-4xl font-bold text-[#3d2f1f]">{completedKeys.length}</p>
               <div>
-                <p className="text-sm text-purple-400 font-semibold">из 12 ключей</p>
-                <p className="text-xs text-gray-500">пройдено</p>
+                <p className="text-sm text-[#8b0000] font-semibold">из 12 ключей</p>
+                <p className="text-xs text-[#6b5a4a]">пройдено</p>
               </div>
             </div>
           </div>
 
           <div className="text-right">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center shadow-lg">
               <span className="text-2xl">🔑</span>
             </div>
           </div>
         </div>
 
         {/* Progress Bar */}
-        <div className="mt-4 h-2 bg-gray-800 rounded-full overflow-hidden">
+        <div className="mt-4 h-2 bg-[#e8dcc6] rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-purple-400 to-pink-500 transition-all duration-500"
+            className="h-full bg-gradient-to-r from-[#8b0000] to-[#8b4513] transition-all duration-500"
             style={{ width: `${(completedKeys.length / 12) * 100}%` }}
           />
         </div>
       </Card>
 
       {/* Info Block */}
-      <div className="mb-6 p-4 bg-gradient-to-br from-purple-500/5 to-pink-500/5 rounded-xl border border-purple-500/10">
+      <div className="mb-6 p-4 bg-gradient-to-br from-[#8b0000]/5 to-[#8b4513]/5 rounded-xl border border-[#8b4513]/20">
         <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-            <Sparkles className="w-4 h-4 text-purple-400" />
+          <div className="w-8 h-8 rounded-lg bg-[#8b0000]/20 flex items-center justify-center flex-shrink-0">
+            <Sparkles className="w-4 h-4 text-[#8b0000]" />
           </div>
           <div>
-            <h4 className="text-white font-semibold text-sm mb-1">Последовательное обучение</h4>
-            <p className="text-gray-400 text-xs leading-relaxed">
+            <h4 className="text-[#3d2f1f] font-semibold text-sm mb-1">Последовательное обучение</h4>
+            <p className="text-[#6b5a4a] text-xs leading-relaxed">
               Каждый ключ открывается после завершения предыдущего.
               Пройди весь путь за 12 месяцев трансформации.
             </p>
@@ -139,7 +137,7 @@ export function PathTab() {
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-24 rounded-2xl bg-gray-800/30 animate-pulse" />
+            <div key={i} className="h-24 rounded-2xl bg-[#e8dcc6]/50 animate-pulse" />
           ))}
         </div>
       ) : (
@@ -156,17 +154,17 @@ export function PathTab() {
                 className={`
                   p-4 transition-all duration-300 cursor-pointer
                   ${isUnlocked ? 'hover:scale-[1.02]' : 'opacity-50'}
-                  ${isCurrent && 'ring-2 ring-purple-400/50'}
+                  ${isCurrent && 'ring-2 ring-[#8b0000]/50'}
                 `}
                 onClick={() => handleKeyClick(month.key)}
               >
                 <div className="flex items-center gap-4">
                   {/* Key Icon */}
                   <div className={`
-                    w-14 h-14 rounded-xl flex items-center justify-center text-2xl
+                    w-14 h-14 rounded-xl flex items-center justify-center text-2xl shadow-md
                     ${isUnlocked
-                      ? `bg-gradient-to-br ${month.color}`
-                      : 'bg-gray-800'
+                      ? 'bg-gradient-to-br from-[#8b0000] to-[#8b4513]'
+                      : 'bg-[#e8dcc6]'
                     }
                   `}>
                     {isCompleted ? (
@@ -174,29 +172,29 @@ export function PathTab() {
                     ) : isUnlocked ? (
                       <span>{month.emoji}</span>
                     ) : (
-                      <Lock className="w-6 h-6 text-gray-600" />
+                      <Lock className="w-6 h-6 text-[#8b4513]/50" />
                     )}
                   </div>
 
                   {/* Content */}
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-bold text-purple-400">
+                      <span className="text-xs font-bold text-[#8b0000]">
                         КЛЮЧ #{month.key}
                       </span>
                       {isCurrent && (
-                        <span className="px-2 py-0.5 bg-purple-500/20 rounded-full text-xs text-purple-400 font-semibold">
+                        <span className="px-2 py-0.5 bg-[#8b0000]/20 rounded-full text-xs text-[#8b0000] font-semibold border border-[#8b4513]/30">
                           Текущий
                         </span>
                       )}
                     </div>
 
-                    <h3 className={`font-bold text-lg mb-0.5 ${isUnlocked ? 'text-white' : 'text-gray-600'}`}>
+                    <h3 className={`font-bold text-lg mb-0.5 ${isUnlocked ? 'text-[#3d2f1f]' : 'text-[#8b4513]/50'}`}>
                       {month.theme}
                     </h3>
 
                     {keyCourses.length > 0 && (
-                      <p className="text-gray-400 text-xs">
+                      <p className="text-[#6b5a4a] text-xs">
                         {keyCourses.length} {keyCourses.length === 1 ? 'урок' : 'уроков'}
                       </p>
                     )}
@@ -204,24 +202,24 @@ export function PathTab() {
 
                   {/* Status Icon */}
                   {isCompleted ? (
-                    <CheckCircle className="w-6 h-6 text-emerald-400" />
+                    <CheckCircle className="w-6 h-6 text-[#8b4513]" />
                   ) : isUnlocked ? (
-                    <ChevronRight className="w-6 h-6 text-gray-400" />
+                    <ChevronRight className="w-6 h-6 text-[#8b4513]" />
                   ) : (
-                    <Lock className="w-6 h-6 text-gray-600" />
+                    <Lock className="w-6 h-6 text-[#8b4513]/30" />
                   )}
                 </div>
 
                 {/* Progress for current key */}
                 {isCurrent && keyCourses.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-gray-700/30">
+                  <div className="mt-3 pt-3 border-t border-[#8b4513]/20">
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs text-gray-400">Прогресс</span>
-                      <span className="text-xs text-purple-400 font-semibold">0/{keyCourses.length}</span>
+                      <span className="text-xs text-[#6b5a4a]">Прогресс</span>
+                      <span className="text-xs text-[#8b0000] font-semibold">0/{keyCourses.length}</span>
                     </div>
-                    <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-[#e8dcc6] rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-purple-400 to-pink-500"
+                        className="h-full bg-gradient-to-r from-[#8b0000] to-[#8b4513]"
                         style={{ width: '0%' }}
                       />
                     </div>

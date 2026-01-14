@@ -2,10 +2,11 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { Flame, Star, Zap, BookOpen, Lock, Tv, Clock, CheckCircle, Calendar, TrendingUp } from 'lucide-react';
+import { Flame, Star, Zap, BookOpen, Lock, Tv, Clock, Calendar } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { coursesApi, gamificationApi } from '@/lib/api';
 import { useTelegram } from '@/hooks/useTelegram';
+import { Card, FeatureCard } from '@/components/ui/Card';
 
 // API endpoints для новых виджетов
 const epApi = {
@@ -52,19 +53,19 @@ export function HomeTab() {
     queryKey: ['ep', 'balance', user?.id],
     queryFn: () => epApi.getBalance(user!.id),
     enabled: !!user,
-    refetchInterval: 30000, // Обновление каждые 30 секунд
+    refetchInterval: 30000,
   });
 
   const { data: nextStreamData } = useQuery({
     queryKey: ['streams', 'next'],
     queryFn: streamsApi.getNextStream,
-    refetchInterval: 60000, // Обновление каждую минуту
+    refetchInterval: 60000,
   });
 
   const { data: deadlineData } = useQuery({
     queryKey: ['reports', 'deadline'],
     queryFn: reportsApi.getDeadline,
-    refetchInterval: 300000, // Обновление каждые 5 минут
+    refetchInterval: 300000,
   });
 
   const stats = statsData?.stats;
@@ -78,19 +79,19 @@ export function HomeTab() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">
+          <h1 className="text-2xl font-bold text-[#3d2f1f]">
             Привет, {user?.firstName || 'друг'}! 👋
           </h1>
-          <p className="text-gray-300 mt-1">Как ты себя чувствуешь сегодня?</p>
+          <p className="text-[#6b5a4a] mt-1">Как ты себя чувствуешь сегодня?</p>
         </div>
         {user?.photoUrl ? (
           <img
             src={user.photoUrl}
             alt={user.firstName || 'User'}
-            className="w-12 h-12 rounded-full shadow-md"
+            className="w-12 h-12 rounded-full shadow-md border-2 border-[#8b4513]/30"
           />
         ) : (
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center text-white font-bold shadow-md">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center text-white font-bold shadow-md">
             {user?.firstName?.[0] || '?'}
           </div>
         )}
@@ -99,29 +100,29 @@ export function HomeTab() {
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="card rounded-2xl p-4 text-center">
-            <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center">
+          <Card className="p-4 text-center">
+            <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center">
               <Flame className="w-5 h-5 text-white" />
             </div>
-            <p className="text-xl font-bold text-gray-900">{stats.streak}</p>
-            <p className="text-xs text-gray-500">Дней подряд</p>
-          </div>
+            <p className="text-xl font-bold text-[#3d2f1f]">{stats.streak}</p>
+            <p className="text-xs text-[#6b5a4a]">Дней подряд</p>
+          </Card>
 
-          <div className="card rounded-2xl p-4 text-center">
-            <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center">
+          <Card className="p-4 text-center">
+            <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-[#8b4513] to-[#a0522d] flex items-center justify-center">
               <Star className="w-5 h-5 text-white" />
             </div>
-            <p className="text-xl font-bold text-gray-900">{stats.level}</p>
-            <p className="text-xs text-gray-500">Уровень</p>
-          </div>
+            <p className="text-xl font-bold text-[#3d2f1f]">{stats.level}</p>
+            <p className="text-xs text-[#6b5a4a]">Уровень</p>
+          </Card>
 
-          <div className="card rounded-2xl p-4 text-center">
-            <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
+          <Card className="p-4 text-center">
+            <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-[#8b0000] to-[#a00000] flex items-center justify-center">
               <Zap className="w-5 h-5 text-white" />
             </div>
-            <p className="text-xl font-bold text-gray-900">{epBalance}</p>
-            <p className="text-xs text-gray-500">EP</p>
-          </div>
+            <p className="text-xl font-bold text-[#3d2f1f]">{epBalance}</p>
+            <p className="text-xs text-[#6b5a4a]">EP</p>
+          </Card>
         </div>
       )}
 
@@ -129,15 +130,15 @@ export function HomeTab() {
       <div className="grid grid-cols-2 gap-3 mb-6">
         {/* Next Stream Widget */}
         {nextStream && (
-          <div className="card rounded-2xl p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20">
+          <Card className="p-4 bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10 border-[#8b0000]/30">
             <div className="flex items-center gap-2 mb-2">
-              <Tv className="w-4 h-4 text-blue-400" />
-              <span className="text-xs font-semibold text-blue-400">БЛИЖАЙШИЙ ЭФИР</span>
+              <Tv className="w-4 h-4 text-[#8b0000]" />
+              <span className="text-xs font-semibold text-[#8b0000] uppercase">Ближайший эфир</span>
             </div>
-            <h3 className="text-sm font-bold text-gray-900 mb-1 line-clamp-2">
+            <h3 className="text-sm font-bold text-[#3d2f1f] mb-1 line-clamp-2">
               {nextStream.title}
             </h3>
-            <div className="flex items-center gap-1 text-gray-500">
+            <div className="flex items-center gap-1 text-[#6b5a4a]">
               <Clock className="w-3 h-3" />
               <span className="text-xs">
                 {new Date(nextStream.scheduledAt).toLocaleDateString('ru-RU', {
@@ -148,65 +149,67 @@ export function HomeTab() {
                 })}
               </span>
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Week Deadline Widget */}
         {deadline && (
-          <div className="card rounded-2xl p-4 bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-500/20">
+          <Card className="p-4 bg-gradient-to-br from-[#8b4513]/10 to-[#a0522d]/10 border-[#8b4513]/30">
             <div className="flex items-center gap-2 mb-2">
-              <Calendar className="w-4 h-4 text-orange-400" />
-              <span className="text-xs font-semibold text-orange-400">ДЕДЛАЙН ОТЧЕТА</span>
+              <Calendar className="w-4 h-4 text-[#8b4513]" />
+              <span className="text-xs font-semibold text-[#8b4513] uppercase">Дедлайн отчета</span>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-1">
+            <h3 className="text-2xl font-bold text-[#3d2f1f] mb-1">
               {deadline.hoursRemaining}ч
             </h3>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-[#6b5a4a]">
               до воскресенья 23:59
             </p>
-          </div>
+          </Card>
         )}
       </div>
 
-      {/* Level Progress (kept as-is) */}
+      {/* Level Progress */}
       {stats && (
-        <div className="card rounded-2xl p-4 mb-6">
+        <Card className="p-4 mb-6">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-700">
+            <span className="text-sm font-medium text-[#3d2f1f]">
               Прогресс до уровня {stats.level + 1}
             </span>
-            <span className="text-sm text-gray-500">{stats.progressPercent}%</span>
+            <span className="text-sm text-[#6b5a4a]">{stats.progressPercent}%</span>
           </div>
-          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-2 bg-[#e8dcc6] rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-orange-400 to-pink-500 rounded-full transition-all duration-500"
+              className="h-full bg-gradient-to-r from-[#8b0000] to-[#8b4513] rounded-full transition-all duration-500"
               style={{ width: `${stats.progressPercent}%` }}
             />
           </div>
-          <p className="text-xs text-gray-500 mt-2 text-center">
+          <p className="text-xs text-[#6b5a4a] mt-2 text-center">
             {stats.progressToNextLevel} / {stats.xpNeededForNextLevel} XP
           </p>
-        </div>
+        </Card>
       )}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3 mb-6">
-        <button className="card rounded-2xl p-4 text-left hover:shadow-lg transition-shadow">
+        <Card className="p-4 text-left hover:shadow-lg transition-shadow cursor-pointer">
           <span className="text-2xl mb-2 block">🧘</span>
-          <h3 className="font-semibold text-gray-900">Медитация дня</h3>
-          <p className="text-sm text-gray-500">5-10 минут</p>
-        </button>
+          <h3 className="font-semibold text-[#3d2f1f]">Медитация дня</h3>
+          <p className="text-sm text-[#6b5a4a]">5-10 минут</p>
+        </Card>
 
-        <button className="card rounded-2xl p-4 text-left hover:shadow-lg transition-shadow">
+        <Card className="p-4 text-left hover:shadow-lg transition-shadow cursor-pointer">
           <span className="text-2xl mb-2 block">📖</span>
-          <h3 className="font-semibold text-gray-900">Продолжить</h3>
-          <p className="text-sm text-gray-500">Курс обучения</p>
-        </button>
+          <h3 className="font-semibold text-[#3d2f1f]">Продолжить</h3>
+          <p className="text-sm text-[#6b5a4a]">Курс обучения</p>
+        </Card>
       </div>
 
       {/* Recommended Courses */}
       <div className="mb-6">
-        <h2 className="text-lg font-bold text-white mb-3">Рекомендуемые курсы</h2>
+        <h2 className="text-lg font-bold text-[#3d2f1f] mb-3 border-b-2 border-[#8b0000] pb-2">
+          Рекомендуемые курсы
+        </h2>
         <div className="space-y-3">
           {courses.map((course) => (
             <CourseCardCompact
@@ -276,9 +279,9 @@ function CourseCardCompact({
   };
 
   return (
-    <div
+    <Card
       onClick={handleClick}
-      className="card rounded-3xl overflow-hidden hover:shadow-xl transition-all duration-300 active:scale-[0.98] cursor-pointer"
+      className="overflow-hidden hover:shadow-lg transition-all duration-300 active:scale-[0.98] cursor-pointer"
     >
       <div className="flex">
         {/* Cover Image */}
@@ -290,7 +293,7 @@ function CourseCardCompact({
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center">
+            <div className="w-full h-full bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center">
               <BookOpen className="w-8 h-8 text-white" />
             </div>
           )}
@@ -306,12 +309,12 @@ function CourseCardCompact({
           <button
             onClick={handleFavoriteClick}
             disabled={favoriteMutation.isPending}
-            className="absolute top-2 left-2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center active:scale-95 transition-all hover:bg-white shadow-md"
+            className="absolute top-2 left-2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center active:scale-95 transition-all hover:bg-white shadow-md border border-[#8b4513]/20"
             aria-label={isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
           >
             <Star
               className={`w-4 h-4 transition-all ${
-                isFavorite ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'
+                isFavorite ? 'text-[#8b0000] fill-[#8b0000]' : 'text-[#6b5a4a]'
               }`}
             />
           </button>
@@ -320,20 +323,20 @@ function CourseCardCompact({
         {/* Content */}
         <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
           <div>
-            <h3 className="font-bold text-gray-900 text-base mb-1 line-clamp-2">
+            <h3 className="font-bold text-[#3d2f1f] text-base mb-1 line-clamp-2">
               {title}
             </h3>
             {description && (
-              <p className="text-xs text-gray-500 line-clamp-2">{description}</p>
+              <p className="text-xs text-[#6b5a4a] line-clamp-2">{description}</p>
             )}
           </div>
 
           {/* Progress bar */}
           {progress !== undefined && progress > 0 && (
             <div className="mt-2">
-              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-[#e8dcc6] rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-purple-400 to-indigo-500 rounded-full transition-all"
+                  className="h-full bg-gradient-to-r from-[#8b0000] to-[#8b4513] rounded-full transition-all"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -341,6 +344,6 @@ function CourseCardCompact({
           )}
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

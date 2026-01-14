@@ -17,35 +17,30 @@ const tabs = [
     label: 'Главная',
     icon: Home,
     emoji: '🏠',
-    gradient: 'from-orange-400 to-pink-500',
   },
   {
     id: 'path' as TabType,
     label: 'Путь',
     icon: Key,
     emoji: '🗝️',
-    gradient: 'from-purple-400 to-indigo-500',
   },
   {
     id: 'chats' as TabType,
     label: 'Чаты',
     icon: MessageCircle,
     emoji: '💬',
-    gradient: 'from-blue-400 to-cyan-500',
   },
   {
     id: 'shop' as TabType,
     label: 'Магазин',
     icon: ShoppingBag,
     emoji: '🛍️',
-    gradient: 'from-emerald-400 to-teal-500',
   },
   {
     id: 'profile' as TabType,
     label: 'Профиль',
     icon: User,
     emoji: '👤',
-    gradient: 'from-amber-400 to-orange-400',
   },
 ];
 
@@ -62,7 +57,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 safe-bottom">
       <div className="mx-4 mb-2">
-        <div className="glass rounded-2xl p-1.5 shadow-lg flex justify-between">
+        <div className="glass rounded-2xl p-1.5 shadow-lg flex justify-between border-2 border-[#8b4513]/30">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
 
@@ -73,8 +68,8 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
                 className={clsx(
                   'flex-1 flex flex-col items-center py-2 px-2 rounded-xl transition-all duration-300',
                   isActive
-                    ? `bg-gradient-to-r ${tab.gradient} text-white shadow-md scale-105`
-                    : 'text-gray-400 hover:text-gray-300'
+                    ? 'bg-[#8b0000] text-white shadow-md scale-105'
+                    : 'text-[#6b5a4a] hover:text-[#3d2f1f]'
                 )}
               >
                 <span

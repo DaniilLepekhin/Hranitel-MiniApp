@@ -3,12 +3,12 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Sparkles, Lock, Gift, Zap, Check, AlertCircle } from 'lucide-react';
+import { ShoppingBag, Sparkles, Lock, Gift, Zap, Check } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { Card } from '@/components/ui/Card';
 
-// API endpoints (будут добавлены в lib/api.ts)
+// API endpoints
 const shopApi = {
   getItemsByCategory: async () => {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/shop/items/by-category`);
@@ -50,7 +50,6 @@ const categories = [
     title: 'Элитный шанс',
     icon: Sparkles,
     emoji: '✨',
-    gradient: 'from-yellow-400 to-orange-500',
     description: 'Розыгрыши разборов от экспертов',
   },
   {
@@ -58,7 +57,6 @@ const categories = [
     title: 'Тайная комната',
     icon: Lock,
     emoji: '🔐',
-    gradient: 'from-purple-400 to-pink-500',
     description: 'Эксклюзивные уроки и практики',
   },
   {
@@ -66,7 +64,6 @@ const categories = [
     title: 'Копилка',
     icon: Gift,
     emoji: '🎁',
-    gradient: 'from-emerald-400 to-teal-500',
     description: 'Скидки и бонусы',
   },
 ];
@@ -91,7 +88,7 @@ export function ShopTab() {
     queryKey: ['ep', 'balance', user?.id],
     queryFn: () => shopApi.getUserBalance(user!.id),
     enabled: !!user,
-    refetchInterval: 10000, // Refresh every 10s
+    refetchInterval: 10000,
   });
 
   // Fetch user purchases
@@ -111,11 +108,11 @@ export function ShopTab() {
       setShowPurchaseModal(false);
       setSelectedItem(null);
 
-      webApp?.showAlert('✅ Покупка успешно совершена!');
+      webApp?.showAlert('Покупка успешно совершена!');
     },
     onError: (error: Error) => {
       haptic.notification('error');
-      webApp?.showAlert(`❌ ${error.message}`);
+      webApp?.showAlert(error.message);
     },
   });
 
@@ -140,29 +137,27 @@ export function ShopTab() {
     <div className="px-4 pt-6 pb-8">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent mb-2">
-          🛍️ Магазин
-        </h1>
-        <p className="text-gray-400 text-sm">
+        <h1 className="section-title">Магазин</h1>
+        <p className="text-[#6b5a4a] text-sm text-center">
           Обменивай Energy Points на ценные призы
         </p>
       </div>
 
       {/* Balance Card */}
-      <Card className="mb-6 bg-gradient-to-br from-orange-500/10 to-pink-500/10 border-orange-500/20">
+      <Card className="p-4 mb-6 bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-gray-400 text-sm mb-1">Твой баланс</p>
+            <p className="text-[#6b5a4a] text-sm mb-1">Твой баланс</p>
             <div className="flex items-center gap-2">
-              <Zap className="w-6 h-6 text-orange-400" />
-              <p className="text-3xl font-bold text-white">{balance.toLocaleString()}</p>
-              <span className="text-orange-400 font-semibold">EP</span>
+              <Zap className="w-6 h-6 text-[#8b0000]" />
+              <p className="text-3xl font-bold text-[#3d2f1f]">{balance.toLocaleString()}</p>
+              <span className="text-[#8b0000] font-semibold">EP</span>
             </div>
           </div>
           {purchases.length > 0 && (
             <div className="text-right">
-              <p className="text-gray-400 text-xs">Куплено</p>
-              <p className="text-2xl font-bold text-emerald-400">{purchases.length}</p>
+              <p className="text-[#6b5a4a] text-xs">Куплено</p>
+              <p className="text-2xl font-bold text-[#8b4513]">{purchases.length}</p>
             </div>
           )}
         </div>
@@ -180,10 +175,10 @@ export function ShopTab() {
                 haptic.selection();
               }}
               className={`
-                flex-1 min-w-[100px] p-3 rounded-xl transition-all duration-300
+                flex-1 min-w-[100px] p-3 rounded-xl transition-all duration-300 border
                 ${isActive
-                  ? `bg-gradient-to-r ${category.gradient} text-white shadow-lg scale-105`
-                  : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800'
+                  ? 'bg-[#8b0000] text-white shadow-lg scale-105 border-[#8b0000]'
+                  : 'bg-white/60 text-[#6b5a4a] hover:bg-white/80 border-[#8b4513]/30'
                 }
               `}
             >
@@ -195,8 +190,8 @@ export function ShopTab() {
       </div>
 
       {/* Category Description */}
-      <div className="mb-4 p-3 bg-gray-800/30 rounded-lg border border-gray-700/30">
-        <p className="text-gray-400 text-sm">
+      <div className="mb-4 p-3 bg-white/50 rounded-lg border border-[#8b4513]/20">
+        <p className="text-[#6b5a4a] text-sm">
           {categories.find(c => c.id === selectedCategory)?.description}
         </p>
       </div>
@@ -204,13 +199,13 @@ export function ShopTab() {
       {/* Items Grid */}
       {itemsLoading ? (
         <div className="text-center py-12">
-          <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-orange-400 to-pink-500 animate-pulse" />
-          <p className="text-gray-400">Загрузка товаров...</p>
+          <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-[#8b0000] to-[#8b4513] animate-pulse" />
+          <p className="text-[#6b5a4a]">Загрузка товаров...</p>
         </div>
       ) : items.length === 0 ? (
         <div className="text-center py-12">
-          <ShoppingBag className="w-16 h-16 mx-auto mb-3 text-gray-600" />
-          <p className="text-gray-400">Товары скоро появятся</p>
+          <ShoppingBag className="w-16 h-16 mx-auto mb-3 text-[#8b4513]/50" />
+          <p className="text-[#6b5a4a]">Товары скоро появятся</p>
         </div>
       ) : (
         <div className="grid gap-4">
@@ -228,18 +223,18 @@ export function ShopTab() {
               >
                 <div className="flex gap-4">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-white mb-1">{item.title}</h3>
-                    <p className="text-gray-400 text-xs mb-3 line-clamp-2">{item.description}</p>
+                    <h3 className="font-semibold text-[#3d2f1f] mb-1">{item.title}</h3>
+                    <p className="text-[#6b5a4a] text-xs mb-3 line-clamp-2">{item.description}</p>
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        <Zap className="w-4 h-4 text-orange-400" />
-                        <span className="text-lg font-bold text-orange-400">{item.price.toLocaleString()}</span>
-                        <span className="text-xs text-gray-500">EP</span>
+                        <Zap className="w-4 h-4 text-[#8b0000]" />
+                        <span className="text-lg font-bold text-[#8b0000]">{item.price.toLocaleString()}</span>
+                        <span className="text-xs text-[#6b5a4a]">EP</span>
                       </div>
 
                       {isPurchased ? (
-                        <div className="flex items-center gap-1 text-emerald-400 text-xs">
+                        <div className="flex items-center gap-1 text-[#8b4513] text-xs">
                           <Check className="w-4 h-4" />
                           <span>Куплено</span>
                         </div>
@@ -248,10 +243,10 @@ export function ShopTab() {
                           onClick={() => handlePurchase(item)}
                           disabled={!canAfford || purchaseMutation.isPending}
                           className={`
-                            px-4 py-2 rounded-lg font-semibold text-sm transition-all
+                            px-4 py-2 rounded-lg font-semibold text-sm transition-all border
                             ${canAfford
-                              ? 'bg-gradient-to-r from-orange-400 to-pink-500 text-white hover:shadow-lg active:scale-95'
-                              : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                              ? 'bg-[#8b0000] text-white border-[#8b0000] hover:shadow-lg active:scale-95'
+                              : 'bg-[#e8dcc6] text-[#6b5a4a] border-[#8b4513]/20 cursor-not-allowed'
                             }
                           `}
                         >
@@ -274,7 +269,7 @@ export function ShopTab() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             onClick={() => setShowPurchaseModal(false)}
           >
             <motion.div
@@ -282,23 +277,23 @@ export function ShopTab() {
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-gray-900 rounded-2xl p-6 max-w-sm w-full border border-gray-800"
+              className="bg-[#f8f6f0] rounded-2xl p-6 max-w-sm w-full border-2 border-[#8b4513]"
             >
-              <h3 className="text-xl font-bold text-white mb-2">Подтверди покупку</h3>
-              <p className="text-gray-400 mb-4">{selectedItem.title}</p>
+              <h3 className="text-xl font-bold text-[#3d2f1f] mb-2">Подтверди покупку</h3>
+              <p className="text-[#6b5a4a] mb-4">{selectedItem.title}</p>
 
-              <div className="bg-gray-800/50 rounded-lg p-3 mb-4">
+              <div className="bg-white/80 rounded-lg p-3 mb-4 border border-[#8b4513]/20">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-400 text-sm">Цена:</span>
+                  <span className="text-[#6b5a4a] text-sm">Цена:</span>
                   <div className="flex items-center gap-1">
-                    <Zap className="w-4 h-4 text-orange-400" />
-                    <span className="text-orange-400 font-bold">{selectedItem.price.toLocaleString()}</span>
-                    <span className="text-xs text-gray-500">EP</span>
+                    <Zap className="w-4 h-4 text-[#8b0000]" />
+                    <span className="text-[#8b0000] font-bold">{selectedItem.price.toLocaleString()}</span>
+                    <span className="text-xs text-[#6b5a4a]">EP</span>
                   </div>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400 text-sm">Останется:</span>
-                  <span className="text-white font-bold">{(balance - selectedItem.price).toLocaleString()} EP</span>
+                  <span className="text-[#6b5a4a] text-sm">Останется:</span>
+                  <span className="text-[#3d2f1f] font-bold">{(balance - selectedItem.price).toLocaleString()} EP</span>
                 </div>
               </div>
 
@@ -306,14 +301,14 @@ export function ShopTab() {
                 <button
                   onClick={() => setShowPurchaseModal(false)}
                   disabled={purchaseMutation.isPending}
-                  className="flex-1 px-4 py-3 rounded-lg bg-gray-800 text-white font-semibold hover:bg-gray-700 transition-all active:scale-95"
+                  className="flex-1 px-4 py-3 rounded-lg bg-white text-[#3d2f1f] font-semibold border border-[#8b4513]/30 hover:bg-[#e8dcc6] transition-all active:scale-95"
                 >
                   Отмена
                 </button>
                 <button
                   onClick={confirmPurchase}
                   disabled={purchaseMutation.isPending}
-                  className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-orange-400 to-pink-500 text-white font-semibold hover:shadow-lg transition-all active:scale-95 disabled:opacity-50"
+                  className="flex-1 px-4 py-3 rounded-lg bg-[#8b0000] text-white font-semibold border border-[#8b0000] hover:shadow-lg transition-all active:scale-95 disabled:opacity-50"
                 >
                   {purchaseMutation.isPending ? 'Покупка...' : 'Купить'}
                 </button>

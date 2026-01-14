@@ -4,19 +4,17 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Trophy,
   Flame,
-  Star,
-  TrendingUp,
+  Target,
   Crown,
   Settings,
   ChevronRight,
-  Award,
   Calendar,
-  Target,
   Zap,
   LogOut,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { gamificationApi } from '@/lib/api';
+import { Card } from '@/components/ui/Card';
 
 // EP API
 const epApi = {
@@ -55,12 +53,6 @@ export function ProfileTab() {
     enabled: !!user,
   });
 
-  const { data: leaderboardData } = useQuery({
-    queryKey: ['leaderboard'],
-    queryFn: () => gamificationApi.leaderboard(10),
-    enabled: !!user,
-  });
-
   const { data: epData } = useQuery({
     queryKey: ['ep', 'balance', user?.id],
     queryFn: () => epApi.getBalance(user!.id),
@@ -70,7 +62,6 @@ export function ProfileTab() {
 
   const stats = statsData?.stats;
   const achievements = achievementsData?.achievements.unlocked || [];
-  const leaderboard = leaderboardData?.leaderboard || [];
   const epBalance = epData?.balance || 0;
 
   const levelTitle = LEVEL_TITLES[Math.min((stats?.level || 1) - 1, LEVEL_TITLES.length - 1)];
@@ -82,7 +73,7 @@ export function ProfileTab() {
   return (
     <div className="px-4 pt-6 pb-24">
       {/* Profile Header */}
-      <div className="card rounded-3xl p-6 mb-6 text-center">
+      <Card className="p-6 mb-6 text-center">
         {/* Avatar */}
         <div className="relative inline-block mb-4">
           {user?.photoUrl ? (
@@ -92,43 +83,43 @@ export function ProfileTab() {
               className="w-24 h-24 rounded-full border-4 border-white shadow-lg"
             />
           ) : (
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center text-white text-3xl font-bold border-4 border-white shadow-lg">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center text-white text-3xl font-bold border-4 border-white shadow-lg">
               {user?.firstName?.[0] || '?'}
             </div>
           )}
 
           {/* Level badge */}
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-white text-sm font-bold shadow-lg">
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-[#8b0000] to-[#8b4513] text-white text-sm font-bold shadow-lg">
             Ур. {stats?.level || 1}
           </div>
         </div>
 
         {/* Name */}
-        <h1 className="text-xl font-bold text-gray-900 mb-1">
+        <h1 className="text-xl font-bold text-[#3d2f1f] mb-1">
           {user?.firstName}
         </h1>
-        <p className="text-gray-500 mb-4">@{user?.username || 'user'}</p>
+        <p className="text-[#6b5a4a] mb-4">@{user?.username || 'user'}</p>
 
         {/* Level title */}
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-amber-100 to-orange-100">
-          <Crown className="w-4 h-4 text-amber-600" />
-          <span className="text-sm font-medium text-amber-800">{levelTitle}</span>
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-[#8b0000]/10 to-[#8b4513]/10 border border-[#8b4513]/30">
+          <Crown className="w-4 h-4 text-[#8b0000]" />
+          <span className="text-sm font-medium text-[#3d2f1f]">{levelTitle}</span>
         </div>
 
         {/* EP Balance */}
         <div className="mt-6">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <Zap className="w-5 h-5 text-purple-500" />
-            <span className="text-sm font-medium text-gray-500">Energy Points</span>
+            <Zap className="w-5 h-5 text-[#8b0000]" />
+            <span className="text-sm font-medium text-[#6b5a4a]">Energy Points</span>
           </div>
           <div className="text-center">
-            <p className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
+            <p className="text-4xl font-bold text-[#8b0000]">
               {epBalance}
             </p>
-            <p className="text-xs text-gray-400 mt-1">EP</p>
+            <p className="text-xs text-[#6b5a4a] mt-1">EP</p>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Stats Grid */}
       {stats && (
@@ -137,25 +128,21 @@ export function ProfileTab() {
             icon={<Flame className="w-5 h-5" />}
             value={stats.streak}
             label="Дней подряд"
-            gradient="from-red-400 to-orange-500"
           />
           <StatCard
             icon={<Target className="w-5 h-5" />}
             value={stats.level}
             label="Уровень"
-            gradient="from-purple-400 to-indigo-500"
           />
           <StatCard
             icon={<Zap className="w-5 h-5" />}
             value={epBalance}
             label="Energy Points"
-            gradient="from-purple-400 to-pink-500"
           />
           <StatCard
             icon={<Calendar className="w-5 h-5" />}
             value={stats.streak}
             label="Активность"
-            gradient="from-blue-400 to-cyan-500"
           />
         </div>
       )}
@@ -163,8 +150,8 @@ export function ProfileTab() {
       {/* Achievements */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold text-white">Достижения</h2>
-          <span className="text-sm text-gray-500">
+          <h2 className="text-lg font-bold text-[#3d2f1f] border-b-2 border-[#8b0000] pb-1">Достижения</h2>
+          <span className="text-sm text-[#6b5a4a]">
             {achievementsData?.achievements.unlockedCount || 0} / {achievementsData?.achievements.total || 0}
           </span>
         </div>
@@ -181,90 +168,32 @@ export function ProfileTab() {
         </div>
 
         {achievements.length > 8 && (
-          <button className="w-full mt-3 py-2 text-sm text-purple-600 font-medium">
+          <button className="w-full mt-3 py-2 text-sm text-[#8b0000] font-medium">
             Показать все ({achievements.length})
           </button>
         )}
       </div>
 
-      {/* Leaderboard - временно скрыто */}
-      {/* TODO: включить когда будет больше пользователей
-      {leaderboard.length > 0 && (
-        <div className="mb-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-3">Таблица лидеров</h2>
-
-          <div className="card rounded-2xl overflow-hidden">
-            {leaderboard.slice(0, 5).map((entry, index) => (
-              <div
-                key={entry.id}
-                className={`flex items-center gap-3 p-3 ${
-                  index !== leaderboard.length - 1 ? 'border-b border-gray-100' : ''
-                } ${entry.id === user?.id ? 'bg-amber-50' : ''}`}
-              >
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                    index === 0
-                      ? 'bg-gradient-to-br from-yellow-400 to-amber-500 text-white'
-                      : index === 1
-                      ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-white'
-                      : index === 2
-                      ? 'bg-gradient-to-br from-orange-300 to-orange-400 text-white'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}
-                >
-                  {index + 1}
-                </div>
-
-                {entry.photoUrl ? (
-                  <img
-                    src={entry.photoUrl}
-                    alt={entry.firstName || 'User'}
-                    className="w-10 h-10 rounded-full"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center text-white font-bold">
-                    {entry.firstName?.[0] || '?'}
-                  </div>
-                )}
-
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 truncate">
-                    {entry.firstName} {entry.lastName?.[0]}.
-                  </p>
-                  <p className="text-xs text-gray-500">Уровень {entry.level}</p>
-                </div>
-
-                <div className="text-right">
-                  <p className="font-bold text-gray-900">{entry.experience}</p>
-                  <p className="text-xs text-gray-500">XP</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      */}
-
       {/* Pro Subscription */}
       {!user?.isPro && (
-        <div className="card rounded-3xl p-5 mb-6 bg-gradient-to-r from-purple-500/10 to-pink-500/10">
+        <Card className="p-5 mb-6 bg-gradient-to-r from-[#8b0000]/10 to-[#8b4513]/10">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center">
               <Crown className="w-7 h-7 text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="font-bold text-gray-900">Станьте PRO</h3>
-              <p className="text-sm text-gray-600">
+              <h3 className="font-bold text-[#3d2f1f]">Станьте PRO</h3>
+              <p className="text-sm text-[#6b5a4a]">
                 Полный доступ ко всем курсам и медитациям
               </p>
             </div>
-            <ChevronRight className="w-5 h-5 text-gray-400" />
+            <ChevronRight className="w-5 h-5 text-[#8b4513]" />
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Settings Menu */}
-      <div className="card rounded-2xl overflow-hidden">
+      <Card className="overflow-hidden">
         <MenuItem
           icon={<Settings className="w-5 h-5" />}
           label="Настройки"
@@ -286,7 +215,7 @@ export function ProfileTab() {
           onClick={handleLogout}
           danger
         />
-      </div>
+      </Card>
     </div>
   );
 }
@@ -295,20 +224,17 @@ interface StatCardProps {
   icon: React.ReactNode;
   value: number;
   label: string;
-  gradient: string;
 }
 
-function StatCard({ icon, value, label, gradient }: StatCardProps) {
+function StatCard({ icon, value, label }: StatCardProps) {
   return (
-    <div className="card rounded-2xl p-4">
-      <div
-        className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white mb-2`}
-      >
+    <Card className="p-4">
+      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center text-white mb-2">
         {icon}
       </div>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
-      <p className="text-xs text-gray-500">{label}</p>
-    </div>
+      <p className="text-2xl font-bold text-[#3d2f1f]">{value}</p>
+      <p className="text-xs text-[#6b5a4a]">{label}</p>
+    </Card>
   );
 }
 
@@ -322,17 +248,17 @@ function AchievementBadge({ icon, title, isUnlocked }: AchievementBadgeProps) {
   return (
     <div className="flex flex-col items-center">
       <div
-        className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl ${
+        className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl border ${
           isUnlocked
-            ? 'bg-gradient-to-br from-amber-100 to-orange-100 shadow-md'
-            : 'bg-gray-100 grayscale opacity-50'
+            ? 'bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10 border-[#8b4513]/30 shadow-md'
+            : 'bg-[#e8dcc6] border-[#8b4513]/10 grayscale opacity-50'
         }`}
       >
         {icon || '🏆'}
       </div>
       <p
         className={`text-xs mt-1 text-center truncate w-full ${
-          isUnlocked ? 'text-gray-700' : 'text-gray-400'
+          isUnlocked ? 'text-[#3d2f1f]' : 'text-[#6b5a4a]'
         }`}
       >
         {title}
@@ -352,13 +278,13 @@ function MenuItem({ icon, label, onClick, danger }: MenuItemProps) {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 p-4 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors"
+      className="w-full flex items-center gap-3 p-4 border-b border-[#8b4513]/10 last:border-b-0 hover:bg-[#f8f6f0] transition-colors"
     >
-      <span className={danger ? 'text-red-500' : 'text-gray-600'}>{icon}</span>
-      <span className={`flex-1 text-left font-medium ${danger ? 'text-red-500' : 'text-gray-900'}`}>
+      <span className={danger ? 'text-[#8b0000]' : 'text-[#6b5a4a]'}>{icon}</span>
+      <span className={`flex-1 text-left font-medium ${danger ? 'text-[#8b0000]' : 'text-[#3d2f1f]'}`}>
         {label}
       </span>
-      <ChevronRight className="w-4 h-4 text-gray-400" />
+      <ChevronRight className="w-4 h-4 text-[#8b4513]" />
     </button>
   );
 }

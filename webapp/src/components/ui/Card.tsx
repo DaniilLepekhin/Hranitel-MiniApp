@@ -7,7 +7,7 @@ interface CardProps {
   children: ReactNode;
   className?: string;
   onClick?: () => void;
-  variant?: 'default' | 'glass' | 'gradient';
+  variant?: 'default' | 'glass' | 'gradient' | 'feature';
   gradient?: string;
   coverUrl?: string;
 }
@@ -20,12 +20,13 @@ export function Card({
   gradient,
   coverUrl,
 }: CardProps) {
-  const baseStyles = 'rounded-3xl overflow-hidden transition-all duration-300';
+  const baseStyles = 'rounded-xl overflow-hidden transition-all duration-300';
 
   const variantStyles = {
-    default: 'bg-white shadow-lg hover:shadow-xl',
-    glass: 'glass shadow-lg hover:shadow-xl',
-    gradient: gradient ? `bg-gradient-to-br ${gradient}` : 'bg-gradient-to-br from-gray-100 to-gray-200',
+    default: 'card',
+    glass: 'glass',
+    gradient: gradient ? `bg-gradient-to-br ${gradient}` : 'bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/5',
+    feature: 'feature-card',
   };
 
   return (
@@ -55,6 +56,42 @@ export function Card({
   );
 }
 
+// Feature card with icon (KOD style)
+interface FeatureCardProps {
+  icon: string;
+  title: string;
+  description?: string;
+  onClick?: () => void;
+  className?: string;
+}
+
+export function FeatureCard({
+  icon,
+  title,
+  description,
+  onClick,
+  className,
+}: FeatureCardProps) {
+  return (
+    <div
+      onClick={onClick}
+      className={clsx(
+        'feature-card p-3 flex items-center gap-3',
+        onClick && 'cursor-pointer',
+        className
+      )}
+    >
+      <span className="icon-badge">{icon}</span>
+      <div className="flex-1">
+        <span className="font-semibold text-sm text-[#3d2f1f]">{title}</span>
+        {description && (
+          <p className="text-xs text-[#6b5a4a] mt-0.5">{description}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 interface CourseCardProps {
   title: string;
   description?: string;
@@ -78,8 +115,9 @@ export function CourseCard({
     <div
       onClick={onClick}
       className={clsx(
-        'relative h-32 rounded-3xl overflow-hidden shadow-lg cursor-pointer',
-        'transition-all duration-300 hover:shadow-xl active:scale-[0.98]',
+        'relative h-32 rounded-xl overflow-hidden cursor-pointer',
+        'border-2 border-[#8b4513]/30',
+        'transition-all duration-300 hover:shadow-lg active:scale-[0.98]',
         isLocked && 'opacity-70'
       )}
     >
@@ -90,7 +128,7 @@ export function CourseCard({
           style={{ backgroundImage: `url(${coverUrl})` }}
         />
       ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-indigo-600" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#8b0000] to-[#8b4513]" />
       )}
 
       {/* Overlay */}
@@ -120,8 +158,8 @@ export function CourseCard({
               </div>
             </div>
           )}
-          <button className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md">
-            <span className="text-gray-900">▶</span>
+          <button className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md border border-[#8b4513]/20">
+            <span className="text-[#8b0000]">▶</span>
           </button>
         </div>
       </div>
