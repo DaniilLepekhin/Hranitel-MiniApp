@@ -51,8 +51,8 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 safe-bottom">
-      <div className="mx-4 mb-2">
-        <div className="glass rounded-2xl p-1.5 shadow-lg flex justify-between border-2 border-[#8b4513]/30">
+      <div className="mx-3 mb-1.5">
+        <div className="glass rounded-xl p-1 shadow-lg flex justify-between border-2 border-[#8b4513]/30">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
 
@@ -63,7 +63,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
                 key={tab.id}
                 onClick={() => handleTabClick(tab.id)}
                 className={clsx(
-                  'flex-1 flex flex-col items-center py-2.5 px-2 rounded-xl transition-all duration-300',
+                  'flex-1 flex flex-col items-center py-1.5 px-1.5 rounded-lg transition-all duration-300',
                   isActive
                     ? 'bg-[#8b0000] text-white shadow-md scale-105'
                     : 'text-[#6b5a4a] hover:text-[#3d2f1f]'
@@ -71,12 +71,12 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
               >
                 <Icon
                   className={clsx(
-                    'w-6 h-6 transition-transform duration-300',
+                    'w-5 h-5 transition-transform duration-300',
                     isActive ? 'scale-110' : 'scale-100'
                   )}
                   strokeWidth={isActive ? 2.5 : 2}
                 />
-                <span className="text-[10px] font-medium mt-1">{tab.label}</span>
+                <span className="text-[9px] font-medium mt-0.5">{tab.label}</span>
               </button>
             );
           })}

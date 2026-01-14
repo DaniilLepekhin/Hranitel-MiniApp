@@ -30,6 +30,7 @@ export const cityChatModule = new Elysia({ prefix: '/city-chats' })
         SELECT DISTINCT country
         FROM city_chats_ik
         WHERE country IS NOT NULL
+          AND country != 'Украина'
         ORDER BY country
       `;
 
