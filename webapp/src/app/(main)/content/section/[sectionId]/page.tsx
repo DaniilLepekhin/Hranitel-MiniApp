@@ -173,9 +173,9 @@ export default function SectionPage() {
                         {Math.floor(video.durationSeconds / 60)} мин
                       </span>
                     )}
-                    {videoProgress && videoProgress.epEarned > 0 && (
+                    {videoProgress && videoProgress.energiesEarned > 0 && (
                       <span className="px-2 py-1 rounded-full bg-[#8b0000]/10 text-[#8b0000] font-semibold">
-                        +{videoProgress.epEarned} EP
+                        +{videoProgress.energiesEarned} Энергии
                       </span>
                     )}
                   </div>
