@@ -1,4 +1,6 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL !== undefined
+  ? process.env.NEXT_PUBLIC_API_URL
+  : 'http://localhost:3001';
 
 interface ApiOptions extends RequestInit {
   params?: Record<string, string | number | undefined>;
