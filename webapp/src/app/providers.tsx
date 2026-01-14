@@ -3,8 +3,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { useTelegram } from '@/hooks/useTelegram';
-import { MediaPlayerProvider } from '@/contexts/MediaPlayerContext';
-import { FloatingPlayer } from '@/components/media/FloatingPlayer';
+import { FullMediaPlayer } from '@/components/player/FullMediaPlayer';
+import { MiniPlayer } from '@/components/player/MiniPlayer';
 
 function TelegramInit() {
   const { webApp, ready } = useTelegram();
@@ -41,11 +41,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <MediaPlayerProvider>
-        <TelegramInit />
-        {children}
-        <FloatingPlayer />
-      </MediaPlayerProvider>
+      <TelegramInit />
+      {children}
+      <FullMediaPlayer />
+      <MiniPlayer />
     </QueryClientProvider>
   );
 }

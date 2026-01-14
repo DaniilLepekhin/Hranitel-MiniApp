@@ -8,6 +8,7 @@ import { contentApi, type ContentItem, type ContentSection } from '@/lib/api';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { Card } from '@/components/ui/Card';
+import { useMediaPlayerStore, type MediaItem } from '@/store/media-player';
 
 export default function ContentDetailPage() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function ContentDetailPage() {
   const { haptic } = useTelegram();
   const { user } = useAuthStore();
   const itemId = params.itemId as string;
+  const { setMedia } = useMediaPlayerStore();
 
   // Fetch content item details
   const { data: itemData, isLoading: itemLoading } = useQuery({
@@ -94,6 +96,40 @@ export default function ContentDetailPage() {
     router.push(`/practice/${itemId}`);
   };
 
+  // Play podcast/stream with timecodes
+  const handlePlayMedia = async () => {
+    if (!item) return;
+
+    haptic.impact('light');
+
+    // For podcasts and streams, fetch first video with timecodes
+    if (item.type === 'podcast' || item.type === 'stream_record') {
+      try {
+        // Get first video
+        const firstVideo = videos[0];
+        if (!firstVideo) return;
+
+        // Fetch video with timecodes
+        const videoData = await contentApi.getVideo(firstVideo.id);
+
+        const mediaItem: MediaItem = {
+          id: firstVideo.id,
+          type: 'audio',
+          title: firstVideo.title,
+          description: firstVideo.description || item.description,
+          url: firstVideo.videoUrl,
+          coverUrl: item.coverUrl || item.thumbnailUrl,
+          thumbnailUrl: firstVideo.thumbnailUrl,
+          durationSeconds: firstVideo.durationSeconds,
+        };
+
+        setMedia(mediaItem, videoData.timecodes);
+      } catch (error) {
+        console.error('Failed to load media:', error);
+      }
+    }
+  };
+
   if (itemLoading) {
     return (
       <div className="px-4 pt-6 pb-24">
@@ -171,12 +207,35 @@ export default function ContentDetailPage() {
         </div>
       )}
 
-      {/* Course/Podcast Sections */}
-      {(item.type === 'course' || item.type === 'podcast') && sections.length > 0 && (
+      {/* Podcasts/Streams - Play button */}
+      {(item.type === 'podcast' || item.type === 'stream_record') && videos.length > 0 && (
+        <Card
+          className="p-6 hover:scale-[1.02] transition-all cursor-pointer bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10 border-2 border-[#8b0000]"
+          onClick={handlePlayMedia}
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center shadow-lg flex-shrink-0">
+              <Play className="w-10 h-10 text-white ml-1" fill="white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-[#3d2f1f] text-lg mb-1">
+                {item.type === 'podcast' ? 'Слушать подкаст' : 'Смотреть запись эфира'}
+              </h3>
+              <p className="text-[#6b5a4a] text-sm">
+                {videos[0]?.durationSeconds
+                  ? `${Math.floor(videos[0].durationSeconds / 60)} мин • С таймкодами`
+                  : 'С таймкодами для навигации'}
+              </p>
+            </div>
+            <ChevronRight className="w-6 h-6 text-[#8b4513]" />
+          </div>
+        </Card>
+      )}
+
+      {/* Course Sections */}
+      {item.type === 'course' && sections.length > 0 && (
         <div className="space-y-3">
-          <h2 className="font-bold text-[#3d2f1f] text-lg mb-3">
-            {item.type === 'course' ? 'Уроки' : 'Эпизоды'}
-          </h2>
+          <h2 className="font-bold text-[#3d2f1f] text-lg mb-3">Уроки</h2>
           {sections.map((section, index) => {
             const sectionProgress = progress.filter((p) => p.contentItemId === itemId);
             const isCompleted = false; // TODO: calculate based on all videos in section
@@ -219,62 +278,6 @@ export default function ContentDetailPage() {
         </div>
       )}
 
-      {/* Stream Recording Videos */}
-      {item.type === 'stream_record' && videos.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="font-bold text-[#3d2f1f] text-lg mb-3">Записи</h2>
-          {videos.map((video) => {
-            const videoProgress = progress.find((p) => p.videoId === video.id);
-            const isWatched = videoProgress?.watched || false;
-
-            return (
-              <Card
-                key={video.id}
-                className="p-4 hover:scale-[1.02] transition-all cursor-pointer"
-                onClick={() => handleVideoClick(video.id)}
-              >
-                <div className="flex gap-4">
-                  {video.thumbnailUrl ? (
-                    <div className="relative w-24 h-24 rounded-xl overflow-hidden flex-shrink-0">
-                      <img
-                        src={video.thumbnailUrl}
-                        alt={video.title}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                        <Play className="w-8 h-8 text-white" fill="white" />
-                      </div>
-                      {isWatched && (
-                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[#8b0000] flex items-center justify-center">
-                          <CheckCircle className="w-4 h-4 text-white" />
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center flex-shrink-0">
-                      <Play className="w-10 h-10 text-white" fill="white" />
-                    </div>
-                  )}
-
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-[#3d2f1f] mb-1">{video.title}</h3>
-                    {video.description && (
-                      <p className="text-sm text-[#6b5a4a] line-clamp-2">{video.description}</p>
-                    )}
-                    {video.durationSeconds && (
-                      <p className="text-xs text-[#8b0000] font-semibold mt-2">
-                        {Math.floor(video.durationSeconds / 60)} мин
-                      </p>
-                    )}
-                  </div>
-
-                  <ChevronRight className="w-5 h-5 text-[#8b4513] self-center" />
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      )}
 
       {/* Practice Button */}
       {item.type === 'practice' && (
