@@ -27,7 +27,7 @@ jobs:
               echo "📁 Creating project directory..."
               mkdir -p /var/www/hranitel
               cd /var/www/hranitel
-              git clone https://github.com/DaniilLepekhin/Academy_MiniApp_2.0.git .
+              git clone https://github.com/DaniilLepekhin/Hranitel-MiniApp.git .
             }
 
             # Pull latest changes
@@ -67,6 +67,9 @@ jobs:
             echo "🎨 Deploying Frontend..."
             cd ../webapp
 
+            # Create .env for production (API on same domain via /api/)
+            echo "NEXT_PUBLIC_API_URL=/api" > .env.local
+
             # Install dependencies
             npm install
 
@@ -80,17 +83,19 @@ jobs:
             pm2 start --name kod-deneg-frontend "npm run start"
             pm2 save
 
-            # Setup Nginx if not exists
-            if [ ! -f /etc/nginx/sites-available/hranitel ]; then
-              echo "🌐 Configuring Nginx..."
-              cat > /etc/nginx/sites-available/hranitel << 'NGINX_EOF'
-# Backend API
+            # Setup Nginx - single domain with /api/ path
+            echo "🌐 Configuring Nginx..."
+            cat > /etc/nginx/sites-available/hranitel << 'NGINX_EOF'
+# Single domain: hranitel.daniillepekhin.com
+# Frontend: /
+# Backend API: /api/
 server {
     listen 80;
-    server_name api.hranitel.daniillepekhin.com;
+    server_name hranitel.daniillepekhin.com;
 
-    location / {
-        proxy_pass http://localhost:3001;
+    # Backend API - proxy /api/* to port 3001
+    location /api/ {
+        proxy_pass http://localhost:3001/api/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -100,13 +105,8 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
-}
 
-# Frontend WebApp
-server {
-    listen 80;
-    server_name hranitel.daniillepekhin.com;
-
+    # Frontend WebApp - everything else to port 3000
     location / {
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
@@ -121,9 +121,8 @@ server {
 }
 NGINX_EOF
 
-              ln -sf /etc/nginx/sites-available/hranitel /etc/nginx/sites-enabled/
-              nginx -t && systemctl reload nginx
-            fi
+            ln -sf /etc/nginx/sites-available/hranitel /etc/nginx/sites-enabled/
+            nginx -t && systemctl reload nginx
 
             # Setup SSL with Certbot (Let's Encrypt)
             if ! command -v certbot &> /dev/null; then
@@ -132,13 +131,13 @@ NGINX_EOF
               apt-get install -y certbot python3-certbot-nginx
             fi
 
-            # Get SSL certificates
-            certbot --nginx -d hranitel.daniillepekhin.com -d api.hranitel.daniillepekhin.com --non-interactive --agree-tos --email admin@daniillepekhin.com || echo "⚠️ SSL setup skipped"
+            # Get SSL certificate for single domain
+            certbot --nginx -d hranitel.daniillepekhin.com --non-interactive --agree-tos --email admin@daniillepekhin.com || echo "⚠️ SSL setup skipped"
 
             echo "✅ Deployment completed successfully!"
             echo ""
             echo "🌐 Frontend: https://hranitel.daniillepekhin.com"
-            echo "🔌 Backend API: https://api.hranitel.daniillepekhin.com"
+            echo "🔌 Backend API: https://hranitel.daniillepekhin.com/api/"
             echo ""
             pm2 status
 
