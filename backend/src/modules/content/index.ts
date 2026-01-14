@@ -174,11 +174,11 @@ export const contentModule = new Elysia({ prefix: '/api/v1/content' })
     })
   })
 
-  // Mark video as completed (with EP reward)
+  // Mark video as completed (with Энергий)
   .post('/progress/complete', async ({ body }) => {
     const { userId, videoId, watchTimeSeconds } = body;
 
-    // Get video details to calculate EP reward
+    // Get video details to calculate Энергий
     const video = await db
       .select()
       .from(videos)
@@ -189,7 +189,7 @@ export const contentModule = new Elysia({ prefix: '/api/v1/content' })
       throw new Error('Video not found');
     }
 
-    // Calculate EP reward based on video duration
+    // Calculate Энергий based on video duration
     let energiesReward = 0;
     const durationMinutes = (video[0].durationSeconds || 0) / 60;
 
@@ -241,7 +241,7 @@ export const contentModule = new Elysia({ prefix: '/api/v1/content' })
         .returning();
     }
 
-    // Award EP to user
+    // Award Энергии пользователю
     if (energiesReward > 0) {
       await db.insert(energyTransactions).values({
         userId,

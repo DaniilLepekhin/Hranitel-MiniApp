@@ -148,7 +148,7 @@ export function ShopTab() {
             <div className="flex items-center gap-2">
               <Zap className="w-6 h-6 text-[#8b0000]" />
               <p className="text-3xl font-bold text-[#3d2f1f]">{balance.toLocaleString()}</p>
-              <span className="text-[#8b0000] font-semibold">EP</span>
+              <span className="text-[#8b0000] font-semibold">Энергий</span>
             </div>
           </div>
           {purchases.length > 0 && (
@@ -228,7 +228,7 @@ export function ShopTab() {
                       <div className="flex items-center gap-1.5">
                         <Zap className="w-4 h-4 text-[#8b0000]" />
                         <span className="text-lg font-bold text-[#8b0000]">{item.price.toLocaleString()}</span>
-                        <span className="text-xs text-[#6b5a4a]">EP</span>
+                        <span className="text-xs text-[#6b5a4a]">Энергий</span>
                       </div>
 
                       {isPurchased ? (
@@ -248,7 +248,7 @@ export function ShopTab() {
                             }
                           `}
                         >
-                          {canAfford ? 'Купить' : 'Недостаточно EP'}
+                          {canAfford ? 'Купить' : 'Недостаточно Энергий'}
                         </button>
                       )}
                     </div>
@@ -286,12 +286,12 @@ export function ShopTab() {
                   <div className="flex items-center gap-1">
                     <Zap className="w-4 h-4 text-[#8b0000]" />
                     <span className="text-[#8b0000] font-bold">{selectedItem.price.toLocaleString()}</span>
-                    <span className="text-xs text-[#6b5a4a]">EP</span>
+                    <span className="text-xs text-[#6b5a4a]">Энергий</span>
                   </div>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-[#6b5a4a] text-sm">Останется:</span>
-                  <span className="text-[#3d2f1f] font-bold">{(balance - selectedItem.price).toLocaleString()} EP</span>
+                  <span className="text-[#3d2f1f] font-bold">{(balance - selectedItem.price).toLocaleString()} Энергий</span>
                 </div>
               </div>
 
