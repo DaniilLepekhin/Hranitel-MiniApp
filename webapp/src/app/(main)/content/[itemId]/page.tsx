@@ -1,0 +1,299 @@
+'use client';
+
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter, useParams } from 'next/navigation';
+import { ArrowLeft, Play, Lock, CheckCircle, ChevronRight, BookOpen, Headphones, Radio, Sparkles } from 'lucide-react';
+import { contentApi, type ContentItem, type ContentSection } from '@/lib/api';
+import { useTelegram } from '@/hooks/useTelegram';
+import { useAuthStore } from '@/store/auth';
+import { Card } from '@/components/ui/Card';
+
+export default function ContentDetailPage() {
+  const router = useRouter();
+  const params = useParams();
+  const { haptic } = useTelegram();
+  const { user } = useAuthStore();
+  const itemId = params.itemId as string;
+
+  // Fetch content item details
+  const { data: itemData, isLoading: itemLoading } = useQuery({
+    queryKey: ['content', 'item', itemId],
+    queryFn: () => contentApi.getItem(itemId),
+    enabled: !!itemId,
+  });
+
+  // Fetch sections (for courses/podcasts)
+  const { data: sectionsData } = useQuery({
+    queryKey: ['content', 'sections', itemId],
+    queryFn: () => contentApi.getSections(itemId),
+    enabled: !!itemId && (itemData?.item.type === 'course' || itemData?.item.type === 'podcast'),
+  });
+
+  // Fetch videos (for stream recordings)
+  const { data: videosData } = useQuery({
+    queryKey: ['content', 'videos', itemId],
+    queryFn: () => contentApi.getItemVideos(itemId),
+    enabled: !!itemId && itemData?.item.type === 'stream_record',
+  });
+
+  // Fetch user progress
+  const { data: progressData } = useQuery({
+    queryKey: ['content', 'progress', user?.id],
+    queryFn: () => contentApi.getUserProgress(user!.id),
+    enabled: !!user,
+  });
+
+  const item = itemData?.item;
+  const sections = sectionsData?.sections || [];
+  const videos = videosData?.videos || [];
+  const progress = progressData?.progress || [];
+
+  const getIcon = (type: ContentItem['type']) => {
+    switch (type) {
+      case 'course':
+        return BookOpen;
+      case 'podcast':
+        return Headphones;
+      case 'stream_record':
+        return Radio;
+      case 'practice':
+        return Sparkles;
+      default:
+        return BookOpen;
+    }
+  };
+
+  const getTypeLabel = (type: ContentItem['type']) => {
+    switch (type) {
+      case 'course':
+        return 'Курс';
+      case 'podcast':
+        return 'Подкаст';
+      case 'stream_record':
+        return 'Запись эфира';
+      case 'practice':
+        return 'Практика';
+      default:
+        return 'Контент';
+    }
+  };
+
+  const handleSectionClick = (sectionId: string) => {
+    haptic.impact('light');
+    router.push(`/content/section/${sectionId}`);
+  };
+
+  const handleVideoClick = (videoId: string) => {
+    haptic.impact('light');
+    router.push(`/video/${videoId}`);
+  };
+
+  const handlePracticeClick = () => {
+    haptic.impact('light');
+    router.push(`/practice/${itemId}`);
+  };
+
+  if (itemLoading) {
+    return (
+      <div className="px-4 pt-6 pb-24">
+        <div className="space-y-4">
+          <div className="h-48 rounded-3xl bg-[#e8dcc6] animate-pulse" />
+          <div className="h-8 w-3/4 rounded-lg bg-[#e8dcc6] animate-pulse" />
+          <div className="h-20 rounded-xl bg-[#e8dcc6] animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!item) {
+    return (
+      <div className="px-4 pt-6 pb-24">
+        <div className="text-center py-12">
+          <BookOpen className="w-16 h-16 mx-auto text-[#8b4513]/50 mb-4" />
+          <h3 className="text-lg font-semibold text-[#3d2f1f] mb-2">Контент не найден</h3>
+          <p className="text-[#6b5a4a]">Попробуйте вернуться назад</p>
+        </div>
+      </div>
+    );
+  }
+
+  const Icon = getIcon(item.type);
+
+  return (
+    <div className="px-4 pt-6 pb-24">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-6">
+        <button
+          onClick={() => router.back()}
+          className="w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center hover:bg-white/80 transition-all border border-[#8b4513]/30"
+        >
+          <ArrowLeft className="w-5 h-5 text-[#3d2f1f]" />
+        </button>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <Icon className="w-4 h-4 text-[#8b0000]" />
+            <span className="text-xs text-[#8b0000] font-semibold">{getTypeLabel(item.type)}</span>
+          </div>
+          <h1 className="text-xl font-bold text-[#3d2f1f]">{item.title}</h1>
+        </div>
+      </div>
+
+      {/* Cover Image */}
+      {item.coverUrl && (
+        <div className="relative w-full aspect-video rounded-3xl overflow-hidden mb-6 shadow-lg">
+          <img
+            src={item.coverUrl}
+            alt={item.title}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
+
+      {/* Description */}
+      {item.description && (
+        <Card className="p-4 mb-6 bg-gradient-to-br from-[#8b0000]/5 to-[#8b4513]/5">
+          <p className="text-[#6b5a4a] leading-relaxed">{item.description}</p>
+        </Card>
+      )}
+
+      {/* Key Badge */}
+      {item.keyNumber && (
+        <div className="mb-6 flex items-center gap-2">
+          <div className="px-4 py-2 rounded-full bg-gradient-to-r from-[#8b0000] to-[#8b4513] text-white text-sm font-semibold">
+            Ключ #{item.keyNumber}
+          </div>
+          {item.monthProgram && (
+            <div className="px-4 py-2 rounded-full bg-white/60 border border-[#8b4513]/30 text-[#3d2f1f] text-sm font-semibold">
+              Программа месяца
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Course/Podcast Sections */}
+      {(item.type === 'course' || item.type === 'podcast') && sections.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="font-bold text-[#3d2f1f] text-lg mb-3">
+            {item.type === 'course' ? 'Уроки' : 'Эпизоды'}
+          </h2>
+          {sections.map((section, index) => {
+            const sectionProgress = progress.filter((p) => p.contentItemId === itemId);
+            const isCompleted = false; // TODO: calculate based on all videos in section
+
+            return (
+              <Card
+                key={section.id}
+                className="p-4 hover:scale-[1.02] transition-all cursor-pointer"
+                onClick={() => handleSectionClick(section.id)}
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`
+                    w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg shadow-md
+                    ${isCompleted
+                      ? 'bg-gradient-to-br from-[#8b0000] to-[#8b4513] text-white'
+                      : 'bg-[#e8dcc6] text-[#6b5a4a]'
+                    }
+                  `}>
+                    {isCompleted ? (
+                      <CheckCircle className="w-6 h-6" />
+                    ) : (
+                      <span>{index + 1}</span>
+                    )}
+                  </div>
+
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-[#3d2f1f]">{section.title}</h3>
+                    {section.description && (
+                      <p className="text-sm text-[#6b5a4a] line-clamp-1 mt-0.5">
+                        {section.description}
+                      </p>
+                    )}
+                  </div>
+
+                  <ChevronRight className="w-5 h-5 text-[#8b4513]" />
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Stream Recording Videos */}
+      {item.type === 'stream_record' && videos.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="font-bold text-[#3d2f1f] text-lg mb-3">Записи</h2>
+          {videos.map((video) => {
+            const videoProgress = progress.find((p) => p.videoId === video.id);
+            const isWatched = videoProgress?.watched || false;
+
+            return (
+              <Card
+                key={video.id}
+                className="p-4 hover:scale-[1.02] transition-all cursor-pointer"
+                onClick={() => handleVideoClick(video.id)}
+              >
+                <div className="flex gap-4">
+                  {video.thumbnailUrl ? (
+                    <div className="relative w-24 h-24 rounded-xl overflow-hidden flex-shrink-0">
+                      <img
+                        src={video.thumbnailUrl}
+                        alt={video.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                        <Play className="w-8 h-8 text-white" fill="white" />
+                      </div>
+                      {isWatched && (
+                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[#8b0000] flex items-center justify-center">
+                          <CheckCircle className="w-4 h-4 text-white" />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center flex-shrink-0">
+                      <Play className="w-10 h-10 text-white" fill="white" />
+                    </div>
+                  )}
+
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-[#3d2f1f] mb-1">{video.title}</h3>
+                    {video.description && (
+                      <p className="text-sm text-[#6b5a4a] line-clamp-2">{video.description}</p>
+                    )}
+                    {video.durationSeconds && (
+                      <p className="text-xs text-[#8b0000] font-semibold mt-2">
+                        {Math.floor(video.durationSeconds / 60)} мин
+                      </p>
+                    )}
+                  </div>
+
+                  <ChevronRight className="w-5 h-5 text-[#8b4513] self-center" />
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Practice Button */}
+      {item.type === 'practice' && (
+        <Card
+          className="p-6 hover:scale-[1.02] transition-all cursor-pointer bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10"
+          onClick={handlePracticeClick}
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center shadow-lg">
+              <Sparkles className="w-8 h-8 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-[#3d2f1f] text-lg mb-1">Начать практику</h3>
+              <p className="text-[#6b5a4a] text-sm">Откройте контент практики</p>
+            </div>
+            <ChevronRight className="w-6 h-6 text-[#8b4513]" />
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
