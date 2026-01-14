@@ -2,22 +2,11 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { Key, Lock, CheckCircle, ChevronRight, Sparkles, Target, Palette, DollarSign, Home, Drama, HandHeart, Heart, Flame, Globe2, Briefcase, Users2 } from 'lucide-react';
+import { Key, Lock, CheckCircle, ChevronRight, Sparkles, Target, Palette, DollarSign, Home, Drama, HandHeart, Heart, Flame, Globe2, Briefcase, Users2, Calendar, BookOpen, Headphones, Radio } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { Card } from '@/components/ui/Card';
-
-// API endpoints
-const coursesApi = {
-  list: async (category?: string) => {
-    const url = category
-      ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1/courses?category=${category}`
-      : `${process.env.NEXT_PUBLIC_API_URL}/api/v1/courses`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Failed to fetch courses');
-    return response.json();
-  },
-};
+import { contentApi } from '@/lib/api';
 
 // 12 месяцев программы
 const monthThemes = [
@@ -40,26 +29,54 @@ export function PathTab() {
   const { haptic } = useTelegram();
   const { user } = useAuthStore();
 
-  // Fetch all courses (sorted by keyNumber)
-  const { data: coursesData, isLoading } = useQuery({
-    queryKey: ['courses', 'all'],
-    queryFn: () => coursesApi.list(),
+  // Fetch all content items
+  const { data: contentData, isLoading } = useQuery({
+    queryKey: ['content', 'all'],
+    queryFn: () => contentApi.getItems(),
     enabled: !!user,
   });
 
-  const courses = coursesData?.courses || [];
+  // Fetch user progress
+  const { data: progressData } = useQuery({
+    queryKey: ['content', 'progress', user?.id],
+    queryFn: () => contentApi.getUserProgress(user!.id),
+    enabled: !!user,
+  });
 
-  // Group courses by keyNumber
-  const coursesByKey = courses.reduce((acc: any, course: any) => {
-    const keyNum = course.keyNumber || 0;
+  const items = contentData?.items || [];
+  const progress = progressData?.progress || [];
+
+  // Group content items by keyNumber
+  const itemsByKey = items.reduce((acc: any, item: any) => {
+    const keyNum = item.keyNumber || 0;
     if (!acc[keyNum]) acc[keyNum] = [];
-    acc[keyNum].push(course);
+    acc[keyNum].push(item);
     return acc;
   }, {});
 
-  // Mock progress (в реальности будет из API)
-  const completedKeys = [1]; // Пример: завершен только ключ #1
-  const currentKey = 2; // Текущий активный ключ
+  // Calculate completed keys based on progress
+  const completedKeys: number[] = [];
+  for (let i = 1; i <= 12; i++) {
+    const keyItems = itemsByKey[i] || [];
+    if (keyItems.length > 0) {
+      // Check if all content in this key is completed
+      const allCompleted = keyItems.every((item: any) => {
+        return progress.some((p) => p.contentItemId === item.id && p.watched);
+      });
+      if (allCompleted) {
+        completedKeys.push(i);
+      }
+    }
+  }
+
+  // Current key is the first incomplete key
+  let currentKey = 1;
+  for (let i = 1; i <= 12; i++) {
+    if (!completedKeys.includes(i)) {
+      currentKey = i;
+      break;
+    }
+  }
 
   const handleKeyClick = (keyNumber: number) => {
     const isUnlocked = keyNumber <= currentKey;
@@ -70,11 +87,16 @@ export function PathTab() {
 
     haptic.impact('light');
 
-    // Переход к первому курсу этого ключа
-    const keyCourses = coursesByKey[keyNumber] || [];
-    if (keyCourses.length > 0) {
-      router.push(`/course/${keyCourses[0].id}`);
+    // Переход к первому контенту этого ключа
+    const keyItems = itemsByKey[keyNumber] || [];
+    if (keyItems.length > 0) {
+      router.push(`/content/${keyItems[0].id}`);
     }
+  };
+
+  const handleNavigate = (path: string) => {
+    haptic.impact('light');
+    router.push(path);
   };
 
   return (
@@ -117,6 +139,25 @@ export function PathTab() {
         </div>
       </Card>
 
+      {/* Navigation Cards */}
+      <div className="mb-6 grid grid-cols-2 gap-3">
+        <Card
+          className="p-4 hover:scale-[1.02] transition-all cursor-pointer bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10"
+          onClick={() => handleNavigate('/month-program')}
+        >
+          <Calendar className="w-8 h-8 text-[#8b0000] mb-2" />
+          <p className="font-semibold text-[#3d2f1f] text-sm">Программа месяца</p>
+        </Card>
+
+        <Card
+          className="p-4 hover:scale-[1.02] transition-all cursor-pointer bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10"
+          onClick={() => handleNavigate('/practices')}
+        >
+          <Sparkles className="w-8 h-8 text-[#8b0000] mb-2" />
+          <p className="font-semibold text-[#3d2f1f] text-sm">Практики</p>
+        </Card>
+      </div>
+
       {/* Info Block */}
       <div className="mb-6 p-4 bg-gradient-to-br from-[#8b0000]/5 to-[#8b4513]/5 rounded-xl border border-[#8b4513]/20">
         <div className="flex items-start gap-3">
@@ -146,7 +187,7 @@ export function PathTab() {
             const isCompleted = completedKeys.includes(month.key);
             const isUnlocked = month.key <= currentKey;
             const isCurrent = month.key === currentKey;
-            const keyCourses = coursesByKey[month.key] || [];
+            const keyItems = itemsByKey[month.key] || [];
 
             return (
               <Card
@@ -193,9 +234,9 @@ export function PathTab() {
                       {month.theme}
                     </h3>
 
-                    {keyCourses.length > 0 && (
+                    {keyItems.length > 0 && (
                       <p className="text-[#6b5a4a] text-xs">
-                        {keyCourses.length} {keyCourses.length === 1 ? 'урок' : 'уроков'}
+                        {keyItems.length} {keyItems.length === 1 ? 'материал' : 'материалов'}
                       </p>
                     )}
                   </div>
@@ -211,16 +252,20 @@ export function PathTab() {
                 </div>
 
                 {/* Progress for current key */}
-                {isCurrent && keyCourses.length > 0 && (
+                {isCurrent && keyItems.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-[#8b4513]/20">
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-xs text-[#6b5a4a]">Прогресс</span>
-                      <span className="text-xs text-[#8b0000] font-semibold">0/{keyCourses.length}</span>
+                      <span className="text-xs text-[#8b0000] font-semibold">
+                        {progress.filter(p => keyItems.some((item: any) => item.id === p.contentItemId && p.watched)).length}/{keyItems.length}
+                      </span>
                     </div>
                     <div className="h-1.5 bg-[#e8dcc6] rounded-full overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-[#8b0000] to-[#8b4513]"
-                        style={{ width: '0%' }}
+                        style={{
+                          width: `${keyItems.length > 0 ? (progress.filter(p => keyItems.some((item: any) => item.id === p.contentItemId && p.watched)).length / keyItems.length) * 100 : 0}%`
+                        }}
                       />
                     </div>
                   </div>
