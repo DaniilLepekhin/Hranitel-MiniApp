@@ -22,7 +22,8 @@ export function ReferralCard({ invitedCount = 0 }: ReferralCardProps) {
 
 🔑 12 Ключей к изобилию, практические инструменты, поддержка сообщества и реальные результаты.
 
-Присоединяйся и начни свой путь к финансовой свободе!
+👉 Присоединяйся по моей ссылке и начни свой путь к финансовой свободе:
+${referralLink}
 
 Увидимся внутри! 💰✨`;
 
@@ -39,9 +40,9 @@ export function ReferralCard({ invitedCount = 0 }: ReferralCardProps) {
 
   const handleShareMessage = () => {
     haptic.impact('medium');
-    // Telegram share API automatically adds the URL, so we don't include it in the message text
+    // Use tg://msg_url to send message with text
     const encodedMessage = encodeURIComponent(referralMessage);
-    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodedMessage}`;
+    const shareUrl = `tg://msg_url?url=${encodeURIComponent(referralLink)}&text=${encodedMessage}`;
 
     if (webApp?.openTelegramLink) {
       webApp.openTelegramLink(shareUrl);
