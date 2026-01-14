@@ -218,7 +218,7 @@ export const teamsApi = {
 export const streamsApi = {
   listStreams: (upcoming?: boolean, page?: number, limit?: number) =>
     api.get<{ success: boolean; streams: Stream[]; total: number }>('/streams', {
-      params: { upcoming, page, limit },
+      params: { upcoming: upcoming?.toString(), page, limit },
     }),
   getStream: (streamId: string) =>
     api.get<{ success: boolean; stream: Stream }>(`/streams/${streamId}`),
