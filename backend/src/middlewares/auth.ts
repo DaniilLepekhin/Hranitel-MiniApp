@@ -9,6 +9,13 @@ import { logger } from '@/utils/logger';
 // Validate Telegram WebApp initData
 export function validateTelegramInitData(initData: string): boolean {
   try {
+    // TEMPORARY DEV MODE: Skip validation if no bot token
+    if (!config.TELEGRAM_BOT_TOKEN) {
+      logger.warn('⚠️ DEVELOPMENT MODE: Skipping initData validation (NO BOT TOKEN)');
+      logger.warn('⚠️ THIS IS INSECURE - Anyone can impersonate any user!');
+      return true;
+    }
+
     const urlParams = new URLSearchParams(initData);
     const hash = urlParams.get('hash');
 
