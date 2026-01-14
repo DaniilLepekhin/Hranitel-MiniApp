@@ -1,0 +1,152 @@
+name: Deploy КОД ДЕНЕГ 4.0 to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to Production Server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          script: |
+            echo "🚀 Starting deployment..."
+
+            # Navigate to project directory
+            cd /var/www/hranitel || {
+              echo "📁 Creating project directory..."
+              mkdir -p /var/www/hranitel
+              cd /var/www/hranitel
+              git clone https://github.com/DaniilLepekhin/Academy_MiniApp_2.0.git .
+            }
+
+            # Pull latest changes
+            echo "📥 Pulling latest code..."
+            git fetch origin
+            git reset --hard origin/main
+
+            # Backend deployment
+            echo "🔧 Deploying Backend..."
+            cd backend
+
+            # Install dependencies
+            if ! command -v bun &> /dev/null; then
+              echo "📦 Installing Bun..."
+              curl -fsSL https://bun.sh/install | bash
+              export BUN_INSTALL="$HOME/.bun"
+              export PATH="$BUN_INSTALL/bin:$PATH"
+            fi
+
+            bun install
+
+            # Run migrations
+            echo "🗄️ Running database migrations..."
+            bun run db:push || echo "⚠️ Migrations skipped (may already be applied)"
+
+            # Seed data if needed
+            echo "🌱 Seeding shop data..."
+            bun run tsx src/db/seeds/shop.ts || echo "⚠️ Seed skipped (may already exist)"
+
+            # Restart backend service
+            echo "🔄 Restarting backend..."
+            pm2 delete kod-deneg-backend || true
+            pm2 start --name kod-deneg-backend "bun run start"
+            pm2 save
+
+            # Frontend deployment
+            echo "🎨 Deploying Frontend..."
+            cd ../webapp
+
+            # Install dependencies
+            npm install
+
+            # Build frontend
+            echo "🏗️ Building frontend..."
+            npm run build
+
+            # Restart frontend service
+            echo "🔄 Restarting frontend..."
+            pm2 delete kod-deneg-frontend || true
+            pm2 start --name kod-deneg-frontend "npm run start"
+            pm2 save
+
+            # Setup Nginx if not exists
+            if [ ! -f /etc/nginx/sites-available/hranitel ]; then
+              echo "🌐 Configuring Nginx..."
+              cat > /etc/nginx/sites-available/hranitel << 'NGINX_EOF'
+# Backend API
+server {
+    listen 80;
+    server_name api.hranitel.daniillepekhin.com;
+
+    location / {
+        proxy_pass http://localhost:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# Frontend WebApp
+server {
+    listen 80;
+    server_name hranitel.daniillepekhin.com;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+NGINX_EOF
+
+              ln -sf /etc/nginx/sites-available/hranitel /etc/nginx/sites-enabled/
+              nginx -t && systemctl reload nginx
+            fi
+
+            # Setup SSL with Certbot (Let's Encrypt)
+            if ! command -v certbot &> /dev/null; then
+              echo "🔐 Installing Certbot..."
+              apt-get update
+              apt-get install -y certbot python3-certbot-nginx
+            fi
+
+            # Get SSL certificates
+            certbot --nginx -d hranitel.daniillepekhin.com -d api.hranitel.daniillepekhin.com --non-interactive --agree-tos --email admin@daniillepekhin.com || echo "⚠️ SSL setup skipped"
+
+            echo "✅ Deployment completed successfully!"
+            echo ""
+            echo "🌐 Frontend: https://hranitel.daniillepekhin.com"
+            echo "🔌 Backend API: https://api.hranitel.daniillepekhin.com"
+            echo ""
+            pm2 status
+
+      - name: Notify Deployment Status
+        if: always()
+        run: |
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "✅ Deployment successful!"
+          else
+            echo "❌ Deployment failed!"
+          fi

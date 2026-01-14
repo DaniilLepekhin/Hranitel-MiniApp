@@ -1,0 +1,902 @@
+🚀 Запуск анализа базы данных private_club
+
+🔌 Пробую: Вариант 1: postgres с новым паролем...
+✅ Успешно подключено к postgres!
+
+✅ Работаем с БД: postgres
+
+================================================================================
+📊 ПОИСК ТАБЛИЦ С ПОЛЬЗОВАТЕЛЯМИ
+================================================================================
+
+Найдено 16 таблиц:
+  - club_dashboard
+  - club_email_webapp
+  - club_event_10122025
+  - institute_winner_users_0925
+  - private_club_free_dostup
+  - private_club_month_rating
+  - private_club_motherday_3011
+  - private_club_site_paymetns
+  - private_club_transactions
+  - private_club_update_podpiska
+  - private_club_users
+  - secret_santa_club
+  - statistics_club_IK
+  - test_profession_users
+  - users
+  - users_prognoz_eng
+
+================================================================================
+🔍 ДЕТАЛЬНЫЙ АНАЛИЗ ТАБЛИЦ
+================================================================================
+
+📋 Таблица: club_dashboard
+--------------------------------------------------------------------------------
+Колонки (17):
+  - id: bigint NOT NULL
+  - user_id: text NULL
+  - utm_campaign: text NULL
+  - utm_medium: text NULL
+  - utm_source: text NULL
+  - utm_content: text NULL
+  - source_bot: text NULL
+  - dt_entrance_bot: date NULL
+  - clicked_on_hranitel: numeric NULL
+  - launched_hranitel: numeric NULL
+  - received_offer: numeric NULL
+  - filled_form: numeric NULL
+  - buy_trip_product: numeric NULL
+  - first_fullbuy: date NULL
+  - dt_free_start: date NULL
+  - dt_free_end: date NULL
+  - dt_active_till: date NULL
+
+Количество записей: 182,749
+
+Примеры данных (первые 3 записи):
+  Запись 1:
+    id: 220580
+    user_id: 505473588
+    utm_campaign: kris
+    utm_medium: tgosnova
+    utm_source: 1302
+    utm_content: None
+    source_bot: None
+    dt_entrance_bot: 2025-02-13
+    clicked_on_hranitel: 0
+    launched_hranitel: 1
+    received_offer: 0
+    filled_form: 1
+    buy_trip_product: 0
+    first_fullbuy: None
+    dt_free_start: None
+    dt_free_end: None
+    dt_active_till: None
+  Запись 2:
+    id: 228382
+    user_id: 1556626483
+    utm_campaign: kris
+    utm_medium: tgosnova
+    utm_source: 1202
+    utm_content: None
+    source_bot: None
+    dt_entrance_bot: 2025-02-15
+    clicked_on_hranitel: 0
+    launched_hranitel: 1
+    received_offer: 0
+    filled_form: 1
+    buy_trip_product: 0
+    first_fullbuy: None
+    dt_free_start: None
+    dt_free_end: None
+    dt_active_till: None
+  Запись 3:
+    id: 50306
+    user_id: 833562809
+    utm_campaign: art
+    utm_medium: ytdim
+    utm_source: 10
+    utm_content: None
+    source_bot: None
+    dt_entrance_bot: 2024-11-02
+    clicked_on_hranitel: 0
+    launched_hranitel: 1
+    received_offer: 1
+    filled_form: 1
+    buy_trip_product: 0
+    first_fullbuy: None
+    dt_free_start: None
+    dt_free_end: None
+    dt_active_till: None
+
+📋 Таблица: club_email_webapp
+--------------------------------------------------------------------------------
+Колонки (19):
+  - id: bigint NOT NULL
+  - platform_id: bigint NOT NULL
+  - email: text NOT NULL
+  - contract_id: text NULL
+  - metka: text NULL
+  - created_at: timestamp without time zone NOT NULL
+  - client_id: bigint NULL
+  - group_id: text NULL
+  - code_word: text NULL
+  - updated_at: timestamp without time zone NULL
+  - phone: text NULL
+  - utm_campaign: text NULL
+  - utm_medium: text NULL
+  - utm_source: text NULL
+  - utm_content: text NULL
+  - utm_term: text NULL
+  - group_bot: text NULL
+  - source_system: text NULL
+  - payment_status: boolean NULL
+
+Количество записей: 50,990
+
+Примеры данных (первые 3 записи):
+  Запись 1:
+    id: 1710
+    platform_id: 5835088372
+    email: diana.harisova@list.ru
+    contract_id: None
+    metka: tgbasechannel1609
+    created_at: 2024-09-02 09:00:00
+    client_id: 517358624
+    group_id: hranitel_kod_bot
+    code_word: None
+    updated_at: 2024-09-02 09:00:00
+    phone: None
+    utm_campaign: tgbasechannel1609
+    utm_medium: None
+    utm_source: None
+    utm_content: None
+    utm_term: None
+    group_bot: None
+    source_system: None
+    payment_status: False
+  Запись 2:
+    id: 2469
+    platform_id: 1047561316
+    email: sladkay_anna86@mail.ru
+    contract_id: None
+    metka: tgbasechannel1609
+    created_at: 2024-09-03 09:00:00
+    client_id: 517504654
+    group_id: hranitel_kod_bot
+    code_word: None
+    updated_at: 2024-09-03 09:00:00
+    phone: None
+    utm_campaign: tgbasechannel1609
+    utm_medium: None
+    utm_source: None
+    utm_content: None
+    utm_term: None
+    group_bot: None
+    source_system: None
+    payment_status: False
+  Запись 3:
+    id: 2642
+    platform_id: 5689395967
+    email: urunbai.tanya@gmail.com
+    contract_id: 2dbc0cf5-003d-4444-8023-de74c26500e5
+    metka: tgbasechannel1609
+    created_at: 2024-09-03 09:00:00
+    client_id: 517456083
+    group_id: hranitel_kod_bot
+    code_word: None
+    updated_at: 2024-09-03 09:00:00
+    phone: None
+    utm_campaign: tgbasechannel1609
+    utm_medium: None
+    utm_source: None
+    utm_content: None
+    utm_term: None
+    group_bot: None
+    source_system: None
+    payment_status: False
+
+📋 Таблица: club_event_10122025
+--------------------------------------------------------------------------------
+Колонки (15):
+  - id: bigint NOT NULL
+  - created_at: timestamp without time zone NULL
+  - updated_at: timestamp without time zone NULL
+  - client_id: bigint NULL
+  - platform_id: bigint NULL
+  - name: text NULL
+  - tg_username: text NULL
+  - phone: text NULL
+  - has_training: text NULL
+  - training: text NULL
+  - budet: text NULL
+  - photo_data: text NULL
+  - send_photo: boolean NULL
+  - curator_add: boolean NULL
+  - curator_check: boolean NULL
+
+Количество записей: 2,075
+
+Примеры данных (первые 3 записи):
+  Запись 1:
+    id: 24
+    created_at: 2025-11-19 14:38:46.921618
+    updated_at: 2025-12-01 08:02:39.105073
+    client_id: 517207328
+    platform_id: 740927679
+    name: Саргсян Карине Ервандовна 
+    tg_username: @Skarineh
+    phone: +79637696424
+    has_training: Да
+    training: Институт Мягких ниш
+    budet: Да, точно буду
+    photo_data: data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD...
+    send_photo: True
+    curator_add: True
+    curator_check: True
+  Запись 2:
+    id: 7
+    created_at: 2025-11-19 14:35:06.131373
+    updated_at: 2025-12-04 20:50:17.687325
+    client_id: 516977816
+    platform_id: 459001242
+    name: Денисова Регина Борисовна
+    tg_username: @denisovaregina
+    phone: +79170669212
+    has_training: Да
+    training: Школа Нумерологии 11.0
+    budet: Да, точно буду
+    photo_data: None
+    send_photo: False
+    curator_add: False
+    curator_check: False
+  Запись 3:
+    id: 8
+    created_at: 2025-11-19 14:35:28.907003
+    updated_at: 2025-11-19 14:35:28.907003
+    client_id: 537814691
+    platform_id: 1496600350
+    name: Поткина Татьяна Геннадьевна 
+    tg_username: @Tanysha595
+    phone: 89197022917
+    has_training: Да
+    training: Институт Мягких ниш
+    budet: Не знаю, пока думаю
+    photo_data: None
+    send_photo: False
+    curator_add: False
+    curator_check: False
+
+📋 Таблица: institute_winner_users_0925
+--------------------------------------------------------------------------------
+Колонки (14):
+  - id: bigint NOT NULL
+  - created_at: timestamp without time zone NULL
+  - client_id: bigint NULL
+  - platform_id: bigint NULL
+  - group: text NULL
+  - partner_id: bigint NULL
+  - tg_username: text NULL
+  - send_partner: boolean NULL
+  - filled_form: boolean NULL
+  - email: text NULL
+  - phone: text NULL
+  - code_word: text NULL
+  - имя: text NULL
+  - filled_form_prieze: boolean NULL
+
+Количество записей: 12,294
+
+Примеры данных (первые 3 записи):
+  Запись 1:
+    id: 1306
+    created_at: 2025-09-22 17:10:07
+    client_id: 798167104
+    platform_id: 473126609
+    group: raspredelitelnsya_shlyapa_bot
+    partner_id: 0
+    tg_username: 
+    send_partner: False
+    filled_form: False
+    email: None
+    phone: None
+    code_word: None
+    имя: None
+    filled_form_prieze: False
+  Запись 2:
+    id: 51
+    created_at: 2025-09-22 15:20:20
+    client_id: 801148696
+    platform_id: 1657559989
+    group: raspredelitelnsya_shlyapa_bot
+    partner_id: 0
+    tg_username: @Smilelove254
+    send_partner: False
+    filled_form: False
+    email: None
+    phone: None
+    code_word: None
+    имя: None
+    filled_form_prieze: False
+  Запись 3:
+    id: 2867
+    created_at: 2025-09-22 17:22:05
+    client_id: 358693127
+    platform_id: 2011328509
+    group: raspredelitelnsya_shlyapa_bot
+    partner_id: 0
+    tg_username: @Veron_91912
+    send_partner: False
+    filled_form: False
+    email: None
+    phone: None
+    code_word: None
+    имя: None
+    filled_form_prieze: False
+
+📋 Таблица: private_club_free_dostup
+--------------------------------------------------------------------------------
+Колонки (14):
+  - id: bigint NOT NULL
+  - platform_id: bigint NULL
+  - client_id: bigint NULL
+  - email: text NULL
+  - phone: text NULL
+  - free_month: bigint NULL
+  - group: text NULL
+  - created_at: timestamp without time zone NULL
+  - update_at: timestamp without time zone NULL
+  - product_name: text NULL
+  - metka: text NULL
+  - updated_at: timestamp without time zone NULL
+  - processed_to_history: boolean NULL
+  - product_id: integer NULL
+
+Количество записей: 59,992
+
+Примеры данных (первые 3 записи):
+  Запись 1:
+    id: 166599
+    platform_id: 934777291
+    client_id: 697902160
+    email: tuta_nyuta@mail.ru
+    phone: 79050320773
+    free_month: 1
+    group: hranitel_kod_bot
+    created_at: 2025-11-04 13:04:25
+    update_at: 2025-11-11 16:04:25
+    product_name: getcourse
+    metka: getcourse
+    updated_at: 2025-11-04 13:04:25
+    processed_to_history: True
+    product_id: 7
+  Запись 2:
+    id: 27606
+    platform_id: 934815548
+    client_id: 537867028
+    email: shevchenko_754@mail.ru
+    phone: None
+    free_month: 1
+    group: hranitel_kod_bot
+    created_at: 2024-12-03 13:17:02
+    update_at: 2024-12-03 13:17:42.200601
+    product_name: promo
+    metka: Обмен монет Шляпа ШН 12.0
+    updated_at: 2025-09-19 17:34:59
+    processed_to_history: True
+    product_id: 8
+  Запись 3:
+    id: 147320
+    platform_id: 935012565
+    client_id: 678019013
+    email: lili.barseghyan@gmail.com
+    phone: None
+    free_month: 1
+    group: hranitel_kod_bot
+    created_at: 2025-03-12 13:18:37
+    update_at: 2026-03-12 09:00:00
+    product_name: ученик
+    metka: ученик
+    updated_at: 2025-09-19 17:34:59
+    processed_to_history: True
+    product_id: 5
+
+📋 Таблица: private_club_month_rating
+--------------------------------------------------------------------------------
+Колонки (17):
+  - id: bigint NOT NULL
+  - created_at: timestamp without time zone NULL
+  - updated_at: timestamp without time zone NULL
+  - client_id: bigint NULL
+  - platform_id: bigint NULL
+  - fio: text NULL
+  - phone: text NULL
+  - email: text NULL
+  - fio_partner: text NULL
+  - phone_partner: text NULL
+  - address: text NULL
+  - country: text NULL
+  - city: text NULL
+  - month: text NULL
+  - filled_form: boolean NULL
+  - city_bot: text NULL
+  - place: text NULL
+
+Количество записей: 1,999
+
+Примеры данных (первые 3 записи):
+  Запись 1:
+    id: 108
+    created_at: 2025-10-01 14:12:24
+    updated_at: 2025-10-02 09:13:05
+    client_id: 643753233
+    platform_id: 126182561
+    fio: Еникеева Орнелла Энверовна
+    phone: 79989003849
+    email: ornella.enikeeva@mail.ru
+    fio_partner: Ееикеева Орнелла Энверовна
+    phone_partner: 79989003849
+    address: Ташкент , мирзо-улугбекакий район ул Миришкор 12 к...
+    country: Узбекистан
+    city: 
+    month: 09
+    filled_form: True
+    city_bot: Узбекистан
+    place: 3
+  Запись 2:
+    id: 130
+    created_at: 2025-10-01 14:12:24
+    updated_at: 2025-10-02 09:17:21
+    client_id: 517403599
+    platform_id: 1249106951
+    fio: Олеся Первушина
+    phone: 79530211571
+    email: lisapervaja@mail.ru
+    fio_partner: Первушина Олеся Асламбековна
+    phone_partner: 79530211571
+    address: Г. Воронеж ул Московский проспект 126 (ориентир.по...
+    country: Россия
+    city: Воронеж
+    month: 09
+    filled_form: True
+    city_bot: Воронеж
+    place: 1
+  Запись 3:
+    id: 124
+    created_at: 2025-10-01 14:12:24
+    updated_at: 2025-10-02 09:19:25
+    client_id: 623129550
+    platform_id: 1255881887
+    fio: Залойло Анастасия
+    phone: 79132958608
+    email: nastja.pjanzova@yandex.ru
+    fio_partner: Залойло А.В.
+    phone_partner: 79132958608
+    address: Город Кемерово проспект Комсомольский 36
+    country: Россия
+    city: Кемерово
+    month: 09
+    filled_form: True
+    city_bot: Кемерово
+    place: 1
+
+📋 Таблица: private_club_motherday_3011
+--------------------------------------------------------------------------------
+Колонки (8):
+  - id: bigint NOT NULL
+  - created_at: timestamp without time zone NULL
+  - updated_at: timestamp without time zone NULL
+  - client_id: bigint NULL
+  - platform_id: bigint NULL
+  - tg_username: text NULL
+  - text_present: text NULL
+  - active_status: boolean NULL
+
+Количество записей: 951
+
+Примеры данных (первые 3 записи):
+  Запись 1:
+    id: 1
+    created_at: 2025-11-30 06:27:32
+    updated_at: 2025-11-30 10:03:06.564000
+    client_id: 483040795
+    platform_id: 389209990
+    tg_username: @daniil_lepekhin
+    text_present: 0JIg0L/QvtC00LDRgNC60LUg0LHRg9C00LXRgiDRgNCw0YHRh9...
+    active_status: False
+  Запись 2:
+    id: 2
+    created_at: 2025-11-30 07:24:32
+    updated_at: 2025-11-30 10:24:42.038000
+    client_id: 683144292
+    platform_id: 6557909395
+    tg_username: @kkkbkv
+    text_present: 0KEg0LTQvdC10Lwg0JzQsNGC0LXRgNC4ISDQm9GO0LHQu9GOIN...
+    active_status: False
+  Запись 3:
+    id: 4
+    created_at: 2025-11-30 08:49:32
+    updated_at: 2025-11-30 08:49:32
+    client_id: 683144292
+    platform_id: 6557909395
+    tg_username: @kkkbkv
+    text_present: 0KEg0LTQvdC10Lwg0LzQsNC80Ys=
+    active_status: False
+
+📋 Таблица: private_club_site_paymetns
+--------------------------------------------------------------------------------
+Колонки (13):
+  - id: bigint NOT NULL
+  - created_at: timestamp without time zone NULL
+  - updated_at: timestamp without time zone NULL
+  - client_id: bigint NULL
+  - platform_id: bigint NULL
+  - name: text NULL
+  - email: text NULL
+  - phone: text NULL
+  - slovo: text NULL
+  - utm_campaign: text NULL
+  - utm_medium: text NULL
+  - utm_source: text NULL
+  - utm_content: text NULL
+
+Количество записей: 1,254
+
+Примеры данных (первые 3 записи):
+  Запись 1:
+    id: 26
+    created_at: 2025-04-01 16:53:52
+    updated_at: 2025-04-01 16:53:52
+    client_id: None
+    platform_id: None
+    name: Irina Krasij
+    email: i.krasij@gmx.de
+    phone: 491738818387
+    slovo: Счастье 
+    utm_campaign: None
+    utm_medium: None
+    utm_source: None
+    utm_content: None
+  Запись 2:
+    id: 17
+    created_at: 2025-04-01 16:45:37
+    updated_at: 2025-04-01 16:55:05
+    client_id: 667712484
+    platform_id: 936196866
+    name: Ольга
+    email: olya-krinickaya7@mail.ru
+    phone: 79319819765
+    slovo: Дана
+    utm_campaign: None
+    utm_medium: None
+    utm_source: None
+    utm_content: None
+  Запись 3:
+    id: 27
+    created_at: 2025-04-01 16:56:35
+    updated_at: 2025-04-01 16:56:35
+    client_id: None
+    platform_id: None
+    name: Любовь Михайлова
+    email: mihailova310177@gmail.com
+    phone: 79097570264
+    slovo: Любовь 
+    utm_campaign: None
+    utm_medium: None
+    utm_source: None
+    utm_content: None
+
+📋 Таблица: private_club_transactions
+--------------------------------------------------------------------------------
+Колонки (8):
+  - id: bigint NOT NULL
+  - created_at: timestamp without time zone NOT NULL
+  - pv_users_id: bigint NOT NULL
+  - coins: bigint NOT NULL
+  - type: text NOT NULL
+  - description: text NULL
+  - score_type: text NULL
+  - created_date: date NULL
+
+Количество записей: 1,779,515
+
+Примеры данных (первые 3 записи):
+  Запись 1:
+    id: 1825873
+    created_at: 2026-01-05 13:03:28
+    pv_users_id: 20556
+    coins: 50
+    type: refill
+    description: hash_challeng
+    score_type: None
+    created_date: 2026-01-05
+  Запись 2:
+    id: 1825880
+    created_at: 2026-01-05 13:11:40
+    pv_users_id: 42663
+    coins: 50
+    type: refill
+    description: hash_challeng
+    score_type: None
+    created_date: 2026-01-05
+  Запись 3:
+    id: 1825897
+    created_at: 2026-01-05 14:49:08
+    pv_users_id: 3033
+    coins: 300
+    type: refill
+    description: hash_reels
+    score_type: None
+    created_date: 2026-01-05
+
+📋 Таблица: private_club_update_podpiska
+--------------------------------------------------------------------------------
+Колонки (12):
+  - id: bigint NOT NULL
+  - created_at: timestamp without time zone NULL
+  - platform_id: bigint NULL
+  - email: text NULL
+  - srok: integer NULL
+  - payment_type: text NULL
+  - updated_at: timestamp without time zone NULL
+  - source_table: text NULL
+  - source_record_id: bigint NULL
+  - product_id: bigint NULL
+  - previous_date_end: timestamp without time zone NULL
+  - new_date_end: timestamp without time zone NULL
+
+Количество записей: 130,114
+
+Примеры данных (первые 3 записи):
+  Запись 1:
+    id: 566079
+    created_at: 2024-12-24 09:39:06
+    platform_id: 7
+    email: None
+    srok: 30
+    payment_type: None
+    updated_at: 2025-01-23 09:00:00
+    source_table: prodamus_payments
+    source_record_id: 135617
+    product_id: 1
+    previous_date_end: None
+    new_date_end: 2025-01-23 09:00:00
+  Запись 2:
+    id: 566080
+    created_at: 2025-05-19 11:12:08
+    platform_id: 4550
+    email: None
+    srok: 30
+    payment_type: None
+    updated_at: 2025-06-18 11:12:08
+    source_table: prodamus_payments
+    source_record_id: 166982
+    product_id: 1
+    previous_date_end: None
+    new_date_end: 2025-06-18 11:12:08
+  Запись 3:
+    id: 566081
+    created_at: 2025-09-19 17:34:59
+    platform_id: 6981
+    email: None
+    srok: 30
+    payment_type: None
+    updated_at: 2026-03-12 09:00:00
+    source_table: private_club_free_dostup
+    source_record_id: 149723
+    product_id: 5
+    previous_date_end: None
+    new_date_end: 2026-03-12 09:00:00
+
+📋 Таблица: private_club_users
+--------------------------------------------------------------------------------
+Колонки (27):
+  - id: bigint NOT NULL
+  - created_at: timestamp without time zone NOT NULL
+  - date_end: timestamp without time zone NULL
+  - client_id: bigint NULL
+  - platform_id: bigint NULL
+  - name: text NULL
+  - tg_username: text NULL
+  - phone: text NULL
+  - email: text NULL
+  - coins: bigint NULL
+  - group_id: text NULL
+  - client_date: text NULL
+  - metka: text NULL
+  - payment_system: text NULL
+  - auto_subscription: bigint NULL
+  - free_dostup: text NULL
+  - partner_1: text NULL
+  - chat_id: bigint NULL
+  - coins_2: bigint NULL
+  - subscriptions_mess: jsonb NULL
+  - send_info_bot: boolean NULL
+  - send_message: boolean NULL
+  - prognoz_time: time without time zone NULL
+  - send_prognoz: boolean NULL
+  - in_channel: boolean NULL
+  - channel_update: timestamp without time zone NULL
+  - zacrep_channel: text NULL
+
+Количество записей: 54,411
+
+Примеры данных (первые 3 записи):
+  Запись 1:
+    id: 55697
+    created_at: 2025-11-19 14:42:53
+    date_end: 2026-11-20 00:00:00
+    client_id: 627829922
+    platform_id: 5137189581
+    name: Анна
+    tg_username: @Anna_luck_65
+    phone: 972548150835
+    email: kisis2000@yahoo.com
+    coins: 0
+    group_id: hranitel_kod_bot
+    client_date: 16.05.1960
+    metka: checkdostupclub
+    payment_system: ученик
+    auto_subscription: 1
+    free_dostup: undefined
+    partner_1: undefined
+    chat_id: None
+    coins_2: 0
+    subscriptions_mess: None
+    send_info_bot: False
+    send_message: False
+    prognoz_time: 06:00:00
+    send_prognoz: None
+    in_channel: True
+    channel_update: 2026-01-14 04:15:46.045000
+    zacrep_channel: 34628387
+  Запись 2:
+    id: 4651
+    created_at: 2024-09-28 12:01:48
+    date_end: 2026-03-18 00:00:00
+    client_id: 556423951
+    platform_id: 923361801
+    name: Dilnoza
+    tg_username: @dilnozayul
+    phone: 503938587
+    email: dilnozaismailovna@mail.ru
+    coins: 6800
+    group_id: hranitel_kod_bot
+    client_date: 18.06.1980
+    metka: 
+    payment_system: ученик
+    auto_subscription: 1
+    free_dostup: None
+    partner_1: no referra
+    chat_id: 11
+    coins_2: 3490
+    subscriptions_mess: {'subscriptions': [{'id': None, 'gateway': 'gift', 'finished_at': '2024-10-28 09:00:00', 'is_renewable': False}, {'id': None, 'gateway': 'apple', 'finished_at': '2026-03-18 09:14:32', 'is_renewable': True}]}
+    send_info_bot: False
+    send_message: False
+    prognoz_time: 06:00:00
+    send_prognoz: None
+    in_channel: False
+    channel_update: 2026-01-14 04:02:16.102000
+    zacrep_channel: 34644012
+  Запись 3:
+    id: 4680
+    created_at: 2024-09-28 12:14:07
+    date_end: 2026-03-12 09:00:00
+    client_id: 556463599
+    platform_id: 391311341
+    name: Марина
+    tg_username: @ma_rinika
+    phone: 79215251530
+    email: galochkinamarinav@yandex.ru
+    coins: 0
+    group_id: hranitel_kod_bot
+    client_date: 30.01.1987
+    metka: 
+    payment_system: ученик
+    auto_subscription: 0
+    free_dostup: undefined
+    partner_1: undefined
+    chat_id: 32
+    coins_2: 2420
+    subscriptions_mess: {'subscriptions': [{'id': None, 'gateway': 'gift', 'finished_at': '2026-03-12 09:00:00', 'is_renewable': False}]}
+    send_info_bot: False
+    send_message: False
+    prognoz_time: 06:00:00
+    send_prognoz: None
+    in_channel: False
+    channel_update: 2026-01-14 04:02:16.125000
+    zacrep_channel: None
+
+📋 Таблица: secret_santa_club
+--------------------------------------------------------------------------------
+Колонки (13):
+  - id: bigint NOT NULL
+  - created_at: timestamp without time zone NULL
+  - client_id: bigint NULL
+  - platform_id: bigint NULL
+  - phone: text NULL
+  - tg_username: text NULL
+  - client_date: text NULL
+  - имя: text NULL
+  - region: text NULL
+  - address: text NULL
+  - partner_id: bigint NULL
+  - group_bot: text NULL
+  - dream: text NULL
+
+Количество записей: 129
+
+Примеры данных (первые 3 записи):
+  Запись 1:
+    id: 16
+    created_at: 2025-12-19 11:05:09
+    client_id: 660298414
+    platform_id: 549161427
+    phone: 79098060384
+    tg_username: 
+    client_date: 03.12.1976
+    имя: Фоменко Юлия Анатольевна
+    region: Чат не выбран
+    address: Нет, выбираем другой город
+    partner_id: 7646335513
+    group_bot: None
+    dream: Город Хабаровск
+  Запись 2:
+    id: 9
+    created_at: 2025-12-19 10:52:41
+    client_id: 653217781
+    platform_id: 7646335513
+    phone: 79282885927
+    tg_username: @Fati_King31
+    client_date: 31.08.2004
+    имя: Абдулмаликова Фатима Азизовна
+    region: Чат не выбран
+    address: Махачкала
+    partner_id: 549161427
+    group_bot: None
+    dream: Сюрприз бьюти бокс
+  Запись 3:
+    id: 3
+    created_at: 2025-12-08 08:44:31
+    client_id: 483941353
+    platform_id: 488563513
+    phone: 79879867104
+    tg_username: @efimova_darya
+    client_date: 08.04.1992
+    имя: Ефиомва Дарья КонстантиновнаTraceback (most recent call last):
+  File "/Users/daniillepekhin/My Python/egiazarova/club_webapp/migration/analyze_old_db.py", line 129, in analyze_database
+    cur.execute(f"SELECT COUNT(*) FROM {table_name}")
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "statistics_club_ik" does not exist
+LINE 1: SELECT COUNT(*) FROM statistics_club_IK
+                             ^
+
+
+    region: Москва
+    address: Москва слезам не верит
+    partner_id: 389209990
+    group_bot: None
+    dream: Сюрприз
+
+📋 Таблица: statistics_club_IK
+--------------------------------------------------------------------------------
+Колонки (14):
+  - id: bigint NOT NULL
+  - platform_id: bigint NULL
+  - client_id: bigint NULL
+  - metka: text NULL
+  - utm_medium: text NULL
+  - utm_source: text NULL
+  - utm_campaign: text NULL
+  - utm_content: text NULL
+  - created_at: timestamp without time zone NOT NULL
+  - group: text NULL
+  - updated_at: timestamp without time zone NULL
+  - utm_term: text NULL
+  - source_system: text NULL
+  - product_name: text NULL
+❌ Ошибка: relation "statistics_club_ik" does not exist
+LINE 1: SELECT COUNT(*) FROM statistics_club_IK
+                             ^
+
