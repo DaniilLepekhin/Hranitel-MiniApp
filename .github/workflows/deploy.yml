@@ -89,59 +89,14 @@ jobs:
 
             # Setup Nginx for hranitel.daniillepekhin.com
             echo "🌐 Configuring Nginx..."
-            cat > /etc/nginx/sites-available/hranitel << 'NGINX_EOF'
-            server {
-                server_name hranitel.daniillepekhin.com;
-
-                # Frontend (Next.js webapp) - port 3003
-                location / {
-                    proxy_pass http://localhost:3003;
-                    proxy_http_version 1.1;
-                    proxy_set_header Upgrade $http_upgrade;
-                    proxy_set_header Connection 'upgrade';
-                    proxy_set_header Host $host;
-                    proxy_cache_bypass $http_upgrade;
-                    proxy_set_header X-Real-IP $remote_addr;
-                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Proto $scheme;
-                    proxy_read_timeout 300s;
-                    proxy_connect_timeout 300s;
-                    proxy_send_timeout 300s;
-                }
-
-                # Backend API - port 3002
-                location /api/ {
-                    proxy_pass http://localhost:3002/api/;
-                    proxy_http_version 1.1;
-                    proxy_set_header Upgrade $http_upgrade;
-                    proxy_set_header Connection 'upgrade';
-                    proxy_set_header Host $host;
-                    proxy_cache_bypass $http_upgrade;
-                    proxy_set_header X-Real-IP $remote_addr;
-                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Proto $scheme;
-                    proxy_read_timeout 300s;
-                    proxy_connect_timeout 300s;
-                    proxy_send_timeout 300s;
-                }
-
-                # Health check
-                location /health {
-                    proxy_pass http://localhost:3002/health;
-                    proxy_http_version 1.1;
-                    proxy_set_header Host $host;
-                }
-
-                listen 80;
-            }
-            NGINX_EOF
+            printf 'server {\n    server_name hranitel.daniillepekhin.com;\n    location / {\n        proxy_pass http://localhost:3003;\n        proxy_http_version 1.1;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection upgrade;\n        proxy_set_header Host $host;\n        proxy_cache_bypass $http_upgrade;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_read_timeout 300s;\n        proxy_connect_timeout 300s;\n        proxy_send_timeout 300s;\n    }\n    location /api/ {\n        proxy_pass http://localhost:3002/api/;\n        proxy_http_version 1.1;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection upgrade;\n        proxy_set_header Host $host;\n        proxy_cache_bypass $http_upgrade;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_read_timeout 300s;\n        proxy_connect_timeout 300s;\n        proxy_send_timeout 300s;\n    }\n    location /health {\n        proxy_pass http://localhost:3002/health;\n        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n    }\n    listen 80;\n}\n' > /etc/nginx/sites-available/hranitel
 
             ln -sf /etc/nginx/sites-available/hranitel /etc/nginx/sites-enabled/
             nginx -t && systemctl reload nginx
 
             # Setup SSL with Certbot
             echo "🔐 Setting up SSL..."
-            certbot --nginx -d hranitel.daniillepekhin.com --non-interactive --agree-tos --email admin@daniillepekhin.com || echo "⚠️ SSL setup skipped (may need DNS first)"
+            certbot --nginx -d hranitel.daniillepekhin.com --non-interactive --agree-tos --email admin@daniillepekhin.com 2>/dev/null || echo "⚠️ SSL setup skipped (may need DNS first)"
 
             echo ""
             echo "✅ Deployment completed!"
