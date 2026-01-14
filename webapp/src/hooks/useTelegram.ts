@@ -58,6 +58,8 @@ interface WebApp {
   };
   onEvent: (eventType: string, callback: () => void) => void;
   offEvent: (eventType: string, callback: () => void) => void;
+  openLink: (url: string, options?: { try_instant_view?: boolean }) => void;
+  openTelegramLink: (url: string) => void;
 }
 
 declare global {
