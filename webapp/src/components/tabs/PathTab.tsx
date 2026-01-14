@@ -221,6 +221,7 @@ export function PathTab() {
             const isUnlocked = month.key <= currentKey;
             const isCurrent = month.key === currentKey;
             const keyItems = itemsByKey[month.key] || [];
+            const IconComponent = month.icon;
 
             return (
               <Card
@@ -244,7 +245,7 @@ export function PathTab() {
                     {isCompleted ? (
                       <CheckCircle className="w-8 h-8 text-white" />
                     ) : isUnlocked ? (
-                      <month.icon className="w-7 h-7 text-white" strokeWidth={2} />
+                      <IconComponent className="w-7 h-7 text-white" strokeWidth={2} />
                     ) : (
                       <Lock className="w-6 h-6 text-[#8b4513]/50" />
                     )}

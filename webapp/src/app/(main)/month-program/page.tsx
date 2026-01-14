@@ -6,6 +6,7 @@ import { ArrowLeft, Calendar, BookOpen, Headphones, Radio, Sparkles, ChevronRigh
 import { contentApi, type ContentItem } from '@/lib/api';
 import { useTelegram } from '@/hooks/useTelegram';
 import { Card } from '@/components/ui/Card';
+import { MonthCalendar } from '@/components/MonthCalendar';
 
 export default function MonthProgramPage() {
   const router = useRouter();
@@ -147,6 +148,20 @@ export default function MonthProgramPage() {
         </Card>
       ) : (
         <>
+          {/* Calendar */}
+          <MonthCalendar
+            items={items}
+            onDayClick={(day) => {
+              haptic.impact('light');
+              // Scroll to the week containing this day
+              const weekNum = Math.ceil(day / 7);
+              const weekElement = document.getElementById(`week-${weekNum}`);
+              if (weekElement) {
+                weekElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+            }}
+          />
+
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3 mb-6">
             <Card className="p-4 text-center bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10">
@@ -179,6 +194,7 @@ export default function MonthProgramPage() {
             {weeklyItems.map((week) => (
               <Card
                 key={week.weekNum}
+                id={`week-${week.weekNum}`}
                 className={`p-5 ${
                   week.isCurrentWeek
                     ? 'bg-gradient-to-br from-[#8b0000]/20 to-[#8b4513]/20 border-2 border-[#8b0000]'
