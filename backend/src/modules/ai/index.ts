@@ -1,5 +1,4 @@
 import { Elysia, t } from 'elysia';
-import OpenAI from 'openai/index.mjs';
 import { eq, desc } from 'drizzle-orm';
 import { db, chatMessages } from '@/db';
 import { config } from '@/config';
@@ -7,14 +6,42 @@ import { authMiddleware } from '@/middlewares/auth';
 import { logger } from '@/utils/logger';
 import { gamificationService } from '@/modules/gamification/service';
 
-// OpenAI client - only created if API key is configured
-let openai: OpenAI | null = null;
-if (config.OPENAI_API_KEY && config.OPENAI_API_KEY.length > 0) {
-  openai = new OpenAI({
-    apiKey: config.OPENAI_API_KEY,
-  });
-} else {
-  logger.warn('⚠️ OpenAI API key not configured - AI features disabled');
+// OpenAI types (for TypeScript)
+type OpenAIClient = {
+  chat: {
+    completions: {
+      create: (params: any) => Promise<any>;
+    };
+  };
+  audio: {
+    transcriptions: {
+      create: (params: any) => Promise<any>;
+    };
+  };
+};
+
+// OpenAI client - lazy loaded only if API key is configured
+let openai: OpenAIClient | null = null;
+let openaiInitialized = false;
+
+async function getOpenAI(): Promise<OpenAIClient | null> {
+  if (openaiInitialized) return openai;
+  openaiInitialized = true;
+
+  if (config.OPENAI_API_KEY && config.OPENAI_API_KEY.length > 0) {
+    try {
+      const OpenAI = (await import('openai')).default;
+      openai = new OpenAI({
+        apiKey: config.OPENAI_API_KEY,
+      });
+      logger.info('✅ OpenAI client initialized');
+    } catch (error) {
+      logger.error({ error }, 'Failed to initialize OpenAI client');
+    }
+  } else {
+    logger.warn('⚠️ OpenAI API key not configured - AI features disabled');
+  }
+  return openai;
 }
 
 const SYSTEM_PROMPT = `Ты - AI-ассистент в приложении Academy MiniApp 2.0 для личностного развития и духовного роста.
@@ -50,6 +77,15 @@ export const aiModule = new Elysia({ prefix: '/ai', tags: ['AI'] })
       }
 
       try {
+        const client = await getOpenAI();
+        if (!client) {
+          set.status = 503;
+          return {
+            success: false,
+            error: 'AI service not available',
+          };
+        }
+
         // Get recent chat history
         const history = await db
           .select()
@@ -59,7 +95,7 @@ export const aiModule = new Elysia({ prefix: '/ai', tags: ['AI'] })
           .limit(10);
 
         // Reverse to get chronological order
-        const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+        const messages = [
           { role: 'system', content: SYSTEM_PROMPT },
           ...history.reverse().map((m) => ({
             role: m.role as 'user' | 'assistant',
@@ -76,7 +112,7 @@ export const aiModule = new Elysia({ prefix: '/ai', tags: ['AI'] })
         });
 
         // Get AI response
-        const completion = await openai.chat.completions.create({
+        const completion = await client.chat.completions.create({
           model: 'gpt-4-turbo-preview',
           messages,
           temperature: 0.7,
@@ -132,6 +168,12 @@ export const aiModule = new Elysia({ prefix: '/ai', tags: ['AI'] })
       }
 
       try {
+        const client = await getOpenAI();
+        if (!client) {
+          yield JSON.stringify({ error: 'AI service not available' });
+          return;
+        }
+
         // Get recent chat history
         const history = await db
           .select()
@@ -140,7 +182,7 @@ export const aiModule = new Elysia({ prefix: '/ai', tags: ['AI'] })
           .orderBy(desc(chatMessages.createdAt))
           .limit(10);
 
-        const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+        const messages = [
           { role: 'system', content: SYSTEM_PROMPT },
           ...history.reverse().map((m) => ({
             role: m.role as 'user' | 'assistant',
@@ -157,7 +199,7 @@ export const aiModule = new Elysia({ prefix: '/ai', tags: ['AI'] })
         });
 
         // Stream AI response
-        const stream = await openai.chat.completions.create({
+        const stream = await (client as any).chat.completions.create({
           model: 'gpt-4-turbo-preview',
           messages,
           temperature: 0.7,
@@ -259,13 +301,22 @@ export const aiModule = new Elysia({ prefix: '/ai', tags: ['AI'] })
       }
 
       try {
+        const client = await getOpenAI();
+        if (!client) {
+          set.status = 503;
+          return {
+            success: false,
+            error: 'AI service not available',
+          };
+        }
+
         const { audio } = body;
 
         // Convert base64 to file
         const audioBuffer = Buffer.from(audio, 'base64');
         const file = new File([audioBuffer], 'audio.webm', { type: 'audio/webm' });
 
-        const transcription = await openai.audio.transcriptions.create({
+        const transcription = await client.audio.transcriptions.create({
           file,
           model: 'whisper-1',
           language: 'ru',
