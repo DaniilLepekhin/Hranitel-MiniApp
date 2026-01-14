@@ -107,11 +107,11 @@ export class StreamsService {
             .update(streamAttendance)
             .set({
               watchedOnline: true,
-              epEarned: stream.epReward,
+              energiesEarned: stream.energiesReward,
             })
             .where(eq(streamAttendance.id, existingAttendance[0].id));
 
-          // Начисляем дополнительные EP
+          // Начисляем дополнительные Энергий
           await energyPointsService.awardLiveStream(userId, streamId, true);
 
           logger.info(`[Streams] Updated attendance for user ${userId} to online for stream ${streamId}`);
@@ -121,26 +121,26 @@ export class StreamsService {
       }
 
       // Определяем награду
-      const epReward = watchedOnline ? stream.epReward : 10;
+      const energiesReward = watchedOnline ? stream.energiesReward : 10;
 
       // Создаем запись о посещении
       await db.insert(streamAttendance).values({
         streamId,
         userId,
         watchedOnline,
-        epEarned: epReward,
+        energiesEarned: energiesReward,
       });
 
-      // Начисляем EP
+      // Начисляем Энергий
       await energyPointsService.awardLiveStream(userId, streamId, watchedOnline);
 
       logger.info(
-        `[Streams] User ${userId} marked attendance for stream ${streamId} (online: ${watchedOnline}, EP: ${epReward})`
+        `[Streams] User ${userId} marked attendance for stream ${streamId} (online: ${watchedOnline}, Энергий: ${energiesReward})`
       );
 
       return {
         success: true,
-        epEarned: epReward,
+        energiesEarned: energiesReward,
         watchedOnline,
       };
     } catch (error) {
@@ -159,7 +159,7 @@ export class StreamsService {
           id: streamAttendance.id,
           joinedAt: streamAttendance.joinedAt,
           watchedOnline: streamAttendance.watchedOnline,
-          epEarned: streamAttendance.epEarned,
+          energiesEarned: streamAttendance.energiesEarned,
           // Данные эфира
           streamTitle: liveStreams.title,
           streamScheduledAt: liveStreams.scheduledAt,
@@ -188,7 +188,7 @@ export class StreamsService {
           userId: streamAttendance.userId,
           joinedAt: streamAttendance.joinedAt,
           watchedOnline: streamAttendance.watchedOnline,
-          epEarned: streamAttendance.epEarned,
+          energiesEarned: streamAttendance.energiesEarned,
           // Данные пользователя
           username: users.username,
           firstName: users.firstName,
@@ -216,7 +216,7 @@ export class StreamsService {
     host: string,
     description?: string,
     streamUrl?: string,
-    epReward: number = 100
+    energiesReward: number = 100
   ) {
     try {
       const newStream = await db
@@ -227,7 +227,7 @@ export class StreamsService {
           scheduledAt,
           streamUrl,
           host,
-          epReward,
+          energiesReward,
           status: 'scheduled',
         })
         .returning();
@@ -271,7 +271,7 @@ export class StreamsService {
         totalAttendees: attendees.length,
         onlineAttendees: attendees.filter(a => a.watchedOnline).length,
         offlineAttendees: attendees.filter(a => !a.watchedOnline).length,
-        totalEpAwarded: attendees.reduce((sum, a) => sum + a.epEarned, 0),
+        totalEpAwarded: attendees.reduce((sum, a) => sum + a.energiesEarned, 0),
       };
 
       return stats;
@@ -292,7 +292,7 @@ export class StreamsService {
         totalStreams: attendance.length,
         onlineStreams: attendance.filter(a => a.watchedOnline).length,
         offlineStreams: attendance.filter(a => !a.watchedOnline).length,
-        totalEpEarned: attendance.reduce((sum, a) => sum + a.epEarned, 0),
+        totalEpEarned: attendance.reduce((sum, a) => sum + a.energiesEarned, 0),
       };
 
       return stats;

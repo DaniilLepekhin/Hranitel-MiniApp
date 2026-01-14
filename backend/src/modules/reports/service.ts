@@ -83,7 +83,7 @@ export class ReportsService {
           weekNumber,
           content,
           deadline,
-          epEarned: 100, // По ТЗ: +100 EP за отчет
+          energiesEarned: 100, // По ТЗ: +100 Энергийза отчет
         })
         .returning();
 
@@ -95,7 +95,7 @@ export class ReportsService {
       return {
         success: true,
         report: newReport[0],
-        epEarned: 100,
+        energiesEarned: 100,
       };
     } catch (error) {
       logger.error('[Reports] Error submitting report:', error);
@@ -203,7 +203,7 @@ export class ReportsService {
 
       const stats = {
         totalReports: reports.length,
-        totalEpEarned: reports.reduce((sum, r) => sum + r.epEarned, 0),
+        totalEpEarned: reports.reduce((sum, r) => sum + r.energiesEarned, 0),
         currentStreak: await this.calculateStreak(userId),
         submittedThisWeek: await this.hasSubmittedThisWeek(userId),
         hoursUntilDeadline: this.getHoursUntilDeadline(),
@@ -259,7 +259,7 @@ export class ReportsService {
           id: weeklyReports.id,
           content: weeklyReports.content,
           submittedAt: weeklyReports.submittedAt,
-          epEarned: weeklyReports.epEarned,
+          energiesEarned: weeklyReports.energiesEarned,
           // Данные пользователя
           userId: users.id,
           username: users.username,
@@ -328,7 +328,7 @@ export class ReportsService {
         .delete(weeklyReports)
         .where(eq(weeklyReports.id, reportId));
 
-      // Возвращаем EP (списываем -100)
+      // Возвращаем Энергий(списываем -100)
       await energyPointsService.spend(userId, 100, 'Возврат за удаленный отчет', { reportId });
 
       logger.info(`[Reports] Report ${reportId} deleted by user ${userId}`);

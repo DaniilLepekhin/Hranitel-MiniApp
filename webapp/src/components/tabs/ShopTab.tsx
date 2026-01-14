@@ -17,7 +17,7 @@ const shopApi = {
   },
 
   getUserBalance: async (userId: string) => {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ep/balance?userId=${userId}`);
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/energies/balance?userId=${userId}`);
     if (!response.ok) throw new Error('Failed to fetch balance');
     return response.json();
   },

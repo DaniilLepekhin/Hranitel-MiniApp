@@ -84,7 +84,7 @@ export class ShopService {
 
       // Выполняем транзакцию
       await db.transaction(async (tx) => {
-        // Списываем EP
+        // Списываем Энергий
         await energyPointsService.spend(
           userId,
           item.price,
@@ -101,7 +101,7 @@ export class ShopService {
         });
       });
 
-      logger.info(`[Shop] User ${userId} purchased item ${itemId} for ${item.price} EP`);
+      logger.info(`[Shop] User ${userId} purchased item ${itemId} for ${item.price} Энергий`);
 
       return {
         success: true,
