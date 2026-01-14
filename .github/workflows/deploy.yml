@@ -39,15 +39,15 @@ jobs:
             echo "🔧 Deploying Backend..."
             cd backend
 
-            # Create .env for backend
+            # Create .env for backend (bot disabled, only webapp)
             cat > .env << 'ENVEOF'
-            DATABASE_URL=postgresql://postgres:kH*kyrS&9z7K@31.128.36.81:5423/club_hranitel
-            PORT=3002
-            NODE_ENV=production
-            WEBAPP_URL=https://hranitel.daniillepekhin.com
-            JWT_SECRET=hranitel_jwt_secret_key_production_2026
-            FRONTEND_URL=https://hranitel.daniillepekhin.com
-            ENVEOF
+DATABASE_URL=postgresql://postgres:kH*kyrS&9z7K@31.128.36.81:5423/club_hranitel
+PORT=3002
+NODE_ENV=production
+WEBAPP_URL=https://hranitel.daniillepekhin.com
+JWT_SECRET=hranitel_jwt_secret_key_production_2026
+CORS_ORIGIN=https://hranitel.daniillepekhin.com
+ENVEOF
 
             # Install Bun if not exists
             if ! command -v bun &> /dev/null; then

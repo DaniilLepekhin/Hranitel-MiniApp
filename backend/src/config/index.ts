@@ -4,11 +4,11 @@ const envSchema = v.object({
   // Database
   DATABASE_URL: v.pipe(v.string(), v.minLength(1)),
 
-  // Redis
-  REDIS_URL: v.pipe(v.string(), v.minLength(1)),
+  // Redis (optional - will work without it)
+  REDIS_URL: v.optional(v.string(), ''),
 
-  // Telegram
-  TELEGRAM_BOT_TOKEN: v.pipe(v.string(), v.minLength(1)),
+  // Telegram (optional - bot not required for webapp)
+  TELEGRAM_BOT_TOKEN: v.optional(v.string(), ''),
   TELEGRAM_BOT_USERNAME: v.optional(v.string(), 'AcademyMiniApp2Bot'),
   TELEGRAM_WEBHOOK_SECRET: v.optional(v.string()),
 
