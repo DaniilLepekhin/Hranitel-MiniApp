@@ -40,14 +40,12 @@ jobs:
             cd backend
 
             # Create .env for backend (bot disabled, only webapp)
-            cat > .env << 'ENVEOF'
-DATABASE_URL=postgresql://postgres:kH*kyrS&9z7K@31.128.36.81:5423/club_hranitel
-PORT=3002
-NODE_ENV=production
-WEBAPP_URL=https://hranitel.daniillepekhin.com
-JWT_SECRET=hranitel_jwt_secret_key_production_2026
-CORS_ORIGIN=https://hranitel.daniillepekhin.com
-ENVEOF
+            echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
+            echo "PORT=3002" >> .env
+            echo "NODE_ENV=production" >> .env
+            echo "WEBAPP_URL=https://hranitel.daniillepekhin.com" >> .env
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+            echo "CORS_ORIGIN=https://hranitel.daniillepekhin.com" >> .env
 
             # Install Bun if not exists
             if ! command -v bun &> /dev/null; then
