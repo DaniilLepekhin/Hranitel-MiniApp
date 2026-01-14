@@ -1,5 +1,5 @@
 import { Elysia, t } from 'elysia';
-import { energyPointsService } from './service';
+import { energiesService as energyPointsService } from './service';
 import { logger } from '@/utils/logger';
 
 export const energyPointsRoutes = new Elysia({ prefix: '/api/energies' })

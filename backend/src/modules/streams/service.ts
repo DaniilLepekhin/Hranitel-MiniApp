@@ -2,7 +2,7 @@ import { db } from '@/db';
 import { liveStreams, streamAttendance, users } from '@/db/schema';
 import { eq, and, gte, desc, sql } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
-import { energyPointsService } from '../energy-points/service';
+import { energiesService as energyPointsService } from '../energy-points/service';
 
 export class StreamsService {
   /**
