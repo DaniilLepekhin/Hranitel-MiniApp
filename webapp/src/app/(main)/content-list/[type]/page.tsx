@@ -198,7 +198,7 @@ export default function ContentListPage() {
                         Ключ #{item.keyNumber}
                       </span>
                     )}
-                    {item.isMonthProgram && (
+                    {item.monthProgram && (
                       <span className="px-2 py-0.5 rounded-full bg-[#8b4513]/20 text-[#8b4513] text-xs font-semibold">
                         Программа месяца
                       </span>
