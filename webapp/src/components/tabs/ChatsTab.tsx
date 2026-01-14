@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ExternalLink, Users, MessageCircle, HeadphonesIcon, MapPin, Globe } from 'lucide-react';
+import { ExternalLink, Users, MessageCircle, HeadphonesIcon, MapPin, Globe, Radio, Headset } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { Card } from '@/components/ui/Card';
 import { cityChatsApi } from '@/lib/api';
+import { ReferralCard } from '@/components/ReferralCard';
 
 // API endpoints
 const teamsApi = {
@@ -23,7 +24,7 @@ const clubChannels = [
     id: 'main',
     title: 'КОД ДЕНЕГ',
     description: 'Основной канал клуба с важными объявлениями',
-    icon: '💰',
+    icon: Radio,
     url: 'https://t.me/+mwJ5e0d78GYzNDRi',
     members: '15K+',
   },
@@ -31,7 +32,7 @@ const clubChannels = [
     id: 'support',
     title: 'Служба заботы',
     description: 'Помощь и поддержка участников клуба',
-    icon: '🆘',
+    icon: Headset,
     url: 'https://t.me/Egiazarova_support_bot',
     members: 'support',
   },
@@ -138,33 +139,41 @@ export function ChatsTab() {
         </h2>
 
         <div className="grid gap-3">
-          {clubChannels.map((channel) => (
-            <Card
-              key={channel.id}
-              className="p-4 cursor-pointer hover:scale-[1.02] transition-all"
-              onClick={() => openLink(channel.url)}
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center text-2xl shadow-md">
-                  {channel.icon}
-                </div>
+          {clubChannels.map((channel) => {
+            const IconComponent = channel.icon;
+            return (
+              <Card
+                key={channel.id}
+                className="p-4 cursor-pointer hover:scale-[1.02] transition-all"
+                onClick={() => openLink(channel.url)}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center shadow-md">
+                    <IconComponent className="w-6 h-6 text-white" strokeWidth={2} />
+                  </div>
 
-                <div className="flex-1">
-                  <h3 className="font-semibold text-[#3d2f1f] mb-0.5">{channel.title}</h3>
-                  <p className="text-[#6b5a4a] text-xs mb-1">{channel.description}</p>
-                  {channel.members !== 'support' && (
-                    <div className="flex items-center gap-1 text-[#8b4513] text-xs">
-                      <Users className="w-3 h-3" />
-                      <span>{channel.members} участников</span>
-                    </div>
-                  )}
-                </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-[#3d2f1f] mb-0.5">{channel.title}</h3>
+                    <p className="text-[#6b5a4a] text-xs mb-1">{channel.description}</p>
+                    {channel.members !== 'support' && (
+                      <div className="flex items-center gap-1 text-[#8b4513] text-xs">
+                        <Users className="w-3 h-3" />
+                        <span>{channel.members} участников</span>
+                      </div>
+                    )}
+                  </div>
 
-                <ExternalLink className="w-5 h-5 text-[#8b4513]" />
-              </div>
-            </Card>
-          ))}
+                  <ExternalLink className="w-5 h-5 text-[#8b4513]" />
+                </div>
+              </Card>
+            );
+          })}
         </div>
+      </div>
+
+      {/* Referral Card */}
+      <div className="mb-6">
+        <ReferralCard invitedCount={0} />
       </div>
 
       {/* City Chats (Городские чаты) */}
