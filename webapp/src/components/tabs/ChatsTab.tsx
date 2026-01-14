@@ -52,7 +52,12 @@ export function ChatsTab() {
 
   const openLink = (url: string) => {
     haptic.impact('light');
-    webApp?.openTelegramLink(url);
+    // Use openLink for regular URLs or window.open as fallback
+    if (webApp?.openLink) {
+      webApp.openLink(url);
+    } else {
+      window.open(url, '_blank');
+    }
   };
 
   return (
