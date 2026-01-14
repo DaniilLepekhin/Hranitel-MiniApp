@@ -2,34 +2,45 @@ import Redis from 'ioredis';
 import { config } from '@/config';
 import { logger } from './logger';
 
-const redisUrl = new URL(config.REDIS_URL);
+// Redis is optional - create a mock if not configured
+const isRedisEnabled = config.REDIS_URL && config.REDIS_URL.length > 0;
 
-export const redis = new Redis({
-  host: redisUrl.hostname,
-  port: parseInt(redisUrl.port) || 6379,
-  password: redisUrl.password || undefined,
-  retryStrategy: (times) => {
-    const delay = Math.min(times * 50, 2000);
-    return delay;
-  },
-  maxRetriesPerRequest: 3,
-});
+let redisClient: Redis | null = null;
 
-redis.on('connect', () => {
-  logger.info('✅ Redis connected');
-});
+if (isRedisEnabled) {
+  const redisUrl = new URL(config.REDIS_URL);
+  redisClient = new Redis({
+    host: redisUrl.hostname,
+    port: parseInt(redisUrl.port) || 6379,
+    password: redisUrl.password || undefined,
+    retryStrategy: (times) => {
+      const delay = Math.min(times * 50, 2000);
+      return delay;
+    },
+    maxRetriesPerRequest: 3,
+  });
 
-redis.on('error', (err) => {
-  logger.error({ err }, '❌ Redis error');
-});
+  redisClient.on('connect', () => {
+    logger.info('✅ Redis connected');
+  });
 
-redis.on('close', () => {
-  logger.warn('Redis connection closed');
-});
+  redisClient.on('error', (err) => {
+    logger.error({ err }, '❌ Redis error');
+  });
 
-// Cache helper
+  redisClient.on('close', () => {
+    logger.warn('Redis connection closed');
+  });
+} else {
+  logger.warn('⚠️ Redis not configured - caching disabled');
+}
+
+export const redis = redisClient;
+
+// Cache helper - works without Redis (no-op if disabled)
 export const cache = {
   async get<T>(key: string): Promise<T | null> {
+    if (!redis) return null;
     try {
       const value = await redis.get(key);
       return value ? JSON.parse(value) : null;
@@ -40,6 +51,7 @@ export const cache = {
   },
 
   async set(key: string, value: unknown, ttl: number = 3600): Promise<void> {
+    if (!redis) return;
     try {
       await redis.setex(key, ttl, JSON.stringify(value));
     } catch (error) {
@@ -48,6 +60,7 @@ export const cache = {
   },
 
   async del(key: string): Promise<void> {
+    if (!redis) return;
     try {
       await redis.del(key);
     } catch (error) {
@@ -56,6 +69,7 @@ export const cache = {
   },
 
   async delPattern(pattern: string): Promise<void> {
+    if (!redis) return;
     try {
       const keys = await redis.keys(pattern);
       if (keys.length > 0) {
@@ -67,6 +81,7 @@ export const cache = {
   },
 
   async exists(key: string): Promise<boolean> {
+    if (!redis) return false;
     try {
       return (await redis.exists(key)) === 1;
     } catch (error) {
@@ -77,6 +92,8 @@ export const cache = {
 };
 
 export const closeRedisConnection = async () => {
-  await redis.quit();
-  logger.info('Redis connection closed');
+  if (redis) {
+    await redis.quit();
+    logger.info('Redis connection closed');
+  }
 };
