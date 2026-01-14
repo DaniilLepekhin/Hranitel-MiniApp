@@ -15,6 +15,13 @@
       "when": 1768391430323,
       "tag": "0001_keen_spectrum",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1768411111766,
+      "tag": "0002_cloudy_ares",
+      "breakpoints": true
     }
   ]
 }

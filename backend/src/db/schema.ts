@@ -9,6 +9,8 @@ export const epTransactionTypeEnum = pgEnum('ep_transaction_type', ['income', 'e
 export const shopCategoryEnum = pgEnum('shop_category', ['elite', 'secret', 'savings']);
 export const shopItemTypeEnum = pgEnum('shop_item_type', ['raffle_ticket', 'lesson', 'discount']);
 export const streamStatusEnum = pgEnum('stream_status', ['scheduled', 'live', 'ended']);
+export const contentTypeEnum = pgEnum('content_type', ['course', 'podcast', 'stream_record', 'practice']);
+export const practiceContentTypeEnum = pgEnum('practice_content_type', ['markdown', 'html']);
 
 // Users
 export const users = pgTable('users', {
@@ -361,6 +363,108 @@ export const userKeys = pgTable('user_keys', {
   index('user_keys_key_number_idx').on(table.keyNumber),
 ]);
 
+// ============================================================================
+// CONTENT SYSTEM (Курсы, Подкасты, Эфиры, Практики)
+// ============================================================================
+
+// Content Items (универсальная таблица контента)
+export const contentItems = pgTable('content_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  type: contentTypeEnum('type').notNull(), // course | podcast | stream_record | practice
+  title: text('title').notNull(),
+  description: text('description'),
+  coverUrl: text('cover_url'),
+  keyNumber: integer('key_number'), // 1-12, связь с ключами
+  monthProgram: boolean('month_program').default(false), // программа месяца
+  orderIndex: integer('order_index').default(0).notNull(),
+  isPublished: boolean('is_published').default(true).notNull(),
+
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('content_items_type_idx').on(table.type),
+  index('content_items_key_number_idx').on(table.keyNumber),
+  index('content_items_month_program_idx').on(table.monthProgram),
+  index('content_items_order_index_idx').on(table.orderIndex),
+]);
+
+// Content Sections (уроки внутри курса, эпизоды подкаста)
+export const contentSections = pgTable('content_sections', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  contentItemId: uuid('content_item_id').references(() => contentItems.id, { onDelete: 'cascade' }).notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  orderIndex: integer('order_index').default(0).notNull(),
+
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('content_sections_content_item_id_idx').on(table.contentItemId),
+  index('content_sections_order_index_idx').on(table.orderIndex),
+]);
+
+// Videos (видео контент)
+export const videos = pgTable('videos', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  contentSectionId: uuid('content_section_id').references(() => contentSections.id, { onDelete: 'cascade' }),
+  contentItemId: uuid('content_item_id').references(() => contentItems.id, { onDelete: 'cascade' }), // для прямой связи с эфирами
+  title: text('title').notNull(),
+  description: text('description'),
+  videoUrl: text('video_url').notNull(), // URL видео (YouTube, Vimeo, S3, etc.)
+  durationSeconds: integer('duration_seconds'),
+  thumbnailUrl: text('thumbnail_url'),
+  orderIndex: integer('order_index').default(0).notNull(),
+
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('videos_content_section_id_idx').on(table.contentSectionId),
+  index('videos_content_item_id_idx').on(table.contentItemId),
+  index('videos_order_index_idx').on(table.orderIndex),
+]);
+
+// Video Timecodes (таймкоды для видео)
+export const videoTimecodes = pgTable('video_timecodes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  videoId: uuid('video_id').references(() => videos.id, { onDelete: 'cascade' }).notNull(),
+  timeSeconds: integer('time_seconds').notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  orderIndex: integer('order_index').default(0).notNull(),
+}, (table) => [
+  index('video_timecodes_video_id_idx').on(table.videoId),
+  index('video_timecodes_order_index_idx').on(table.orderIndex),
+]);
+
+// User Content Progress (прогресс пользователя по видео)
+export const userContentProgress = pgTable('user_content_progress', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  contentItemId: uuid('content_item_id').references(() => contentItems.id, { onDelete: 'cascade' }),
+  videoId: uuid('video_id').references(() => videos.id, { onDelete: 'cascade' }),
+  watched: boolean('watched').default(false),
+  watchTimeSeconds: integer('watch_time_seconds').default(0), // сколько секунд просмотрел
+  completedAt: timestamp('completed_at'),
+  epEarned: integer('ep_earned').default(0), // сколько EP заработал
+
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('user_content_progress_user_video_idx').on(table.userId, table.videoId),
+  index('user_content_progress_user_id_idx').on(table.userId),
+  index('user_content_progress_content_item_id_idx').on(table.contentItemId),
+]);
+
+// Practice Content (текстовый контент практик)
+export const practiceContent = pgTable('practice_content', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  contentItemId: uuid('content_item_id').references(() => contentItems.id, { onDelete: 'cascade' }).notNull(),
+  contentType: practiceContentTypeEnum('content_type').notNull(), // markdown | html
+  content: text('content').notNull(),
+
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('practice_content_content_item_id_idx').on(table.contentItemId),
+]);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   courseProgress: many(courseProgress),
@@ -376,6 +480,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   streamAttendance: many(streamAttendance),
   weeklyReports: many(weeklyReports),
   userKeys: many(userKeys),
+  userContentProgress: many(userContentProgress),
 }));
 
 export const coursesRelations = relations(courses, ({ many }) => ({
@@ -524,6 +629,64 @@ export const userKeysRelations = relations(userKeys, ({ one }) => ({
   }),
 }));
 
+// Content System Relations
+export const contentItemsRelations = relations(contentItems, ({ many }) => ({
+  sections: many(contentSections),
+  videos: many(videos),
+  practiceContent: many(practiceContent),
+  userProgress: many(userContentProgress),
+}));
+
+export const contentSectionsRelations = relations(contentSections, ({ one, many }) => ({
+  contentItem: one(contentItems, {
+    fields: [contentSections.contentItemId],
+    references: [contentItems.id],
+  }),
+  videos: many(videos),
+}));
+
+export const videosRelations = relations(videos, ({ one, many }) => ({
+  contentSection: one(contentSections, {
+    fields: [videos.contentSectionId],
+    references: [contentSections.id],
+  }),
+  contentItem: one(contentItems, {
+    fields: [videos.contentItemId],
+    references: [contentItems.id],
+  }),
+  timecodes: many(videoTimecodes),
+  userProgress: many(userContentProgress),
+}));
+
+export const videoTimecodesRelations = relations(videoTimecodes, ({ one }) => ({
+  video: one(videos, {
+    fields: [videoTimecodes.videoId],
+    references: [videos.id],
+  }),
+}));
+
+export const userContentProgressRelations = relations(userContentProgress, ({ one }) => ({
+  user: one(users, {
+    fields: [userContentProgress.userId],
+    references: [users.id],
+  }),
+  contentItem: one(contentItems, {
+    fields: [userContentProgress.contentItemId],
+    references: [contentItems.id],
+  }),
+  video: one(videos, {
+    fields: [userContentProgress.videoId],
+    references: [videos.id],
+  }),
+}));
+
+export const practiceContentRelations = relations(practiceContent, ({ one }) => ({
+  contentItem: one(contentItems, {
+    fields: [practiceContent.contentItemId],
+    references: [contentItems.id],
+  }),
+}));
+
 // Types
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -555,3 +718,17 @@ export type WeeklyReport = typeof weeklyReports.$inferSelect;
 export type NewWeeklyReport = typeof weeklyReports.$inferInsert;
 export type UserKey = typeof userKeys.$inferSelect;
 export type NewUserKey = typeof userKeys.$inferInsert;
+
+// Content System Types
+export type ContentItem = typeof contentItems.$inferSelect;
+export type NewContentItem = typeof contentItems.$inferInsert;
+export type ContentSection = typeof contentSections.$inferSelect;
+export type NewContentSection = typeof contentSections.$inferInsert;
+export type Video = typeof videos.$inferSelect;
+export type NewVideo = typeof videos.$inferInsert;
+export type VideoTimecode = typeof videoTimecodes.$inferSelect;
+export type NewVideoTimecode = typeof videoTimecodes.$inferInsert;
+export type UserContentProgress = typeof userContentProgress.$inferSelect;
+export type NewUserContentProgress = typeof userContentProgress.$inferInsert;
+export type PracticeContent = typeof practiceContent.$inferSelect;
+export type NewPracticeContent = typeof practiceContent.$inferInsert;
