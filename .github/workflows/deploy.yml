@@ -48,6 +48,8 @@ jobs:
             echo "WEBAPP_URL=https://hranitel.daniillepekhin.com" >> .env
             echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
             echo "CORS_ORIGIN=https://hranitel.daniillepekhin.com" >> .env
+            echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" >> .env
+            echo "OPENAI_API_KEY=" >> .env
 
             # Install Bun if not exists
             if ! command -v bun &> /dev/null; then
@@ -64,7 +66,7 @@ jobs:
             # Restart backend service (port 3002)
             echo "🔄 Restarting backend..."
             pm2 delete hranitel-backend 2>/dev/null || true
-            pm2 start --name hranitel-backend "bun run start"
+            pm2 start --name hranitel-backend "$HOME/.bun/bin/bun run src/index.ts"
             pm2 save
 
             # Frontend deployment
