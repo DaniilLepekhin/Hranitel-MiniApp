@@ -66,7 +66,8 @@ jobs:
             # Restart backend service (port 3002)
             echo "🔄 Restarting backend..."
             pm2 delete hranitel-backend 2>/dev/null || true
-            pm2 start --name hranitel-backend "$HOME/.bun/bin/bun run src/index.ts"
+            cd /var/www/hranitel/backend
+            pm2 start --name hranitel-backend --cwd /var/www/hranitel/backend "$HOME/.bun/bin/bun run src/index.ts"
             pm2 save
 
             # Frontend deployment
