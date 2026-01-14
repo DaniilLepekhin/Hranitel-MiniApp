@@ -77,10 +77,10 @@ export default function PracticePage() {
       id: video.id,
       title: video.title,
       url: video.videoUrl,
-      duration: video.durationSeconds,
-      thumbnail: video.thumbnailUrl,
+      duration: video.durationSeconds ?? undefined,
+      thumbnail: video.thumbnailUrl ?? undefined,
     })),
-    thumbnail: item?.thumbnailUrl,
+    thumbnail: item?.thumbnailUrl ?? undefined,
   } : null;
 
   return (
