@@ -13,7 +13,8 @@ export const FloatingPlayer: React.FC = () => {
     return null;
   }
 
-  const currentTrack = state.currentMedia.tracks[state.currentTrackIndex];
+  const currentMedia = state.currentMedia;
+  const currentTrack = currentMedia.tracks[state.currentTrackIndex];
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -23,8 +24,8 @@ export const FloatingPlayer: React.FC = () => {
   const handleMaximize = () => {
     maximize();
     // Navigate back to the content page
-    if (state.currentMedia.type === 'audio') {
-      router.push(`/practice/${state.currentMedia.id}`);
+    if (currentMedia.type === 'audio') {
+      router.push(`/practice/${currentMedia.id}`);
     } else {
       router.push(`/video/${currentTrack.id}`);
     }
@@ -34,9 +35,9 @@ export const FloatingPlayer: React.FC = () => {
     <div className="fixed bottom-16 left-0 right-0 z-50 bg-[#2A2A2A] border-t border-gray-800 px-4 py-3">
       <div className="flex items-center gap-3">
         {/* Thumbnail */}
-        {state.currentMedia.thumbnail && (
+        {currentMedia.thumbnail && (
           <img
-            src={state.currentMedia.thumbnail}
+            src={currentMedia.thumbnail}
             alt={currentTrack.title}
             className="w-12 h-12 rounded-lg object-cover"
           />
@@ -45,7 +46,7 @@ export const FloatingPlayer: React.FC = () => {
         {/* Track Info */}
         <div className="flex-1 min-w-0">
           <p className="text-white text-sm font-medium truncate">{currentTrack.title}</p>
-          <p className="text-gray-400 text-xs truncate">{state.currentMedia.title}</p>
+          <p className="text-gray-400 text-xs truncate">{currentMedia.title}</p>
         </div>
 
         {/* Controls */}
