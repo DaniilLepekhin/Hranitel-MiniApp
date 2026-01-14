@@ -35,7 +35,7 @@ export default function VideoPage() {
       queryClient.invalidateQueries({ queryKey: ['content', 'progress'] });
       queryClient.invalidateQueries({ queryKey: ['energies', 'balance'] });
 
-      webApp?.showAlert(`Отлично! Вы получили +${data.energiesEarned} Энергий за просмотр этого видео!`);
+      webApp?.showAlert(`Отлично! Вы получили +${data.energiesEarned} Энергии за просмотр этого видео!`);
     },
     onError: (error: Error) => {
       haptic.notification('error');

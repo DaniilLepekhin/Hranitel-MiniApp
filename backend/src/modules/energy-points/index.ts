@@ -5,7 +5,7 @@ import { logger } from '@/utils/logger';
 export const energyPointsRoutes = new Elysia({ prefix: '/api/energies' })
   /**
    * GET /api/energies/balance
-   * Получить баланс Энергий
+   * Получить баланс Энергии
    */
   .get(
     '/balance',
@@ -147,7 +147,7 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/energies' })
 
   /**
    * POST /api/energies/triggers/daily-login
-   * Триггер: Ежедневный вход (+10 Энергий)
+   * Триггер: Ежедневный вход (+10 Энергии)
    */
   .post(
     '/triggers/daily-login',
@@ -173,7 +173,7 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/energies' })
 
   /**
    * POST /api/energies/triggers/lesson-view
-   * Триггер: Просмотр урока (+50 Энергий)
+   * Триггер: Просмотр урока (+50 Энергии)
    */
   .post(
     '/triggers/lesson-view',
@@ -200,7 +200,7 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/energies' })
 
   /**
    * POST /api/energies/triggers/sunday-practice
-   * Триггер: Воскресная практика (+50 Энергий)
+   * Триггер: Воскресная практика (+50 Энергии)
    */
   .post(
     '/triggers/sunday-practice',

@@ -121,7 +121,7 @@ export function HomeTab() {
               <Zap className="w-5 h-5 text-white" />
             </div>
             <p className="text-xl font-bold text-[#3d2f1f]">{epBalance}</p>
-            <p className="text-xs text-[#6b5a4a]">Энергий</p>
+            <p className="text-xs text-[#6b5a4a]">Энергии</p>
           </Card>
         </div>
       )}

@@ -83,7 +83,7 @@ export class ReportsService {
           weekNumber,
           content,
           deadline,
-          energiesEarned: 100, // По ТЗ: +100 Энергийза отчет
+          energiesEarned: 100, // По ТЗ: +100 Энергииза отчет
         })
         .returning();
 
@@ -328,7 +328,7 @@ export class ReportsService {
         .delete(weeklyReports)
         .where(eq(weeklyReports.id, reportId));
 
-      // Возвращаем Энергий(списываем -100)
+      // Возвращаем Энергии(списываем -100)
       await energyPointsService.spend(userId, 100, 'Возврат за удаленный отчет', { reportId });
 
       logger.info(`[Reports] Report ${reportId} deleted by user ${userId}`);

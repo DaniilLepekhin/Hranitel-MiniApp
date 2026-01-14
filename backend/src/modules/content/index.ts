@@ -174,11 +174,11 @@ export const contentModule = new Elysia({ prefix: '/api/v1/content' })
     })
   })
 
-  // Mark video as completed (with Энергий)
+  // Mark video as completed (with Энергии)
   .post('/progress/complete', async ({ body }) => {
     const { userId, videoId, watchTimeSeconds } = body;
 
-    // Get video details to calculate Энергий
+    // Get video details to calculate Энергии
     const video = await db
       .select()
       .from(videos)
@@ -189,7 +189,7 @@ export const contentModule = new Elysia({ prefix: '/api/v1/content' })
       throw new Error('Video not found');
     }
 
-    // Calculate Энергий based on video duration
+    // Calculate Энергии based on video duration
     let energiesReward = 0;
     const durationMinutes = (video[0].durationSeconds || 0) / 60;
 

@@ -111,7 +111,7 @@ export class StreamsService {
             })
             .where(eq(streamAttendance.id, existingAttendance[0].id));
 
-          // Начисляем дополнительные Энергий
+          // Начисляем дополнительные Энергии
           await energyPointsService.awardLiveStream(userId, streamId, true);
 
           logger.info(`[Streams] Updated attendance for user ${userId} to online for stream ${streamId}`);
@@ -131,11 +131,11 @@ export class StreamsService {
         energiesEarned: energiesReward,
       });
 
-      // Начисляем Энергий
+      // Начисляем Энергии
       await energyPointsService.awardLiveStream(userId, streamId, watchedOnline);
 
       logger.info(
-        `[Streams] User ${userId} marked attendance for stream ${streamId} (online: ${watchedOnline}, Энергий: ${energiesReward})`
+        `[Streams] User ${userId} marked attendance for stream ${streamId} (online: ${watchedOnline}, Энергии: ${energiesReward})`
       );
 
       return {

@@ -31,7 +31,7 @@ export class EnergyPointsService {
         }
       });
 
-      logger.info(`[Energies] Awarded ${amount} Энергийto user ${userId} for: ${reason}`);
+      logger.info(`[Energies] Awarded ${amount} Энергииto user ${userId} for: ${reason}`);
 
       return { success: true, amount, reason };
     } catch (error) {
@@ -69,7 +69,7 @@ export class EnergyPointsService {
           .where(eq(users.id, userId));
       });
 
-      logger.info(`[Energies] Spent ${amount} Энергийfrom user ${userId} for: ${reason}`);
+      logger.info(`[Energies] Spent ${amount} Энергииfrom user ${userId} for: ${reason}`);
 
       return { success: true, amount, reason, newBalance: balance - amount };
     } catch (error) {
@@ -111,7 +111,7 @@ export class EnergyPointsService {
   }
 
   /**
-   * Триггеры начисления Энергийпо ТЗ
+   * Триггеры начисления Энергиипо ТЗ
    */
 
   // Ежедневный вход (+10 EP)
@@ -149,7 +149,7 @@ export class EnergyPointsService {
     return this.award(userId, 50, 'Воскресная практика', { practiceId });
   }
 
-  // Прямой эфир (+100 Энергийза онлайн)
+  // Прямой эфир (+100 Энергииза онлайн)
   async awardLiveStream(userId: string, streamId: string, watchedOnline: boolean) {
     if (watchedOnline) {
       return this.award(userId, 100, 'Участие в прямом эфире', { streamId });

@@ -106,7 +106,7 @@ export function ProfileTab() {
           <span className="text-sm font-medium text-[#3d2f1f]">{levelTitle}</span>
         </div>
 
-        {/* Энергий Balance */}
+        {/* Энергии Balance */}
         <div className="mt-6">
           <div className="flex items-center justify-center gap-2 mb-2">
             <Zap className="w-5 h-5 text-[#8b0000]" />
@@ -116,7 +116,7 @@ export function ProfileTab() {
             <p className="text-4xl font-bold text-[#8b0000]">
               {epBalance}
             </p>
-            <p className="text-xs text-[#6b5a4a] mt-1">Энергий</p>
+            <p className="text-xs text-[#6b5a4a] mt-1">Энергии</p>
           </div>
         </div>
       </Card>
@@ -206,7 +206,7 @@ export function ProfileTab() {
         />
         <MenuItem
           icon={<Zap className="w-5 h-5" />}
-          label="История Энергий"
+          label="История Энергии"
           onClick={() => {}}
         />
         <MenuItem
