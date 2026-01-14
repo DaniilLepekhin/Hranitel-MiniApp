@@ -33,9 +33,9 @@ export default function VideoPage() {
     onSuccess: (data) => {
       haptic.notification('success');
       queryClient.invalidateQueries({ queryKey: ['content', 'progress'] });
-      queryClient.invalidateQueries({ queryKey: ['ep', 'balance'] });
+      queryClient.invalidateQueries({ queryKey: ['energies', 'balance'] });
 
-      webApp?.showAlert(`Отлично! Вы получили +${data.epEarned} EP за просмотр этого видео!`);
+      webApp?.showAlert(`Отлично! Вы получили +${data.energiesEarned} Энергий за просмотр этого видео!`);
     },
     onError: (error: Error) => {
       haptic.notification('error');
@@ -124,7 +124,7 @@ export default function VideoPage() {
           <div>
             <p className="font-semibold text-[#3d2f1f]">Награда за просмотр</p>
             <p className="text-[#6b5a4a] text-sm">
-              Получите Energy Points за просмотр этого видео
+              Получите Энергии за просмотр этого видео
             </p>
           </div>
         </div>

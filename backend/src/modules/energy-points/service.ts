@@ -1,18 +1,18 @@
 import { db } from '@/db';
-import { epTransactions, users } from '@/db/schema';
+import { energyTransactions, users } from '@/db/schema';
 import { eq, desc, and, gte } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 
 export class EnergyPointsService {
   /**
-   * Начислить Energy Points
+   * Начислить Энергии
    */
   async award(userId: string, amount: number, reason: string, metadata?: Record<string, any>) {
     try {
       // Начинаем транзакцию
       await db.transaction(async (tx) => {
         // Создаем запись о транзакции
-        await tx.insert(epTransactions).values({
+        await tx.insert(energyTransactions).values({
           userId,
           amount,
           type: 'income',
@@ -23,10 +23,10 @@ export class EnergyPointsService {
         // Обновляем баланс пользователя
         const user = await tx.select().from(users).where(eq(users.id, userId)).limit(1);
         if (user.length > 0) {
-          const currentBalance = user[0].energyPoints || 0;
+          const currentBalance = user[0].energies || 0;
           await tx
             .update(users)
-            .set({ energyPoints: currentBalance + amount })
+            .set({ energies: currentBalance + amount })
             .where(eq(users.id, userId));
         }
       });
@@ -41,7 +41,7 @@ export class EnergyPointsService {
   }
 
   /**
-   * Списать Energy Points
+   * Списать Энергии
    */
   async spend(userId: string, amount: number, reason: string, metadata?: Record<string, any>) {
     try {
@@ -54,7 +54,7 @@ export class EnergyPointsService {
       // Начинаем транзакцию
       await db.transaction(async (tx) => {
         // Создаем запись о транзакции
-        await tx.insert(epTransactions).values({
+        await tx.insert(energyTransactions).values({
           userId,
           amount,
           type: 'expense',
@@ -65,7 +65,7 @@ export class EnergyPointsService {
         // Обновляем баланс пользователя
         await tx
           .update(users)
-          .set({ energyPoints: balance - amount })
+          .set({ energies: balance - amount })
           .where(eq(users.id, userId));
       });
 
@@ -79,12 +79,12 @@ export class EnergyPointsService {
   }
 
   /**
-   * Получить баланс Energy Points
+   * Получить баланс Энергии
    */
   async getBalance(userId: string): Promise<number> {
     try {
       const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-      return user.length > 0 ? user[0].energyPoints || 0 : 0;
+      return user.length > 0 ? user[0].energies || 0 : 0;
     } catch (error) {
       logger.error('[EP] Error getting balance:', error);
       throw new Error('Failed to get energy points balance');
@@ -98,9 +98,9 @@ export class EnergyPointsService {
     try {
       const transactions = await db
         .select()
-        .from(epTransactions)
-        .where(eq(epTransactions.userId, userId))
-        .orderBy(desc(epTransactions.createdAt))
+        .from(energyTransactions)
+        .where(eq(energyTransactions.userId, userId))
+        .orderBy(desc(energyTransactions.createdAt))
         .limit(limit);
 
       return transactions;
@@ -122,12 +122,12 @@ export class EnergyPointsService {
 
     const todayTransactions = await db
       .select()
-      .from(epTransactions)
+      .from(energyTransactions)
       .where(
         and(
-          eq(epTransactions.userId, userId),
-          eq(epTransactions.reason, 'Ежедневный вход'),
-          gte(epTransactions.createdAt, today)
+          eq(energyTransactions.userId, userId),
+          eq(energyTransactions.reason, 'Ежедневный вход'),
+          gte(energyTransactions.createdAt, today)
         )
       )
       .limit(1);
@@ -174,4 +174,4 @@ export class EnergyPointsService {
   }
 }
 
-export const energyPointsService = new EnergyPointsService();
+export const energiesService = new EnergyPointsService();

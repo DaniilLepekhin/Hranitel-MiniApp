@@ -2,10 +2,10 @@ import { Elysia, t } from 'elysia';
 import { energyPointsService } from './service';
 import { logger } from '@/utils/logger';
 
-export const energyPointsRoutes = new Elysia({ prefix: '/api/ep' })
+export const energyPointsRoutes = new Elysia({ prefix: '/api/energies' })
   /**
-   * GET /api/ep/balance
-   * Получить баланс Energy Points
+   * GET /api/energies/balance
+   * Получить баланс Энергий
    */
   .get(
     '/balance',
@@ -85,7 +85,7 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/ep' })
 
   /**
    * POST /api/ep/award
-   * Начислить Energy Points (только для внутреннего использования)
+   * Начислить Энергии (только для внутреннего использования)
    */
   .post(
     '/award',
@@ -116,7 +116,7 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/ep' })
 
   /**
    * POST /api/ep/spend
-   * Списать Energy Points (только для внутреннего использования)
+   * Списать Энергии (только для внутреннего использования)
    */
   .post(
     '/spend',
@@ -147,7 +147,7 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/ep' })
 
   /**
    * POST /api/ep/triggers/daily-login
-   * Триггер: Ежедневный вход (+10 EP)
+   * Триггер: Ежедневный вход (+10 Энергий)
    */
   .post(
     '/triggers/daily-login',
@@ -173,7 +173,7 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/ep' })
 
   /**
    * POST /api/ep/triggers/lesson-view
-   * Триггер: Просмотр урока (+50 EP)
+   * Триггер: Просмотр урока (+50 Энергий)
    */
   .post(
     '/triggers/lesson-view',
@@ -200,7 +200,7 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/ep' })
 
   /**
    * POST /api/ep/triggers/sunday-practice
-   * Триггер: Воскресная практика (+50 EP)
+   * Триггер: Воскресная практика (+50 Энергий)
    */
   .post(
     '/triggers/sunday-practice',

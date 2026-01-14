@@ -5,7 +5,7 @@ import { relations } from 'drizzle-orm';
 export const courseCategoryEnum = pgEnum('course_category', ['mindset', 'spiritual', 'esoteric', 'health']);
 export const userRoleEnum = pgEnum('user_role', ['user', 'admin']);
 export const chatRoleEnum = pgEnum('chat_role', ['user', 'assistant']);
-export const epTransactionTypeEnum = pgEnum('ep_transaction_type', ['income', 'expense']);
+export const energyTransactionTypeEnum = pgEnum('energy_transaction_type', ['income', 'expense']);
 export const shopCategoryEnum = pgEnum('shop_category', ['elite', 'secret', 'savings']);
 export const shopItemTypeEnum = pgEnum('shop_item_type', ['raffle_ticket', 'lesson', 'discount']);
 export const streamStatusEnum = pgEnum('stream_status', ['scheduled', 'live', 'ended']);
@@ -25,7 +25,7 @@ export const users = pgTable('users', {
   // Gamification
   level: integer('level').default(1).notNull(),
   experience: integer('experience').default(0).notNull(),
-  energyPoints: integer('energy_points').default(0).notNull(), // NEW: EP вместо XP
+  energies: integer('energies').default(0).notNull(), // Энергии (вместо EP)
   streak: integer('streak').default(0).notNull(),
   lastActiveDate: timestamp('last_active_date'),
 
@@ -217,19 +217,19 @@ export const chatMessages = pgTable('chat_messages', {
 // ============================================================================
 
 // Energy Points Transactions
-export const epTransactions = pgTable('ep_transactions', {
+export const energyTransactions = pgTable('energy_transactions', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   amount: integer('amount').notNull(),
-  type: epTransactionTypeEnum('type').notNull(), // income | expense
+  type: energyTransactionTypeEnum('type').notNull(), // income | expense
   reason: text('reason').notNull(), // "Просмотр урока", "Покупка билета", etc
   metadata: jsonb('metadata').default({}),
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
-  index('ep_transactions_user_id_idx').on(table.userId),
-  index('ep_transactions_created_at_idx').on(table.createdAt),
-  index('ep_transactions_type_idx').on(table.type),
+  index('energy_transactions_user_id_idx').on(table.userId),
+  index('energy_transactions_created_at_idx').on(table.createdAt),
+  index('energy_transactions_type_idx').on(table.type),
 ]);
 
 // Shop Items
@@ -323,7 +323,7 @@ export const streamAttendance = pgTable('stream_attendance', {
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
   watchedOnline: boolean('watched_online').default(false).notNull(), // true если был онлайн
-  epEarned: integer('ep_earned').default(0).notNull(),
+  energiesEarned: integer('ep_earned').default(0).notNull(),
 }, (table) => [
   uniqueIndex('stream_attendance_stream_user_idx').on(table.streamId, table.userId),
   index('stream_attendance_user_id_idx').on(table.userId),
@@ -338,7 +338,7 @@ export const weeklyReports = pgTable('weekly_reports', {
   content: text('content').notNull(),
   submittedAt: timestamp('submitted_at').defaultNow().notNull(),
   deadline: timestamp('deadline').notNull(), // Воскресенье 23:59 МСК
-  epEarned: integer('ep_earned').default(100).notNull(),
+  energiesEarned: integer('ep_earned').default(100).notNull(),
 }, (table) => [
   index('weekly_reports_user_id_idx').on(table.userId),
   index('weekly_reports_week_number_idx').on(table.weekNumber),
@@ -443,7 +443,7 @@ export const userContentProgress = pgTable('user_content_progress', {
   watched: boolean('watched').default(false),
   watchTimeSeconds: integer('watch_time_seconds').default(0), // сколько секунд просмотрел
   completedAt: timestamp('completed_at'),
-  epEarned: integer('ep_earned').default(0), // сколько EP заработал
+  energiesEarned: integer('ep_earned').default(0), // сколько EP заработал
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -474,7 +474,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   xpHistory: many(xpHistory),
   chatMessages: many(chatMessages),
   // NEW relations
-  epTransactions: many(epTransactions),
+  energyTransactions: many(energyTransactions),
   shopPurchases: many(shopPurchases),
   teamMemberships: many(teamMembers),
   streamAttendance: many(streamAttendance),
@@ -563,9 +563,9 @@ export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
 }));
 
 // NEW Relations
-export const epTransactionsRelations = relations(epTransactions, ({ one }) => ({
+export const energyTransactionsRelations = relations(energyTransactions, ({ one }) => ({
   user: one(users, {
-    fields: [epTransactions.userId],
+    fields: [energyTransactions.userId],
     references: [users.id],
   }),
 }));
@@ -700,8 +700,8 @@ export type Achievement = typeof achievements.$inferSelect;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 
 // NEW Types
-export type EPTransaction = typeof epTransactions.$inferSelect;
-export type NewEPTransaction = typeof epTransactions.$inferInsert;
+export type EnergyTransaction = typeof energyTransactions.$inferSelect;
+export type NewEnergyTransaction = typeof energyTransactions.$inferInsert;
 export type ShopItem = typeof shopItems.$inferSelect;
 export type NewShopItem = typeof shopItems.$inferInsert;
 export type ShopPurchase = typeof shopPurchases.$inferSelect;

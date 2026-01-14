@@ -162,16 +162,16 @@ export const aiApi = {
     api.post<{ success: boolean; text: string }>('/ai/transcribe', { audio }),
 };
 
-// Energy Points (КОД ДЕНЕГ 4.0)
-export const epApi = {
+// Energies (КОД ДЕНЕГ 4.0)
+export const energiesApi = {
   getBalance: (userId: string) =>
-    api.get<{ success: boolean; balance: number }>(`/ep/balance`, { params: { userId } }),
+    api.get<{ success: boolean; balance: number }>(`/energies/balance`, { params: { userId } }),
   getHistory: (userId: string, limit?: number) =>
-    api.get<{ success: boolean; transactions: EPTransaction[] }>(`/ep/history`, {
+    api.get<{ success: boolean; transactions: EnergyTransaction[] }>(`/energies/history`, {
       params: { userId, limit }
     }),
   getStats: (userId: string) =>
-    api.get<{ success: boolean; stats: EPStats }>(`/ep/stats`, { params: { userId } }),
+    api.get<{ success: boolean; stats: EnergyStats }>(`/energies/stats`, { params: { userId } }),
 };
 
 // Shop (КОД ДЕНЕГ 4.0)
@@ -227,7 +227,7 @@ export const streamsApi = {
   getNextStream: () =>
     api.get<{ success: boolean; stream: Stream | null }>('/streams/next'),
   markAttendance: (userId: string, streamId: string, watchedOnline: boolean) =>
-    api.post<{ success: boolean; attendance: StreamAttendance; epEarned: number }>(
+    api.post<{ success: boolean; attendance: StreamAttendance; energiesEarned: number }>(
       '/streams/attendance',
       { userId, streamId, watchedOnline }
     ),
@@ -277,14 +277,14 @@ export const contentApi = {
 
   // Get user progress stats
   getUserProgressStats: (userId: string) =>
-    api.get<{ stats: { totalWatched: number; totalEP: number; totalWatchTime: number } }>(
+    api.get<{ stats: { totalWatched: number; totalEnergies: number; totalWatchTime: number } }>(
       '/content/progress/stats',
       { params: { userId } }
     ),
 
   // Mark video as completed
   completeVideo: (userId: string, videoId: string, watchTimeSeconds?: number) =>
-    api.post<{ progress: UserContentProgress; epEarned: number }>(
+    api.post<{ progress: UserContentProgress; energiesEarned: number }>(
       '/content/progress/complete',
       { userId, videoId, watchTimeSeconds }
     ),
@@ -301,7 +301,7 @@ export const reportsApi = {
       '/reports/deadline'
     ),
   submitReport: (userId: string, content: string) =>
-    api.post<{ success: boolean; report: WeeklyReport; epEarned: number }>(
+    api.post<{ success: boolean; report: WeeklyReport; energiesEarned: number }>(
       '/reports/submit',
       { userId, content }
     ),
@@ -482,7 +482,7 @@ export interface ChatMessage {
 
 // КОД ДЕНЕГ 4.0 Types
 
-export interface EPTransaction {
+export interface EnergyTransaction {
   id: string;
   userId: string;
   amount: number;
@@ -492,7 +492,7 @@ export interface EPTransaction {
   createdAt: string;
 }
 
-export interface EPStats {
+export interface EnergyStats {
   totalEarned: number;
   totalSpent: number;
   currentBalance: number;
@@ -571,7 +571,7 @@ export interface StreamAttendance {
   streamId: string;
   userId: string;
   watchedOnline: boolean;
-  epEarned: number;
+  energiesEarned: number;
   createdAt: string;
 }
 
@@ -579,7 +579,7 @@ export interface AttendanceStats {
   totalAttendees: number;
   onlineAttendees: number;
   recordingAttendees: number;
-  totalEPAwarded: number;
+  totalEnergiesAwarded: number;
 }
 
 export interface WeeklyReport {
@@ -588,7 +588,7 @@ export interface WeeklyReport {
   weekNumber: number;
   content: string;
   deadline: string;
-  epEarned: number;
+  energiesEarned: number;
   submittedAt: string;
   metadata?: Record<string, unknown>;
 }
@@ -597,7 +597,7 @@ export interface ReportStats {
   totalReports: number;
   currentStreak: number;
   longestStreak: number;
-  totalEPEarned: number;
+  totalEnergiesEarned: number;
   averageWordCount: number;
 }
 
@@ -660,7 +660,7 @@ export interface UserContentProgress {
   watched: boolean;
   watchTimeSeconds: number;
   completedAt?: string | null;
-  epEarned: number;
+  energiesEarned: number;
   createdAt: string;
   updatedAt: string;
 }

@@ -9,7 +9,7 @@ import {
   practiceContent
 } from '../../db/schema';
 import { eq, and, desc, asc, sql } from 'drizzle-orm';
-import { epTransactions } from '../../db/schema';
+import { energyTransactions } from '../../db/schema';
 
 export const contentModule = new Elysia({ prefix: '/api/v1/content' })
   // Get content items list (with filters)
@@ -156,7 +156,7 @@ export const contentModule = new Elysia({ prefix: '/api/v1/content' })
     const stats = await db
       .select({
         totalWatched: sql<number>`count(*)`,
-        totalEP: sql<number>`sum(${userContentProgress.epEarned})`,
+        totalEnergies: sql<number>`sum(${userContentProgress.energiesEarned})`,
         totalWatchTime: sql<number>`sum(${userContentProgress.watchTimeSeconds})`
       })
       .from(userContentProgress)
@@ -166,7 +166,7 @@ export const contentModule = new Elysia({ prefix: '/api/v1/content' })
       ));
 
     return {
-      stats: stats[0] || { totalWatched: 0, totalEP: 0, totalWatchTime: 0 }
+      stats: stats[0] || { totalWatched: 0, totalEnergies: 0, totalWatchTime: 0 }
     };
   }, {
     query: t.Object({
@@ -190,15 +190,15 @@ export const contentModule = new Elysia({ prefix: '/api/v1/content' })
     }
 
     // Calculate EP reward based on video duration
-    let epReward = 0;
+    let energiesReward = 0;
     const durationMinutes = (video[0].durationSeconds || 0) / 60;
 
     if (durationMinutes < 5) {
-      epReward = 25; // Short video
+      energiesReward = 25; // Short video
     } else if (durationMinutes <= 20) {
-      epReward = 50; // Medium video
+      energiesReward = 50; // Medium video
     } else {
-      epReward = 100; // Long video
+      energiesReward = 100; // Long video
     }
 
     // Check if progress already exists
@@ -221,7 +221,7 @@ export const contentModule = new Elysia({ prefix: '/api/v1/content' })
           watched: true,
           watchTimeSeconds: watchTimeSeconds,
           completedAt: new Date(),
-          epEarned: epReward,
+          energiesEarned: energiesReward,
           updatedAt: new Date()
         })
         .where(eq(userContentProgress.id, existingProgress[0].id))
@@ -236,16 +236,16 @@ export const contentModule = new Elysia({ prefix: '/api/v1/content' })
           watched: true,
           watchTimeSeconds: watchTimeSeconds || 0,
           completedAt: new Date(),
-          epEarned: epReward
+          energiesEarned: energiesReward
         })
         .returning();
     }
 
     // Award EP to user
-    if (epReward > 0) {
-      await db.insert(epTransactions).values({
+    if (energiesReward > 0) {
+      await db.insert(energyTransactions).values({
         userId,
-        amount: epReward,
+        amount: energiesReward,
         type: 'earn',
         source: 'video_completion',
         description: `Просмотр видео: ${video[0].title}`,
@@ -255,7 +255,7 @@ export const contentModule = new Elysia({ prefix: '/api/v1/content' })
 
     return {
       progress: progress[0],
-      epEarned: epReward
+      energiesEarned: energiesReward
     };
   }, {
     body: t.Object({
