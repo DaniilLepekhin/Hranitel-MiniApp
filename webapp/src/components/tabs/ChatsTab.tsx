@@ -24,7 +24,7 @@ const clubChannels = [
     title: 'КОД ДЕНЕГ',
     description: 'Основной канал клуба с важными объявлениями',
     icon: '💰',
-    url: 'https://t.me/kod_deneg_club',
+    url: 'https://t.me/+mwJ5e0d78GYzNDRi',
     members: '15K+',
   },
   {
@@ -32,7 +32,7 @@ const clubChannels = [
     title: 'Служба заботы',
     description: 'Помощь и поддержка участников клуба',
     icon: '🆘',
-    url: 'https://t.me/kod_deneg_support',
+    url: 'https://t.me/Egiazarova_support_bot',
     members: 'support',
   },
 ];
@@ -78,11 +78,22 @@ export function ChatsTab() {
 
   const openLink = (url: string) => {
     haptic.impact('light');
-    // Use openLink for regular URLs or window.open as fallback
-    if (webApp?.openLink) {
-      webApp.openLink(url);
+    // Use openTelegramLink for Telegram URLs to open directly in app
+    if (url.includes('t.me')) {
+      if (webApp?.openTelegramLink) {
+        webApp.openTelegramLink(url);
+      } else if (webApp?.openLink) {
+        webApp.openLink(url);
+      } else {
+        window.open(url, '_blank');
+      }
     } else {
-      window.open(url, '_blank');
+      // Regular URLs
+      if (webApp?.openLink) {
+        webApp.openLink(url);
+      } else {
+        window.open(url, '_blank');
+      }
     }
   };
 
