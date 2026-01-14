@@ -7,9 +7,15 @@ import { authMiddleware } from '@/middlewares/auth';
 import { logger } from '@/utils/logger';
 import { gamificationService } from '@/modules/gamification/service';
 
-const openai = new OpenAI({
-  apiKey: config.OPENAI_API_KEY,
-});
+// OpenAI client - only created if API key is configured
+let openai: OpenAI | null = null;
+if (config.OPENAI_API_KEY && config.OPENAI_API_KEY.length > 0) {
+  openai = new OpenAI({
+    apiKey: config.OPENAI_API_KEY,
+  });
+} else {
+  logger.warn('⚠️ OpenAI API key not configured - AI features disabled');
+}
 
 const SYSTEM_PROMPT = `Ты - AI-ассистент в приложении Academy MiniApp 2.0 для личностного развития и духовного роста.
 

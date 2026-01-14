@@ -16,9 +16,10 @@ import { usersModule } from '@/modules/users';
 import { coursesModule } from '@/modules/courses';
 import { meditationsModule } from '@/modules/meditations';
 import { gamificationModule } from '@/modules/gamification';
-import { aiModule } from '@/modules/ai';
-import { botModule } from '@/modules/bot';
-import { setupWebhook } from '@/setup-webhook';
+// AI and Bot modules disabled - not needed for webapp-only deployment
+// import { aiModule } from '@/modules/ai';
+// import { botModule } from '@/modules/bot';
+// import { setupWebhook } from '@/setup-webhook';
 
 // New modules for КОД ДЕНЕГ 4.0
 import { energyPointsRoutes } from '@/modules/energy-points';
@@ -103,8 +104,8 @@ const app = new Elysia()
       .use(coursesModule)
       .use(meditationsModule)
       .use(gamificationModule)
-      .use(aiModule)
-      .use(botModule)
+      // .use(aiModule) - disabled
+      // .use(botModule) - disabled
   )
   // New КОД ДЕНЕГ 4.0 routes (without /api/v1 prefix, already included in route definitions)
   .use(energyPointsRoutes)
@@ -124,12 +125,12 @@ logger.info(
   `🚀 КОД ДЕНЕГ 4.0 Backend is running`
 );
 
-// Setup Telegram webhook
-if (!isDevelopment) {
-  setupWebhook().catch((error) => {
-    logger.error({ error }, 'Failed to setup webhook on startup');
-  });
-}
+// Telegram webhook disabled - bot not needed for webapp-only deployment
+// if (!isDevelopment) {
+//   setupWebhook().catch((error) => {
+//     logger.error({ error }, 'Failed to setup webhook on startup');
+//   });
+// }
 
 // Graceful shutdown
 const shutdown = async (signal: string) => {
