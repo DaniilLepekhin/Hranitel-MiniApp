@@ -6,6 +6,8 @@ import { ArrowLeft, Sparkles } from 'lucide-react';
 import { contentApi } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import ReactMarkdown from 'react-markdown';
+import { AudioPlayer } from '@/components/media/AudioPlayer';
+import type { MediaItem } from '@/contexts/MediaPlayerContext';
 
 export default function PracticePage() {
   const router = useRouter();
@@ -23,6 +25,13 @@ export default function PracticePage() {
   const { data: itemData } = useQuery({
     queryKey: ['content', 'item', practiceId],
     queryFn: () => contentApi.getItem(practiceId),
+    enabled: !!practiceId,
+  });
+
+  // Fetch videos/audio for practice
+  const { data: videosData } = useQuery({
+    queryKey: ['content', practiceId, 'videos'],
+    queryFn: () => contentApi.getDirectVideos(practiceId),
     enabled: !!practiceId,
   });
 
@@ -57,6 +66,22 @@ export default function PracticePage() {
 
   const { practice } = practiceData;
   const item = itemData?.item;
+  const videos = videosData?.videos || [];
+
+  // Prepare audio media item if there are audio tracks
+  const audioMedia: MediaItem | null = videos.length > 0 ? {
+    id: practiceId,
+    title: item?.title || 'Практика',
+    type: 'audio',
+    tracks: videos.map(video => ({
+      id: video.id,
+      title: video.title,
+      url: video.url,
+      duration: video.durationSeconds,
+      thumbnail: video.thumbnailUrl,
+    })),
+    thumbnail: item?.thumbnailUrl,
+  } : null;
 
   return (
     <div className="px-4 pt-6 pb-24">
@@ -97,6 +122,13 @@ export default function PracticePage() {
             <p className="text-[#6b5a4a] leading-relaxed">{item.description}</p>
           )}
         </Card>
+      )}
+
+      {/* Audio Player */}
+      {audioMedia && (
+        <div className="mb-6">
+          <AudioPlayer media={audioMedia} />
+        </div>
       )}
 
       {/* Practice Content */}
@@ -171,8 +203,10 @@ export default function PracticePage() {
           <div>
             <p className="font-semibold text-[#3d2f1f] mb-1">Выполните практику</p>
             <p className="text-[#6b5a4a] text-sm">
-              Следуйте инструкциям выше и применяйте практику в своей жизни.
-              Регулярное выполнение практик усилит трансформацию.
+              {audioMedia
+                ? 'Слушайте аудио-гайд и следуйте инструкциям. Можете свернуть плеер и продолжить слушать в фоне.'
+                : 'Следуйте инструкциям выше и применяйте практику в своей жизни. Регулярное выполнение практик усилит трансформацию.'
+              }
             </p>
           </div>
         </div>
