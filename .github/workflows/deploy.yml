@@ -39,28 +39,32 @@ jobs:
             echo "🔧 Deploying Backend..."
             cd backend
 
-            # Install dependencies
+            # Create .env for backend
+            cat > .env << 'ENVEOF'
+            DATABASE_URL=postgresql://postgres:kH*kyrS&9z7K@31.128.36.81:5423/club_hranitel
+            PORT=3002
+            NODE_ENV=production
+            WEBAPP_URL=https://hranitel.daniillepekhin.com
+            JWT_SECRET=hranitel_jwt_secret_key_production_2026
+            FRONTEND_URL=https://hranitel.daniillepekhin.com
+            ENVEOF
+
+            # Install Bun if not exists
             if ! command -v bun &> /dev/null; then
               echo "📦 Installing Bun..."
               curl -fsSL https://bun.sh/install | bash
               export BUN_INSTALL="$HOME/.bun"
               export PATH="$BUN_INSTALL/bin:$PATH"
             fi
+            export BUN_INSTALL="$HOME/.bun"
+            export PATH="$BUN_INSTALL/bin:$PATH"
 
             bun install
 
-            # Run migrations
-            echo "🗄️ Running database migrations..."
-            bun run db:push || echo "⚠️ Migrations skipped (may already be applied)"
-
-            # Seed data if needed
-            echo "🌱 Seeding shop data..."
-            bun run tsx src/db/seeds/shop.ts || echo "⚠️ Seed skipped (may already exist)"
-
-            # Restart backend service
+            # Restart backend service (port 3002)
             echo "🔄 Restarting backend..."
-            pm2 delete kod-deneg-backend || true
-            pm2 start --name kod-deneg-backend "bun run start"
+            pm2 delete hranitel-backend 2>/dev/null || true
+            pm2 start --name hranitel-backend "bun run start"
             pm2 save
 
             # Frontend deployment
@@ -77,65 +81,70 @@ jobs:
             echo "🏗️ Building frontend..."
             npm run build
 
-            # Restart frontend service
+            # Restart frontend service (port 3003)
             echo "🔄 Restarting frontend..."
-            pm2 delete kod-deneg-frontend || true
-            pm2 start --name kod-deneg-frontend "npm run start"
+            pm2 delete hranitel-frontend 2>/dev/null || true
+            PORT=3003 pm2 start --name hranitel-frontend "npm run start"
             pm2 save
 
-            # Setup Nginx - single domain with /api/ path
+            # Setup Nginx for hranitel.daniillepekhin.com
             echo "🌐 Configuring Nginx..."
             cat > /etc/nginx/sites-available/hranitel << 'NGINX_EOF'
-# Single domain: hranitel.daniillepekhin.com
-# Frontend: /
-# Backend API: /api/
-server {
-    listen 80;
-    server_name hranitel.daniillepekhin.com;
+            server {
+                server_name hranitel.daniillepekhin.com;
 
-    # Backend API - proxy /api/* to port 3001
-    location /api/ {
-        proxy_pass http://localhost:3001/api/;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
+                # Frontend (Next.js webapp) - port 3003
+                location / {
+                    proxy_pass http://localhost:3003;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection 'upgrade';
+                    proxy_set_header Host $host;
+                    proxy_cache_bypass $http_upgrade;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $scheme;
+                    proxy_read_timeout 300s;
+                    proxy_connect_timeout 300s;
+                    proxy_send_timeout 300s;
+                }
 
-    # Frontend WebApp - everything else to port 3000
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-NGINX_EOF
+                # Backend API - port 3002
+                location /api/ {
+                    proxy_pass http://localhost:3002/api/;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection 'upgrade';
+                    proxy_set_header Host $host;
+                    proxy_cache_bypass $http_upgrade;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $scheme;
+                    proxy_read_timeout 300s;
+                    proxy_connect_timeout 300s;
+                    proxy_send_timeout 300s;
+                }
+
+                # Health check
+                location /health {
+                    proxy_pass http://localhost:3002/health;
+                    proxy_http_version 1.1;
+                    proxy_set_header Host $host;
+                }
+
+                listen 80;
+            }
+            NGINX_EOF
 
             ln -sf /etc/nginx/sites-available/hranitel /etc/nginx/sites-enabled/
             nginx -t && systemctl reload nginx
 
-            # Setup SSL with Certbot (Let's Encrypt)
-            if ! command -v certbot &> /dev/null; then
-              echo "🔐 Installing Certbot..."
-              apt-get update
-              apt-get install -y certbot python3-certbot-nginx
-            fi
+            # Setup SSL with Certbot
+            echo "🔐 Setting up SSL..."
+            certbot --nginx -d hranitel.daniillepekhin.com --non-interactive --agree-tos --email admin@daniillepekhin.com || echo "⚠️ SSL setup skipped (may need DNS first)"
 
-            # Get SSL certificate for single domain
-            certbot --nginx -d hranitel.daniillepekhin.com --non-interactive --agree-tos --email admin@daniillepekhin.com || echo "⚠️ SSL setup skipped"
-
-            echo "✅ Deployment completed successfully!"
             echo ""
+            echo "✅ Deployment completed!"
             echo "🌐 Frontend: https://hranitel.daniillepekhin.com"
             echo "🔌 Backend API: https://hranitel.daniillepekhin.com/api/"
             echo ""
