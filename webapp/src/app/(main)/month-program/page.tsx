@@ -192,15 +192,14 @@ export default function MonthProgramPage() {
 
           <div className="space-y-4">
             {weeklyItems.map((week) => (
-              <Card
-                key={week.weekNum}
-                id={`week-${week.weekNum}`}
-                className={`p-5 ${
-                  week.isCurrentWeek
-                    ? 'bg-gradient-to-br from-[#8b0000]/20 to-[#8b4513]/20 border-2 border-[#8b0000]'
-                    : 'bg-white/80'
-                }`}
-              >
+              <div key={week.weekNum} id={`week-${week.weekNum}`}>
+                <Card
+                  className={`p-5 ${
+                    week.isCurrentWeek
+                      ? 'bg-gradient-to-br from-[#8b0000]/20 to-[#8b4513]/20 border-2 border-[#8b0000]'
+                      : 'bg-white/80'
+                  }`}
+                >
                 {/* Week Header */}
                 <div className="flex items-center justify-between mb-4">
                   <div>
@@ -265,7 +264,8 @@ export default function MonthProgramPage() {
                 ) : (
                   <p className="text-sm text-[#6b5a4a] text-center py-2">Нет материалов на эту неделю</p>
                 )}
-              </Card>
+                </Card>
+              </div>
             ))}
           </div>
         </>
