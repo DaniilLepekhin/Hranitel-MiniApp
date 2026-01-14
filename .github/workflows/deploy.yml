@@ -74,7 +74,7 @@ jobs:
             cd ../webapp
 
             # Create .env for production (API on same domain via /api/)
-            echo "NEXT_PUBLIC_API_URL=/api" > .env.local
+            echo "NEXT_PUBLIC_API_URL=" > .env.local
 
             # Install dependencies
             npm install
