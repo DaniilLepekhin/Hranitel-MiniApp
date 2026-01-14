@@ -3,19 +3,19 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { Search, Filter, BookOpen, Star, Lock, ChevronRight } from 'lucide-react';
+import { Search, Filter, BookOpen, Star, Lock, ChevronRight, Library, Brain, Sparkles as SparklesIcon, Wand2, Heart } from 'lucide-react';
 import { coursesApi } from '@/lib/api';
 import { CourseCard } from '@/components/ui/Card';
 import { useTelegram } from '@/hooks/useTelegram';
 
 type Category = 'all' | 'mindset' | 'spiritual' | 'esoteric' | 'health';
 
-const categories: { value: Category; label: string; emoji: string }[] = [
-  { value: 'all', label: 'Все', emoji: '📚' },
-  { value: 'mindset', label: 'Развитие', emoji: '🧠' },
-  { value: 'spiritual', label: 'Духовность', emoji: '✨' },
-  { value: 'esoteric', label: 'Эзотерика', emoji: '🔮' },
-  { value: 'health', label: 'Здоровье', emoji: '💪' },
+const categories: { value: Category; label: string; icon: any }[] = [
+  { value: 'all', label: 'Все', icon: Library },
+  { value: 'mindset', label: 'Развитие', icon: Brain },
+  { value: 'spiritual', label: 'Духовность', icon: SparklesIcon },
+  { value: 'esoteric', label: 'Эзотерика', icon: Wand2 },
+  { value: 'health', label: 'Здоровье', icon: Heart },
 ];
 
 export function CoursesTab() {
@@ -56,20 +56,23 @@ export function CoursesTab() {
 
       {/* Categories */}
       <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
-        {categories.map((category) => (
-          <button
-            key={category.value}
-            onClick={() => setSelectedCategory(category.value)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all ${
-              selectedCategory === category.value
-                ? 'bg-gradient-to-r from-purple-400 to-indigo-500 text-white shadow-lg'
-                : 'glass text-gray-200 hover:shadow-md'
-            }`}
-          >
-            <span>{category.emoji}</span>
-            <span className="text-sm font-medium">{category.label}</span>
-          </button>
-        ))}
+        {categories.map((category) => {
+          const IconComponent = category.icon;
+          return (
+            <button
+              key={category.value}
+              onClick={() => setSelectedCategory(category.value)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all ${
+                selectedCategory === category.value
+                  ? 'bg-gradient-to-r from-purple-400 to-indigo-500 text-white shadow-lg'
+                  : 'glass text-gray-200 hover:shadow-md'
+              }`}
+            >
+              <IconComponent className="w-4 h-4" />
+              <span className="text-sm font-medium">{category.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Courses Grid */}
@@ -160,7 +163,7 @@ function CourseCardExtended({
   const router = useRouter();
   const queryClient = useQueryClient();
   const { haptic } = useTelegram();
-  const categoryEmoji = categories.find((c) => c.value === category)?.emoji || '📖';
+  const CategoryIcon = categories.find((c) => c.value === category)?.icon || BookOpen;
 
   const favoriteMutation = useMutation({
     mutationFn: () => coursesApi.toggleFavorite(id),
@@ -232,7 +235,7 @@ function CourseCardExtended({
         <div className="flex-1 p-4 flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-sm">{categoryEmoji}</span>
+              <CategoryIcon className="w-4 h-4 text-gray-500" />
               <span className="text-xs text-gray-500 capitalize">
                 {categories.find((c) => c.value === category)?.label || 'Курс'}
               </span>

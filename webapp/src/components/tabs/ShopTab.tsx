@@ -49,21 +49,18 @@ const categories = [
     id: 'elite' as Category,
     title: 'Элитный шанс',
     icon: Sparkles,
-    emoji: '✨',
     description: 'Розыгрыши разборов от экспертов',
   },
   {
     id: 'secret' as Category,
     title: 'Тайная комната',
     icon: Lock,
-    emoji: '🔐',
     description: 'Эксклюзивные уроки и практики',
   },
   {
     id: 'savings' as Category,
     title: 'Копилка',
     icon: Gift,
-    emoji: '🎁',
     description: 'Скидки и бонусы',
   },
 ];
@@ -167,6 +164,7 @@ export function ShopTab() {
       <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
         {categories.map((category) => {
           const isActive = selectedCategory === category.id;
+          const IconComponent = category.icon;
           return (
             <button
               key={category.id}
@@ -182,7 +180,7 @@ export function ShopTab() {
                 }
               `}
             >
-              <div className="text-2xl mb-1">{category.emoji}</div>
+              <IconComponent className="w-6 h-6 mx-auto mb-1" strokeWidth={2} />
               <div className="text-xs font-semibold">{category.title}</div>
             </button>
           );

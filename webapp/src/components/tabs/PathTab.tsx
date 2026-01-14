@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { Key, Lock, CheckCircle, ChevronRight, Sparkles } from 'lucide-react';
+import { Key, Lock, CheckCircle, ChevronRight, Sparkles, Target, Palette, DollarSign, Home, Drama, HandHeart, Heart, Flame, Globe2, Briefcase, Users2 } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { Card } from '@/components/ui/Card';
@@ -21,18 +21,18 @@ const coursesApi = {
 
 // 12 месяцев программы
 const monthThemes = [
-  { key: 1, theme: 'Идентичность', emoji: '🎯' },
-  { key: 2, theme: 'Ниша и смысл', emoji: '🎨' },
-  { key: 3, theme: 'Деньги и ресурсы', emoji: '💰' },
-  { key: 4, theme: 'Дом и корни', emoji: '🏡' },
-  { key: 5, theme: 'Творчество', emoji: '🎭' },
-  { key: 6, theme: 'Служение', emoji: '🙏' },
-  { key: 7, theme: 'Отношения', emoji: '💝' },
-  { key: 8, theme: 'Трансформация', emoji: '🔥' },
-  { key: 9, theme: 'Мировоззрение', emoji: '🌍' },
-  { key: 10, theme: 'Карьера', emoji: '👔' },
-  { key: 11, theme: 'Сообщество', emoji: '👥' },
-  { key: 12, theme: 'Духовность', emoji: '✨' },
+  { key: 1, theme: 'Идентичность', icon: Target },
+  { key: 2, theme: 'Ниша и смысл', icon: Palette },
+  { key: 3, theme: 'Деньги и ресурсы', icon: DollarSign },
+  { key: 4, theme: 'Дом и корни', icon: Home },
+  { key: 5, theme: 'Творчество', icon: Drama },
+  { key: 6, theme: 'Служение', icon: HandHeart },
+  { key: 7, theme: 'Отношения', icon: Heart },
+  { key: 8, theme: 'Трансформация', icon: Flame },
+  { key: 9, theme: 'Мировоззрение', icon: Globe2 },
+  { key: 10, theme: 'Карьера', icon: Briefcase },
+  { key: 11, theme: 'Сообщество', icon: Users2 },
+  { key: 12, theme: 'Духовность', icon: Sparkles },
 ];
 
 export function PathTab() {
@@ -103,7 +103,7 @@ export function PathTab() {
 
           <div className="text-right">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center shadow-lg">
-              <span className="text-2xl">🔑</span>
+              <Key className="w-8 h-8 text-white" strokeWidth={2} />
             </div>
           </div>
         </div>
@@ -161,7 +161,7 @@ export function PathTab() {
                 <div className="flex items-center gap-4">
                   {/* Key Icon */}
                   <div className={`
-                    w-14 h-14 rounded-xl flex items-center justify-center text-2xl shadow-md
+                    w-14 h-14 rounded-xl flex items-center justify-center shadow-md
                     ${isUnlocked
                       ? 'bg-gradient-to-br from-[#8b0000] to-[#8b4513]'
                       : 'bg-[#e8dcc6]'
@@ -170,7 +170,7 @@ export function PathTab() {
                     {isCompleted ? (
                       <CheckCircle className="w-8 h-8 text-white" />
                     ) : isUnlocked ? (
-                      <span>{month.emoji}</span>
+                      <month.icon className="w-7 h-7 text-white" strokeWidth={2} />
                     ) : (
                       <Lock className="w-6 h-6 text-[#8b4513]/50" />
                     )}
