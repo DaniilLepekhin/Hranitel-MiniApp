@@ -163,43 +163,40 @@ export function ChatsTab() {
           Городские чаты
         </h2>
 
-        <Card className="p-4">
+        <Card className="p-4 space-y-3">
           {/* Country Selection */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-[#3d2f1f] mb-2 flex items-center gap-2">
-              <Globe className="w-4 h-4 text-[#8b0000]" />
-              Выберите страну
+          <div>
+            <label className="block text-xs font-medium text-[#6b5a4a] mb-1.5 flex items-center gap-1.5">
+              <Globe className="w-3.5 h-3.5 text-[#8b0000]" />
+              Страна
             </label>
 
             {isLoadingCountries ? (
               <div className="p-3 bg-[#e8dcc6]/50 rounded-lg text-center text-[#6b5a4a] text-sm">
-                Загрузка стран...
+                Загрузка...
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+              <select
+                value={selectedCountry}
+                onChange={(e) => handleCountrySelect(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-lg border-2 border-[#8b4513]/30 bg-white text-[#3d2f1f] font-medium text-sm focus:border-[#8b0000] focus:outline-none transition-colors"
+              >
+                <option value="">Выберите страну</option>
                 {countries.map((country) => (
-                  <button
-                    key={country}
-                    onClick={() => handleCountrySelect(country)}
-                    className={`p-3 rounded-lg border-2 transition-all text-sm font-medium ${
-                      selectedCountry === country
-                        ? 'bg-[#8b0000] text-white border-[#8b0000] shadow-md scale-105'
-                        : 'bg-white text-[#3d2f1f] border-[#8b4513]/30 hover:border-[#8b0000] hover:bg-[#8b0000]/5'
-                    }`}
-                  >
+                  <option key={country} value={country}>
                     {country}
-                  </button>
+                  </option>
                 ))}
-              </div>
+              </select>
             )}
           </div>
 
           {/* City Selection */}
           {selectedCountry && (
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-[#3d2f1f] mb-2 flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-[#8b0000]" />
-                Выберите город
+            <div>
+              <label className="block text-xs font-medium text-[#6b5a4a] mb-1.5 flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-[#8b0000]" />
+                Город
               </label>
 
               {isLoadingCities ? (
@@ -211,46 +208,38 @@ export function ChatsTab() {
                   Нет доступных городов
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto">
+                <select
+                  value={selectedCity}
+                  onChange={(e) => handleCitySelect(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-lg border-2 border-[#8b4513]/30 bg-white text-[#3d2f1f] font-medium text-sm focus:border-[#8b0000] focus:outline-none transition-colors"
+                >
+                  <option value="">Выберите город</option>
                   {cities.map((city) => (
-                    <button
-                      key={city.name}
-                      onClick={() => handleCitySelect(city.name)}
-                      className={`p-3 rounded-lg border-2 transition-all text-sm font-medium text-left ${
-                        selectedCity === city.name
-                          ? 'bg-[#8b0000] text-white border-[#8b0000] shadow-md'
-                          : 'bg-white text-[#3d2f1f] border-[#8b4513]/30 hover:border-[#8b0000] hover:bg-[#8b0000]/5'
-                      }`}
-                    >
-                      <div className="font-semibold">{city.name}</div>
-                      {city.chatName && (
-                        <div className="text-xs opacity-80 mt-1">{city.chatName}</div>
-                      )}
-                    </button>
+                    <option key={city.name} value={city.name}>
+                      {city.name}
+                    </option>
                   ))}
-                </div>
+                </select>
               )}
             </div>
           )}
 
           {/* Join Chat Button */}
-          {selectedCity && chatLinkData?.chatLink && (
+          {selectedCity && chatLinkData?.chatLink ? (
             <button
               onClick={handleJoinChat}
-              className="w-full px-4 py-3 rounded-lg bg-gradient-to-r from-[#8b0000] to-[#8b4513] text-white font-semibold flex items-center justify-center gap-2 hover:shadow-lg transition-all active:scale-95"
+              className="w-full px-4 py-3 rounded-lg bg-gradient-to-r from-[#8b0000] to-[#8b4513] text-white font-semibold flex items-center justify-center gap-2 hover:shadow-lg transition-all active:scale-95 mt-3"
             >
               <MessageCircle className="w-5 h-5" />
-              Вступить в чат {selectedCity}
+              Вступить в чат
             </button>
-          )}
-
-          {!selectedCountry && (
-            <div className="p-3 bg-gradient-to-br from-[#8b0000]/5 to-[#8b4513]/5 rounded-lg border border-[#8b4513]/20 text-center">
-              <p className="text-[#6b5a4a] text-sm">
-                Выберите страну, чтобы увидеть доступные городские чаты
+          ) : !selectedCountry ? (
+            <div className="p-3 bg-gradient-to-br from-[#8b0000]/5 to-[#8b4513]/5 rounded-lg border border-[#8b4513]/20 text-center mt-2">
+              <p className="text-[#6b5a4a] text-xs">
+                Выберите страну и город для вступления в чат
               </p>
             </div>
-          )}
+          ) : null}
         </Card>
       </div>
 

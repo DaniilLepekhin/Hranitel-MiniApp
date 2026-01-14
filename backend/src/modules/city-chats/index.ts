@@ -71,7 +71,8 @@ export const cityChatModule = new Elysia({ prefix: '/city-chats' })
 
         const cities = result.map((row) => ({
           name: row.city,
-          chatName: row.chat_name,
+          // Only include chatName if it's different from city name to avoid duplication
+          chatName: row.chat_name !== row.city ? row.chat_name : undefined,
         }));
 
         logger.info({ country, count: cities.length }, 'Fetched cities');
