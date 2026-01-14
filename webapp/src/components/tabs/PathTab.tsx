@@ -139,23 +139,56 @@ export function PathTab() {
         </div>
       </Card>
 
-      {/* Navigation Cards */}
-      <div className="mb-6 grid grid-cols-2 gap-3">
-        <Card
-          className="p-4 hover:scale-[1.02] transition-all cursor-pointer bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10"
-          onClick={() => handleNavigate('/month-program')}
-        >
-          <Calendar className="w-8 h-8 text-[#8b0000] mb-2" />
-          <p className="font-semibold text-[#3d2f1f] text-sm">Программа месяца</p>
-        </Card>
+      {/* Quick Access Section */}
+      <div className="mb-6">
+        <h3 className="text-sm font-semibold text-[#3d2f1f] mb-3 flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-[#8b0000]" />
+          Быстрый доступ
+        </h3>
 
-        <Card
-          className="p-4 hover:scale-[1.02] transition-all cursor-pointer bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10"
-          onClick={() => handleNavigate('/practices')}
-        >
-          <Sparkles className="w-8 h-8 text-[#8b0000] mb-2" />
-          <p className="font-semibold text-[#3d2f1f] text-sm">Практики</p>
-        </Card>
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <Card
+            className="p-4 hover:scale-[1.02] transition-all cursor-pointer bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10"
+            onClick={() => handleNavigate('/month-program')}
+          >
+            <Calendar className="w-8 h-8 text-[#8b0000] mb-2" />
+            <p className="font-semibold text-[#3d2f1f] text-sm">Программа месяца</p>
+          </Card>
+
+          <Card
+            className="p-4 hover:scale-[1.02] transition-all cursor-pointer bg-gradient-to-br from-[#8b4513]/10 to-[#6b3410]/10"
+            onClick={() => handleNavigate('/content-list/practice')}
+          >
+            <Sparkles className="w-8 h-8 text-[#8b0000] mb-2" />
+            <p className="font-semibold text-[#3d2f1f] text-sm">Практики</p>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          <Card
+            className="p-3 hover:scale-[1.02] transition-all cursor-pointer bg-white/80"
+            onClick={() => handleNavigate('/content-list/course')}
+          >
+            <BookOpen className="w-6 h-6 text-[#8b0000] mb-1 mx-auto" />
+            <p className="font-semibold text-[#3d2f1f] text-xs text-center">Курсы</p>
+          </Card>
+
+          <Card
+            className="p-3 hover:scale-[1.02] transition-all cursor-pointer bg-white/80"
+            onClick={() => handleNavigate('/content-list/podcast')}
+          >
+            <Headphones className="w-6 h-6 text-[#8b0000] mb-1 mx-auto" />
+            <p className="font-semibold text-[#3d2f1f] text-xs text-center">Подкасты</p>
+          </Card>
+
+          <Card
+            className="p-3 hover:scale-[1.02] transition-all cursor-pointer bg-white/80"
+            onClick={() => handleNavigate('/content-list/stream_record')}
+          >
+            <Radio className="w-6 h-6 text-[#8b0000] mb-1 mx-auto" />
+            <p className="font-semibold text-[#3d2f1f] text-xs text-center">Эфиры</p>
+          </Card>
+        </div>
       </div>
 
       {/* Info Block */}
