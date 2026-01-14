@@ -27,6 +27,7 @@ import { shopRoutes } from '@/modules/shop';
 import { teamsRoutes } from '@/modules/teams';
 import { streamsRoutes } from '@/modules/streams';
 import { reportsRoutes } from '@/modules/reports';
+import { cityChatModule } from '@/modules/city-chats';
 
 const app = new Elysia()
   // Global plugins
@@ -104,6 +105,7 @@ const app = new Elysia()
       .use(coursesModule)
       .use(meditationsModule)
       .use(gamificationModule)
+      .use(cityChatModule)
       // .use(aiModule) - disabled
       // .use(botModule) - disabled
   )

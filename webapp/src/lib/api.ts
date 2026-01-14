@@ -268,6 +268,21 @@ export const reportsApi = {
     }),
 };
 
+// City Chats (Городские чаты) (КОД ДЕНЕГ 4.0)
+export const cityChatsApi = {
+  getCountries: () =>
+    api.get<{ success: boolean; countries: string[] }>('/city-chats/countries'),
+  getCities: (country: string) =>
+    api.get<{ success: boolean; cities: CityInfo[] }>('/city-chats/cities', {
+      params: { country },
+    }),
+  getChatLink: (city: string) =>
+    api.get<{ success: boolean; chatLink: string; chatName: string; country: string }>(
+      '/city-chats/link',
+      { params: { city } }
+    ),
+};
+
 // Types
 export interface User {
   id: string;
@@ -531,4 +546,9 @@ export interface ReportStats {
   longestStreak: number;
   totalEPEarned: number;
   averageWordCount: number;
+}
+
+export interface CityInfo {
+  name: string;
+  chatName: string;
 }

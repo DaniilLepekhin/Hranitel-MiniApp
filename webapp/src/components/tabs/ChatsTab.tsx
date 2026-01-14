@@ -1,10 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ExternalLink, Users, MessageCircle, HeadphonesIcon } from 'lucide-react';
+import { ExternalLink, Users, MessageCircle, HeadphonesIcon, MapPin, Globe } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { Card } from '@/components/ui/Card';
+import { cityChatsApi } from '@/lib/api';
 
 // API endpoints
 const teamsApi = {
@@ -39,6 +41,10 @@ export function ChatsTab() {
   const { haptic, webApp } = useTelegram();
   const { user } = useAuthStore();
 
+  // City chat selection state
+  const [selectedCountry, setSelectedCountry] = useState<string>('');
+  const [selectedCity, setSelectedCity] = useState<string>('');
+
   // Fetch user team
   const { data: teamData, isLoading } = useQuery({
     queryKey: ['teams', 'my', user?.id],
@@ -46,7 +52,29 @@ export function ChatsTab() {
     enabled: !!user,
   });
 
+  // Fetch countries
+  const { data: countriesData, isLoading: isLoadingCountries } = useQuery({
+    queryKey: ['city-chats', 'countries'],
+    queryFn: () => cityChatsApi.getCountries(),
+  });
+
+  // Fetch cities when country is selected
+  const { data: citiesData, isLoading: isLoadingCities } = useQuery({
+    queryKey: ['city-chats', 'cities', selectedCountry],
+    queryFn: () => cityChatsApi.getCities(selectedCountry),
+    enabled: !!selectedCountry,
+  });
+
+  // Fetch chat link when city is selected
+  const { data: chatLinkData } = useQuery({
+    queryKey: ['city-chats', 'link', selectedCity],
+    queryFn: () => cityChatsApi.getChatLink(selectedCity),
+    enabled: !!selectedCity,
+  });
+
   const team = teamData?.team;
+  const countries = countriesData?.countries || [];
+  const cities = citiesData?.cities || [];
 
   const openLink = (url: string) => {
     haptic.impact('light');
@@ -55,6 +83,29 @@ export function ChatsTab() {
       webApp.openLink(url);
     } else {
       window.open(url, '_blank');
+    }
+  };
+
+  const handleCountrySelect = (country: string) => {
+    haptic.selection();
+    setSelectedCountry(country);
+    setSelectedCity('');
+  };
+
+  const handleCitySelect = (city: string) => {
+    haptic.selection();
+    setSelectedCity(city);
+  };
+
+  const handleJoinChat = () => {
+    if (chatLinkData?.chatLink) {
+      haptic.impact('medium');
+      // Use Telegram WebApp method to open link
+      if (webApp?.openTelegramLink) {
+        webApp.openTelegramLink(chatLinkData.chatLink);
+      } else {
+        openLink(chatLinkData.chatLink);
+      }
     }
   };
 
@@ -103,6 +154,104 @@ export function ChatsTab() {
             </Card>
           ))}
         </div>
+      </div>
+
+      {/* City Chats (Городские чаты) */}
+      <div className="mb-6">
+        <h2 className="text-lg font-semibold text-[#3d2f1f] mb-3 flex items-center gap-2 border-b-2 border-[#8b0000] pb-2">
+          <MapPin className="w-5 h-5 text-[#8b0000]" />
+          Городские чаты
+        </h2>
+
+        <Card className="p-4">
+          {/* Country Selection */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-[#3d2f1f] mb-2 flex items-center gap-2">
+              <Globe className="w-4 h-4 text-[#8b0000]" />
+              Выберите страну
+            </label>
+
+            {isLoadingCountries ? (
+              <div className="p-3 bg-[#e8dcc6]/50 rounded-lg text-center text-[#6b5a4a] text-sm">
+                Загрузка стран...
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+                {countries.map((country) => (
+                  <button
+                    key={country}
+                    onClick={() => handleCountrySelect(country)}
+                    className={`p-3 rounded-lg border-2 transition-all text-sm font-medium ${
+                      selectedCountry === country
+                        ? 'bg-[#8b0000] text-white border-[#8b0000] shadow-md scale-105'
+                        : 'bg-white text-[#3d2f1f] border-[#8b4513]/30 hover:border-[#8b0000] hover:bg-[#8b0000]/5'
+                    }`}
+                  >
+                    {country}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* City Selection */}
+          {selectedCountry && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-[#3d2f1f] mb-2 flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-[#8b0000]" />
+                Выберите город
+              </label>
+
+              {isLoadingCities ? (
+                <div className="p-3 bg-[#e8dcc6]/50 rounded-lg text-center text-[#6b5a4a] text-sm">
+                  Загрузка городов...
+                </div>
+              ) : cities.length === 0 ? (
+                <div className="p-3 bg-[#e8dcc6]/50 rounded-lg text-center text-[#6b5a4a] text-sm">
+                  Нет доступных городов
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto">
+                  {cities.map((city) => (
+                    <button
+                      key={city.name}
+                      onClick={() => handleCitySelect(city.name)}
+                      className={`p-3 rounded-lg border-2 transition-all text-sm font-medium text-left ${
+                        selectedCity === city.name
+                          ? 'bg-[#8b0000] text-white border-[#8b0000] shadow-md'
+                          : 'bg-white text-[#3d2f1f] border-[#8b4513]/30 hover:border-[#8b0000] hover:bg-[#8b0000]/5'
+                      }`}
+                    >
+                      <div className="font-semibold">{city.name}</div>
+                      {city.chatName && (
+                        <div className="text-xs opacity-80 mt-1">{city.chatName}</div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Join Chat Button */}
+          {selectedCity && chatLinkData?.chatLink && (
+            <button
+              onClick={handleJoinChat}
+              className="w-full px-4 py-3 rounded-lg bg-gradient-to-r from-[#8b0000] to-[#8b4513] text-white font-semibold flex items-center justify-center gap-2 hover:shadow-lg transition-all active:scale-95"
+            >
+              <MessageCircle className="w-5 h-5" />
+              Вступить в чат {selectedCity}
+            </button>
+          )}
+
+          {!selectedCountry && (
+            <div className="p-3 bg-gradient-to-br from-[#8b0000]/5 to-[#8b4513]/5 rounded-lg border border-[#8b4513]/20 text-center">
+              <p className="text-[#6b5a4a] text-sm">
+                Выберите страну, чтобы увидеть доступные городские чаты
+              </p>
+            </div>
+          )}
+        </Card>
       </div>
 
       {/* User Team (Десятка) */}
