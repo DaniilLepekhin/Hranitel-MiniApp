@@ -171,6 +171,29 @@ export function ChatsTab() {
         </div>
       </div>
 
+      {/* KOD App */}
+      <div className="mb-6">
+        <Card
+          className="p-5 cursor-pointer hover:scale-[1.02] transition-all bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10 border-[#8b4513]/30"
+          onClick={() => openLink('http://qr.numschool-web.ru/')}
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center shadow-lg">
+              <HeadphonesIcon className="w-7 h-7 text-white" strokeWidth={2} />
+            </div>
+
+            <div className="flex-1">
+              <h3 className="font-bold text-[#3d2f1f] mb-1">Приложение KOD</h3>
+              <p className="text-[#6b5a4a] text-sm">
+                Тебе доступна подписка на наше приложение ментального здоровья
+              </p>
+            </div>
+
+            <ExternalLink className="w-5 h-5 text-[#8b4513]" />
+          </div>
+        </Card>
+      </div>
+
       {/* Referral Card */}
       <div className="mb-6">
         <ReferralCard invitedCount={0} />
