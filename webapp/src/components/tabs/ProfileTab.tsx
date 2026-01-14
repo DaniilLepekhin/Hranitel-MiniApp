@@ -16,11 +16,11 @@ import { useAuthStore } from '@/store/auth';
 import { gamificationApi } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 
-// EP API
-const epApi = {
+// Energies API
+const energiesApi = {
   getBalance: async (userId: string) => {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ep/balance?userId=${userId}`);
-    if (!response.ok) throw new Error('Failed to fetch EP balance');
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/energies/balance?userId=${userId}`);
+    if (!response.ok) throw new Error('Failed to fetch energies balance');
     return response.json();
   },
 };
@@ -54,8 +54,8 @@ export function ProfileTab() {
   });
 
   const { data: epData } = useQuery({
-    queryKey: ['ep', 'balance', user?.id],
-    queryFn: () => epApi.getBalance(user!.id),
+    queryKey: ['energies', 'balance', user?.id],
+    queryFn: () => energiesApi.getBalance(user!.id),
     enabled: !!user,
     refetchInterval: 30000,
   });

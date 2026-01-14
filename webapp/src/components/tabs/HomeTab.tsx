@@ -9,9 +9,9 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { Card, FeatureCard } from '@/components/ui/Card';
 
 // API endpoints для новых виджетов
-const epApi = {
+const energiesApi = {
   getBalance: async (userId: string) => {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ep/balance?userId=${userId}`);
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/energies/balance?userId=${userId}`);
     if (!response.ok) throw new Error('Failed to fetch balance');
     return response.json();
   },
@@ -50,8 +50,8 @@ export function HomeTab() {
 
   // Новые запросы для КОД ДЕНЕГ 4.0
   const { data: balanceData } = useQuery({
-    queryKey: ['ep', 'balance', user?.id],
-    queryFn: () => epApi.getBalance(user!.id),
+    queryKey: ['energies', 'balance', user?.id],
+    queryFn: () => energiesApi.getBalance(user!.id),
     enabled: !!user,
     refetchInterval: 30000,
   });

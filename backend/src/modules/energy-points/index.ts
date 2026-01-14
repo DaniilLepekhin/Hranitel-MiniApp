@@ -27,7 +27,7 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/energies' })
           balance,
         };
       } catch (error) {
-        logger.error('[EP API] Error getting balance:', error);
+        logger.error('[Energies API] Error getting balance:', error);
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Failed to get balance',
@@ -68,7 +68,7 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/energies' })
           transactions: history,
         };
       } catch (error) {
-        logger.error('[EP API] Error getting history:', error);
+        logger.error('[Energies API] Error getting history:', error);
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Failed to get history',
@@ -84,7 +84,7 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/energies' })
   )
 
   /**
-   * POST /api/ep/award
+   * POST /api/energies/award
    * Начислить Энергии (только для внутреннего использования)
    */
   .post(
@@ -97,7 +97,7 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/energies' })
 
         return result;
       } catch (error) {
-        logger.error('[EP API] Error awarding points:', error);
+        logger.error('[Energies API] Error awarding points:', error);
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Failed to award points',
@@ -115,7 +115,7 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/energies' })
   )
 
   /**
-   * POST /api/ep/spend
+   * POST /api/energies/spend
    * Списать Энергии (только для внутреннего использования)
    */
   .post(
@@ -128,7 +128,7 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/energies' })
 
         return result;
       } catch (error) {
-        logger.error('[EP API] Error spending points:', error);
+        logger.error('[Energies API] Error spending points:', error);
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Failed to spend points',
@@ -146,7 +146,7 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/energies' })
   )
 
   /**
-   * POST /api/ep/triggers/daily-login
+   * POST /api/energies/triggers/daily-login
    * Триггер: Ежедневный вход (+10 Энергий)
    */
   .post(
@@ -157,7 +157,7 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/energies' })
         const result = await energyPointsService.awardDailyLogin(userId);
         return result;
       } catch (error) {
-        logger.error('[EP API] Error in daily login trigger:', error);
+        logger.error('[Energies API] Error in daily login trigger:', error);
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Failed to process trigger',
@@ -172,7 +172,7 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/energies' })
   )
 
   /**
-   * POST /api/ep/triggers/lesson-view
+   * POST /api/energies/triggers/lesson-view
    * Триггер: Просмотр урока (+50 Энергий)
    */
   .post(
@@ -183,7 +183,7 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/energies' })
         const result = await energyPointsService.awardLessonView(userId, lessonId);
         return result;
       } catch (error) {
-        logger.error('[EP API] Error in lesson view trigger:', error);
+        logger.error('[Energies API] Error in lesson view trigger:', error);
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Failed to process trigger',
@@ -199,7 +199,7 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/energies' })
   )
 
   /**
-   * POST /api/ep/triggers/sunday-practice
+   * POST /api/energies/triggers/sunday-practice
    * Триггер: Воскресная практика (+50 Энергий)
    */
   .post(
@@ -210,7 +210,7 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/energies' })
         const result = await energyPointsService.awardSundayPractice(userId, practiceId);
         return result;
       } catch (error) {
-        logger.error('[EP API] Error in sunday practice trigger:', error);
+        logger.error('[Energies API] Error in sunday practice trigger:', error);
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Failed to process trigger',

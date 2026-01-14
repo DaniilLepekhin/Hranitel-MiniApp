@@ -31,11 +31,11 @@ export class EnergyPointsService {
         }
       });
 
-      logger.info(`[EP] Awarded ${amount} EP to user ${userId} for: ${reason}`);
+      logger.info(`[Energies] Awarded ${amount} Энергийto user ${userId} for: ${reason}`);
 
       return { success: true, amount, reason };
     } catch (error) {
-      logger.error('[EP] Error awarding points:', error);
+      logger.error('[Energies] Error awarding points:', error);
       throw new Error('Failed to award energy points');
     }
   }
@@ -69,11 +69,11 @@ export class EnergyPointsService {
           .where(eq(users.id, userId));
       });
 
-      logger.info(`[EP] Spent ${amount} EP from user ${userId} for: ${reason}`);
+      logger.info(`[Energies] Spent ${amount} Энергийfrom user ${userId} for: ${reason}`);
 
       return { success: true, amount, reason, newBalance: balance - amount };
     } catch (error) {
-      logger.error('[EP] Error spending points:', error);
+      logger.error('[Energies] Error spending points:', error);
       throw error;
     }
   }
@@ -86,7 +86,7 @@ export class EnergyPointsService {
       const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       return user.length > 0 ? user[0].energies || 0 : 0;
     } catch (error) {
-      logger.error('[EP] Error getting balance:', error);
+      logger.error('[Energies] Error getting balance:', error);
       throw new Error('Failed to get energy points balance');
     }
   }
@@ -105,13 +105,13 @@ export class EnergyPointsService {
 
       return transactions;
     } catch (error) {
-      logger.error('[EP] Error getting history:', error);
+      logger.error('[Energies] Error getting history:', error);
       throw new Error('Failed to get transaction history');
     }
   }
 
   /**
-   * Триггеры начисления EP по ТЗ
+   * Триггеры начисления Энергийпо ТЗ
    */
 
   // Ежедневный вход (+10 EP)
@@ -149,7 +149,7 @@ export class EnergyPointsService {
     return this.award(userId, 50, 'Воскресная практика', { practiceId });
   }
 
-  // Прямой эфир (+100 EP за онлайн)
+  // Прямой эфир (+100 Энергийза онлайн)
   async awardLiveStream(userId: string, streamId: string, watchedOnline: boolean) {
     if (watchedOnline) {
       return this.award(userId, 100, 'Участие в прямом эфире', { streamId });
