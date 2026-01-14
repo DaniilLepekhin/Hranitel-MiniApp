@@ -61,6 +61,10 @@ jobs:
             export BUN_INSTALL="$HOME/.bun"
             export PATH="$BUN_INSTALL/bin:$PATH"
 
+            # Clear Bun cache
+            rm -rf node_modules
+            rm -rf .bun-cache
+
             bun install
 
             # Restart backend service (port 3002)
