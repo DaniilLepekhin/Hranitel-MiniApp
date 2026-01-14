@@ -241,6 +241,59 @@ export const streamsApi = {
     ),
 };
 
+// Content (Путь - Обучающий контент)
+export const contentApi = {
+  // Get content items list
+  getItems: (params?: { type?: string; keyNumber?: number; monthProgram?: boolean }) =>
+    api.get<{ items: ContentItem[] }>('/content/items', { params: params as any }),
+
+  // Get single content item
+  getItem: (itemId: string) =>
+    api.get<{ item: ContentItem }>(`/content/items/${itemId}`),
+
+  // Get monthly program
+  getMonthProgram: () =>
+    api.get<{ items: ContentItem[] }>('/content/month-program'),
+
+  // Get content sections (lessons/episodes)
+  getSections: (itemId: string) =>
+    api.get<{ sections: ContentSection[] }>(`/content/${itemId}/sections`),
+
+  // Get videos in a section
+  getSectionVideos: (sectionId: string) =>
+    api.get<{ videos: Video[] }>(`/content/sections/${sectionId}/videos`),
+
+  // Get video details with timecodes
+  getVideo: (videoId: string) =>
+    api.get<{ video: Video; timecodes: VideoTimecode[] }>(`/content/videos/${videoId}`),
+
+  // Get videos directly attached to content item (stream recordings)
+  getItemVideos: (itemId: string) =>
+    api.get<{ videos: Video[] }>(`/content/${itemId}/videos`),
+
+  // Get user progress
+  getUserProgress: (userId: string) =>
+    api.get<{ progress: UserContentProgress[] }>('/content/progress', { params: { userId } }),
+
+  // Get user progress stats
+  getUserProgressStats: (userId: string) =>
+    api.get<{ stats: { totalWatched: number; totalEP: number; totalWatchTime: number } }>(
+      '/content/progress/stats',
+      { params: { userId } }
+    ),
+
+  // Mark video as completed
+  completeVideo: (userId: string, videoId: string, watchTimeSeconds?: number) =>
+    api.post<{ progress: UserContentProgress; epEarned: number }>(
+      '/content/progress/complete',
+      { userId, videoId, watchTimeSeconds }
+    ),
+
+  // Get practice content
+  getPracticeContent: (practiceId: string) =>
+    api.get<{ practice: PracticeContent }>(`/content/practices/${practiceId}/content`),
+};
+
 // Reports (Недельные отчеты) (КОД ДЕНЕГ 4.0)
 export const reportsApi = {
   getDeadline: () =>
@@ -551,4 +604,71 @@ export interface ReportStats {
 export interface CityInfo {
   name: string;
   chatName: string;
+}
+
+// Content System Types (Путь - Обучающий контент)
+export interface ContentItem {
+  id: string;
+  type: 'course' | 'podcast' | 'stream_record' | 'practice';
+  title: string;
+  description?: string | null;
+  coverUrl?: string | null;
+  keyNumber?: number | null; // 1-12 для связи с ключами
+  monthProgram: boolean; // Программа месяца
+  orderIndex: number;
+  isPublished: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContentSection {
+  id: string;
+  contentItemId: string;
+  title: string;
+  description?: string | null;
+  orderIndex: number;
+  createdAt: string;
+}
+
+export interface Video {
+  id: string;
+  contentSectionId?: string | null;
+  contentItemId?: string | null;
+  title: string;
+  description?: string | null;
+  videoUrl: string; // YouTube, Vimeo, S3, etc.
+  durationSeconds?: number | null;
+  thumbnailUrl?: string | null;
+  orderIndex: number;
+  createdAt: string;
+}
+
+export interface VideoTimecode {
+  id: string;
+  videoId: string;
+  timeSeconds: number;
+  title: string;
+  description?: string | null;
+  orderIndex: number;
+}
+
+export interface UserContentProgress {
+  id: string;
+  userId: string;
+  contentItemId?: string | null;
+  videoId?: string | null;
+  watched: boolean;
+  watchTimeSeconds: number;
+  completedAt?: string | null;
+  epEarned: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PracticeContent {
+  id: string;
+  contentItemId: string;
+  contentType: 'markdown' | 'html';
+  content: string;
+  createdAt: string;
 }

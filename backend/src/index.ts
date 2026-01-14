@@ -28,6 +28,7 @@ import { teamsRoutes } from '@/modules/teams';
 import { streamsRoutes } from '@/modules/streams';
 import { reportsRoutes } from '@/modules/reports';
 import { cityChatModule } from '@/modules/city-chats';
+import { contentModule } from '@/modules/content';
 
 const app = new Elysia()
   // Global plugins
@@ -109,6 +110,8 @@ const app = new Elysia()
       // .use(aiModule) - disabled
       // .use(botModule) - disabled
   )
+  // Content module (Путь - educational content system)
+  .use(contentModule)
   // New КОД ДЕНЕГ 4.0 routes (without /api/v1 prefix, already included in route definitions)
   .use(energyPointsRoutes)
   .use(shopRoutes)
