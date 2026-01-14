@@ -1,0 +1,45 @@
+name: Check Backend Logs
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check-logs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Backend Logs
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          script: |
+            echo "=== PM2 Status ==="
+            pm2 status
+
+            echo ""
+            echo "=== Backend Error Logs (last 50 lines) ==="
+            pm2 logs hranitel-backend --err --lines 50 --nostream
+
+            echo ""
+            echo "=== Backend Out Logs (last 50 lines) ==="
+            pm2 logs hranitel-backend --out --lines 50 --nostream
+
+            echo ""
+            echo "=== Check Backend Directory ==="
+            ls -la /var/www/hranitel/backend/
+
+            echo ""
+            echo "=== Check .env file ==="
+            ls -la /var/www/hranitel/backend/.env
+
+            echo ""
+            echo "=== Check Bun Installation ==="
+            which bun
+            bun --version
+
+            echo ""
+            echo "=== Try to run backend manually ==="
+            cd /var/www/hranitel/backend
+            timeout 5 bun run src/index.ts || echo "Backend failed to start"
