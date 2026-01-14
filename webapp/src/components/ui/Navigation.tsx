@@ -1,10 +1,10 @@
 'use client';
 
-import { Home, BookOpen, Headphones, MessageCircle, User, Heart } from 'lucide-react';
+import { Home, Key, MessageCircle, ShoppingBag, User } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { clsx } from 'clsx';
 
-export type TabType = 'home' | 'courses' | 'favorites' | 'meditations' | 'chat' | 'profile';
+export type TabType = 'home' | 'path' | 'chats' | 'shop' | 'profile';
 
 interface NavigationProps {
   activeTab: TabType;
@@ -20,24 +20,24 @@ const tabs = [
     gradient: 'from-orange-400 to-pink-500',
   },
   {
-    id: 'courses' as TabType,
-    label: 'Курсы',
-    icon: BookOpen,
-    emoji: '📚',
+    id: 'path' as TabType,
+    label: 'Путь',
+    icon: Key,
+    emoji: '🗝️',
     gradient: 'from-purple-400 to-indigo-500',
   },
   {
-    id: 'favorites' as TabType,
-    label: 'Избранное',
-    icon: Heart,
-    emoji: '❤️',
-    gradient: 'from-pink-400 to-rose-500',
+    id: 'chats' as TabType,
+    label: 'Чаты',
+    icon: MessageCircle,
+    emoji: '💬',
+    gradient: 'from-blue-400 to-cyan-500',
   },
   {
-    id: 'meditations' as TabType,
-    label: 'Медитации',
-    icon: Headphones,
-    emoji: '🧘',
+    id: 'shop' as TabType,
+    label: 'Магазин',
+    icon: ShoppingBag,
+    emoji: '🛍️',
     gradient: 'from-emerald-400 to-teal-500',
   },
   {

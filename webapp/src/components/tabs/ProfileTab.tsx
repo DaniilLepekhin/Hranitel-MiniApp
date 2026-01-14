@@ -18,6 +18,15 @@ import {
 import { useAuthStore } from '@/store/auth';
 import { gamificationApi } from '@/lib/api';
 
+// EP API
+const epApi = {
+  getBalance: async (userId: string) => {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ep/balance?userId=${userId}`);
+    if (!response.ok) throw new Error('Failed to fetch EP balance');
+    return response.json();
+  },
+};
+
 const LEVEL_TITLES = [
   'Новичок',
   'Ученик',
@@ -52,9 +61,17 @@ export function ProfileTab() {
     enabled: !!user,
   });
 
+  const { data: epData } = useQuery({
+    queryKey: ['ep', 'balance', user?.id],
+    queryFn: () => epApi.getBalance(user!.id),
+    enabled: !!user,
+    refetchInterval: 30000,
+  });
+
   const stats = statsData?.stats;
   const achievements = achievementsData?.achievements.unlocked || [];
   const leaderboard = leaderboardData?.leaderboard || [];
+  const epBalance = epData?.balance || 0;
 
   const levelTitle = LEVEL_TITLES[Math.min((stats?.level || 1) - 1, LEVEL_TITLES.length - 1)];
 
@@ -98,24 +115,19 @@ export function ProfileTab() {
           <span className="text-sm font-medium text-amber-800">{levelTitle}</span>
         </div>
 
-        {/* XP Progress */}
-        {stats && (
-          <div className="mt-6">
-            <div className="flex justify-between text-sm text-gray-400 mb-2">
-              <span>{stats.experience} XP</span>
-              <span>След. уровень: {stats.xpNeededForNextLevel} XP</span>
-            </div>
-            <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full transition-all duration-500"
-                style={{ width: `${stats.progressPercent}%` }}
-              />
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Осталось {stats.progressToNextLevel} XP до уровня {stats.level + 1}
-            </p>
+        {/* EP Balance */}
+        <div className="mt-6">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Zap className="w-5 h-5 text-purple-500" />
+            <span className="text-sm font-medium text-gray-500">Energy Points</span>
           </div>
-        )}
+          <div className="text-center">
+            <p className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
+              {epBalance}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">EP</p>
+          </div>
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -135,9 +147,9 @@ export function ProfileTab() {
           />
           <StatCard
             icon={<Zap className="w-5 h-5" />}
-            value={stats.experience}
-            label="Опыт"
-            gradient="from-emerald-400 to-teal-500"
+            value={epBalance}
+            label="Energy Points"
+            gradient="from-purple-400 to-pink-500"
           />
           <StatCard
             icon={<Calendar className="w-5 h-5" />}
@@ -264,8 +276,8 @@ export function ProfileTab() {
           onClick={() => {}}
         />
         <MenuItem
-          icon={<Award className="w-5 h-5" />}
-          label="История XP"
+          icon={<Zap className="w-5 h-5" />}
+          label="История EP"
           onClick={() => {}}
         />
         <MenuItem

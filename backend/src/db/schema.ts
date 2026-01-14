@@ -5,6 +5,10 @@ import { relations } from 'drizzle-orm';
 export const courseCategoryEnum = pgEnum('course_category', ['mindset', 'spiritual', 'esoteric', 'health']);
 export const userRoleEnum = pgEnum('user_role', ['user', 'admin']);
 export const chatRoleEnum = pgEnum('chat_role', ['user', 'assistant']);
+export const epTransactionTypeEnum = pgEnum('ep_transaction_type', ['income', 'expense']);
+export const shopCategoryEnum = pgEnum('shop_category', ['elite', 'secret', 'savings']);
+export const shopItemTypeEnum = pgEnum('shop_item_type', ['raffle_ticket', 'lesson', 'discount']);
+export const streamStatusEnum = pgEnum('stream_status', ['scheduled', 'live', 'ended']);
 
 // Users
 export const users = pgTable('users', {
@@ -19,6 +23,7 @@ export const users = pgTable('users', {
   // Gamification
   level: integer('level').default(1).notNull(),
   experience: integer('experience').default(0).notNull(),
+  energyPoints: integer('energy_points').default(0).notNull(), // NEW: EP вместо XP
   streak: integer('streak').default(0).notNull(),
   lastActiveDate: timestamp('last_active_date'),
 
@@ -29,6 +34,7 @@ export const users = pgTable('users', {
   // Settings
   role: userRoleEnum('role').default('user').notNull(),
   settings: jsonb('settings').default({}),
+  metadata: jsonb('metadata').default({}), // NEW: для metka и других данных из старой БД
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -37,7 +43,7 @@ export const users = pgTable('users', {
   index('users_level_idx').on(table.level),
 ]);
 
-// Courses
+// Courses (12 Keys)
 export const courses = pgTable('courses', {
   id: uuid('id').primaryKey().defaultRandom(),
   title: text('title').notNull(),
@@ -48,11 +54,17 @@ export const courses = pgTable('courses', {
   sortOrder: integer('sort_order').default(0).notNull(),
   isActive: boolean('is_active').default(true).notNull(),
 
+  // NEW: 12 Keys system
+  keyNumber: integer('key_number'), // 1-12
+  monthTheme: text('month_theme'), // "Идентичность", "Ниша и смысл", etc
+  unlockCondition: jsonb('unlock_condition').default({}), // Условия разблокировки
+
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => [
   index('courses_category_idx').on(table.category),
   index('courses_sort_order_idx').on(table.sortOrder),
+  index('courses_key_number_idx').on(table.keyNumber),
 ]);
 
 // Course Days (lessons)
@@ -198,6 +210,157 @@ export const chatMessages = pgTable('chat_messages', {
   index('chat_messages_created_at_idx').on(table.createdAt),
 ]);
 
+// ============================================================================
+// NEW TABLES FOR КОД ДЕНЕГ 4.0
+// ============================================================================
+
+// Energy Points Transactions
+export const epTransactions = pgTable('ep_transactions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  amount: integer('amount').notNull(),
+  type: epTransactionTypeEnum('type').notNull(), // income | expense
+  reason: text('reason').notNull(), // "Просмотр урока", "Покупка билета", etc
+  metadata: jsonb('metadata').default({}),
+
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('ep_transactions_user_id_idx').on(table.userId),
+  index('ep_transactions_created_at_idx').on(table.createdAt),
+  index('ep_transactions_type_idx').on(table.type),
+]);
+
+// Shop Items
+export const shopItems = pgTable('shop_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  title: text('title').notNull(),
+  description: text('description'),
+  category: shopCategoryEnum('category').notNull(), // elite | secret | savings
+  price: integer('price').notNull(), // в Energy Points
+  imageUrl: text('image_url'),
+  itemType: shopItemTypeEnum('item_type').notNull(), // raffle_ticket | lesson | discount
+  itemData: jsonb('item_data').default({}), // Специфичные данные для типа товара
+  isActive: boolean('is_active').default(true).notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
+
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('shop_items_category_idx').on(table.category),
+  index('shop_items_sort_order_idx').on(table.sortOrder),
+  index('shop_items_is_active_idx').on(table.isActive),
+]);
+
+// Shop Purchases
+export const shopPurchases = pgTable('shop_purchases', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  itemId: uuid('item_id').references(() => shopItems.id, { onDelete: 'cascade' }).notNull(),
+  price: integer('price').notNull(), // Цена на момент покупки
+  status: text('status').default('completed').notNull(), // pending | completed | used
+
+  purchasedAt: timestamp('purchased_at').defaultNow().notNull(),
+  usedAt: timestamp('used_at'),
+}, (table) => [
+  index('shop_purchases_user_id_idx').on(table.userId),
+  index('shop_purchases_item_id_idx').on(table.itemId),
+  index('shop_purchases_status_idx').on(table.status),
+]);
+
+// Teams (Десятки)
+export const teams = pgTable('teams', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  description: text('description'),
+  metka: text('metka'), // art, relationship, etc
+  cityChat: text('city_chat'), // Ссылка на чат города
+  memberCount: integer('member_count').default(0).notNull(),
+  maxMembers: integer('max_members').default(12).notNull(),
+
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('teams_metka_idx').on(table.metka),
+]);
+
+// Team Members
+export const teamMembers = pgTable('team_members', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  role: text('role').default('member').notNull(), // member | leader
+
+  joinedAt: timestamp('joined_at').defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('team_members_team_user_idx').on(table.teamId, table.userId),
+  index('team_members_user_id_idx').on(table.userId),
+  index('team_members_team_id_idx').on(table.teamId),
+]);
+
+// Live Streams
+export const liveStreams = pgTable('live_streams', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  title: text('title').notNull(),
+  description: text('description'),
+  scheduledAt: timestamp('scheduled_at').notNull(),
+  streamUrl: text('stream_url'),
+  host: text('host'), // Кристина, Продюсер, etc
+  status: streamStatusEnum('status').default('scheduled').notNull(),
+  epReward: integer('ep_reward').default(100).notNull(), // Награда за онлайн присутствие
+
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('live_streams_scheduled_at_idx').on(table.scheduledAt),
+  index('live_streams_status_idx').on(table.status),
+]);
+
+// Stream Attendance
+export const streamAttendance = pgTable('stream_attendance', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  streamId: uuid('stream_id').references(() => liveStreams.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  joinedAt: timestamp('joined_at').defaultNow().notNull(),
+  watchedOnline: boolean('watched_online').default(false).notNull(), // true если был онлайн
+  epEarned: integer('ep_earned').default(0).notNull(),
+}, (table) => [
+  uniqueIndex('stream_attendance_stream_user_idx').on(table.streamId, table.userId),
+  index('stream_attendance_user_id_idx').on(table.userId),
+  index('stream_attendance_stream_id_idx').on(table.streamId),
+]);
+
+// Weekly Reports
+export const weeklyReports = pgTable('weekly_reports', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  weekNumber: integer('week_number').notNull(), // Номер недели в году
+  content: text('content').notNull(),
+  submittedAt: timestamp('submitted_at').defaultNow().notNull(),
+  deadline: timestamp('deadline').notNull(), // Воскресенье 23:59 МСК
+  epEarned: integer('ep_earned').default(100).notNull(),
+}, (table) => [
+  index('weekly_reports_user_id_idx').on(table.userId),
+  index('weekly_reports_week_number_idx').on(table.weekNumber),
+  uniqueIndex('weekly_reports_user_week_idx').on(table.userId, table.weekNumber),
+]);
+
+// User Keys (прогресс по 12 ключам)
+export const userKeys = pgTable('user_keys', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  keyNumber: integer('key_number').notNull(), // 1-12
+  isUnlocked: boolean('is_unlocked').default(false).notNull(),
+  unlockedAt: timestamp('unlocked_at'),
+  progress: integer('progress').default(0).notNull(), // 0-100%
+  completedAt: timestamp('completed_at'),
+
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('user_keys_user_key_idx').on(table.userId, table.keyNumber),
+  index('user_keys_user_id_idx').on(table.userId),
+  index('user_keys_key_number_idx').on(table.keyNumber),
+]);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   courseProgress: many(courseProgress),
@@ -206,6 +369,13 @@ export const usersRelations = relations(users, ({ many }) => ({
   achievements: many(userAchievements),
   xpHistory: many(xpHistory),
   chatMessages: many(chatMessages),
+  // NEW relations
+  epTransactions: many(epTransactions),
+  shopPurchases: many(shopPurchases),
+  teamMemberships: many(teamMembers),
+  streamAttendance: many(streamAttendance),
+  weeklyReports: many(weeklyReports),
+  userKeys: many(userKeys),
 }));
 
 export const coursesRelations = relations(courses, ({ many }) => ({
@@ -287,6 +457,73 @@ export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
   }),
 }));
 
+// NEW Relations
+export const epTransactionsRelations = relations(epTransactions, ({ one }) => ({
+  user: one(users, {
+    fields: [epTransactions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const shopItemsRelations = relations(shopItems, ({ many }) => ({
+  purchases: many(shopPurchases),
+}));
+
+export const shopPurchasesRelations = relations(shopPurchases, ({ one }) => ({
+  user: one(users, {
+    fields: [shopPurchases.userId],
+    references: [users.id],
+  }),
+  item: one(shopItems, {
+    fields: [shopPurchases.itemId],
+    references: [shopItems.id],
+  }),
+}));
+
+export const teamsRelations = relations(teams, ({ many }) => ({
+  members: many(teamMembers),
+}));
+
+export const teamMembersRelations = relations(teamMembers, ({ one }) => ({
+  team: one(teams, {
+    fields: [teamMembers.teamId],
+    references: [teams.id],
+  }),
+  user: one(users, {
+    fields: [teamMembers.userId],
+    references: [users.id],
+  }),
+}));
+
+export const liveStreamsRelations = relations(liveStreams, ({ many }) => ({
+  attendance: many(streamAttendance),
+}));
+
+export const streamAttendanceRelations = relations(streamAttendance, ({ one }) => ({
+  stream: one(liveStreams, {
+    fields: [streamAttendance.streamId],
+    references: [liveStreams.id],
+  }),
+  user: one(users, {
+    fields: [streamAttendance.userId],
+    references: [users.id],
+  }),
+}));
+
+export const weeklyReportsRelations = relations(weeklyReports, ({ one }) => ({
+  user: one(users, {
+    fields: [weeklyReports.userId],
+    references: [users.id],
+  }),
+}));
+
+export const userKeysRelations = relations(userKeys, ({ one }) => ({
+  user: one(users, {
+    fields: [userKeys.userId],
+    references: [users.id],
+  }),
+}));
+
 // Types
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -298,3 +535,23 @@ export type CourseProgress = typeof courseProgress.$inferSelect;
 export type Meditation = typeof meditations.$inferSelect;
 export type Achievement = typeof achievements.$inferSelect;
 export type ChatMessage = typeof chatMessages.$inferSelect;
+
+// NEW Types
+export type EPTransaction = typeof epTransactions.$inferSelect;
+export type NewEPTransaction = typeof epTransactions.$inferInsert;
+export type ShopItem = typeof shopItems.$inferSelect;
+export type NewShopItem = typeof shopItems.$inferInsert;
+export type ShopPurchase = typeof shopPurchases.$inferSelect;
+export type NewShopPurchase = typeof shopPurchases.$inferInsert;
+export type Team = typeof teams.$inferSelect;
+export type NewTeam = typeof teams.$inferInsert;
+export type TeamMember = typeof teamMembers.$inferSelect;
+export type NewTeamMember = typeof teamMembers.$inferInsert;
+export type LiveStream = typeof liveStreams.$inferSelect;
+export type NewLiveStream = typeof liveStreams.$inferInsert;
+export type StreamAttendance = typeof streamAttendance.$inferSelect;
+export type NewStreamAttendance = typeof streamAttendance.$inferInsert;
+export type WeeklyReport = typeof weeklyReports.$inferSelect;
+export type NewWeeklyReport = typeof weeklyReports.$inferInsert;
+export type UserKey = typeof userKeys.$inferSelect;
+export type NewUserKey = typeof userKeys.$inferInsert;

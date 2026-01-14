@@ -1,0 +1,210 @@
+====================================================================================================
+📊 АНАЛИЗ СУЩЕСТВУЮЩЕЙ БАЗЫ ДАННЫХ КЛУБА 'КОД ДЕНЕГ' (Docker PostgreSQL)
+====================================================================================================
+
+🔌 Проверка подключения...
+Traceback (most recent call last):
+  File "/Users/daniillepekhin/My Python/egiazarova/club_webapp/analyze_club_db.py", line 50, in <module>
+    print(f"✅ {result.strip().split('\\n')[1]}")
+                ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^
+IndexError: list index out of range
+  created_at                = 2026-01-13 11:35:12
+  phone                     = 79375447995
+  email                     = iren-izumrud@yandex.ru
+  platform_id               = 1727809742
+  payment_system            = PRODAMUS
+  amount                    = 990
+  payment_type              = СБП
+  product_name              = Консультационные услуги
+  payment_currency          = rub
+  order_id                  = 1727809742
+  product_id                = 1
+  commission                = 19.8
+  processed_to_history      = t
+  contract_id               = 
+
+Запись #3:
+  id                        = 188297
+  created_at                = 2026-01-13 10:52:33
+  phone                     = 79141332503
+  email                     = bon.onepa2011@yandex.ru
+  platform_id               = 7235738701
+  payment_system            = PRODAMUS
+  amount                    = 1111
+  payment_type              = SberPay
+  product_name              = Консультационные услуги
+  payment_currency          = rub
+  order_id                  = 7235738701
+  product_id                = 1
+  commission                = 25.55
+  processed_to_history      = t
+  contract_id               = 
+
+
+📈 КЛЮЧЕВАЯ СТАТИСТИКА:
+----------------------------------------------------------------------------------------------------
+  Всего платежей                 = 71355
+  Сумма платежей                 = 
+  Успешных платежей              = 
+
+====================================================================================================
+📋 ТАБЛИЦА: products
+====================================================================================================
+
+📊 Количество записей:         10
+
+📐 СТРУКТУРА ТАБЛИЦЫ:
+----------------------------------------------------------------------------------------------------
+Колонка                        | Тип                       | Nullable  
+----------------------------------------------------------------------------------------------------
+
+📝 ПРИМЕРЫ ДАННЫХ (последние 3 записи):
+----------------------------------------------------------------------------------------------------
+
+Колонки: id, created_at, updated_at, product_name, product_type, podpiska_srok, metka, price_rub_min, price_rub_max, price_usd_min, price_usd_max, price_eur_min, price_eur_max
+
+Запись #1:
+  id                        = 10
+  created_at                = 2025-11-18 08:16:44
+  updated_at                = 2025-11-18 08:16:44
+  product_name              = Амбассадор
+  product_type              = gift
+  podpiska_srok             = 30
+  metka                     = club
+  price_rub_min             = 0.00
+  price_rub_max             = 0.00
+  price_usd_min             = 0.00
+  price_usd_max             = 0.00
+  price_eur_min             = 0.00
+  price_eur_max             = 0.00
+
+Запись #2:
+  id                        = 9
+  created_at                = 2025-11-17 15:21:49
+  updated_at                = 2025-11-17 15:21:49
+  product_name              = Кольцо 365
+  product_type              = kolco
+  podpiska_srok             = 365
+  metka                     = kolco
+  price_rub_min             = 0.00
+  price_rub_max             = 0.00
+  price_usd_min             = 0.00
+  price_usd_max             = 0.00
+  price_eur_min             = 0.00
+  price_eur_max             = 0.00
+
+Запись #3:
+  id                        = 8
+  created_at                = 2025-11-15 08:12:52
+  updated_at                = 2025-11-15 08:12:52
+  product_name              = Марафон
+  product_type              = promo
+  podpiska_srok             = 30
+  metka                     = club
+  price_rub_min             = 0.00
+  price_rub_max             = 0.00
+  price_usd_min             = 0.00
+  price_usd_max             = 0.00
+  price_eur_min             = 0.00
+  price_eur_max             = 0.00
+
+
+📈 КЛЮЧЕВАЯ СТАТИСТИКА:
+----------------------------------------------------------------------------------------------------
+
+====================================================================================================
+📋 ТАБЛИЦА: club_email_webapp
+====================================================================================================
+
+📊 Количество записей:      50984
+
+📐 СТРУКТУРА ТАБЛИЦЫ:
+----------------------------------------------------------------------------------------------------
+Колонка                        | Тип                       | Nullable  
+----------------------------------------------------------------------------------------------------
+
+📝 ПРИМЕРЫ ДАННЫХ (последние 3 записи):
+----------------------------------------------------------------------------------------------------
+
+Колонки: id, platform_id, email, contract_id, metka, created_at, client_id, group_id, code_word, updated_at, phone, utm_campaign, utm_medium, utm_source, utm_content, utm_term, group_bot, source_system, payment_status
+
+Запись #1:
+  id                        = 51111
+  platform_id               = 870563298
+  email                     = lada40rus@mail.ru
+  contract_id               = 
+  metka                     = endsubcribeprosrota
+  created_at                = 2026-01-13 17:29:52.189123
+  client_id                 = 652091193
+  group_id                  = hranitel_kod_bot
+  code_word                 = Рыба
+  updated_at                = 2026-01-13 17:29:52.189123
+  phone                     = 89533350593
+  utm_campaign              = 
+  utm_medium                = 
+  utm_source                = 
+  utm_content               = 
+  utm_term                  = 
+  group_bot                 = 
+  source_system             = telegram_webapp
+  payment_status            = f
+
+Запись #2:
+  id                        = 51110
+  platform_id               = 5821480288
+  email                     = lenk86@bk.ru
+  contract_id               = 
+  metka                     = dogrev_day0112
+  created_at                = 2026-01-13 11:47:12.791596
+  client_id                 = 653936312
+  group_id                  = hranitel_kod_bot
+  code_word                 = Максим
+  updated_at                = 2026-01-13 11:51:30.099858
+  phone                     = +79657558696
+  utm_campaign              = dogrev
+  utm_medium                = day0112
+  utm_source                = 
+  utm_content               = 
+  utm_term                  = 
+  group_bot                 = 
+  source_system             = telegram_webapp
+  payment_status            = f
+
+Запись #3:
+  id                        = 51109
+  platform_id               = 7015060516
+  email                     = anyutkagulamiryan1@icloud.com
+  contract_id               = 6f3ba9e0-58ab-42be-a37c-b1bd482d8d58
+  metka                     = art_successkod
+  created_at                = 2026-01-13 08:24:45.01162
+  client_id                 = 838035888
+  group_id                  = hranitel_kod_bot
+  code_word                 = Вика
+  updated_at                = 2026-01-13 08:24:45.01162
+  phone                     = +79649490919
+  utm_campaign              = art
+  utm_medium                = successkod
+  utm_source                = 
+  utm_content               = 
+  utm_term                  = 
+  group_bot                 = 
+  source_system             = telegram_webapp
+  payment_status            = f
+
+
+📈 КЛЮЧЕВАЯ СТАТИСТИКА:
+----------------------------------------------------------------------------------------------------
+
+====================================================================================================
+📋 ТАБЛИЦА: statistics_club_IK
+====================================================================================================
+
+📊 Количество записей:           
+
+📐 СТРУКТУРА ТАБЛИЦЫ:
+----------------------------------------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/daniillepekhin/My Python/egiazarova/club_webapp/analyze_club_db.py", line 112, in <module>
+    if int(count) > 0:
+       ~~~^^^^^^^
+ValueError: invalid literal for int() with base 10: ''

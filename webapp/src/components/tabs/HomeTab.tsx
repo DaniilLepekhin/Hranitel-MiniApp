@@ -2,10 +2,35 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { Flame, Star, TrendingUp, BookOpen, Lock } from 'lucide-react';
+import { Flame, Star, Zap, BookOpen, Lock, Tv, Clock, CheckCircle, Calendar, TrendingUp } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { coursesApi, gamificationApi } from '@/lib/api';
 import { useTelegram } from '@/hooks/useTelegram';
+
+// API endpoints для новых виджетов
+const epApi = {
+  getBalance: async (userId: string) => {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ep/balance?userId=${userId}`);
+    if (!response.ok) throw new Error('Failed to fetch balance');
+    return response.json();
+  },
+};
+
+const streamsApi = {
+  getNextStream: async () => {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/streams/next`);
+    if (!response.ok) throw new Error('Failed to fetch next stream');
+    return response.json();
+  },
+};
+
+const reportsApi = {
+  getDeadline: async () => {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reports/deadline`);
+    if (!response.ok) throw new Error('Failed to fetch deadline');
+    return response.json();
+  },
+};
 
 export function HomeTab() {
   const { user } = useAuthStore();
@@ -22,8 +47,31 @@ export function HomeTab() {
     enabled: !!user,
   });
 
+  // Новые запросы для КОД ДЕНЕГ 4.0
+  const { data: balanceData } = useQuery({
+    queryKey: ['ep', 'balance', user?.id],
+    queryFn: () => epApi.getBalance(user!.id),
+    enabled: !!user,
+    refetchInterval: 30000, // Обновление каждые 30 секунд
+  });
+
+  const { data: nextStreamData } = useQuery({
+    queryKey: ['streams', 'next'],
+    queryFn: streamsApi.getNextStream,
+    refetchInterval: 60000, // Обновление каждую минуту
+  });
+
+  const { data: deadlineData } = useQuery({
+    queryKey: ['reports', 'deadline'],
+    queryFn: reportsApi.getDeadline,
+    refetchInterval: 300000, // Обновление каждые 5 минут
+  });
+
   const stats = statsData?.stats;
   const courses = coursesData?.courses?.slice(0, 3) || [];
+  const epBalance = balanceData?.balance || 0;
+  const nextStream = nextStreamData?.stream;
+  const deadline = deadlineData;
 
   return (
     <div className="px-4 pt-6">
@@ -68,16 +116,59 @@ export function HomeTab() {
           </div>
 
           <div className="card rounded-2xl p-4 text-center">
-            <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
+              <Zap className="w-5 h-5 text-white" />
             </div>
-            <p className="text-xl font-bold text-gray-900">{stats.experience}</p>
-            <p className="text-xs text-gray-500">XP</p>
+            <p className="text-xl font-bold text-gray-900">{epBalance}</p>
+            <p className="text-xs text-gray-500">EP</p>
           </div>
         </div>
       )}
 
-      {/* XP Progress */}
+      {/* КОД ДЕНЕГ 4.0 Widgets */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        {/* Next Stream Widget */}
+        {nextStream && (
+          <div className="card rounded-2xl p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20">
+            <div className="flex items-center gap-2 mb-2">
+              <Tv className="w-4 h-4 text-blue-400" />
+              <span className="text-xs font-semibold text-blue-400">БЛИЖАЙШИЙ ЭФИР</span>
+            </div>
+            <h3 className="text-sm font-bold text-gray-900 mb-1 line-clamp-2">
+              {nextStream.title}
+            </h3>
+            <div className="flex items-center gap-1 text-gray-500">
+              <Clock className="w-3 h-3" />
+              <span className="text-xs">
+                {new Date(nextStream.scheduledAt).toLocaleDateString('ru-RU', {
+                  day: 'numeric',
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Week Deadline Widget */}
+        {deadline && (
+          <div className="card rounded-2xl p-4 bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-500/20">
+            <div className="flex items-center gap-2 mb-2">
+              <Calendar className="w-4 h-4 text-orange-400" />
+              <span className="text-xs font-semibold text-orange-400">ДЕДЛАЙН ОТЧЕТА</span>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-1">
+              {deadline.hoursRemaining}ч
+            </h3>
+            <p className="text-xs text-gray-500">
+              до воскресенья 23:59
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Level Progress (kept as-is) */}
       {stats && (
         <div className="card rounded-2xl p-4 mb-6">
           <div className="flex justify-between items-center mb-2">

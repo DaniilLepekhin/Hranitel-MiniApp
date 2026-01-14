@@ -13,10 +13,9 @@ import { authApi, coursesApi, meditationsApi, gamificationApi, setAuthToken } fr
 
 // Tab Components
 import { HomeTab } from '@/components/tabs/HomeTab';
-import { CoursesTab } from '@/components/tabs/CoursesTab';
-import { FavoritesTab } from '@/components/tabs/FavoritesTab';
-import { MeditationsTab } from '@/components/tabs/MeditationsTab';
-import { ChatTab } from '@/components/tabs/ChatTab';
+import { PathTab } from '@/components/tabs/PathTab';
+import { ChatsTab } from '@/components/tabs/ChatsTab';
+import { ShopTab } from '@/components/tabs/ShopTab';
 import { ProfileTab } from '@/components/tabs/ProfileTab';
 
 export default function Home() {
@@ -98,10 +97,9 @@ export default function Home() {
 
   const tabComponents: Record<TabType, React.ReactNode> = {
     home: <HomeTab />,
-    courses: <CoursesTab />,
-    favorites: <FavoritesTab />,
-    meditations: <MeditationsTab />,
-    chat: <ChatTab />,
+    path: <PathTab />,
+    chats: <ChatsTab />,
+    shop: <ShopTab />,
     profile: <ProfileTab />,
   };
 

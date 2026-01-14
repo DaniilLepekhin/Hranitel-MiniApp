@@ -20,6 +20,13 @@ import { aiModule } from '@/modules/ai';
 import { botModule } from '@/modules/bot';
 import { setupWebhook } from '@/setup-webhook';
 
+// New modules for КОД ДЕНЕГ 4.0
+import { energyPointsRoutes } from '@/modules/energy-points';
+import { shopRoutes } from '@/modules/shop';
+import { teamsRoutes } from '@/modules/teams';
+import { streamsRoutes } from '@/modules/streams';
+import { reportsRoutes } from '@/modules/reports';
+
 const app = new Elysia()
   // Global plugins
   .use(errorHandler)
@@ -52,6 +59,11 @@ const app = new Elysia()
               { name: 'Gamification', description: 'XP, levels, achievements' },
               { name: 'AI', description: 'AI chat' },
               { name: 'Bot', description: 'Telegram bot' },
+              { name: 'Energy Points', description: 'Energy Points system (КОД ДЕНЕГ 4.0)' },
+              { name: 'Shop', description: 'Shop and purchases' },
+              { name: 'Teams', description: 'Teams (Десятки)' },
+              { name: 'Streams', description: 'Live streams' },
+              { name: 'Reports', description: 'Weekly reports' },
             ],
           },
         })
@@ -77,9 +89,10 @@ const app = new Elysia()
   }))
   // Root
   .get('/', () => ({
-    name: 'Academy MiniApp 2.0 API',
-    version: '1.0.0',
+    name: 'КОД ДЕНЕГ 4.0 API',
+    version: '2.0.0',
     docs: '/docs',
+    description: 'API for КОД ДЕНЕГ Club - Telegram WebApp',
   }))
   // API routes
   .group('/api/v1', (app) =>
@@ -93,6 +106,12 @@ const app = new Elysia()
       .use(aiModule)
       .use(botModule)
   )
+  // New КОД ДЕНЕГ 4.0 routes (without /api/v1 prefix, already included in route definitions)
+  .use(energyPointsRoutes)
+  .use(shopRoutes)
+  .use(teamsRoutes)
+  .use(streamsRoutes)
+  .use(reportsRoutes)
   // Start server
   .listen(Number(config.PORT));
 
@@ -102,7 +121,7 @@ logger.info(
     environment: config.NODE_ENV,
     docs: isDevelopment ? `http://localhost:${config.PORT}/docs` : undefined,
   },
-  `🚀 Academy MiniApp 2.0 Backend is running`
+  `🚀 КОД ДЕНЕГ 4.0 Backend is running`
 );
 
 // Setup Telegram webhook

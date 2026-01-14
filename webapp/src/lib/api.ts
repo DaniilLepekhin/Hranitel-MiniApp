@@ -160,6 +160,112 @@ export const aiApi = {
     api.post<{ success: boolean; text: string }>('/ai/transcribe', { audio }),
 };
 
+// Energy Points (КОД ДЕНЕГ 4.0)
+export const epApi = {
+  getBalance: (userId: string) =>
+    api.get<{ success: boolean; balance: number }>(`/ep/balance`, { params: { userId } }),
+  getHistory: (userId: string, limit?: number) =>
+    api.get<{ success: boolean; transactions: EPTransaction[] }>(`/ep/history`, {
+      params: { userId, limit }
+    }),
+  getStats: (userId: string) =>
+    api.get<{ success: boolean; stats: EPStats }>(`/ep/stats`, { params: { userId } }),
+};
+
+// Shop (КОД ДЕНЕГ 4.0)
+export const shopApi = {
+  listItems: (category?: 'elite' | 'secret' | 'savings') =>
+    api.get<{ success: boolean; items: ShopItem[] }>('/shop/items', { params: { category } }),
+  getItemsByCategory: (category: 'elite' | 'secret' | 'savings') =>
+    api.get<{ success: boolean; items: ShopItem[] }>(`/shop/items/by-category`, {
+      params: { category }
+    }),
+  getItem: (itemId: string) =>
+    api.get<{ success: boolean; item: ShopItem }>(`/shop/items/${itemId}`),
+  purchaseItem: (userId: string, itemId: string) =>
+    api.post<{ success: boolean; purchase: ShopPurchase; newBalance: number }>(
+      '/shop/purchase',
+      { userId, itemId }
+    ),
+  getPurchases: (userId: string) =>
+    api.get<{ success: boolean; purchases: ShopPurchase[] }>('/shop/purchases', {
+      params: { userId }
+    }),
+  getUserBalance: (userId: string) =>
+    api.get<{ success: boolean; balance: number }>('/shop/balance', { params: { userId } }),
+};
+
+// Teams (Десятки) (КОД ДЕНЕГ 4.0)
+export const teamsApi = {
+  getUserTeam: (userId: string) =>
+    api.get<{ success: boolean; team: Team | null }>('/teams/my', { params: { userId } }),
+  getTeam: (teamId: string) =>
+    api.get<{ success: boolean; team: Team }>(`/teams/${teamId}`),
+  getTeamMembers: (teamId: string) =>
+    api.get<{ success: boolean; members: TeamMember[] }>(`/teams/${teamId}/members`),
+  listTeams: (metka?: string, page?: number, limit?: number) =>
+    api.get<{ success: boolean; teams: Team[]; total: number; page: number; totalPages: number }>(
+      '/teams',
+      { params: { metka, page, limit } }
+    ),
+  distributeUsers: () =>
+    api.post<{ success: boolean; teamsCreated: number; usersDistributed: number }>(
+      '/teams/distribute'
+    ),
+};
+
+// Streams (Прямые эфиры) (КОД ДЕНЕГ 4.0)
+export const streamsApi = {
+  listStreams: (upcoming?: boolean, page?: number, limit?: number) =>
+    api.get<{ success: boolean; streams: Stream[]; total: number }>('/streams', {
+      params: { upcoming, page, limit },
+    }),
+  getStream: (streamId: string) =>
+    api.get<{ success: boolean; stream: Stream }>(`/streams/${streamId}`),
+  getNextStream: () =>
+    api.get<{ success: boolean; stream: Stream | null }>('/streams/next'),
+  markAttendance: (userId: string, streamId: string, watchedOnline: boolean) =>
+    api.post<{ success: boolean; attendance: StreamAttendance; epEarned: number }>(
+      '/streams/attendance',
+      { userId, streamId, watchedOnline }
+    ),
+  getUserAttendance: (userId: string, streamId: string) =>
+    api.get<{ success: boolean; attendance: StreamAttendance | null }>('/streams/attendance', {
+      params: { userId, streamId },
+    }),
+  getStreamAttendance: (streamId: string) =>
+    api.get<{ success: boolean; attendance: StreamAttendance[]; stats: AttendanceStats }>(
+      `/streams/${streamId}/attendance`
+    ),
+};
+
+// Reports (Недельные отчеты) (КОД ДЕНЕГ 4.0)
+export const reportsApi = {
+  getDeadline: () =>
+    api.get<{ success: boolean; deadline: Date; weekNumber: number; hoursRemaining: number }>(
+      '/reports/deadline'
+    ),
+  submitReport: (userId: string, content: string) =>
+    api.post<{ success: boolean; report: WeeklyReport; epEarned: number }>(
+      '/reports/submit',
+      { userId, content }
+    ),
+  getUserReports: (userId: string, limit?: number) =>
+    api.get<{ success: boolean; reports: WeeklyReport[] }>('/reports/user', {
+      params: { userId, limit },
+    }),
+  getReport: (reportId: string) =>
+    api.get<{ success: boolean; report: WeeklyReport }>(`/reports/${reportId}`),
+  getWeekReport: (userId: string, weekNumber: number) =>
+    api.get<{ success: boolean; report: WeeklyReport | null }>('/reports/week', {
+      params: { userId, weekNumber },
+    }),
+  getStats: (userId: string) =>
+    api.get<{ success: boolean; stats: ReportStats }>('/reports/stats', {
+      params: { userId },
+    }),
+};
+
 // Types
 export interface User {
   id: string;
@@ -302,4 +408,125 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   createdAt: string;
+}
+
+// КОД ДЕНЕГ 4.0 Types
+
+export interface EPTransaction {
+  id: string;
+  userId: string;
+  amount: number;
+  type: 'income' | 'expense';
+  reason: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface EPStats {
+  totalEarned: number;
+  totalSpent: number;
+  currentBalance: number;
+  transactionCount: number;
+  topEarningReasons: { reason: string; total: number }[];
+}
+
+export interface ShopItem {
+  id: string;
+  title: string;
+  description?: string;
+  price: number;
+  category: 'elite' | 'secret' | 'savings';
+  itemType: 'raffle_ticket' | 'lesson' | 'discount' | 'gift' | 'access';
+  imageUrl?: string;
+  metadata?: Record<string, unknown>;
+  isActive: boolean;
+  stock?: number;
+  createdAt: string;
+}
+
+export interface ShopPurchase {
+  id: string;
+  userId: string;
+  itemId: string;
+  price: number;
+  status: 'pending' | 'completed' | 'cancelled';
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+  item?: ShopItem;
+}
+
+export interface Team {
+  id: string;
+  name: string;
+  metka?: string;
+  cityChat?: string;
+  maxMembers: number;
+  memberCount: number;
+  createdAt: string;
+  userRole?: 'leader' | 'member';
+  joinedAt?: string;
+}
+
+export interface TeamMember {
+  id: string;
+  userId: string;
+  teamId: string;
+  role: 'leader' | 'member';
+  joinedAt: string;
+  user?: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    username?: string;
+    photoUrl?: string;
+  };
+}
+
+export interface Stream {
+  id: string;
+  title: string;
+  description?: string;
+  scheduledAt: string;
+  duration: number;
+  streamUrl?: string;
+  recordingUrl?: string;
+  epReward: number;
+  status: 'scheduled' | 'live' | 'completed' | 'cancelled';
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface StreamAttendance {
+  id: string;
+  streamId: string;
+  userId: string;
+  watchedOnline: boolean;
+  epEarned: number;
+  createdAt: string;
+}
+
+export interface AttendanceStats {
+  totalAttendees: number;
+  onlineAttendees: number;
+  recordingAttendees: number;
+  totalEPAwarded: number;
+}
+
+export interface WeeklyReport {
+  id: string;
+  userId: string;
+  weekNumber: number;
+  content: string;
+  deadline: string;
+  epEarned: number;
+  submittedAt: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ReportStats {
+  totalReports: number;
+  currentStreak: number;
+  longestStreak: number;
+  totalEPEarned: number;
+  averageWordCount: number;
 }

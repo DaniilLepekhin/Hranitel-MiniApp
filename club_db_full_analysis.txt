@@ -1,0 +1,620 @@
+====================================================================================================
+📊 АНАЛИЗ СУЩЕСТВУЮЩЕЙ БАЗЫ ДАННЫХ КЛУБА 'КОД ДЕНЕГ' (Docker PostgreSQL)
+====================================================================================================
+
+🔌 Проверка подключения...
+✅  PostgreSQL 18.1 (Debian 18.1-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+
+📋 Получение списка таблиц...
+✅ Найдено таблиц: 80
+
+🔥 ДЕТАЛЬНЫЙ АНАЛИЗ ПРИОРИТЕТНЫХ ТАБЛИЦ:
+====================================================================================================
+
+====================================================================================================
+📋 ТАБЛИЦА: private_club_free_dostup
+====================================================================================================
+
+📊 Количество записей:      59991
+
+📐 СТРУКТУРА ТАБЛИЦЫ:
+----------------------------------------------------------------------------------------------------
+Колонка                        | Тип                       | Nullable  
+----------------------------------------------------------------------------------------------------
+
+📝 ПРИМЕРЫ ДАННЫХ (последние 3 записи):
+----------------------------------------------------------------------------------------------------
+
+Колонки: id, platform_id, client_id, email, phone, free_month, group, created_at, update_at, product_name, metka, updated_at, processed_to_history, product_id
+
+Запись #1:
+  id                        = 168403
+  platform_id               = 207826180
+  client_id                 = 556441917
+  email                     = happy-netali2015@yandex.ru
+  phone                     = 79031456834
+  free_month                = 1
+  group                     = hranitel_kod_bot
+  created_at                = 2026-01-12 21:24:56
+  update_at                 = 2026-01-20 00:24:56
+  product_name              = getcourse
+  metka                     = getcourse
+  updated_at                = 2026-01-12 21:24:56
+  processed_to_history      = f
+  product_id                = 
+
+Запись #2:
+  id                        = 168402
+  platform_id               = 1371100116
+  client_id                 = 688990056
+  email                     = olga.gavrilenko.jurchenko@gmail.com
+  phone                     = 37129119117
+  free_month                = 1
+  group                     = hranitel_kod_bot
+  created_at                = 2026-01-11 18:39:04
+  update_at                 = 2026-01-18 21:39:03
+  product_name              = getcourse
+  metka                     = getcourse
+  updated_at                = 2026-01-11 18:39:04
+  processed_to_history      = f
+  product_id                = 
+
+Запись #3:
+  id                        = 168401
+  platform_id               = 0
+  client_id                 = 0
+  email                     = dianaz89@mail.ru
+  phone                     = 79370047023
+  free_month                = 1
+  group                     = hranitel_kod_bot
+  created_at                = 2026-01-11 17:03:47
+  update_at                 = 2026-01-18 20:03:46
+  product_name              = getcourse
+  metka                     = getcourse
+  updated_at                = 2026-01-11 17:03:47
+  processed_to_history      = f
+  product_id                = 
+
+
+📈 КЛЮЧЕВАЯ СТАТИСТИКА:
+----------------------------------------------------------------------------------------------------
+
+====================================================================================================
+📋 ТАБЛИЦА: private_club_transactions
+====================================================================================================
+
+📊 Количество записей:    1779378
+
+📐 СТРУКТУРА ТАБЛИЦЫ:
+----------------------------------------------------------------------------------------------------
+Колонка                        | Тип                       | Nullable  
+----------------------------------------------------------------------------------------------------
+
+📝 ПРИМЕРЫ ДАННЫХ (последние 3 записи):
+----------------------------------------------------------------------------------------------------
+
+Колонки: id, created_at, pv_users_id, coins, type, description, score_type, created_date
+
+Запись #1:
+  id                        = 1827335
+  created_at                = 2026-01-13 21:39:50
+  pv_users_id               = 30106
+  coins                     = 50
+  type                      = refill
+  description               = hash_challeng
+  score_type                = 
+  created_date              = 2026-01-13
+
+Запись #2:
+  id                        = 1827334
+  created_at                = 2026-01-13 21:30:20
+  pv_users_id               = 5556
+  coins                     = 100
+  type                      = refill
+  description               = hash_stories
+  score_type                = 
+  created_date              = 2026-01-13
+
+Запись #3:
+  id                        = 1827333
+  created_at                = 2026-01-13 21:26:52
+  pv_users_id               = 38537
+  coins                     = 300
+  type                      = refill
+  description               = hash_reels
+  score_type                = 
+  created_date              = 2026-01-13
+
+
+📈 КЛЮЧЕВАЯ СТАТИСТИКА:
+----------------------------------------------------------------------------------------------------
+  Всего транзакций               = 1779378
+  Сумма всех баллов              = 
+  Средний балл                   = 
+  Уникальных пользователей       = 
+
+====================================================================================================
+📋 ТАБЛИЦА: private_club_update_podpiska
+====================================================================================================
+
+📊 Количество записей:     130104
+
+📐 СТРУКТУРА ТАБЛИЦЫ:
+----------------------------------------------------------------------------------------------------
+Колонка                        | Тип                       | Nullable  
+----------------------------------------------------------------------------------------------------
+
+📝 ПРИМЕРЫ ДАННЫХ (последние 3 записи):
+----------------------------------------------------------------------------------------------------
+
+Колонки: id, created_at, platform_id, email, srok, payment_type, updated_at, source_table, source_record_id, product_id, previous_date_end, new_date_end
+
+Запись #1:
+  id                        = 764845
+  created_at                = 2026-01-13 11:52:55
+  platform_id               = 5821480288
+  email                     = 
+  srok                      = 30
+  payment_type              = 
+  updated_at                = 2026-02-12 09:00:00
+  source_table              = prodamus_payments
+  source_record_id          = 188299
+  product_id                = 1
+  previous_date_end         = 
+  new_date_end              = 2026-02-12 09:00:00
+
+Запись #2:
+  id                        = 764844
+  created_at                = 2026-01-13 11:35:12
+  platform_id               = 1727809742
+  email                     = 
+  srok                      = 30
+  payment_type              = 
+  updated_at                = 2026-02-12 09:00:00
+  source_table              = prodamus_payments
+  source_record_id          = 188298
+  product_id                = 1
+  previous_date_end         = 
+  new_date_end              = 2026-02-12 09:00:00
+
+Запись #3:
+  id                        = 764843
+  created_at                = 2026-01-13 10:52:33
+  platform_id               = 7235738701
+  email                     = 
+  srok                      = 30
+  payment_type              = 
+  updated_at                = 2026-02-12 10:52:33
+  source_table              = prodamus_payments
+  source_record_id          = 188297
+  product_id                = 1
+  previous_date_end         = 
+  new_date_end              = 2026-02-12 10:52:33
+
+
+📈 КЛЮЧЕВАЯ СТАТИСТИКА:
+----------------------------------------------------------------------------------------------------
+
+====================================================================================================
+📋 ТАБЛИЦА: private_club_users
+====================================================================================================
+
+📊 Количество записей:      54409
+
+📐 СТРУКТУРА ТАБЛИЦЫ:
+----------------------------------------------------------------------------------------------------
+Колонка                        | Тип                       | Nullable  
+----------------------------------------------------------------------------------------------------
+
+📝 ПРИМЕРЫ ДАННЫХ (последние 3 записи):
+----------------------------------------------------------------------------------------------------
+
+Колонки: id, created_at, date_end, client_id, platform_id, name, tg_username, phone, email, coins, group_id, client_date, metka, payment_system, auto_subscription, free_dostup, partner_1, chat_id, coins_2, subscriptions_mess, send_info_bot, send_message, prognoz_time, send_prognoz, in_channel, channel_update, zacrep_channel
+
+Запись #1:
+  id                        = 56272
+  created_at                = 2026-01-13 08:27:12
+  date_end                  = 2026-02-12 09:00:00
+  client_id                 = 838035888
+  platform_id               = 7015060516
+  name                      = Анаида Анюта
+  tg_username               = @anyutka8548
+  phone                     = 
+  email                     = anyutkagulamiryan1@icloud.com
+  coins                     = 0
+  group_id                  = hranitel_kod_bot
+  client_date               = 26.05.1994
+  metka                     = art
+  payment_system            = lava
+  auto_subscription         = 1
+  free_dostup               = undefined
+  partner_1                 = undefined
+  chat_id                   = 
+  coins_2                   = 1000
+  subscriptions_mess        = {"subscriptions": [{"id": null, "gateway": "lava", "finished_at": "2026-02-12 09...
+  send_info_bot             = f
+  send_message              = 
+  prognoz_time              = 06:00:00
+  send_prognoz              = 
+  in_channel                = f
+  channel_update            = 2026-01-13 08:27:12
+  zacrep_channel            = 
+
+Запись #2:
+  id                        = 56271
+  created_at                = 2026-01-12 21:05:25
+  date_end                  = 2026-02-12 09:00:00
+  client_id                 = 862321351
+  platform_id               = 386359182
+  name                      = Таня
+  tg_username               = @tania_riazanova
+  phone                     = 
+  email                     = ryazzzanova@gmail.com
+  coins                     = 0
+  group_id                  = hranitel_kod_bot
+  client_date               = 10.07.1979
+  metka                     = relationship
+  payment_system            = lava
+  auto_subscription         = 1
+  free_dostup               = undefined
+  partner_1                 = undefined
+  chat_id                   = 12
+  coins_2                   = 1000
+  subscriptions_mess        = {"subscriptions": [{"id": null, "gateway": "lava", "finished_at": "2026-02-12 09...
+  send_info_bot             = f
+  send_message              = f
+  prognoz_time              = 06:00:00
+  send_prognoz              = 
+  in_channel                = t
+  channel_update            = 2026-01-13 04:15:43.533
+  zacrep_channel            = 
+
+Запись #3:
+  id                        = 56270
+  created_at                = 2026-01-10 16:21:00
+  date_end                  = 2026-11-20 00:00:00
+  client_id                 = 819527134
+  platform_id               = 6006939791
+  name                      = Armine
+  tg_username               = @shinegold724
+  phone                     = 37441777931
+  email                     = shinegold132@gmail.com
+  coins                     = 0
+  group_id                  = hranitel_kod_bot
+  client_date               = 07.02.1984
+  metka                     = checkdostupclub
+  payment_system            = ученик
+  auto_subscription         = 1
+  free_dostup               = undefined
+  partner_1                 = undefined
+  chat_id                   = 3
+  coins_2                   = 0
+  subscriptions_mess        = 
+  send_info_bot             = f
+  send_message              = f
+  prognoz_time              = 06:00:00
+  send_prognoz              = 
+  in_channel                = f
+  channel_update            = 2026-01-13 04:15:43.532
+  zacrep_channel            = 
+
+
+📈 КЛЮЧЕВАЯ СТАТИСТИКА:
+----------------------------------------------------------------------------------------------------
+  Всего пользователей            = 54409
+  Активных подписок              = 
+  Истекших подписок              = 
+
+====================================================================================================
+📋 ТАБЛИЦА: prodamus_payments
+====================================================================================================
+
+📊 Количество записей:      71355
+
+📐 СТРУКТУРА ТАБЛИЦЫ:
+----------------------------------------------------------------------------------------------------
+Колонка                        | Тип                       | Nullable  
+----------------------------------------------------------------------------------------------------
+
+📝 ПРИМЕРЫ ДАННЫХ (последние 3 записи):
+----------------------------------------------------------------------------------------------------
+
+Колонки: id, created_at, phone, email, platform_id, payment_system, amount, payment_type, product_name, payment_currency, order_id, product_id, commission, processed_to_history, contract_id
+
+Запись #1:
+  id                        = 188299
+  created_at                = 2026-01-13 11:52:55
+  phone                     = 
+  email                     = lenk86@bk.ru
+  platform_id               = 5821480288
+  payment_system            = LAVA
+  amount                    = 1111
+  payment_type              = subscription-active
+  product_name              = Subscription kristina_egiazarova
+  payment_currency          = RUB
+  order_id                  = 
+  product_id                = 1
+  commission                = 
+  processed_to_history      = t
+  contract_id               = ae9db11d-34dc-4cbb-a580-b6e34f9e9ed8
+
+Запись #2:
+  id                        = 188298
+  created_at                = 2026-01-13 11:35:12
+  phone                     = 79375447995
+  email                     = iren-izumrud@yandex.ru
+  platform_id               = 1727809742
+  payment_system            = PRODAMUS
+  amount                    = 990
+  payment_type              = СБП
+  product_name              = Консультационные услуги
+  payment_currency          = rub
+  order_id                  = 1727809742
+  product_id                = 1
+  commission                = 19.8
+  processed_to_history      = t
+  contract_id               = 
+
+Запись #3:
+  id                        = 188297
+  created_at                = 2026-01-13 10:52:33
+  phone                     = 79141332503
+  email                     = bon.onepa2011@yandex.ru
+  platform_id               = 7235738701
+  payment_system            = PRODAMUS
+  amount                    = 1111
+  payment_type              = SberPay
+  product_name              = Консультационные услуги
+  payment_currency          = rub
+  order_id                  = 7235738701
+  product_id                = 1
+  commission                = 25.55
+  processed_to_history      = t
+  contract_id               = 
+
+
+📈 КЛЮЧЕВАЯ СТАТИСТИКА:
+----------------------------------------------------------------------------------------------------
+  Всего платежей                 = 71355
+  Сумма платежей                 = 
+  Успешных платежей              = 
+
+====================================================================================================
+📋 ТАБЛИЦА: products
+====================================================================================================
+
+📊 Количество записей:         10
+
+📐 СТРУКТУРА ТАБЛИЦЫ:
+----------------------------------------------------------------------------------------------------
+Колонка                        | Тип                       | Nullable  
+----------------------------------------------------------------------------------------------------
+
+📝 ПРИМЕРЫ ДАННЫХ (последние 3 записи):
+----------------------------------------------------------------------------------------------------
+
+Колонки: id, created_at, updated_at, product_name, product_type, podpiska_srok, metka, price_rub_min, price_rub_max, price_usd_min, price_usd_max, price_eur_min, price_eur_max
+
+Запись #1:
+  id                        = 10
+  created_at                = 2025-11-18 08:16:44
+  updated_at                = 2025-11-18 08:16:44
+  product_name              = Амбассадор
+  product_type              = gift
+  podpiska_srok             = 30
+  metka                     = club
+  price_rub_min             = 0.00
+  price_rub_max             = 0.00
+  price_usd_min             = 0.00
+  price_usd_max             = 0.00
+  price_eur_min             = 0.00
+  price_eur_max             = 0.00
+
+Запись #2:
+  id                        = 9
+  created_at                = 2025-11-17 15:21:49
+  updated_at                = 2025-11-17 15:21:49
+  product_name              = Кольцо 365
+  product_type              = kolco
+  podpiska_srok             = 365
+  metka                     = kolco
+  price_rub_min             = 0.00
+  price_rub_max             = 0.00
+  price_usd_min             = 0.00
+  price_usd_max             = 0.00
+  price_eur_min             = 0.00
+  price_eur_max             = 0.00
+
+Запись #3:
+  id                        = 8
+  created_at                = 2025-11-15 08:12:52
+  updated_at                = 2025-11-15 08:12:52
+  product_name              = Марафон
+  product_type              = promo
+  podpiska_srok             = 30
+  metka                     = club
+  price_rub_min             = 0.00
+  price_rub_max             = 0.00
+  price_usd_min             = 0.00
+  price_usd_max             = 0.00
+  price_eur_min             = 0.00
+  price_eur_max             = 0.00
+
+
+📈 КЛЮЧЕВАЯ СТАТИСТИКА:
+----------------------------------------------------------------------------------------------------
+
+====================================================================================================
+📋 ТАБЛИЦА: club_email_webapp
+====================================================================================================
+
+📊 Количество записей:      50984
+
+📐 СТРУКТУРА ТАБЛИЦЫ:
+----------------------------------------------------------------------------------------------------
+Колонка                        | Тип                       | Nullable  
+----------------------------------------------------------------------------------------------------
+
+📝 ПРИМЕРЫ ДАННЫХ (последние 3 записи):
+----------------------------------------------------------------------------------------------------
+
+Колонки: id, platform_id, email, contract_id, metka, created_at, client_id, group_id, code_word, updated_at, phone, utm_campaign, utm_medium, utm_source, utm_content, utm_term, group_bot, source_system, payment_status
+
+Запись #1:
+  id                        = 51111
+  platform_id               = 870563298
+  email                     = lada40rus@mail.ru
+  contract_id               = 
+  metka                     = endsubcribeprosrota
+  created_at                = 2026-01-13 17:29:52.189123
+  client_id                 = 652091193
+  group_id                  = hranitel_kod_bot
+  code_word                 = Рыба
+  updated_at                = 2026-01-13 17:29:52.189123
+  phone                     = 89533350593
+  utm_campaign              = 
+  utm_medium                = 
+  utm_source                = 
+  utm_content               = 
+  utm_term                  = 
+  group_bot                 = 
+  source_system             = telegram_webapp
+  payment_status            = f
+
+Запись #2:
+  id                        = 51110
+  platform_id               = 5821480288
+  email                     = lenk86@bk.ru
+  contract_id               = 
+  metka                     = dogrev_day0112
+  created_at                = 2026-01-13 11:47:12.791596
+  client_id                 = 653936312
+  group_id                  = hranitel_kod_bot
+  code_word                 = Максим
+  updated_at                = 2026-01-13 11:51:30.099858
+  phone                     = +79657558696
+  utm_campaign              = dogrev
+  utm_medium                = day0112
+  utm_source                = 
+  utm_content               = 
+  utm_term                  = 
+  group_bot                 = 
+  source_system             = telegram_webapp
+  payment_status            = f
+
+Запись #3:
+  id                        = 51109
+  platform_id               = 7015060516
+  email                     = anyutkagulamiryan1@icloud.com
+  contract_id               = 6f3ba9e0-58ab-42be-a37c-b1bd482d8d58
+  metka                     = art_successkod
+  created_at                = 2026-01-13 08:24:45.01162
+  client_id                 = 838035888
+  group_id                  = hranitel_kod_bot
+  code_word                 = Вика
+  updated_at                = 2026-01-13 08:24:45.01162
+  phone                     = +79649490919
+  utm_campaign              = art
+  utm_medium                = successkod
+  utm_source                = 
+  utm_content               = 
+  utm_term                  = 
+  group_bot                 = 
+  source_system             = telegram_webapp
+  payment_status            = f
+
+
+📈 КЛЮЧЕВАЯ СТАТИСТИКА:
+----------------------------------------------------------------------------------------------------
+
+====================================================================================================
+📋 ТАБЛИЦА: statistics_club_IK
+====================================================================================================
+
+📊 Количество записей:           
+
+📐 СТРУКТУРА ТАБЛИЦЫ:
+----------------------------------------------------------------------------------------------------
+
+📈 КЛЮЧЕВАЯ СТАТИСТИКА:
+----------------------------------------------------------------------------------------------------
+
+====================================================================================================
+📚 СПИСОК ВСЕХ ОСТАЛЬНЫХ ТАБЛИЦ:
+====================================================================================================
+   1. all_baze                                           -    3374956 записей
+   2. all_baze_insta                                     -      11164 записей
+   3. all_baze_site                                      -     283962 записей
+   4. all_baze_uniq                                      -    3226486 записей
+   5. baze_kodmoney_1504                                 -     425661 записей
+   6. baze_students                                      -      23949 записей
+   7. bot_baze                                           -        121 записей
+   8. bot_prognoz_pdf                                    -      13675 записей
+   9. city_chats_ik                                      -         66 записей
+  10. club_dashboard                                     -     182742 записей
+  11. club_event_10122025                                -       2075 записей
+  12. codemoney_baze_112024                              -     313353 записей
+  13. consultation_clietn                                -       8850 записей
+  14. consultations_students                             -      16866 записей
+  15. data_form_codeprednaznach_09_2025                  -       5491 записей
+  16. egiazar_meditation_chat_school_10_11               -      18093 записей
+  17. egiazarova_baza_ref                                -     269602 записей
+  18. form_web_app_challenge_love                        -       8599 записей
+  19. form_webapp_payments_challengelove                 -       5482 записей
+  20. image_generated                                    -    1311093 записей
+  21. institute_winner_0925                              -      10667 записей
+  22. institute_winner_users_0925                        -      12294 записей
+  23. max_buy_statics                                    -      60698 записей
+  24. max_statistics_november_2024                       -      21017 записей
+  25. meditaion_offline                                  -        380 записей
+  26. nastavnik_ik1025_baze                              -         66 записей
+  27. nastavnik_ik1025_ostatok                           -         21 записей
+  28. nastavnik_ik1025_transaction                       -       1018 записей
+  29. nastavnik_sh12_baze                                -        464 записей
+  30. nastavnik_sh12_ostatok                             -         15 записей
+  31. nastavnik_sh12_transaction                         -       6719 записей
+  32. nastavnik_sh13_baze                                -        157 записей
+  33. nastavnik_sh13_ostatok                             -         23 записей
+  34. nastavnik_sh13_transaction                         -       2651 записей
+  35. offline_graduation_november                        -      20183 записей
+  36. private_club_month_rating                          -       1999 записей
+  37. private_club_motherday_3011                        -        951 записей
+  38. private_club_site_paymetns                         -       1254 записей
+  39. raspred_ik1025_channel                             -         61 записей
+  40. raspred_ik1025_people                              -       1124 записей
+  41. raspred_prognoz_2026                               -      13798 записей
+  42. raspred_sh11_channel                               -        260 записей
+  43. raspred_sh11_people                                -       4884 записей
+  44. raspred_sh12_channel                               -        451 записей
+  45. raspred_sh12_people                                -       8115 записей
+  46. raspred_sh13_channel                               -        154 записей
+  47. raspred_sh13_people                                -       1822 записей
+  48. raspred_shlypa_11_2024                             -      10577 записей
+  49. raspred_shlypa_codemoney_table                     -          4 записей
+  50. raspred_shlypa_people                              -      42142 записей
+  51. rating_manager_sh12                                -          0 записей
+  52. referral_system_ik                                 -          4 записей
+  53. referral_system_ik_history                         -          3 записей
+  54. secret_santa_club                                  -        129 записей
+  55. secret_santa_sstudent                              -      22645 записей
+  56. site_payments_prognoz2026                          -       1612 записей
+  57. success_code_bot                                   -      86716 записей
+  58. temp_old_dates                                     -       6703 записей
+  59. test_profession_users                              -      11012 записей
+  60. users                                              -     424106 записей
+  61. users_prognoz_eng                                  -          1 записей
+  62. v_channel_reach                                    -         24 записей
+  63. v_conversion_funnel                                -          1 записей
+  64. v_current_subscriptions                            -          6 записей
+  65. v_expired_subscriptions                            -       1132 записей
+  66. v_form_fills_by_metka                              -        131 записей
+  67. v_regular_renewals                                 -        573 записей
+  68. v_tariff_changes                                   -      16346 записей
+  69. v_upgrades_1rub_to_1111                            -         38 записей
+  70. v_upgrades_1rub_to_kolco                           -        733 записей
+  71. v_visits_by_metka                                  -         72 записей
+  72. valentina_payments                                 -      44600 записей
+
+====================================================================================================
+✅ АНАЛИЗ ЗАВЕРШЁН
+====================================================================================================

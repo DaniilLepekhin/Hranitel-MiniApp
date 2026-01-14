@@ -1,5 +1,5 @@
 import { Elysia, t } from 'elysia';
-import OpenAI from 'openai';
+import OpenAI from 'openai/index.mjs';
 import { eq, desc } from 'drizzle-orm';
 import { db, chatMessages } from '@/db';
 import { config } from '@/config';
