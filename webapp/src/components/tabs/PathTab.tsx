@@ -247,41 +247,51 @@ export function PathTab() {
 
               const isCompleted = completedKeys.includes(month.key);
               const isUnlocked = month.key <= currentKey;
-              const currentY = index * 100 + 50;
-              const nextY = (index + 1) * 100 + 50;
               const isLeft = index % 2 === 0;
               const nextIsLeft = (index + 1) % 2 === 0;
 
-              // Road starts from edge of card (right edge for left cards, left edge for right cards)
-              // Card is 55% width, so edges are at ~55% and ~45% from respective sides
-              // In viewBox 340px: left card right edge ~190, right card left edge ~150
-              const startX = isLeft ? 200 : 140;
-              const endX = nextIsLeft ? 200 : 140;
-              const midY = (currentY + nextY) / 2;
+              // Card dimensions in viewBox (340px width)
+              // Left card center X ~95 (55% width / 2)
+              // Right card center X ~245 (340 - 55% width / 2)
+              const leftCardCenterX = 95;
+              const rightCardCenterX = 245;
 
-              // Create bezier curve path - from side of card to side of next card
-              const pathD = `M ${startX} ${currentY}
-                             C ${startX + (isLeft ? 40 : -40)} ${midY}, ${endX + (nextIsLeft ? 40 : -40)} ${midY}, ${endX} ${nextY}`;
+              // Y positions: each row is 100px, card center at 50px within row
+              const currentCardBottomY = index * 100 + 75; // bottom of current card
+              const nextCardSideY = (index + 1) * 100 + 50; // center height of next card
+
+              // Current card center X (where road exits from bottom)
+              const currentCenterX = isLeft ? leftCardCenterX : rightCardCenterX;
+              // Next card edge X (where road enters from side)
+              const nextEdgeX = nextIsLeft ? 0 : 340; // enters from left edge or right edge
+              const nextCenterX = nextIsLeft ? leftCardCenterX : rightCardCenterX;
+
+              // Path: exit bottom of current card → curve → enter side of next card → go to center
+              // We draw from bottom of card to the side edge of next card
+              const pathD = `M ${currentCenterX} ${currentCardBottomY}
+                             C ${currentCenterX} ${currentCardBottomY + 30},
+                               ${nextEdgeX + (nextIsLeft ? 50 : -50)} ${nextCardSideY},
+                               ${nextEdgeX + (nextIsLeft ? 15 : -15)} ${nextCardSideY}`;
 
               return (
                 <g key={`road-${month.key}`}>
-                  {/* Road background - more transparent */}
+                  {/* Road background */}
                   <path
                     d={pathD}
                     stroke={isCompleted || isUnlocked ? "url(#roadGradientCompleted)" : "url(#roadGradientLocked)"}
-                    strokeWidth="24"
+                    strokeWidth="22"
                     fill="none"
                     strokeLinecap="round"
-                    strokeOpacity="0.5"
+                    strokeOpacity="0.6"
                   />
                   {/* Road edges - subtle */}
                   <path
                     d={pathD}
                     stroke="#8b4513"
-                    strokeWidth="26"
+                    strokeWidth="24"
                     fill="none"
                     strokeLinecap="round"
-                    strokeOpacity="0.08"
+                    strokeOpacity="0.1"
                   />
                   {/* Road inner highlight - dashed line */}
                   <path
