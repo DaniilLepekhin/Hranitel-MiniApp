@@ -17,25 +17,39 @@ export default function PracticePage() {
   const { setMedia } = useMediaPlayerStore();
 
   // Fetch practice content
-  const { data: practiceData, isLoading } = useQuery({
+  const { data: practiceData, isLoading, error: practiceError } = useQuery({
     queryKey: ['content', 'practice', practiceId],
     queryFn: () => contentApi.getPracticeContent(practiceId),
     enabled: !!practiceId,
+    retry: 2,
   });
 
   // Fetch practice item details
-  const { data: itemData } = useQuery({
+  const { data: itemData, error: itemError } = useQuery({
     queryKey: ['content', 'item', practiceId],
     queryFn: () => contentApi.getItem(practiceId),
     enabled: !!practiceId,
+    retry: 2,
   });
 
   // Fetch videos/audio for practice
-  const { data: videosData } = useQuery({
+  const { data: videosData, error: videosError } = useQuery({
     queryKey: ['content', practiceId, 'videos'],
     queryFn: () => contentApi.getItemVideos(practiceId),
     enabled: !!practiceId,
+    retry: 2,
   });
+
+  // Log errors for debugging
+  if (practiceError) {
+    console.error('Practice content error:', practiceError);
+  }
+  if (itemError) {
+    console.error('Practice item error:', itemError);
+  }
+  if (videosError) {
+    console.error('Practice videos error:', videosError);
+  }
 
   if (isLoading) {
     return (
@@ -48,7 +62,7 @@ export default function PracticePage() {
     );
   }
 
-  if (!practiceData) {
+  if (practiceError || !practiceData) {
     return (
       <div className="px-4 pt-6 pb-24">
         <button
@@ -57,11 +71,22 @@ export default function PracticePage() {
         >
           <ArrowLeft className="w-5 h-5 text-[#3d2f1f]" />
         </button>
-        <div className="text-center py-12">
+        <Card className="p-6 text-center">
           <Sparkles className="w-16 h-16 mx-auto text-[#8b4513]/50 mb-4" />
-          <h3 className="text-lg font-semibold text-[#3d2f1f] mb-2">Практика не найдена</h3>
-          <p className="text-[#6b5a4a]">Контент практики недоступен</p>
-        </div>
+          <h3 className="text-lg font-semibold text-[#3d2f1f] mb-2">
+            {practiceError ? 'Ошибка загрузки практики' : 'Практика не найдена'}
+          </h3>
+          <p className="text-[#6b5a4a] mb-4">
+            {practiceError
+              ? 'Не удалось загрузить контент практики. Попробуйте обновить страницу.'
+              : 'Контент практики недоступен'}
+          </p>
+          {practiceError && (
+            <p className="text-xs text-red-600 font-mono bg-red-50 p-2 rounded">
+              {practiceError instanceof Error ? practiceError.message : 'Unknown error'}
+            </p>
+          )}
+        </Card>
       </div>
     );
   }

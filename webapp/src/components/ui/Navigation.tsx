@@ -56,6 +56,12 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
 
+            // Safety check for icon
+            if (!tab.icon) {
+              console.error('Missing icon for tab:', tab.id);
+              return null;
+            }
+
             const Icon = tab.icon;
 
             return (

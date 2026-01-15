@@ -55,7 +55,7 @@ export const useMediaPlayerStore = create<MediaPlayerState>((set) => ({
       currentTime: 0,
       duration: 0,
       showFullPlayer: true,
-      isPlaying: true,
+      isPlaying: false, // Don't autoplay - user must click play
     }),
 
   setIsPlaying: (isPlaying) => set({ isPlaying }),

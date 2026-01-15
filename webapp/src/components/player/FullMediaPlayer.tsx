@@ -48,10 +48,14 @@ export function FullMediaPlayer() {
     if (!media) return;
 
     if (isPlaying) {
-      media.play().catch((err) => {
-        console.error('Play error:', err);
-        setIsPlaying(false);
-      });
+      const playPromise = media.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          // Auto-play was prevented - user needs to interact first
+          console.warn('Playback prevented - user interaction required:', err.message);
+          setIsPlaying(false);
+        });
+      }
     } else {
       media.pause();
     }
