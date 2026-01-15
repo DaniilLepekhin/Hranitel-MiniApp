@@ -1,11 +1,11 @@
 {
-  "name": "Academy MiniApp 2.0",
-  "short_name": "Academy",
-  "description": "Курсы и медитации для личного развития",
+  "name": "Hranitel WebApp",
+  "short_name": "Hranitel",
+  "description": "Курсы, практики и медитации для личного развития",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#8b5cf6",
+  "background_color": "#F7E9DA",
+  "theme_color": "#F7E9DA",
   "icons": [
     {
       "src": "/icon-192.png",

@@ -41,6 +41,37 @@ export default function RootLayout({
               if (performance.navigation.type === 2) {
                 window.location.reload();
               }
+
+              // Register Service Worker for aggressive cache busting
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                      console.log('[SW] Registration successful:', registration.scope);
+
+                      // Check for updates every 5 seconds
+                      setInterval(function() {
+                        registration.update();
+                      }, 5000);
+
+                      // Listen for new service worker
+                      registration.addEventListener('updatefound', function() {
+                        const newWorker = registration.installing;
+                        if (newWorker) {
+                          newWorker.addEventListener('statechange', function() {
+                            if (newWorker.state === 'activated') {
+                              console.log('[SW] New service worker activated, reloading...');
+                              window.location.reload();
+                            }
+                          });
+                        }
+                      });
+                    })
+                    .catch(function(error) {
+                      console.error('[SW] Registration failed:', error);
+                    });
+                });
+              }
             `,
           }}
         />
