@@ -241,10 +241,9 @@ export function PathTab() {
               </linearGradient>
             </defs>
 
-            {/* Single continuous road path through all cards */}
+            {/* Professional Roadmap Path */}
             <g>
               {(() => {
-                // Build one continuous path through all 12 cards
                 const leftCardCenterX = 93;
                 const rightCardCenterX = 247;
                 const pathCommands: string[] = [];
@@ -252,28 +251,29 @@ export function PathTab() {
                 monthThemes.forEach((month, index) => {
                   const isLeft = index % 2 === 0;
                   const centerX = isLeft ? leftCardCenterX : rightCardCenterX;
-                  const cardY = index * 100 + 50; // center of card
-                  const cardBottomY = index * 100 + 80; // bottom of card
+                  const cardY = index * 100 + 50;
+                  const cardBottomY = index * 100 + 75;
 
                   if (index === 0) {
-                    // Start at first card center
-                    pathCommands.push(`M ${centerX} ${cardY}`);
-                    // Go to bottom of first card
+                    pathCommands.push(`M ${centerX} ${cardY - 10}`);
                     pathCommands.push(`L ${centerX} ${cardBottomY}`);
                   } else {
                     const prevIsLeft = (index - 1) % 2 === 0;
                     const prevCenterX = prevIsLeft ? leftCardCenterX : rightCardCenterX;
-                    const prevBottomY = (index - 1) * 100 + 80;
-                    const cardTopY = index * 100 + 20; // top of current card
+                    const prevBottomY = (index - 1) * 100 + 75;
+                    const cardTopY = index * 100 + 25;
 
-                    // Create S-curve from previous card bottom to current card side → center → bottom
-                    const midY = (prevBottomY + cardY) / 2;
+                    // Smooth S-curve with proper control points
+                    const curveDistance = Math.abs(centerX - prevCenterX);
+                    const verticalDistance = cardTopY - prevBottomY;
+                    const controlOffset = curveDistance * 0.6;
 
-                    // Curve from bottom of prev card to side of current card
-                    pathCommands.push(`C ${prevCenterX} ${prevBottomY + 30}, ${centerX + (isLeft ? 60 : -60)} ${midY}, ${centerX} ${cardTopY}`);
-                    // Straight line through card to center
+                    pathCommands.push(
+                      `C ${prevCenterX} ${prevBottomY + verticalDistance * 0.3}, ` +
+                      `${centerX + (isLeft ? controlOffset : -controlOffset)} ${prevBottomY + verticalDistance * 0.6}, ` +
+                      `${centerX} ${cardTopY}`
+                    );
                     pathCommands.push(`L ${centerX} ${cardY}`);
-                    // Continue to bottom if not last
                     if (index < monthThemes.length - 1) {
                       pathCommands.push(`L ${centerX} ${cardBottomY}`);
                     }
@@ -284,40 +284,73 @@ export function PathTab() {
 
                 return (
                   <>
-                    {/* Road background */}
-                    <path
-                      d={fullPath}
-                      stroke="url(#roadGradientCompleted)"
-                      strokeWidth="20"
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeOpacity="0.5"
-                    />
-                    {/* Road edges */}
+                    {/* Road shadow for depth */}
                     <path
                       d={fullPath}
                       stroke="#8b4513"
-                      strokeWidth="22"
+                      strokeWidth="32"
                       fill="none"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeOpacity="0.08"
+                      strokeOpacity="0.12"
+                      filter="blur(4px)"
+                    />
+                    {/* Main road - gradient based on progress */}
+                    <path
+                      d={fullPath}
+                      stroke="url(#roadGradientCompleted)"
+                      strokeWidth="26"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeOpacity="0.7"
+                    />
+                    {/* Road borders */}
+                    <path
+                      d={fullPath}
+                      stroke="#8b4513"
+                      strokeWidth="28"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeOpacity="0.15"
                     />
                     {/* Center dashed line */}
                     <path
                       d={fullPath}
                       stroke="#ffffff"
-                      strokeWidth="1.5"
+                      strokeWidth="2"
                       fill="none"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeDasharray="6 4"
-                      strokeOpacity="0.4"
+                      strokeDasharray="10 8"
+                      strokeOpacity="0.5"
                     />
                   </>
                 );
               })()}
+
+              {/* Milestone markers on the path */}
+              {monthThemes.map((month, index) => {
+                const isLeft = index % 2 === 0;
+                const centerX = isLeft ? 93 : 247;
+                const cardY = index * 100 + 50;
+                const isCompleted = completedKeys.includes(month.key);
+                const isUnlocked = month.key <= currentKey;
+
+                return (
+                  <circle
+                    key={`milestone-${month.key}`}
+                    cx={centerX}
+                    cy={cardY}
+                    r="5"
+                    fill={isCompleted ? "#ffd700" : isUnlocked ? "#8b0000" : "#c4956a"}
+                    stroke="#ffffff"
+                    strokeWidth="2"
+                    opacity={isCompleted ? 1 : isUnlocked ? 0.8 : 0.4}
+                  />
+                );
+              })}
             </g>
           </svg>
 
