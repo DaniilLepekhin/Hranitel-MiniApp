@@ -104,7 +104,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen pb-24">
+    <main className="page-container">
       {/* Decorative blobs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-orange-400 to-pink-400 rounded-full blur-3xl opacity-10 -translate-y-1/2 translate-x-1/2" />

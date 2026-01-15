@@ -284,11 +284,11 @@ body {
 
 /* Safe area padding */
 .safe-top {
-  padding-top: var(--safe-area-top);
+  padding-top: max(var(--safe-area-top), 20px);
 }
 
 .safe-bottom {
-  padding-bottom: var(--safe-area-bottom);
+  padding-bottom: max(var(--safe-area-bottom), 20px);
 }
 
 .safe-left {
@@ -297,6 +297,14 @@ body {
 
 .safe-right {
   padding-right: var(--safe-area-right);
+}
+
+/* Page container with proper safe areas */
+.page-container {
+  padding-top: max(var(--safe-area-top), 16px);
+  padding-bottom: max(var(--safe-area-bottom), 96px);
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* Fullscreen mode */

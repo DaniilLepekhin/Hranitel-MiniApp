@@ -53,7 +53,7 @@ export default function PracticePage() {
 
   if (isLoading) {
     return (
-      <div className="px-4 pt-6 pb-24">
+      <div className="px-4 safe-top pb-24">
         <div className="space-y-4">
           <div className="h-8 w-3/4 rounded-lg bg-[#e8dcc6] animate-pulse" />
           <div className="h-64 rounded-xl bg-[#e8dcc6] animate-pulse" />
@@ -64,7 +64,7 @@ export default function PracticePage() {
 
   if (practiceError || !practiceData) {
     return (
-      <div className="px-4 pt-6 pb-24">
+      <div className="px-4 safe-top pb-24">
         <button
           onClick={() => router.back()}
           className="mb-6 w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center hover:bg-white/80 transition-all border border-[#8b4513]/30"
@@ -125,7 +125,7 @@ export default function PracticePage() {
   };
 
   return (
-    <div className="px-4 pt-6 pb-24">
+    <div className="px-4 safe-top pb-24">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <button
