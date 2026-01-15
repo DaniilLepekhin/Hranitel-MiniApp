@@ -128,10 +128,10 @@ schedulerService.startProcessing(processScheduledTask);
 // Bot commands
 bot.command('start', async (ctx) => {
   try {
-    const keyboard = new Keyboard()
-      .text('Получить доступ')
-      .text('MiniApp')
-      .resized();
+    const keyboard = new InlineKeyboard()
+      .text('Получить доступ', 'get_access')
+      .row()
+      .webApp('🚀 MiniApp', config.WEBAPP_URL);
 
     await telegramService.sendMessage(
       ctx.chat.id,
@@ -147,11 +147,13 @@ bot.command('start', async (ctx) => {
   }
 });
 
-// Handle "Получить доступ" button
-bot.hears('Получить доступ', async (ctx) => {
+// Handle "Получить доступ" callback button
+bot.callbackQuery('get_access', async (ctx) => {
   try {
+    await ctx.answerCallbackQuery();
+
     const userId = ctx.from!.id;
-    const chatId = ctx.chat.id;
+    const chatId = ctx.chat!.id;
     const webAppUrl = `https://ishodnyi-kod.com/webappclubik`;
 
     const keyboard = new InlineKeyboard()
@@ -200,23 +202,7 @@ bot.hears('Получить доступ', async (ctx) => {
       }
     }, 10000); // Check after 10 seconds
   } catch (error) {
-    logger.error({ error, userId: ctx.from?.id }, 'Error in Получить доступ handler');
-  }
-});
-
-// Handle "MiniApp" button
-bot.hears('MiniApp', async (ctx) => {
-  try {
-    const keyboard = new InlineKeyboard()
-      .webApp('🚀 Открыть приложение', config.WEBAPP_URL);
-
-    await telegramService.sendMessage(
-      ctx.chat.id,
-      'Нажми кнопку, чтобы открыть приложение:',
-      { reply_markup: keyboard }
-    );
-  } catch (error) {
-    logger.error({ error, userId: ctx.from?.id }, 'Error in MiniApp handler');
+    logger.error({ error, userId: ctx.from?.id }, 'Error in get_access handler');
   }
 });
 
