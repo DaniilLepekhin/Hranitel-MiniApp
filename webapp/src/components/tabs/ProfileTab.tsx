@@ -338,9 +338,9 @@ export function ProfileTab() {
                   className="w-full p-3 rounded-xl border border-[#8b4513]/30 bg-white text-[#3d2f1f] focus:outline-none focus:border-[#8b0000]"
                 >
                   <option value="">Выберите город</option>
-                  {cities.map((city: string) => (
-                    <option key={city} value={city}>
-                      {city}
+                  {cities.map((city) => (
+                    <option key={city.name} value={city.name}>
+                      {city.name}
                     </option>
                   ))}
                 </select>
