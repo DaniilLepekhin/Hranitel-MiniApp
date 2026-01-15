@@ -1,5 +1,5 @@
 // Service Worker for cache busting
-const CACHE_VERSION = 'v1.0.9';
+const CACHE_VERSION = 'v1.1.0';
 const CACHE_NAME = `hranitel-${CACHE_VERSION}`;
 
 // Install event - clear all old caches
