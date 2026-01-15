@@ -212,7 +212,7 @@ export function PathTab() {
         </div>
       </div>
 
-      {/* 12 Keys Roadmap */}
+      {/* 12 Keys Roadmap - Snake Style */}
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
@@ -220,7 +220,82 @@ export function PathTab() {
           ))}
         </div>
       ) : (
-        <div className="relative pb-8">
+        <div className="relative">
+          {/* SVG Road Path - Connecting all chests in snake pattern */}
+          <svg
+            className="absolute inset-0 w-full pointer-events-none"
+            style={{ height: `${monthThemes.length * 100}px` }}
+            viewBox={`0 0 340 ${monthThemes.length * 100}`}
+            preserveAspectRatio="xMidYMid meet"
+          >
+            <defs>
+              {/* Road gradient for completed sections */}
+              <linearGradient id="roadGradientCompleted" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#d4a574" />
+                <stop offset="100%" stopColor="#c4956a" />
+              </linearGradient>
+              {/* Road gradient for locked sections */}
+              <linearGradient id="roadGradientLocked" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#e8dcc6" />
+                <stop offset="100%" stopColor="#d8cbb6" />
+              </linearGradient>
+            </defs>
+
+            {/* Generate the snake road path */}
+            {monthThemes.map((month, index) => {
+              if (index >= monthThemes.length - 1) return null;
+
+              const isCompleted = completedKeys.includes(month.key);
+              const isUnlocked = month.key <= currentKey;
+              const currentY = index * 100 + 50;
+              const nextY = (index + 1) * 100 + 50;
+              const isLeft = index % 2 === 0;
+              const nextIsLeft = (index + 1) % 2 === 0;
+
+              // Calculate positions for curve
+              const startX = isLeft ? 80 : 260;
+              const endX = nextIsLeft ? 80 : 260;
+              const midY = (currentY + nextY) / 2;
+
+              // Create bezier curve path
+              const pathD = `M ${startX} ${currentY}
+                             C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${nextY}`;
+
+              return (
+                <g key={`road-${month.key}`}>
+                  {/* Road background (wider) */}
+                  <path
+                    d={pathD}
+                    stroke={isCompleted || isUnlocked ? "url(#roadGradientCompleted)" : "url(#roadGradientLocked)"}
+                    strokeWidth="28"
+                    fill="none"
+                    strokeLinecap="round"
+                  />
+                  {/* Road edges */}
+                  <path
+                    d={pathD}
+                    stroke="#8b4513"
+                    strokeWidth="30"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeOpacity="0.15"
+                  />
+                  {/* Road inner highlight */}
+                  <path
+                    d={pathD}
+                    stroke={isCompleted ? "#ffd700" : "#ffffff"}
+                    strokeWidth="2"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeDasharray="8 6"
+                    strokeOpacity={isCompleted ? 0.8 : isUnlocked ? 0.5 : 0.2}
+                  />
+                </g>
+              );
+            })}
+          </svg>
+
+          {/* Chest Cards */}
           {monthThemes.map((month, index) => {
             const isCompleted = completedKeys.includes(month.key);
             const isUnlocked = month.key <= currentKey;
@@ -232,27 +307,28 @@ export function PathTab() {
             return (
               <div
                 key={month.key}
-                className={`relative flex items-center mb-6 ${isLeft ? 'justify-start pl-2' : 'justify-end pr-2'}`}
+                className={`relative flex items-center ${isLeft ? 'justify-start' : 'justify-end'}`}
+                style={{ height: '100px' }}
               >
                 {/* Chest Card */}
                 <div
                   onClick={() => handleKeyClick(month.key)}
                   className={`
-                    relative w-[48%] p-3 rounded-2xl cursor-pointer transition-all duration-300
-                    ${isUnlocked ? 'hover:scale-[1.03] active:scale-[0.98]' : 'opacity-60'}
+                    relative w-[55%] p-3 rounded-2xl cursor-pointer transition-all duration-300 z-10
+                    ${isUnlocked ? 'hover:scale-[1.03] active:scale-[0.98]' : 'opacity-70'}
                     ${isCurrent ? 'ring-2 ring-[#8b0000] ring-offset-2' : ''}
                     ${isCompleted
-                      ? 'bg-gradient-to-br from-[#ffd700]/20 to-[#8b4513]/20 border border-[#ffd700]/50'
+                      ? 'bg-gradient-to-br from-[#ffd700]/20 to-[#8b4513]/20 border-2 border-[#ffd700]/50 shadow-lg shadow-[#ffd700]/20'
                       : isUnlocked
-                        ? 'bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10 border border-[#8b4513]/30'
-                        : 'bg-[#e8dcc6]/50 border border-[#8b4513]/20'
+                        ? 'bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10 border border-[#8b4513]/30 shadow-md'
+                        : 'bg-[#e8dcc6]/70 border border-[#8b4513]/20'
                     }
                   `}
                 >
                   {/* Chest Icon */}
                   <div className="flex items-center gap-3">
                     <div className={`
-                      relative w-14 h-14 rounded-xl flex items-center justify-center overflow-visible
+                      relative w-14 h-14 rounded-xl flex items-center justify-center overflow-visible flex-shrink-0
                       ${isCompleted
                         ? 'bg-gradient-to-br from-[#ffd700] to-[#b8860b] shadow-lg shadow-[#ffd700]/30'
                         : isUnlocked
@@ -270,22 +346,17 @@ export function PathTab() {
                           <path d="M24 5l-2 2 1 2 2-2-1-2z" fill="white" opacity="0.7"/>
                           <circle cx="6" cy="10" r="1" fill="white" opacity="0.6"/>
                           <circle cx="26" cy="10" r="1" fill="white" opacity="0.6"/>
-
                           {/* Open lid */}
                           <path d="M5 11h22l-2-4H7l-2 4z" fill="white" fillOpacity="0.3" stroke="white" strokeWidth="1"/>
                           <path d="M7 7h18" stroke="white" strokeWidth="1" strokeLinecap="round"/>
-
                           {/* Chest body */}
                           <rect x="4" y="13" width="24" height="14" rx="2" fill="white" fillOpacity="0.2" stroke="white" strokeWidth="1.2"/>
-
                           {/* Metal bands */}
                           <path d="M4 17h24" stroke="white" strokeWidth="1"/>
                           <path d="M4 23h24" stroke="white" strokeWidth="1"/>
-
                           {/* Gold lock plate */}
                           <rect x="13" y="15" width="6" height="6" rx="1" fill="white" fillOpacity="0.4"/>
                           <circle cx="16" cy="18" r="1.5" fill="white"/>
-
                           {/* Corner rivets */}
                           <circle cx="6" cy="15" r="0.8" fill="white"/>
                           <circle cx="26" cy="15" r="0.8" fill="white"/>
@@ -298,18 +369,14 @@ export function PathTab() {
                           {/* Chest lid */}
                           <path d="M4 12h24l-2-4H6l-2 4z" fill="white" fillOpacity="0.2" stroke="white" strokeWidth="1.2"/>
                           <path d="M6 8h20" stroke="white" strokeWidth="1" strokeLinecap="round"/>
-
                           {/* Chest body */}
                           <rect x="4" y="12" width="24" height="14" rx="2" fill="white" fillOpacity="0.15" stroke="white" strokeWidth="1.2"/>
-
                           {/* Metal bands */}
                           <path d="M4 16h24" stroke="white" strokeWidth="1"/>
                           <path d="M4 22h24" stroke="white" strokeWidth="1"/>
-
                           {/* Lock plate */}
                           <rect x="13" y="14" width="6" height="6" rx="1" fill="white" fillOpacity="0.3"/>
                           <circle cx="16" cy="17" r="1.2" fill="white"/>
-
                           {/* Corner rivets */}
                           <circle cx="6" cy="14" r="0.7" fill="white"/>
                           <circle cx="26" cy="14" r="0.7" fill="white"/>
@@ -321,14 +388,11 @@ export function PathTab() {
                         <svg viewBox="0 0 32 32" className="w-8 h-8" fill="none">
                           {/* Chest lid */}
                           <path d="M4 14h24l-2-4H6l-2 4z" fill="#8b4513" fillOpacity="0.2" stroke="#8b4513" strokeWidth="1.2" strokeOpacity="0.5"/>
-
                           {/* Chest body */}
                           <rect x="4" y="14" width="24" height="12" rx="2" fill="#8b4513" fillOpacity="0.1" stroke="#8b4513" strokeWidth="1.2" strokeOpacity="0.5"/>
-
                           {/* Metal bands */}
                           <path d="M4 18h24" stroke="#8b4513" strokeWidth="1" strokeOpacity="0.4"/>
                           <path d="M4 22h24" stroke="#8b4513" strokeWidth="1" strokeOpacity="0.4"/>
-
                           {/* Padlock */}
                           <rect x="12" y="16" width="8" height="6" rx="1" fill="#8b4513" fillOpacity="0.3" stroke="#8b4513" strokeWidth="1" strokeOpacity="0.5"/>
                           <path d="M14 16v-2a2 2 0 0 1 4 0v2" stroke="#8b4513" strokeWidth="1.2" strokeOpacity="0.5"/>
@@ -384,87 +448,21 @@ export function PathTab() {
                   )}
                 </div>
 
-                {/* Road connection to next item */}
-                {index < monthThemes.length - 1 && (
-                  <div className="absolute left-1/2 -translate-x-1/2 top-full w-16 pointer-events-none" style={{ height: '24px' }}>
-                    {/* Two-lane road */}
-                    <div className={`absolute inset-0 rounded-full ${
-                      isCompleted || isUnlocked
-                        ? 'bg-gradient-to-b from-[#d4a574] to-[#c4956a]'
-                        : 'bg-[#e8dcc6]'
-                    }`}>
-                      {/* Road edges */}
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#8b4513]/30 rounded-l-full" />
-                      <div className="absolute right-0 top-0 bottom-0 w-1 bg-[#8b4513]/30 rounded-r-full" />
-                      {/* Center dashed line */}
-                      <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-0.5 flex flex-col justify-around py-1">
-                        <div className={`h-1.5 w-full rounded ${isCompleted ? 'bg-[#ffd700]' : 'bg-white/60'}`} />
-                        <div className={`h-1.5 w-full rounded ${isCompleted ? 'bg-[#ffd700]' : 'bg-white/60'}`} />
-                        <div className={`h-1.5 w-full rounded ${isCompleted ? 'bg-[#ffd700]' : 'bg-white/60'}`} />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Curved road from card to center */}
-                <svg
-                  className="absolute top-1/2 -translate-y-1/2 w-full h-8 pointer-events-none"
-                  style={{ left: isLeft ? '48%' : 'auto', right: isLeft ? 'auto' : '48%', width: '52%' }}
-                  viewBox="0 0 100 32"
-                  preserveAspectRatio="none"
-                >
-                  <defs>
-                    <linearGradient id={`roadGrad-${month.key}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor={isCompleted ? '#ffd700' : isUnlocked ? '#8b0000' : '#8b4513'} stopOpacity={isCompleted ? 0.8 : isUnlocked ? 0.5 : 0.2} />
-                      <stop offset="100%" stopColor="#d4a574" stopOpacity={isUnlocked ? 0.8 : 0.3} />
-                    </linearGradient>
-                  </defs>
-                  {/* Road path - curved */}
-                  <path
-                    d={isLeft ? "M 0 16 Q 50 16, 100 16" : "M 100 16 Q 50 16, 0 16"}
-                    stroke={`url(#roadGrad-${month.key})`}
-                    strokeWidth="12"
-                    fill="none"
-                    strokeLinecap="round"
-                  />
-                  {/* Road edges */}
-                  <path
-                    d={isLeft ? "M 0 10 Q 50 10, 100 10" : "M 100 10 Q 50 10, 0 10"}
-                    stroke="#8b4513"
-                    strokeWidth="1"
-                    fill="none"
-                    strokeOpacity="0.3"
-                  />
-                  <path
-                    d={isLeft ? "M 0 22 Q 50 22, 100 22" : "M 100 22 Q 50 22, 0 22"}
-                    stroke="#8b4513"
-                    strokeWidth="1"
-                    fill="none"
-                    strokeOpacity="0.3"
-                  />
-                  {/* Center dashed line */}
-                  <path
-                    d={isLeft ? "M 0 16 Q 50 16, 100 16" : "M 100 16 Q 50 16, 0 16"}
-                    stroke={isCompleted ? '#ffd700' : 'white'}
-                    strokeWidth="1.5"
-                    fill="none"
-                    strokeDasharray="6 4"
-                    strokeOpacity={isUnlocked ? 0.8 : 0.4}
-                  />
-                </svg>
-
-                {/* Center milestone marker */}
-                <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full border-3 shadow-lg ${
-                  isCompleted
-                    ? 'bg-gradient-to-br from-[#ffd700] to-[#b8860b] border-[#ffd700]'
-                    : isUnlocked
-                      ? 'bg-gradient-to-br from-[#8b0000] to-[#6b2020] border-[#8b0000]'
-                      : 'bg-[#e8dcc6] border-[#8b4513]/40'
-                }`}>
-                  {isCompleted && (
-                    <CheckCircle className="w-3 h-3 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                  )}
-                </div>
+                {/* Road connector dot at the edge of card */}
+                <div
+                  className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full z-20 border-2 ${
+                    isCompleted
+                      ? 'bg-[#ffd700] border-[#b8860b]'
+                      : isUnlocked
+                        ? 'bg-[#8b0000] border-[#6b2020]'
+                        : 'bg-[#c4956a] border-[#8b4513]/30'
+                  }`}
+                  style={{
+                    left: isLeft ? '55%' : 'auto',
+                    right: isLeft ? 'auto' : '55%',
+                    transform: 'translate(-50%, -50%)'
+                  }}
+                />
               </div>
             );
           })}
