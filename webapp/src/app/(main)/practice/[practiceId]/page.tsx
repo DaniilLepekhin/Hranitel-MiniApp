@@ -2,17 +2,19 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+import { ArrowLeft, Sparkles, Play } from 'lucide-react';
 import { contentApi } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import ReactMarkdown from 'react-markdown';
-import { AudioPlayer } from '@/components/media/AudioPlayer';
-import type { MediaItem } from '@/contexts/MediaPlayerContext';
+import { useMediaPlayerStore, type MediaItem } from '@/store/media-player';
+import { useTelegram } from '@/hooks/useTelegram';
 
 export default function PracticePage() {
   const router = useRouter();
   const params = useParams();
   const practiceId = params.practiceId as string;
+  const { haptic } = useTelegram();
+  const { setMedia } = useMediaPlayerStore();
 
   // Fetch practice content
   const { data: practiceData, isLoading } = useQuery({
@@ -68,20 +70,34 @@ export default function PracticePage() {
   const item = itemData?.item;
   const videos = videosData?.videos || [];
 
-  // Prepare audio media item if there are audio tracks
-  const audioMedia: MediaItem | null = videos.length > 0 ? {
-    id: practiceId,
-    title: item?.title || 'Практика',
-    type: 'audio',
-    tracks: videos.map(video => ({
-      id: video.id,
-      title: video.title,
-      url: video.videoUrl,
-      duration: video.durationSeconds ?? undefined,
-      thumbnail: video.thumbnailUrl ?? undefined,
-    })),
-    thumbnail: item?.thumbnailUrl ?? undefined,
-  } : null;
+  // Play audio practice
+  const handlePlayAudio = async () => {
+    if (videos.length === 0 || !item) return;
+
+    haptic.impact('light');
+
+    const firstVideo = videos[0];
+
+    // Fetch video with timecodes if needed
+    try {
+      const videoData = await contentApi.getVideo(firstVideo.id);
+
+      const mediaItem: MediaItem = {
+        id: firstVideo.id,
+        type: 'audio',
+        title: item.title,
+        description: item.description || undefined,
+        url: firstVideo.videoUrl,
+        coverUrl: item.coverUrl || item.thumbnailUrl || undefined,
+        thumbnailUrl: firstVideo.thumbnailUrl || undefined,
+        durationSeconds: firstVideo.durationSeconds || undefined,
+      };
+
+      setMedia(mediaItem, videoData.timecodes);
+    } catch (error) {
+      console.error('Failed to load audio:', error);
+    }
+  };
 
   return (
     <div className="px-4 pt-6 pb-24">
@@ -125,10 +141,25 @@ export default function PracticePage() {
       )}
 
       {/* Audio Player */}
-      {audioMedia && (
-        <div className="mb-6">
-          <AudioPlayer media={audioMedia} />
-        </div>
+      {videos.length > 0 && (
+        <Card
+          className="mb-6 p-5 hover:scale-[1.02] transition-all cursor-pointer bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10 border-2 border-[#8b0000]"
+          onClick={handlePlayAudio}
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center shadow-lg flex-shrink-0">
+              <Play className="w-8 h-8 text-white ml-1" fill="white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-[#3d2f1f] mb-1">Слушать аудио-гайд</h3>
+              <p className="text-[#6b5a4a] text-sm">
+                {videos[0]?.durationSeconds
+                  ? `${Math.floor(videos[0].durationSeconds / 60)} мин • Практика с аудио сопровождением`
+                  : 'Практика с аудио сопровождением'}
+              </p>
+            </div>
+          </div>
+        </Card>
       )}
 
       {/* Practice Content */}
@@ -203,7 +234,7 @@ export default function PracticePage() {
           <div>
             <p className="font-semibold text-[#3d2f1f] mb-1">Выполните практику</p>
             <p className="text-[#6b5a4a] text-sm">
-              {audioMedia
+              {videos.length > 0
                 ? 'Слушайте аудио-гайд и следуйте инструкциям. Можете свернуть плеер и продолжить слушать в фоне.'
                 : 'Следуйте инструкциям выше и применяйте практику в своей жизни. Регулярное выполнение практик усилит трансформацию.'
               }
