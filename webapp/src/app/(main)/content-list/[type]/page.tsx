@@ -2,13 +2,13 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, BookOpen, Headphones, Radio, ChevronRight, Filter } from 'lucide-react';
+import { ArrowLeft, BookOpen, Headphones, Radio, ChevronRight, Filter, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { contentApi, type ContentItem } from '@/lib/api';
 import { useTelegram } from '@/hooks/useTelegram';
 import { Card } from '@/components/ui/Card';
 
-type ContentType = 'course' | 'podcast' | 'stream_record';
+type ContentType = 'course' | 'podcast' | 'stream_record' | 'practice';
 
 export default function ContentListPage() {
   const router = useRouter();
@@ -64,6 +64,20 @@ export default function ContentListPage() {
           icon: Radio,
           description: 'Записи прямых эфиров с разбором тем',
           gradient: 'from-[#6b3410] to-[#4b2410]',
+        };
+      case 'practice':
+        return {
+          title: 'Практики',
+          icon: Sparkles,
+          description: 'Практические упражнения для трансформации',
+          gradient: 'from-[#8b0000] to-[#6b3410]',
+        };
+      default:
+        return {
+          title: 'Контент',
+          icon: BookOpen,
+          description: 'Материалы для изучения',
+          gradient: 'from-[#8b0000] to-[#8b4513]',
         };
     }
   };
