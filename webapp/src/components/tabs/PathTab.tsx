@@ -252,35 +252,38 @@ export function PathTab() {
               const isLeft = index % 2 === 0;
               const nextIsLeft = (index + 1) % 2 === 0;
 
-              // Calculate positions for curve
-              const startX = isLeft ? 80 : 260;
-              const endX = nextIsLeft ? 80 : 260;
+              // Road starts from edge of card (right edge for left cards, left edge for right cards)
+              // Card is 55% width, so edges are at ~55% and ~45% from respective sides
+              // In viewBox 340px: left card right edge ~190, right card left edge ~150
+              const startX = isLeft ? 200 : 140;
+              const endX = nextIsLeft ? 200 : 140;
               const midY = (currentY + nextY) / 2;
 
-              // Create bezier curve path
+              // Create bezier curve path - from side of card to side of next card
               const pathD = `M ${startX} ${currentY}
-                             C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${nextY}`;
+                             C ${startX + (isLeft ? 40 : -40)} ${midY}, ${endX + (nextIsLeft ? 40 : -40)} ${midY}, ${endX} ${nextY}`;
 
               return (
                 <g key={`road-${month.key}`}>
-                  {/* Road background (wider) */}
+                  {/* Road background - more transparent */}
                   <path
                     d={pathD}
                     stroke={isCompleted || isUnlocked ? "url(#roadGradientCompleted)" : "url(#roadGradientLocked)"}
-                    strokeWidth="28"
+                    strokeWidth="24"
                     fill="none"
                     strokeLinecap="round"
+                    strokeOpacity="0.5"
                   />
-                  {/* Road edges */}
+                  {/* Road edges - subtle */}
                   <path
                     d={pathD}
                     stroke="#8b4513"
-                    strokeWidth="30"
+                    strokeWidth="26"
                     fill="none"
                     strokeLinecap="round"
-                    strokeOpacity="0.15"
+                    strokeOpacity="0.08"
                   />
-                  {/* Road inner highlight */}
+                  {/* Road inner highlight - dashed line */}
                   <path
                     d={pathD}
                     stroke={isCompleted ? "#ffd700" : "#ffffff"}
@@ -288,7 +291,7 @@ export function PathTab() {
                     fill="none"
                     strokeLinecap="round"
                     strokeDasharray="8 6"
-                    strokeOpacity={isCompleted ? 0.8 : isUnlocked ? 0.5 : 0.2}
+                    strokeOpacity={isCompleted ? 0.6 : isUnlocked ? 0.4 : 0.15}
                   />
                 </g>
               );
@@ -447,22 +450,6 @@ export function PathTab() {
                     </div>
                   )}
                 </div>
-
-                {/* Road connector dot at the edge of card */}
-                <div
-                  className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full z-20 border-2 ${
-                    isCompleted
-                      ? 'bg-[#ffd700] border-[#b8860b]'
-                      : isUnlocked
-                        ? 'bg-[#8b0000] border-[#6b2020]'
-                        : 'bg-[#c4956a] border-[#8b4513]/30'
-                  }`}
-                  style={{
-                    left: isLeft ? '55%' : 'auto',
-                    right: isLeft ? 'auto' : '55%',
-                    transform: 'translate(-50%, -50%)'
-                  }}
-                />
               </div>
             );
           })}
