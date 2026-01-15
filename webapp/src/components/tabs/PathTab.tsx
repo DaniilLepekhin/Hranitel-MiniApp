@@ -221,8 +221,38 @@ export function PathTab() {
         </div>
       ) : (
         <div className="relative pb-8">
-          {/* Roadmap Path */}
-          <div className="absolute left-1/2 top-0 bottom-0 w-1 bg-gradient-to-b from-[#8b0000]/30 via-[#8b4513]/20 to-[#e8dcc6]/50 -translate-x-1/2" />
+          {/* SVG Winding Path */}
+          <svg
+            className="absolute inset-0 w-full h-full pointer-events-none"
+            preserveAspectRatio="none"
+            style={{ height: `${monthThemes.length * 100}px` }}
+          >
+            <defs>
+              <linearGradient id="pathGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#8b0000" stopOpacity="0.4" />
+                <stop offset="50%" stopColor="#8b4513" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="#e8dcc6" stopOpacity="0.2" />
+              </linearGradient>
+            </defs>
+            <path
+              d={`M 50% 0 ${monthThemes.map((_, i) => {
+                const y = i * 100 + 50;
+                const isLeft = i % 2 === 0;
+                const nextIsLeft = (i + 1) % 2 === 0;
+                if (i === monthThemes.length - 1) return '';
+                // Curve from current position to next
+                const startX = isLeft ? '25%' : '75%';
+                const endX = nextIsLeft ? '25%' : '75%';
+                const nextY = (i + 1) * 100 + 50;
+                return `M ${startX} ${y} Q 50% ${y + 50} ${endX} ${nextY}`;
+              }).join(' ')}`}
+              stroke="url(#pathGradient)"
+              strokeWidth="4"
+              fill="none"
+              strokeLinecap="round"
+              strokeDasharray="8 8"
+            />
+          </svg>
 
           {monthThemes.map((month, index) => {
             const isCompleted = completedKeys.includes(month.key);
@@ -235,22 +265,13 @@ export function PathTab() {
             return (
               <div
                 key={month.key}
-                className={`relative flex items-center mb-4 ${isLeft ? 'justify-start' : 'justify-end'}`}
+                className={`relative flex items-center mb-6 ${isLeft ? 'justify-start pl-2' : 'justify-end pr-2'}`}
               >
-                {/* Connector dot on the path */}
-                <div className={`absolute left-1/2 -translate-x-1/2 w-4 h-4 rounded-full border-2 ${
-                  isCompleted
-                    ? 'bg-[#8b0000] border-[#8b0000]'
-                    : isUnlocked
-                      ? 'bg-[#f8f6f0] border-[#8b0000]'
-                      : 'bg-[#e8dcc6] border-[#8b4513]/30'
-                }`} />
-
                 {/* Chest Card */}
                 <div
                   onClick={() => handleKeyClick(month.key)}
                   className={`
-                    relative w-[45%] p-3 rounded-2xl cursor-pointer transition-all duration-300
+                    relative w-[48%] p-3 rounded-2xl cursor-pointer transition-all duration-300
                     ${isUnlocked ? 'hover:scale-[1.03] active:scale-[0.98]' : 'opacity-60'}
                     ${isCurrent ? 'ring-2 ring-[#8b0000] ring-offset-2' : ''}
                     ${isCompleted
@@ -264,7 +285,7 @@ export function PathTab() {
                   {/* Chest Icon */}
                   <div className="flex items-center gap-3">
                     <div className={`
-                      relative w-14 h-14 rounded-xl flex items-center justify-center
+                      relative w-14 h-14 rounded-xl flex items-center justify-center overflow-visible
                       ${isCompleted
                         ? 'bg-gradient-to-br from-[#ffd700] to-[#b8860b] shadow-lg shadow-[#ffd700]/30'
                         : isUnlocked
@@ -272,34 +293,79 @@ export function PathTab() {
                           : 'bg-[#8b4513]/30'
                       }
                     `}>
-                      {/* Chest SVG */}
+                      {/* Beautiful Chest SVGs */}
                       {isCompleted ? (
-                        // Open chest
-                        <svg viewBox="0 0 24 24" className="w-9 h-9" fill="none">
-                          <path d="M4 14v4c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-4" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-                          <path d="M4 14h16" stroke="white" strokeWidth="1.5"/>
-                          <rect x="5" y="10" width="14" height="4" rx="1" fill="white" fillOpacity="0.3"/>
-                          <path d="M3 10l3-4h12l3 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          <circle cx="12" cy="16" r="1.5" fill="white"/>
-                          {/* Sparkles for open chest */}
-                          <path d="M12 4v2M8 5l1 1.5M16 5l-1 1.5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                        // Open treasure chest with sparkles
+                        <svg viewBox="0 0 32 32" className="w-10 h-10" fill="none">
+                          {/* Sparkles */}
+                          <path d="M16 2l1 3-1 3-1-3 1-3z" fill="white" opacity="0.9"/>
+                          <path d="M8 5l2 2-1 2-2-2 1-2z" fill="white" opacity="0.7"/>
+                          <path d="M24 5l-2 2 1 2 2-2-1-2z" fill="white" opacity="0.7"/>
+                          <circle cx="6" cy="10" r="1" fill="white" opacity="0.6"/>
+                          <circle cx="26" cy="10" r="1" fill="white" opacity="0.6"/>
+
+                          {/* Open lid */}
+                          <path d="M5 11h22l-2-4H7l-2 4z" fill="white" fillOpacity="0.3" stroke="white" strokeWidth="1"/>
+                          <path d="M7 7h18" stroke="white" strokeWidth="1" strokeLinecap="round"/>
+
+                          {/* Chest body */}
+                          <rect x="4" y="13" width="24" height="14" rx="2" fill="white" fillOpacity="0.2" stroke="white" strokeWidth="1.2"/>
+
+                          {/* Metal bands */}
+                          <path d="M4 17h24" stroke="white" strokeWidth="1"/>
+                          <path d="M4 23h24" stroke="white" strokeWidth="1"/>
+
+                          {/* Gold lock plate */}
+                          <rect x="13" y="15" width="6" height="6" rx="1" fill="white" fillOpacity="0.4"/>
+                          <circle cx="16" cy="18" r="1.5" fill="white"/>
+
+                          {/* Corner rivets */}
+                          <circle cx="6" cy="15" r="0.8" fill="white"/>
+                          <circle cx="26" cy="15" r="0.8" fill="white"/>
+                          <circle cx="6" cy="25" r="0.8" fill="white"/>
+                          <circle cx="26" cy="25" r="0.8" fill="white"/>
                         </svg>
                       ) : isUnlocked ? (
-                        // Closed but unlocked chest
-                        <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none">
-                          <rect x="4" y="10" width="16" height="10" rx="2" stroke="white" strokeWidth="1.5"/>
-                          <path d="M4 14h16" stroke="white" strokeWidth="1.5"/>
-                          <path d="M4 12c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2" stroke="white" strokeWidth="1.5"/>
-                          <circle cx="12" cy="16" r="1.5" fill="white"/>
-                          <path d="M10 10V8c0-1.1.9-2 2-2s2 .9 2 2v2" stroke="white" strokeWidth="1.5"/>
+                        // Closed chest (unlocked, ready to open)
+                        <svg viewBox="0 0 32 32" className="w-9 h-9" fill="none">
+                          {/* Chest lid */}
+                          <path d="M4 12h24l-2-4H6l-2 4z" fill="white" fillOpacity="0.2" stroke="white" strokeWidth="1.2"/>
+                          <path d="M6 8h20" stroke="white" strokeWidth="1" strokeLinecap="round"/>
+
+                          {/* Chest body */}
+                          <rect x="4" y="12" width="24" height="14" rx="2" fill="white" fillOpacity="0.15" stroke="white" strokeWidth="1.2"/>
+
+                          {/* Metal bands */}
+                          <path d="M4 16h24" stroke="white" strokeWidth="1"/>
+                          <path d="M4 22h24" stroke="white" strokeWidth="1"/>
+
+                          {/* Lock plate */}
+                          <rect x="13" y="14" width="6" height="6" rx="1" fill="white" fillOpacity="0.3"/>
+                          <circle cx="16" cy="17" r="1.2" fill="white"/>
+
+                          {/* Corner rivets */}
+                          <circle cx="6" cy="14" r="0.7" fill="white"/>
+                          <circle cx="26" cy="14" r="0.7" fill="white"/>
+                          <circle cx="6" cy="24" r="0.7" fill="white"/>
+                          <circle cx="26" cy="24" r="0.7" fill="white"/>
                         </svg>
                       ) : (
-                        // Locked chest
-                        <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none">
-                          <rect x="4" y="10" width="16" height="10" rx="2" stroke="#8b4513" strokeWidth="1.5" strokeOpacity="0.5"/>
-                          <path d="M4 14h16" stroke="#8b4513" strokeWidth="1.5" strokeOpacity="0.5"/>
-                          <circle cx="12" cy="16" r="1.5" fill="#8b4513" fillOpacity="0.5"/>
-                          <Lock className="w-4 h-4 absolute text-[#8b4513]/50" style={{top: '50%', left: '50%', transform: 'translate(-50%, -50%)'}} />
+                        // Locked chest with padlock
+                        <svg viewBox="0 0 32 32" className="w-8 h-8" fill="none">
+                          {/* Chest lid */}
+                          <path d="M4 14h24l-2-4H6l-2 4z" fill="#8b4513" fillOpacity="0.2" stroke="#8b4513" strokeWidth="1.2" strokeOpacity="0.5"/>
+
+                          {/* Chest body */}
+                          <rect x="4" y="14" width="24" height="12" rx="2" fill="#8b4513" fillOpacity="0.1" stroke="#8b4513" strokeWidth="1.2" strokeOpacity="0.5"/>
+
+                          {/* Metal bands */}
+                          <path d="M4 18h24" stroke="#8b4513" strokeWidth="1" strokeOpacity="0.4"/>
+                          <path d="M4 22h24" stroke="#8b4513" strokeWidth="1" strokeOpacity="0.4"/>
+
+                          {/* Padlock */}
+                          <rect x="12" y="16" width="8" height="6" rx="1" fill="#8b4513" fillOpacity="0.3" stroke="#8b4513" strokeWidth="1" strokeOpacity="0.5"/>
+                          <path d="M14 16v-2a2 2 0 0 1 4 0v2" stroke="#8b4513" strokeWidth="1.2" strokeOpacity="0.5"/>
+                          <circle cx="16" cy="19" r="1" fill="#8b4513" fillOpacity="0.5"/>
                         </svg>
                       )}
                     </div>
@@ -348,6 +414,30 @@ export function PathTab() {
                     <div className="absolute -top-1 -right-1 w-6 h-6 bg-[#ffd700] rounded-full flex items-center justify-center shadow-md">
                       <CheckCircle className="w-4 h-4 text-white" />
                     </div>
+                  )}
+                </div>
+
+                {/* Connector line to center path */}
+                <div
+                  className={`absolute top-1/2 -translate-y-1/2 h-0.5 ${
+                    isCompleted
+                      ? 'bg-gradient-to-r from-[#ffd700] to-[#8b4513]'
+                      : isUnlocked
+                        ? 'bg-gradient-to-r from-[#8b0000]/50 to-[#8b4513]/30'
+                        : 'bg-[#8b4513]/20'
+                  } ${isLeft ? 'left-[48%] right-[50%]' : 'left-[50%] right-[48%]'}`}
+                />
+
+                {/* Center dot */}
+                <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 ${
+                  isCompleted
+                    ? 'bg-[#ffd700] border-[#ffd700] shadow-md shadow-[#ffd700]/50'
+                    : isUnlocked
+                      ? 'bg-[#8b0000] border-[#8b0000]'
+                      : 'bg-[#e8dcc6] border-[#8b4513]/30'
+                }`}>
+                  {isCompleted && (
+                    <CheckCircle className="w-3 h-3 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                   )}
                 </div>
               </div>
