@@ -247,7 +247,7 @@ export function PathTab() {
                 // Build one continuous path through all 12 cards
                 const leftCardCenterX = 93;
                 const rightCardCenterX = 247;
-                let pathCommands = [];
+                const pathCommands: string[] = [];
 
                 monthThemes.forEach((month, index) => {
                   const isLeft = index % 2 === 0;
