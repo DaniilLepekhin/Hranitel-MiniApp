@@ -39,8 +39,13 @@ export function PathTab() {
   // Fetch user progress
   const { data: progressData } = useQuery({
     queryKey: ['content', 'progress', user?.id],
-    queryFn: () => contentApi.getUserProgress(user!.id),
-    enabled: !!user,
+    queryFn: () => {
+      if (!user?.id) {
+        throw new Error('User ID is required');
+      }
+      return contentApi.getUserProgress(user.id);
+    },
+    enabled: !!user?.id,
   });
 
   const items = contentData?.items || [];
