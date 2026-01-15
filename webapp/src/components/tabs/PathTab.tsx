@@ -221,39 +221,6 @@ export function PathTab() {
         </div>
       ) : (
         <div className="relative pb-8">
-          {/* SVG Winding Path */}
-          <svg
-            className="absolute inset-0 w-full h-full pointer-events-none"
-            preserveAspectRatio="none"
-            style={{ height: `${monthThemes.length * 100}px` }}
-          >
-            <defs>
-              <linearGradient id="pathGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#8b0000" stopOpacity="0.4" />
-                <stop offset="50%" stopColor="#8b4513" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="#e8dcc6" stopOpacity="0.2" />
-              </linearGradient>
-            </defs>
-            <path
-              d={`M 50% 0 ${monthThemes.map((_, i) => {
-                const y = i * 100 + 50;
-                const isLeft = i % 2 === 0;
-                const nextIsLeft = (i + 1) % 2 === 0;
-                if (i === monthThemes.length - 1) return '';
-                // Curve from current position to next
-                const startX = isLeft ? '25%' : '75%';
-                const endX = nextIsLeft ? '25%' : '75%';
-                const nextY = (i + 1) * 100 + 50;
-                return `M ${startX} ${y} Q 50% ${y + 50} ${endX} ${nextY}`;
-              }).join(' ')}`}
-              stroke="url(#pathGradient)"
-              strokeWidth="4"
-              fill="none"
-              strokeLinecap="round"
-              strokeDasharray="8 8"
-            />
-          </svg>
-
           {monthThemes.map((month, index) => {
             const isCompleted = completedKeys.includes(month.key);
             const isUnlocked = month.key <= currentKey;
@@ -417,24 +384,82 @@ export function PathTab() {
                   )}
                 </div>
 
-                {/* Connector line to center path */}
-                <div
-                  className={`absolute top-1/2 -translate-y-1/2 h-0.5 ${
-                    isCompleted
-                      ? 'bg-gradient-to-r from-[#ffd700] to-[#8b4513]'
-                      : isUnlocked
-                        ? 'bg-gradient-to-r from-[#8b0000]/50 to-[#8b4513]/30'
-                        : 'bg-[#8b4513]/20'
-                  } ${isLeft ? 'left-[48%] right-[50%]' : 'left-[50%] right-[48%]'}`}
-                />
+                {/* Road connection to next item */}
+                {index < monthThemes.length - 1 && (
+                  <div className="absolute left-1/2 -translate-x-1/2 top-full w-16 pointer-events-none" style={{ height: '24px' }}>
+                    {/* Two-lane road */}
+                    <div className={`absolute inset-0 rounded-full ${
+                      isCompleted || isUnlocked
+                        ? 'bg-gradient-to-b from-[#d4a574] to-[#c4956a]'
+                        : 'bg-[#e8dcc6]'
+                    }`}>
+                      {/* Road edges */}
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#8b4513]/30 rounded-l-full" />
+                      <div className="absolute right-0 top-0 bottom-0 w-1 bg-[#8b4513]/30 rounded-r-full" />
+                      {/* Center dashed line */}
+                      <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-0.5 flex flex-col justify-around py-1">
+                        <div className={`h-1.5 w-full rounded ${isCompleted ? 'bg-[#ffd700]' : 'bg-white/60'}`} />
+                        <div className={`h-1.5 w-full rounded ${isCompleted ? 'bg-[#ffd700]' : 'bg-white/60'}`} />
+                        <div className={`h-1.5 w-full rounded ${isCompleted ? 'bg-[#ffd700]' : 'bg-white/60'}`} />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-                {/* Center dot */}
-                <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 ${
+                {/* Curved road from card to center */}
+                <svg
+                  className="absolute top-1/2 -translate-y-1/2 w-full h-8 pointer-events-none"
+                  style={{ left: isLeft ? '48%' : 'auto', right: isLeft ? 'auto' : '48%', width: '52%' }}
+                  viewBox="0 0 100 32"
+                  preserveAspectRatio="none"
+                >
+                  <defs>
+                    <linearGradient id={`roadGrad-${month.key}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor={isCompleted ? '#ffd700' : isUnlocked ? '#8b0000' : '#8b4513'} stopOpacity={isCompleted ? 0.8 : isUnlocked ? 0.5 : 0.2} />
+                      <stop offset="100%" stopColor="#d4a574" stopOpacity={isUnlocked ? 0.8 : 0.3} />
+                    </linearGradient>
+                  </defs>
+                  {/* Road path - curved */}
+                  <path
+                    d={isLeft ? "M 0 16 Q 50 16, 100 16" : "M 100 16 Q 50 16, 0 16"}
+                    stroke={`url(#roadGrad-${month.key})`}
+                    strokeWidth="12"
+                    fill="none"
+                    strokeLinecap="round"
+                  />
+                  {/* Road edges */}
+                  <path
+                    d={isLeft ? "M 0 10 Q 50 10, 100 10" : "M 100 10 Q 50 10, 0 10"}
+                    stroke="#8b4513"
+                    strokeWidth="1"
+                    fill="none"
+                    strokeOpacity="0.3"
+                  />
+                  <path
+                    d={isLeft ? "M 0 22 Q 50 22, 100 22" : "M 100 22 Q 50 22, 0 22"}
+                    stroke="#8b4513"
+                    strokeWidth="1"
+                    fill="none"
+                    strokeOpacity="0.3"
+                  />
+                  {/* Center dashed line */}
+                  <path
+                    d={isLeft ? "M 0 16 Q 50 16, 100 16" : "M 100 16 Q 50 16, 0 16"}
+                    stroke={isCompleted ? '#ffd700' : 'white'}
+                    strokeWidth="1.5"
+                    fill="none"
+                    strokeDasharray="6 4"
+                    strokeOpacity={isUnlocked ? 0.8 : 0.4}
+                  />
+                </svg>
+
+                {/* Center milestone marker */}
+                <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full border-3 shadow-lg ${
                   isCompleted
-                    ? 'bg-[#ffd700] border-[#ffd700] shadow-md shadow-[#ffd700]/50'
+                    ? 'bg-gradient-to-br from-[#ffd700] to-[#b8860b] border-[#ffd700]'
                     : isUnlocked
-                      ? 'bg-[#8b0000] border-[#8b0000]'
-                      : 'bg-[#e8dcc6] border-[#8b4513]/30'
+                      ? 'bg-gradient-to-br from-[#8b0000] to-[#6b2020] border-[#8b0000]'
+                      : 'bg-[#e8dcc6] border-[#8b4513]/40'
                 }`}>
                   {isCompleted && (
                     <CheckCircle className="w-3 h-3 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
