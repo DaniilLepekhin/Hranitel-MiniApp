@@ -1,5 +1,5 @@
 import { Elysia, t } from 'elysia';
-import { Bot, webhookCallback, InlineKeyboard } from 'grammy';
+import { Bot, InlineKeyboard, Keyboard } from 'grammy';
 import { config } from '@/config';
 import { logger } from '@/utils/logger';
 import { webhookRateLimit } from '@/middlewares/rateLimit';
@@ -13,12 +13,51 @@ export const bot = new Bot(config.TELEGRAM_BOT_TOKEN);
 // Initialize bot info (required for webhooks)
 await bot.init();
 
+// User state management (in production use Redis or DB)
+interface UserState {
+  awaitingPayment?: boolean;
+  paymentCheckTime?: number;
+}
+const userStates = new Map<number, UserState>();
+
+// Helper to check payment status (placeholder - implement real logic)
+async function checkPaymentStatus(userId: number): Promise<boolean> {
+  // TODO: Implement real payment check via YooKassa/Stripe API
+  // For now return false as placeholder
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.telegramId, String(userId)))
+    .limit(1);
+
+  return user?.hasAccess || false;
+}
+
+// Schedule payment reminder after 5 minutes
+function schedulePaymentReminder(userId: number, chatId: number) {
+  setTimeout(async () => {
+    const paid = await checkPaymentStatus(userId);
+    if (!paid) {
+      const keyboard = new InlineKeyboard()
+        .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`)
+        .row()
+        .text('Я не готов 🤔', 'not_ready');
+
+      await bot.api.sendMessage(
+        chatId,
+        'Похоже, оплата еще не прошла. Завершите оформление подписки или дайте знать, если не готовы:',
+        { reply_markup: keyboard }
+      );
+    }
+  }, 5 * 60 * 1000); // 5 minutes
+}
+
 // Bot commands
 bot.command('start', async (ctx) => {
-  const webAppUrl = config.WEBAPP_URL;
-
-  const keyboard = new InlineKeyboard()
-    .webApp('Получить доступ', webAppUrl);
+  const keyboard = new Keyboard()
+    .text('Получить доступ')
+    .text('MiniApp')
+    .resized();
 
   await ctx.reply(
     `<b>Код Денег — здесь.</b>\n\n` +
@@ -28,6 +67,99 @@ bot.command('start', async (ctx) => {
     `Доступ сразу после входа 👇`,
     { reply_markup: keyboard, parse_mode: 'HTML' }
   );
+});
+
+// Handle "Получить доступ" button
+bot.hears('Получить доступ', async (ctx) => {
+  const webAppUrl = `https://ishodnyi-kod.com/webappclubik`;
+
+  const keyboard = new InlineKeyboard()
+    .webApp('Оплатить', webAppUrl);
+
+  await ctx.reply(
+    `<b>🎫 Твой билет в КОД ДЕНЕГ</b>\n\n` +
+    `<b>Информация о подписке на клуб «Код Денег»:</b>\n` +
+    `👉🏼 1 месяц = 2.900 ₽\n` +
+    `👉🏼 В подписку входит полный доступ к клубу «Код Денег»: обучение и мини-курсы по мягким нишам, ` +
+    `десятки — мини-группы поддержки, чаты и офлайн-встречи по городам, закрытые эфиры и разборы с Кристиной, подкасты, баллы и приложение\n` +
+    `👉🏼 Подписка продлевается автоматически каждые 30 дней. Отписаться можно в любой момент в меню участника.\n` +
+    `👉🏼 Если при оплате возникают сложности обратитесь в службу заботы клуба @Egiazarova_support_bot`,
+    { reply_markup: keyboard, parse_mode: 'HTML' }
+  );
+
+  // Mark user as awaiting payment and schedule reminder
+  const userId = ctx.from!.id;
+  userStates.set(userId, {
+    awaitingPayment: true,
+    paymentCheckTime: Date.now()
+  });
+
+  schedulePaymentReminder(userId, ctx.chat.id);
+
+  // Check payment after button sent
+  setTimeout(async () => {
+    const paid = await checkPaymentStatus(userId);
+    if (paid) {
+      await ctx.reply(
+        '🎉 <b>Поздравляю с покупкой!</b>\n\n' +
+        'Добро пожаловать в клуб «Код Денег»! Теперь у тебя есть полный доступ ко всем материалам.',
+        { parse_mode: 'HTML' }
+      );
+      userStates.delete(userId);
+    }
+  }, 10000); // Check after 10 seconds
+});
+
+// Handle "MiniApp" button
+bot.hears('MiniApp', async (ctx) => {
+  const keyboard = new InlineKeyboard()
+    .webApp('🚀 Открыть приложение', config.WEBAPP_URL);
+
+  await ctx.reply('Нажми кнопку, чтобы открыть приложение:', {
+    reply_markup: keyboard,
+  });
+});
+
+// Handle "Я не готов" callback
+bot.callbackQuery('not_ready', async (ctx) => {
+  await ctx.answerCallbackQuery();
+
+  const keyboard = new Keyboard()
+    .text('🔮 где мои деньги в 2026 году')
+    .text('💰 почему доход не растет')
+    .row()
+    .text('🧠 состояние vs деньги')
+    .text('🌍 окружение')
+    .resized();
+
+  await ctx.reply(
+    `<b>Что горит прямо сейчас? 🔥</b>\n\n` +
+    `Только честно.\n` +
+    `Чтобы не грузить лишним — выбери, что сейчас важнее всего 👇`,
+    { reply_markup: keyboard, parse_mode: 'HTML' }
+  );
+});
+
+// Handle topic selection buttons
+const topicResponses: Record<string, string> = {
+  '🔮 где мои деньги в 2026 году': 'Отличный вопрос! В клубе мы разбираем стратегии монетизации и помогаем найти свою нишу...',
+  '💰 почему доход не растет': 'Разберем блоки и ограничения, которые мешают росту дохода. В клубе есть специальные практики...',
+  '🧠 состояние vs деньги': 'Связь между внутренним состоянием и деньгами — ключевая тема клуба. Узнаешь как работать с этим...',
+  '🌍 окружение': 'Окружение решает многое! В клубе ты найдешь поддерживающую среду из 15000+ единомышленников...'
+};
+
+Object.keys(topicResponses).forEach((topic) => {
+  bot.hears(topic, async (ctx) => {
+    const keyboard = new Keyboard()
+      .text('Получить доступ')
+      .text('MiniApp')
+      .resized();
+
+    await ctx.reply(
+      topicResponses[topic] + '\n\nГотов присоединиться к клубу?',
+      { reply_markup: keyboard }
+    );
+  });
 });
 
 bot.command('app', async (ctx) => {
