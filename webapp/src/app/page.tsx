@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSearchParams } from 'next/navigation';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { Navigation, TabType } from '@/components/ui/Navigation';
 import { MiniPlayer } from '@/components/ui/MiniPlayer';
@@ -18,8 +19,17 @@ import { ChatsTab } from '@/components/tabs/ChatsTab';
 import { ShopTab } from '@/components/tabs/ShopTab';
 import { ProfileTab } from '@/components/tabs/ProfileTab';
 
-export default function Home() {
+function HomeContent() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
+  const searchParams = useSearchParams();
+  
+  // Handle tab query parameter
+  useEffect(() => {
+    const tab = searchParams.get('tab') as TabType;
+    if (tab && ['home', 'path', 'chats', 'shop', 'profile'].includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
   const { user: tgUser, isReady, initData, webApp, requestFullscreen, exitFullscreen, isFullscreen, haptic } = useTelegram();
   const { user, token, setUser, isLoading, setLoading } = useAuthStore();
 
@@ -96,7 +106,7 @@ export default function Home() {
   }
 
   const tabComponents: Record<TabType, React.ReactNode> = {
-    home: <HomeTab />,
+    home: <HomeTab onProfileClick={() => setActiveTab('profile')} />,
     path: <PathTab />,
     chats: <ChatsTab />,
     shop: <ShopTab />,
@@ -146,5 +156,23 @@ export default function Home() {
       {/* Navigation */}
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
     </main>
+  );
+}
+
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center animate-pulse">
+            <span className="text-3xl">🎯</span>
+          </div>
+          <p className="text-gray-600">Загрузка...</p>
+        </div>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }

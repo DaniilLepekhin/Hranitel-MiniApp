@@ -33,7 +33,11 @@ const reportsApi = {
   },
 };
 
-export function HomeTab() {
+interface HomeTabProps {
+  onProfileClick?: () => void;
+}
+
+export function HomeTab({ onProfileClick }: HomeTabProps) {
   const { user } = useAuthStore();
   const router = useRouter();
 
@@ -84,17 +88,19 @@ export function HomeTab() {
           </h1>
           <p className="text-[#6b5a4a] mt-1">Как ты себя чувствуешь сегодня?</p>
         </div>
-        {user?.photoUrl ? (
-          <img
-            src={user.photoUrl}
-            alt={user.firstName || 'User'}
-            className="w-12 h-12 rounded-full shadow-md border-2 border-[#8b4513]/30"
-          />
-        ) : (
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center text-white font-bold shadow-md">
-            {user?.firstName?.[0] || '?'}
-          </div>
-        )}
+        <button onClick={onProfileClick} className="cursor-pointer active:scale-95 transition-transform">
+          {user?.photoUrl ? (
+            <img
+              src={user.photoUrl}
+              alt={user.firstName || 'User'}
+              className="w-12 h-12 rounded-full shadow-md border-2 border-[#8b4513]/30"
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center text-white font-bold shadow-md">
+              {user?.firstName?.[0] || '?'}
+            </div>
+          )}
+        </button>
       </div>
 
       {/* Stats Cards */}

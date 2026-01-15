@@ -152,14 +152,14 @@ export default function RatingsPage() {
       {/* Shop Link */}
       <Card className="mb-6 overflow-hidden">
         <button
-          onClick={() => router.push('/shop')}
+          onClick={() => router.push('/?tab=shop')}
           className="w-full p-5 flex items-center gap-4 hover:bg-[#f8f6f0] transition-colors"
         >
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center flex-shrink-0">
             <Zap className="w-7 h-7 text-white" />
           </div>
           <div className="flex-1 text-left">
-            <h3 className="font-bold text-[#3d2f1f] mb-1">Магазин энергий</h3>
+            <h3 className="font-bold text-[#3d2f1f] mb-1">Магазин энергии</h3>
             <p className="text-sm text-[#6b5a4a]">
               Здесь ты можешь обменивать баллы на бонусы, подарки и возможности клуба
             </p>
