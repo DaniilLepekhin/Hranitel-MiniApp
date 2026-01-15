@@ -21,12 +21,12 @@ export const useAuthStore = create<AuthState>()(
       isLoading: true,
 
       setUser: (user, token) =>
-        set({
+        set((state) => ({
           user,
-          token: token !== undefined ? token : undefined,
+          token: token !== undefined ? token : state.token,
           isAuthenticated: !!user,
           isLoading: false,
-        }),
+        })),
 
       setLoading: (loading) =>
         set({ isLoading: loading }),
