@@ -18,8 +18,8 @@ import { meditationsModule } from '@/modules/meditations';
 import { gamificationModule } from '@/modules/gamification';
 // AI and Bot modules disabled - not needed for webapp-only deployment
 // import { aiModule } from '@/modules/ai';
-// import { botModule } from '@/modules/bot';
-// import { setupWebhook } from '@/setup-webhook';
+import { botModule } from '@/modules/bot';
+import { setupWebhook } from '@/setup-webhook';
 
 // New modules for КОД ДЕНЕГ 4.0
 import { energyPointsRoutes } from '@/modules/energy-points';
@@ -108,7 +108,7 @@ const app = new Elysia()
       .use(gamificationModule)
       .use(cityChatModule)
       // .use(aiModule) - disabled
-      // .use(botModule) - disabled
+      .use(botModule)
   )
   // Content module (Путь - educational content system)
   .use(contentModule)
@@ -131,11 +131,11 @@ logger.info(
 );
 
 // Telegram webhook disabled - bot not needed for webapp-only deployment
-// if (!isDevelopment) {
-//   setupWebhook().catch((error) => {
-//     logger.error({ error }, 'Failed to setup webhook on startup');
-//   });
-// }
+if (!isDevelopment) {
+  setupWebhook().catch((error) => {
+    logger.error({ error }, "Failed to setup webhook on startup");
+  });
+}
 
 // Graceful shutdown
 const shutdown = async (signal: string) => {
