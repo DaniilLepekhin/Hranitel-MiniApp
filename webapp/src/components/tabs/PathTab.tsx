@@ -212,7 +212,7 @@ export function PathTab() {
         </div>
       </div>
 
-      {/* 12 Keys Grid */}
+      {/* 12 Keys Roadmap */}
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
@@ -220,96 +220,137 @@ export function PathTab() {
           ))}
         </div>
       ) : (
-        <div className="space-y-3">
-          {monthThemes.map((month) => {
+        <div className="relative pb-8">
+          {/* Roadmap Path */}
+          <div className="absolute left-1/2 top-0 bottom-0 w-1 bg-gradient-to-b from-[#8b0000]/30 via-[#8b4513]/20 to-[#e8dcc6]/50 -translate-x-1/2" />
+
+          {monthThemes.map((month, index) => {
             const isCompleted = completedKeys.includes(month.key);
             const isUnlocked = month.key <= currentKey;
             const isCurrent = month.key === currentKey;
             const keyItems = itemsByKey[month.key] || [];
             const IconComponent = month.icon;
+            const isLeft = index % 2 === 0;
 
             return (
-              <Card
+              <div
                 key={month.key}
-                className={`
-                  p-4 transition-all duration-300 cursor-pointer
-                  ${isUnlocked ? 'hover:scale-[1.02]' : 'opacity-50'}
-                  ${isCurrent && 'ring-2 ring-[#8b0000]/50'}
-                `}
-                onClick={() => handleKeyClick(month.key)}
+                className={`relative flex items-center mb-4 ${isLeft ? 'justify-start' : 'justify-end'}`}
               >
-                <div className="flex items-center gap-4">
-                  {/* Key Icon */}
-                  <div className={`
-                    w-14 h-14 rounded-xl flex items-center justify-center shadow-md
-                    ${isUnlocked
-                      ? 'bg-gradient-to-br from-[#8b0000] to-[#8b4513]'
-                      : 'bg-[#e8dcc6]'
-                    }
-                  `}>
-                    {isCompleted ? (
-                      <CheckCircle className="w-8 h-8 text-white" />
-                    ) : isUnlocked ? (
-                      <IconComponent className="w-7 h-7 text-white" strokeWidth={2} />
-                    ) : (
-                      <Lock className="w-6 h-6 text-[#8b4513]/50" />
-                    )}
-                  </div>
+                {/* Connector dot on the path */}
+                <div className={`absolute left-1/2 -translate-x-1/2 w-4 h-4 rounded-full border-2 ${
+                  isCompleted
+                    ? 'bg-[#8b0000] border-[#8b0000]'
+                    : isUnlocked
+                      ? 'bg-[#f8f6f0] border-[#8b0000]'
+                      : 'bg-[#e8dcc6] border-[#8b4513]/30'
+                }`} />
 
-                  {/* Content */}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-bold text-[#8b0000]">
-                        КЛЮЧ #{month.key}
-                      </span>
-                      {isCurrent && (
-                        <span className="px-2 py-0.5 bg-[#8b0000]/20 rounded-full text-xs text-[#8b0000] font-semibold border border-[#8b4513]/30">
-                          Текущий
-                        </span>
+                {/* Chest Card */}
+                <div
+                  onClick={() => handleKeyClick(month.key)}
+                  className={`
+                    relative w-[45%] p-3 rounded-2xl cursor-pointer transition-all duration-300
+                    ${isUnlocked ? 'hover:scale-[1.03] active:scale-[0.98]' : 'opacity-60'}
+                    ${isCurrent ? 'ring-2 ring-[#8b0000] ring-offset-2' : ''}
+                    ${isCompleted
+                      ? 'bg-gradient-to-br from-[#ffd700]/20 to-[#8b4513]/20 border border-[#ffd700]/50'
+                      : isUnlocked
+                        ? 'bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10 border border-[#8b4513]/30'
+                        : 'bg-[#e8dcc6]/50 border border-[#8b4513]/20'
+                    }
+                  `}
+                >
+                  {/* Chest Icon */}
+                  <div className="flex items-center gap-3">
+                    <div className={`
+                      relative w-14 h-14 rounded-xl flex items-center justify-center
+                      ${isCompleted
+                        ? 'bg-gradient-to-br from-[#ffd700] to-[#b8860b] shadow-lg shadow-[#ffd700]/30'
+                        : isUnlocked
+                          ? 'bg-gradient-to-br from-[#8b0000] to-[#8b4513] shadow-md'
+                          : 'bg-[#8b4513]/30'
+                      }
+                    `}>
+                      {/* Chest SVG */}
+                      {isCompleted ? (
+                        // Open chest
+                        <svg viewBox="0 0 24 24" className="w-9 h-9" fill="none">
+                          <path d="M4 14v4c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-4" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                          <path d="M4 14h16" stroke="white" strokeWidth="1.5"/>
+                          <rect x="5" y="10" width="14" height="4" rx="1" fill="white" fillOpacity="0.3"/>
+                          <path d="M3 10l3-4h12l3 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <circle cx="12" cy="16" r="1.5" fill="white"/>
+                          {/* Sparkles for open chest */}
+                          <path d="M12 4v2M8 5l1 1.5M16 5l-1 1.5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                        </svg>
+                      ) : isUnlocked ? (
+                        // Closed but unlocked chest
+                        <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none">
+                          <rect x="4" y="10" width="16" height="10" rx="2" stroke="white" strokeWidth="1.5"/>
+                          <path d="M4 14h16" stroke="white" strokeWidth="1.5"/>
+                          <path d="M4 12c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2" stroke="white" strokeWidth="1.5"/>
+                          <circle cx="12" cy="16" r="1.5" fill="white"/>
+                          <path d="M10 10V8c0-1.1.9-2 2-2s2 .9 2 2v2" stroke="white" strokeWidth="1.5"/>
+                        </svg>
+                      ) : (
+                        // Locked chest
+                        <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none">
+                          <rect x="4" y="10" width="16" height="10" rx="2" stroke="#8b4513" strokeWidth="1.5" strokeOpacity="0.5"/>
+                          <path d="M4 14h16" stroke="#8b4513" strokeWidth="1.5" strokeOpacity="0.5"/>
+                          <circle cx="12" cy="16" r="1.5" fill="#8b4513" fillOpacity="0.5"/>
+                          <Lock className="w-4 h-4 absolute text-[#8b4513]/50" style={{top: '50%', left: '50%', transform: 'translate(-50%, -50%)'}} />
+                        </svg>
                       )}
                     </div>
 
-                    <h3 className={`font-bold text-lg mb-0.5 ${isUnlocked ? 'text-[#3d2f1f]' : 'text-[#8b4513]/50'}`}>
-                      {month.theme}
-                    </h3>
-
-                    {keyItems.length > 0 && (
-                      <p className="text-[#6b5a4a] text-xs">
-                        {keyItems.length} {keyItems.length === 1 ? 'материал' : 'материалов'}
-                      </p>
-                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className={`text-[10px] font-bold ${isCompleted ? 'text-[#b8860b]' : isUnlocked ? 'text-[#8b0000]' : 'text-[#8b4513]/50'}`}>
+                          #{month.key}
+                        </span>
+                        {isCurrent && (
+                          <span className="px-1.5 py-0.5 bg-[#8b0000] rounded text-[8px] text-white font-bold animate-pulse">
+                            СЕЙЧАС
+                          </span>
+                        )}
+                      </div>
+                      <h3 className={`font-bold text-sm truncate ${
+                        isCompleted ? 'text-[#3d2f1f]' : isUnlocked ? 'text-[#3d2f1f]' : 'text-[#8b4513]/50'
+                      }`}>
+                        {month.theme}
+                      </h3>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <IconComponent className={`w-3 h-3 ${isUnlocked ? 'text-[#8b0000]' : 'text-[#8b4513]/40'}`} />
+                        <span className={`text-[10px] ${isUnlocked ? 'text-[#6b5a4a]' : 'text-[#8b4513]/40'}`}>
+                          {keyItems.length} материалов
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Status Icon */}
-                  {isCompleted ? (
-                    <CheckCircle className="w-6 h-6 text-[#8b4513]" />
-                  ) : isUnlocked ? (
-                    <ChevronRight className="w-6 h-6 text-[#8b4513]" />
-                  ) : (
-                    <Lock className="w-6 h-6 text-[#8b4513]/30" />
+                  {/* Progress bar for current */}
+                  {isCurrent && keyItems.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-[#8b4513]/20">
+                      <div className="h-1 bg-[#e8dcc6] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-[#8b0000] to-[#ffd700]"
+                          style={{
+                            width: `${keyItems.length > 0 ? (progress.filter(p => keyItems.some((item: any) => item.id === p.contentItemId && p.watched)).length / keyItems.length) * 100 : 0}%`
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Completed badge */}
+                  {isCompleted && (
+                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-[#ffd700] rounded-full flex items-center justify-center shadow-md">
+                      <CheckCircle className="w-4 h-4 text-white" />
+                    </div>
                   )}
                 </div>
-
-                {/* Progress for current key */}
-                {isCurrent && keyItems.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-[#8b4513]/20">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs text-[#6b5a4a]">Прогресс</span>
-                      <span className="text-xs text-[#8b0000] font-semibold">
-                        {progress.filter(p => keyItems.some((item: any) => item.id === p.contentItemId && p.watched)).length}/{keyItems.length}
-                      </span>
-                    </div>
-                    <div className="h-1.5 bg-[#e8dcc6] rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-[#8b0000] to-[#8b4513]"
-                        style={{
-                          width: `${keyItems.length > 0 ? (progress.filter(p => keyItems.some((item: any) => item.id === p.contentItemId && p.watched)).length / keyItems.length) * 100 : 0}%`
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </Card>
+              </div>
             );
           })}
         </div>
