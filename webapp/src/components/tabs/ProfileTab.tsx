@@ -314,9 +314,9 @@ export function ProfileTab() {
                 className="w-full p-3 rounded-xl border border-[#8b4513]/30 bg-white text-[#3d2f1f] focus:outline-none focus:border-[#8b0000]"
               >
                 <option value="">Выберите страну</option>
-                {countries.map((country: { name: string }) => (
-                  <option key={country.name} value={country.name}>
-                    {country.name}
+                {countries.map((country: string) => (
+                  <option key={country} value={country}>
+                    {country}
                   </option>
                 ))}
               </select>
@@ -338,9 +338,9 @@ export function ProfileTab() {
                   className="w-full p-3 rounded-xl border border-[#8b4513]/30 bg-white text-[#3d2f1f] focus:outline-none focus:border-[#8b0000]"
                 >
                   <option value="">Выберите город</option>
-                  {cities.map((city: { name: string }) => (
-                    <option key={city.name} value={city.name}>
-                      {city.name}
+                  {cities.map((city: string) => (
+                    <option key={city} value={city}>
+                      {city}
                     </option>
                   ))}
                 </select>
