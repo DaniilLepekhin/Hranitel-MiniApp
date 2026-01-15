@@ -282,12 +282,12 @@ export function ProfileTab() {
 
       {/* City Selection Modal */}
       {showCityModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div
             className="absolute inset-0 bg-black/50"
             onClick={() => setShowCityModal(false)}
           />
-          <div className="relative w-full max-w-lg bg-white rounded-t-3xl p-6 pb-10 animate-slide-up">
+          <div className="relative w-full max-w-lg bg-white rounded-3xl p-6 shadow-xl">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-[#3d2f1f]">Выбор города</h3>
               <button
