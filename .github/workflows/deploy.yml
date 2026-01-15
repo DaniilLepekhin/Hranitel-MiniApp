@@ -48,7 +48,8 @@ jobs:
             echo "WEBAPP_URL=https://hranitel.daniillepekhin.com" >> .env
             echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
             echo "CORS_ORIGIN=https://hranitel.daniillepekhin.com" >> .env
-            echo "TELEGRAM_BOT_TOKEN=" >> .env
+            echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" >> .env
+            echo "API_URL=https://hranitel.daniillepekhin.com" >> .env
             echo "OPENAI_API_KEY=" >> .env
 
             # Install Bun if not exists
