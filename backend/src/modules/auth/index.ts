@@ -1,4 +1,4 @@
-import { Elysia, t } from 'elysia';
+import { Elysia } from 'elysia';
 import { jwt } from '@elysiajs/jwt';
 import { eq } from 'drizzle-orm';
 import { db, users, type User } from '@/db';
@@ -68,30 +68,55 @@ export const authModule = new Elysia({ prefix: '/auth', tags: ['Auth'] })
   // Login via Telegram WebApp
   .post(
     '/telegram',
-    async ({ body, jwt, cookie, set }) => {
-      const { initData, initDataUnsafe } = body;
-
-      // Validate initData
-      if (!validateTelegramInitData(initData)) {
-        set.status = 401;
-        return {
-          success: false,
-          error: 'Invalid Telegram initData',
-        };
-      }
-
-      // Parse user data
-      const telegramUser = parseTelegramUser(initData) || initDataUnsafe?.user;
-
-      if (!telegramUser?.id) {
-        set.status = 400;
-        return {
-          success: false,
-          error: 'User data not found',
-        };
-      }
-
+    async ({ request, jwt, cookie, set }) => {
       try {
+        // Read raw body manually to avoid Elysia body parsing issues
+        const rawBody = await request.text();
+        logger.info({ rawBodyLength: rawBody.length }, 'Auth request received');
+
+        if (!rawBody || rawBody.length === 0) {
+          logger.error('Empty body received');
+          set.status = 400;
+          return { success: false, error: 'Empty body' };
+        }
+
+        // Parse JSON
+        let body: { initData?: string; initDataUnsafe?: any };
+        try {
+          body = JSON.parse(rawBody);
+        } catch (e) {
+          logger.error({ rawBody: rawBody.substring(0, 200) }, 'Failed to parse JSON body');
+          set.status = 400;
+          return { success: false, error: 'Invalid JSON' };
+        }
+
+        const { initData, initDataUnsafe } = body;
+
+        if (!initData) {
+          set.status = 400;
+          return { success: false, error: 'initData is required' };
+        }
+
+        // Validate initData
+        if (!validateTelegramInitData(initData)) {
+          set.status = 401;
+          return {
+            success: false,
+            error: 'Invalid Telegram initData',
+          };
+        }
+
+        // Parse user data
+        const telegramUser = parseTelegramUser(initData) || initDataUnsafe?.user;
+
+        if (!telegramUser?.id) {
+          set.status = 400;
+          return {
+            success: false,
+            error: 'User data not found',
+          };
+        }
+
         // Get user photo from Telegram API (since initData doesn't include it)
         let photoUrl = telegramUser.photo_url || null;
         if (!photoUrl) {
@@ -187,23 +212,6 @@ export const authModule = new Elysia({ prefix: '/auth', tags: ['Auth'] })
       }
     },
     {
-      body: t.Object({
-        initData: t.String(),
-        initDataUnsafe: t.Optional(
-          t.Object({
-            user: t.Optional(
-              t.Object({
-                id: t.Number(),
-                first_name: t.Optional(t.String()),
-                last_name: t.Optional(t.String()),
-                username: t.Optional(t.String()),
-                photo_url: t.Optional(t.String()),
-                language_code: t.Optional(t.String()),
-              })
-            ),
-          })
-        ),
-      }),
       detail: {
         summary: 'Login via Telegram WebApp',
         description: 'Authenticate user using Telegram WebApp initData',
