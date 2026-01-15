@@ -241,78 +241,84 @@ export function PathTab() {
               </linearGradient>
             </defs>
 
-            {/* Generate the snake road path */}
-            {monthThemes.map((month, index) => {
-              if (index >= monthThemes.length - 1) return null;
+            {/* Single continuous road path through all cards */}
+            <g>
+              {(() => {
+                // Build one continuous path through all 12 cards
+                const leftCardCenterX = 93;
+                const rightCardCenterX = 247;
+                let pathCommands = [];
 
-              const isCompleted = completedKeys.includes(month.key);
-              const isUnlocked = month.key <= currentKey;
-              const isLeft = index % 2 === 0;
-              const nextIsLeft = (index + 1) % 2 === 0;
+                monthThemes.forEach((month, index) => {
+                  const isLeft = index % 2 === 0;
+                  const centerX = isLeft ? leftCardCenterX : rightCardCenterX;
+                  const cardY = index * 100 + 50; // center of card
+                  const cardBottomY = index * 100 + 80; // bottom of card
 
-              // ViewBox: 340px width, cards are 55% width
-              // Left cards: 0 to ~187px (center ~93px)
-              // Right cards: ~153px to 340px (center ~247px)
-              const leftCardCenterX = 93;
-              const rightCardCenterX = 247;
-              const leftCardRightEdge = 187;
-              const rightCardLeftEdge = 153;
+                  if (index === 0) {
+                    // Start at first card center
+                    pathCommands.push(`M ${centerX} ${cardY}`);
+                    // Go to bottom of first card
+                    pathCommands.push(`L ${centerX} ${cardBottomY}`);
+                  } else {
+                    const prevIsLeft = (index - 1) % 2 === 0;
+                    const prevCenterX = prevIsLeft ? leftCardCenterX : rightCardCenterX;
+                    const prevBottomY = (index - 1) * 100 + 80;
+                    const cardTopY = index * 100 + 20; // top of current card
 
-              // Y positions
-              const currentCardBottomY = index * 100 + 80; // bottom of current card
-              const nextCardTopY = (index + 1) * 100 + 30; // top of next card
-              const nextCardCenterY = (index + 1) * 100 + 50; // center of next card
+                    // Create S-curve from previous card bottom to current card side → center → bottom
+                    const midY = (prevBottomY + cardY) / 2;
 
-              // Start point: bottom center of current card
-              const startX = isLeft ? leftCardCenterX : rightCardCenterX;
-              const startY = currentCardBottomY;
+                    // Curve from bottom of prev card to side of current card
+                    pathCommands.push(`C ${prevCenterX} ${prevBottomY + 30}, ${centerX + (isLeft ? 60 : -60)} ${midY}, ${centerX} ${cardTopY}`);
+                    // Straight line through card to center
+                    pathCommands.push(`L ${centerX} ${cardY}`);
+                    // Continue to bottom if not last
+                    if (index < monthThemes.length - 1) {
+                      pathCommands.push(`L ${centerX} ${cardBottomY}`);
+                    }
+                  }
+                });
 
-              // Entry point: side edge of next card at center height
-              const entryX = nextIsLeft ? rightCardLeftEdge : leftCardRightEdge;
-              const entryY = nextCardCenterY;
+                const fullPath = pathCommands.join(' ');
 
-              // Control points for smooth S-curve
-              const midY = (startY + entryY) / 2;
-
-              // Create smooth bezier curve: bottom center → side edge
-              const pathD = `M ${startX} ${startY}
-                             C ${startX} ${startY + 25},
-                               ${entryX + (nextIsLeft ? -40 : 40)} ${midY},
-                               ${entryX} ${entryY}`;
-
-              return (
-                <g key={`road-${month.key}`}>
-                  {/* Road background */}
-                  <path
-                    d={pathD}
-                    stroke={isCompleted || isUnlocked ? "url(#roadGradientCompleted)" : "url(#roadGradientLocked)"}
-                    strokeWidth="20"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeOpacity="0.5"
-                  />
-                  {/* Road edges */}
-                  <path
-                    d={pathD}
-                    stroke="#8b4513"
-                    strokeWidth="22"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeOpacity="0.08"
-                  />
-                  {/* Center dashed line */}
-                  <path
-                    d={pathD}
-                    stroke={isCompleted ? "#ffd700" : "#ffffff"}
-                    strokeWidth="1.5"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeDasharray="6 4"
-                    strokeOpacity={isCompleted ? 0.7 : isUnlocked ? 0.4 : 0.2}
-                  />
-                </g>
-              );
-            })}
+                return (
+                  <>
+                    {/* Road background */}
+                    <path
+                      d={fullPath}
+                      stroke="url(#roadGradientCompleted)"
+                      strokeWidth="20"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeOpacity="0.5"
+                    />
+                    {/* Road edges */}
+                    <path
+                      d={fullPath}
+                      stroke="#8b4513"
+                      strokeWidth="22"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeOpacity="0.08"
+                    />
+                    {/* Center dashed line */}
+                    <path
+                      d={fullPath}
+                      stroke="#ffffff"
+                      strokeWidth="1.5"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeDasharray="6 4"
+                      strokeOpacity="0.4"
+                    />
+                  </>
+                );
+              })()}
+            </g>
           </svg>
 
           {/* Chest Cards */}
