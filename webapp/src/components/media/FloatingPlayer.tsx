@@ -25,7 +25,7 @@ export const FloatingPlayer: React.FC = () => {
     maximize();
     // Navigate back to the content page
     if (currentMedia.type === 'audio') {
-      router.push(`/practice/${currentMedia.id}`);
+      router.push(`/practices/${currentMedia.id}`);
     } else {
       router.push(`/video/${currentTrack.id}`);
     }
