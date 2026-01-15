@@ -11,17 +11,27 @@ import {
   ChevronRight,
   Edit2,
   User,
+  Mail,
+  Phone,
+  Calendar,
+  X,
+  Globe,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
-import { energiesApi } from '@/lib/api';
+import { energiesApi, cityChatsApi } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { useRouter } from 'next/navigation';
+import { useTelegram } from '@/hooks/useTelegram';
 
 export function ProfileTab() {
   const { user } = useAuthStore();
   const router = useRouter();
+  const { haptic } = useTelegram();
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(user?.firstName || '');
+  const [showCityModal, setShowCityModal] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState<string>('');
+  const [selectedCity, setSelectedCity] = useState<string>('');
 
   const { data: epData } = useQuery({
     queryKey: ['energies', 'balance', user?.id],
@@ -30,7 +40,34 @@ export function ProfileTab() {
     refetchInterval: 30000,
   });
 
+  // Fetch countries for city selection
+  const { data: countriesData } = useQuery({
+    queryKey: ['city-chats', 'countries'],
+    queryFn: () => cityChatsApi.getCountries(),
+    enabled: showCityModal,
+  });
+
+  // Fetch cities when country is selected
+  const { data: citiesData } = useQuery({
+    queryKey: ['city-chats', 'cities', selectedCountry],
+    queryFn: () => cityChatsApi.getCities(selectedCountry),
+    enabled: !!selectedCountry && showCityModal,
+  });
+
   const epBalance = epData?.balance || 0;
+  const countries = countriesData?.countries || [];
+  const cities = citiesData?.cities || [];
+
+  // Format subscription date
+  const formatSubscriptionDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return null;
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  };
 
   const handleSaveName = () => {
     // TODO: Implement API call to update user name
@@ -121,7 +158,10 @@ export function ProfileTab() {
               </div>
             </div>
             <button
-              onClick={() => router.push('/city-selection')}
+              onClick={() => {
+                haptic.impact('light');
+                setShowCityModal(true);
+              }}
               className="px-3 py-1.5 rounded-lg bg-white text-[#8b0000] text-xs font-medium hover:bg-[#e8dcc6] transition-colors"
             >
               Изменить
@@ -129,8 +169,59 @@ export function ProfileTab() {
           </div>
         </div>
 
-        {/* Club Status */}
+        {/* Contact Info */}
+        {(user?.email || user?.phone) && (
+          <div className="mb-4 space-y-3">
+            {user?.email && (
+              <div className="p-4 rounded-xl bg-[#f8f6f0]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#8b4513] to-[#6b3410] flex items-center justify-center">
+                    <Mail className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-[#6b5a4a] mb-0.5">Email</p>
+                    <p className="text-sm font-semibold text-[#3d2f1f]">{user.email}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            {user?.phone && (
+              <div className="p-4 rounded-xl bg-[#f8f6f0]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#8b4513] to-[#6b3410] flex items-center justify-center">
+                    <Phone className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-[#6b5a4a] mb-0.5">Телефон</p>
+                    <p className="text-sm font-semibold text-[#3d2f1f]">{user.phone}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Subscription Status */}
         <div className="mb-4 p-4 rounded-xl bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center">
+              <Calendar className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <p className="text-xs text-[#6b5a4a] mb-0.5">Подписка</p>
+              {user?.subscriptionExpires ? (
+                <p className="text-sm font-semibold text-[#3d2f1f]">
+                  Активна до {formatSubscriptionDate(user.subscriptionExpires)}
+                </p>
+              ) : (
+                <p className="text-sm font-semibold text-[#6b5a4a]">Не активна</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Club Status */}
+        <div className="mb-4 p-4 rounded-xl bg-[#f8f6f0]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center">
               <User className="w-5 h-5 text-white" />
@@ -188,6 +279,89 @@ export function ProfileTab() {
           onClick={() => openUrl('https://t.me/Egiazarova_support_bot')}
         />
       </Card>
+
+      {/* City Selection Modal */}
+      {showCityModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowCityModal(false)}
+          />
+          <div className="relative w-full max-w-lg bg-white rounded-t-3xl p-6 pb-10 animate-slide-up">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-[#3d2f1f]">Выбор города</h3>
+              <button
+                onClick={() => setShowCityModal(false)}
+                className="w-10 h-10 rounded-full bg-[#f8f6f0] flex items-center justify-center"
+              >
+                <X className="w-5 h-5 text-[#6b5a4a]" />
+              </button>
+            </div>
+
+            {/* Country Select */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-[#6b5a4a] mb-2">
+                <Globe className="w-4 h-4 inline mr-2" />
+                Страна
+              </label>
+              <select
+                value={selectedCountry}
+                onChange={(e) => {
+                  haptic.selection();
+                  setSelectedCountry(e.target.value);
+                  setSelectedCity('');
+                }}
+                className="w-full p-3 rounded-xl border border-[#8b4513]/30 bg-white text-[#3d2f1f] focus:outline-none focus:border-[#8b0000]"
+              >
+                <option value="">Выберите страну</option>
+                {countries.map((country: { name: string }) => (
+                  <option key={country.name} value={country.name}>
+                    {country.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* City Select */}
+            {selectedCountry && (
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-[#6b5a4a] mb-2">
+                  <MapPin className="w-4 h-4 inline mr-2" />
+                  Город
+                </label>
+                <select
+                  value={selectedCity}
+                  onChange={(e) => {
+                    haptic.selection();
+                    setSelectedCity(e.target.value);
+                  }}
+                  className="w-full p-3 rounded-xl border border-[#8b4513]/30 bg-white text-[#3d2f1f] focus:outline-none focus:border-[#8b0000]"
+                >
+                  <option value="">Выберите город</option>
+                  {cities.map((city: { name: string }) => (
+                    <option key={city.name} value={city.name}>
+                      {city.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Save Button */}
+            <button
+              onClick={() => {
+                haptic.impact('medium');
+                // TODO: Save city to user profile via API
+                setShowCityModal(false);
+              }}
+              disabled={!selectedCity}
+              className="w-full py-4 rounded-xl bg-gradient-to-r from-[#8b0000] to-[#8b4513] text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Сохранить
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

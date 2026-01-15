@@ -345,6 +345,8 @@ export interface User {
   lastName?: string;
   photoUrl?: string;
   city?: string;
+  email?: string;
+  phone?: string;
   level: number;
   experience: number;
   streak: number;
