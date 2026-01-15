@@ -250,28 +250,35 @@ export function PathTab() {
               const isLeft = index % 2 === 0;
               const nextIsLeft = (index + 1) % 2 === 0;
 
-              // Card dimensions in viewBox (340px width)
-              // Left card center X ~95 (55% width / 2)
-              // Right card center X ~245 (340 - 55% width / 2)
-              const leftCardCenterX = 95;
-              const rightCardCenterX = 245;
+              // ViewBox: 340px width, cards are 55% width
+              // Left cards: 0 to ~187px (center ~93px)
+              // Right cards: ~153px to 340px (center ~247px)
+              const leftCardCenterX = 93;
+              const rightCardCenterX = 247;
+              const leftCardRightEdge = 187;
+              const rightCardLeftEdge = 153;
 
-              // Y positions: each row is 100px, card center at 50px within row
-              const currentCardBottomY = index * 100 + 75; // bottom of current card
-              const nextCardSideY = (index + 1) * 100 + 50; // center height of next card
+              // Y positions
+              const currentCardBottomY = index * 100 + 80; // bottom of current card
+              const nextCardTopY = (index + 1) * 100 + 30; // top of next card
+              const nextCardCenterY = (index + 1) * 100 + 50; // center of next card
 
-              // Current card center X (where road exits from bottom)
-              const currentCenterX = isLeft ? leftCardCenterX : rightCardCenterX;
-              // Next card edge X (where road enters from side)
-              const nextEdgeX = nextIsLeft ? 0 : 340; // enters from left edge or right edge
-              const nextCenterX = nextIsLeft ? leftCardCenterX : rightCardCenterX;
+              // Start point: bottom center of current card
+              const startX = isLeft ? leftCardCenterX : rightCardCenterX;
+              const startY = currentCardBottomY;
 
-              // Path: exit bottom of current card → curve → enter side of next card → go to center
-              // We draw from bottom of card to the side edge of next card
-              const pathD = `M ${currentCenterX} ${currentCardBottomY}
-                             C ${currentCenterX} ${currentCardBottomY + 30},
-                               ${nextEdgeX + (nextIsLeft ? 50 : -50)} ${nextCardSideY},
-                               ${nextEdgeX + (nextIsLeft ? 15 : -15)} ${nextCardSideY}`;
+              // Entry point: side edge of next card at center height
+              const entryX = nextIsLeft ? rightCardLeftEdge : leftCardRightEdge;
+              const entryY = nextCardCenterY;
+
+              // Control points for smooth S-curve
+              const midY = (startY + entryY) / 2;
+
+              // Create smooth bezier curve: bottom center → side edge
+              const pathD = `M ${startX} ${startY}
+                             C ${startX} ${startY + 25},
+                               ${entryX + (nextIsLeft ? -40 : 40)} ${midY},
+                               ${entryX} ${entryY}`;
 
               return (
                 <g key={`road-${month.key}`}>
@@ -279,29 +286,29 @@ export function PathTab() {
                   <path
                     d={pathD}
                     stroke={isCompleted || isUnlocked ? "url(#roadGradientCompleted)" : "url(#roadGradientLocked)"}
-                    strokeWidth="22"
+                    strokeWidth="20"
                     fill="none"
                     strokeLinecap="round"
-                    strokeOpacity="0.6"
+                    strokeOpacity="0.5"
                   />
-                  {/* Road edges - subtle */}
+                  {/* Road edges */}
                   <path
                     d={pathD}
                     stroke="#8b4513"
-                    strokeWidth="24"
+                    strokeWidth="22"
                     fill="none"
                     strokeLinecap="round"
-                    strokeOpacity="0.1"
+                    strokeOpacity="0.08"
                   />
-                  {/* Road inner highlight - dashed line */}
+                  {/* Center dashed line */}
                   <path
                     d={pathD}
                     stroke={isCompleted ? "#ffd700" : "#ffffff"}
-                    strokeWidth="2"
+                    strokeWidth="1.5"
                     fill="none"
                     strokeLinecap="round"
-                    strokeDasharray="8 6"
-                    strokeOpacity={isCompleted ? 0.6 : isUnlocked ? 0.4 : 0.15}
+                    strokeDasharray="6 4"
+                    strokeOpacity={isCompleted ? 0.7 : isUnlocked ? 0.4 : 0.2}
                   />
                 </g>
               );
