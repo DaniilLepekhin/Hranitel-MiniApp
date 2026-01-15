@@ -6,6 +6,9 @@ import { webhookRateLimit } from '@/middlewares/rateLimit';
 import { db, users, courses, courseProgress, meditations } from '@/db';
 import { eq, desc } from 'drizzle-orm';
 import { gamificationService } from '@/modules/gamification/service';
+import { schedulerService, type ScheduledTask } from '@/services/scheduler.service';
+import { TelegramService } from '@/services/telegram.service';
+import { stateService } from '@/services/state.service';
 
 // Initialize bot
 export const bot = new Bot(config.TELEGRAM_BOT_TOKEN);
@@ -13,38 +16,45 @@ export const bot = new Bot(config.TELEGRAM_BOT_TOKEN);
 // Initialize bot info (required for webhooks)
 await bot.init();
 
-// User state management (in production use Redis or DB)
-interface UserState {
-  awaitingPayment?: boolean;
-  paymentCheckTime?: number;
-}
-const userStates = new Map<number, UserState>();
+// Initialize Telegram service
+const telegramService = new TelegramService(bot.api);
 
-// Helper to check payment status (placeholder - implement real logic)
+// Helper to check payment status
 async function checkPaymentStatus(userId: number): Promise<boolean> {
-  // TODO: Implement real payment check via YooKassa/Stripe API
-  // For now return false as placeholder
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.telegramId, String(userId)))
-    .limit(1);
+  try {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.telegramId, String(userId)))
+      .limit(1);
 
-  return user?.hasAccess || false;
+    return user?.hasAccess || false;
+  } catch (error) {
+    logger.error({ error, userId }, 'Failed to check payment status');
+    return false;
+  }
 }
 
-// Schedule payment reminder after 5 minutes
-function schedulePaymentReminder(userId: number, chatId: number) {
-  setTimeout(async () => {
-    const paid = await checkPaymentStatus(userId);
-    if (!paid) {
-      const keyboard = new InlineKeyboard()
-        .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`)
-        .row()
-        .text('Я не готов 🤔', 'not_ready');
+// Task processor callback for scheduled tasks
+async function processScheduledTask(task: ScheduledTask): Promise<void> {
+  const { type, userId, chatId } = task;
 
-      // Send video with caption
-      await bot.api.sendVideo(
+  try {
+    // Check if user already paid
+    const paid = await checkPaymentStatus(userId);
+    if (paid) {
+      logger.info({ userId, taskType: type }, 'User already paid, skipping reminder');
+      return;
+    }
+
+    const keyboard = new InlineKeyboard()
+      .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`)
+      .row()
+      .text('Я не готов 🤔', 'not_ready');
+
+    if (type === 'payment_reminder') {
+      // Send 5-minute reminder with video
+      await telegramService.sendVideo(
         chatId,
         'https://t.me/mate_bot_open/9250',
         {
@@ -69,23 +79,18 @@ function schedulePaymentReminder(userId: number, chatId: number) {
         }
       );
 
-      // Schedule second reminder after 60 minutes total
-      scheduleFinalReminder(userId, chatId);
-    }
-  }, 5 * 60 * 1000); // 5 minutes
-}
-
-// Schedule final reminder after 60 minutes
-function scheduleFinalReminder(userId: number, chatId: number) {
-  setTimeout(async () => {
-    const paid = await checkPaymentStatus(userId);
-    if (!paid) {
-      const keyboard = new InlineKeyboard()
-        .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`)
-        .row()
-        .text('Я не готов 🤔', 'not_ready');
-
-      await bot.api.sendMessage(
+      // Schedule final reminder after 55 more minutes (60 minutes total)
+      await schedulerService.schedule(
+        {
+          type: 'final_reminder',
+          userId,
+          chatId,
+        },
+        55 * 60 * 1000 // 55 minutes
+      );
+    } else if (type === 'final_reminder') {
+      // Send 60-minute final reminder
+      await telegramService.sendMessage(
         chatId,
         `<b>Это не просто клуб.\n` +
         `Это точка, где меняется траектория дохода.</b>\n\n` +
@@ -111,357 +116,455 @@ function scheduleFinalReminder(userId: number, chatId: number) {
         }
       );
     }
-  }, 55 * 60 * 1000); // 55 minutes (total 60 minutes from start)
+  } catch (error) {
+    logger.error({ error, task }, 'Failed to process scheduled task');
+    throw error;
+  }
 }
+
+// Start scheduler processing
+schedulerService.startProcessing(processScheduledTask);
 
 // Bot commands
 bot.command('start', async (ctx) => {
-  const keyboard = new Keyboard()
-    .text('Получить доступ')
-    .text('MiniApp')
-    .resized();
+  try {
+    const keyboard = new Keyboard()
+      .text('Получить доступ')
+      .text('MiniApp')
+      .resized();
 
-  await ctx.reply(
-    `<b>Код Денег — здесь.</b>\n\n` +
-    `❤️ Экосистема, где <b>15 000+ участников</b>\n` +
-    `уже выстраивают доход в мягких нишах через поле, этапы и живую среду — а не одиночные курсы.\n\n` +
-    `Смотри видео и узнай, что ждет тебя внутри клуба\n\n` +
-    `Доступ сразу после входа 👇`,
-    { reply_markup: keyboard, parse_mode: 'HTML' }
-  );
+    await telegramService.sendMessage(
+      ctx.chat.id,
+      `<b>Код Денег — здесь.</b>\n\n` +
+      `❤️ Экосистема, где <b>15 000+ участников</b>\n` +
+      `уже выстраивают доход в мягких нишах через поле, этапы и живую среду — а не одиночные курсы.\n\n` +
+      `Смотри видео и узнай, что ждет тебя внутри клуба\n\n` +
+      `Доступ сразу после входа 👇`,
+      { reply_markup: keyboard, parse_mode: 'HTML' }
+    );
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in /start command');
+  }
 });
 
 // Handle "Получить доступ" button
 bot.hears('Получить доступ', async (ctx) => {
-  const webAppUrl = `https://ishodnyi-kod.com/webappclubik`;
+  try {
+    const userId = ctx.from!.id;
+    const chatId = ctx.chat.id;
+    const webAppUrl = `https://ishodnyi-kod.com/webappclubik`;
 
-  const keyboard = new InlineKeyboard()
-    .webApp('Оплатить', webAppUrl);
+    const keyboard = new InlineKeyboard()
+      .webApp('Оплатить', webAppUrl);
 
-  await ctx.reply(
-    `<b>🎫 Твой билет в КОД ДЕНЕГ</b>\n\n` +
-    `<b>Информация о подписке на клуб «Код Денег»:</b>\n` +
-    `👉🏼 1 месяц = 2.900 ₽\n` +
-    `👉🏼 В подписку входит полный доступ к клубу «Код Денег»: обучение и мини-курсы по мягким нишам, ` +
-    `десятки — мини-группы поддержки, чаты и офлайн-встречи по городам, закрытые эфиры и разборы с Кристиной, подкасты, баллы и приложение\n` +
-    `👉🏼 Подписка продлевается автоматически каждые 30 дней. Отписаться можно в любой момент в меню участника.\n` +
-    `👉🏼 Если при оплате возникают сложности обратитесь в службу заботы клуба @Egiazarova_support_bot`,
-    { reply_markup: keyboard, parse_mode: 'HTML' }
-  );
+    await telegramService.sendMessage(
+      chatId,
+      `<b>🎫 Твой билет в КОД ДЕНЕГ</b>\n\n` +
+      `<b>Информация о подписке на клуб «Код Денег»:</b>\n` +
+      `👉🏼 1 месяц = 2.900 ₽\n` +
+      `👉🏼 В подписку входит полный доступ к клубу «Код Денег»: обучение и мини-курсы по мягким нишам, ` +
+      `десятки — мини-группы поддержки, чаты и офлайн-встречи по городам, закрытые эфиры и разборы с Кристиной, подкасты, баллы и приложение\n` +
+      `👉🏼 Подписка продлевается автоматически каждые 30 дней. Отписаться можно в любой момент в меню участника.\n` +
+      `👉🏼 Если при оплате возникают сложности обратитесь в службу заботы клуба @Egiazarova_support_bot`,
+      { reply_markup: keyboard, parse_mode: 'HTML' }
+    );
 
-  // Mark user as awaiting payment and schedule reminder
-  const userId = ctx.from!.id;
-  userStates.set(userId, {
-    awaitingPayment: true,
-    paymentCheckTime: Date.now()
-  });
+    // Mark user as awaiting payment
+    await stateService.setState(userId, 'awaiting_payment');
 
-  schedulePaymentReminder(userId, ctx.chat.id);
+    // Schedule payment reminder after 5 minutes
+    await schedulerService.schedule(
+      {
+        type: 'payment_reminder',
+        userId,
+        chatId,
+      },
+      5 * 60 * 1000 // 5 minutes
+    );
 
-  // Check payment after button sent
-  setTimeout(async () => {
-    const paid = await checkPaymentStatus(userId);
-    if (paid) {
-      await ctx.reply(
-        '🎉 <b>Поздравляю с покупкой!</b>\n\n' +
-        'Добро пожаловать в клуб «Код Денег»! Теперь у тебя есть полный доступ ко всем материалам.',
-        { parse_mode: 'HTML' }
-      );
-      userStates.delete(userId);
-    }
-  }, 10000); // Check after 10 seconds
+    // Check payment after 10 seconds
+    setTimeout(async () => {
+      try {
+        const paid = await checkPaymentStatus(userId);
+        if (paid) {
+          await telegramService.sendMessage(
+            chatId,
+            '🎉 <b>Поздравляю с покупкой!</b>\n\n' +
+            'Добро пожаловать в клуб «Код Денег»! Теперь у тебя есть полный доступ ко всем материалам.',
+            { parse_mode: 'HTML' }
+          );
+          await stateService.setState(userId, 'paid');
+        }
+      } catch (error) {
+        logger.error({ error, userId }, 'Error checking payment status');
+      }
+    }, 10000); // Check after 10 seconds
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in Получить доступ handler');
+  }
 });
 
 // Handle "MiniApp" button
 bot.hears('MiniApp', async (ctx) => {
-  const keyboard = new InlineKeyboard()
-    .webApp('🚀 Открыть приложение', config.WEBAPP_URL);
+  try {
+    const keyboard = new InlineKeyboard()
+      .webApp('🚀 Открыть приложение', config.WEBAPP_URL);
 
-  await ctx.reply('Нажми кнопку, чтобы открыть приложение:', {
-    reply_markup: keyboard,
-  });
+    await telegramService.sendMessage(
+      ctx.chat.id,
+      'Нажми кнопку, чтобы открыть приложение:',
+      { reply_markup: keyboard }
+    );
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in MiniApp handler');
+  }
 });
 
 // Handle "Я не готов" callback
 bot.callbackQuery('not_ready', async (ctx) => {
-  await ctx.answerCallbackQuery();
+  try {
+    await ctx.answerCallbackQuery();
 
-  const keyboard = new Keyboard()
-    .text('🔮 где мои деньги в 2026 году')
-    .text('💰 почему доход не растет')
-    .row()
-    .text('🧠 состояние vs деньги')
-    .text('🌍 окружение')
-    .resized();
+    const keyboard = new Keyboard()
+      .text('🔮 где мои деньги в 2026 году')
+      .text('💰 почему доход не растет')
+      .row()
+      .text('🧠 состояние vs деньги')
+      .text('🌍 окружение')
+      .resized();
 
-  await ctx.reply(
-    `<b>Что горит прямо сейчас? 🔥</b>\n\n` +
-    `Только честно.\n` +
-    `Чтобы не грузить лишним — выбери, что сейчас важнее всего 👇`,
-    { reply_markup: keyboard, parse_mode: 'HTML' }
-  );
+    await telegramService.sendMessage(
+      ctx.chat!.id,
+      `<b>Что горит прямо сейчас? 🔥</b>\n\n` +
+      `Только честно.\n` +
+      `Чтобы не грузить лишним — выбери, что сейчас важнее всего 👇`,
+      { reply_markup: keyboard, parse_mode: 'HTML' }
+    );
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in not_ready callback');
+  }
 });
 
 // Handle topic selection buttons
 bot.hears('🔮 где мои деньги в 2026 году', async (ctx) => {
-  const keyboard = new InlineKeyboard()
-    .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
+  try {
+    const chatId = ctx.chat.id;
+    const keyboard = new InlineKeyboard()
+      .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
 
-  await ctx.reply(
-    `В 2026 деньги не живут отдельно от жизни.\n` +
-    `Состояние, энергия, здоровье и отношения\n` +
-    `напрямую влияют на рост дохода.\n\n` +
-    `Если хочешь <b>финансово вырасти в 2026,</b>\n` +
-    `важно знать:\n` +
-    `— в какой энергии проходит твой год\n` +
-    `— где точка роста, а где утечки\n` +
-    `— на чём деньги реально умножаются\n\n` +
-    `Я подготовила <b>индивидуальный гайд</b>\n` +
-    `с расшифровкой по дате рождения: финансы, отношения, энергия, здоровье, ключевые периоды года.`,
-    { parse_mode: 'HTML' }
-  );
+    await telegramService.sendMessage(
+      chatId,
+      `В 2026 деньги не живут отдельно от жизни.\n` +
+      `Состояние, энергия, здоровье и отношения\n` +
+      `напрямую влияют на рост дохода.\n\n` +
+      `Если хочешь <b>финансово вырасти в 2026,</b>\n` +
+      `важно знать:\n` +
+      `— в какой энергии проходит твой год\n` +
+      `— где точка роста, а где утечки\n` +
+      `— на чём деньги реально умножаются\n\n` +
+      `Я подготовила <b>индивидуальный гайд</b>\n` +
+      `с расшифровкой по дате рождения: финансы, отношения, энергия, здоровье, ключевые периоды года.`,
+      { parse_mode: 'HTML' }
+    );
 
-  await ctx.replyWithDocument('https://t.me/mate_bot_open/9257');
+    await telegramService.sendDocument(chatId, 'https://t.me/mate_bot_open/9257');
 
-  await ctx.reply(
-    `Если хочешь не просто понять прогноз, а <b>реально прожить 2026 в росте</b>, это делается через среду и этапы.\n\n` +
-    `В клубе <b>«Код Денег»</b> мы переводим прогноз в действия, состояние — в доход, а потенциал — в результат.\n\n` +
-    `Забирай гайд и заходи в поле ☝️`,
-    { reply_markup: keyboard, parse_mode: 'HTML' }
-  );
+    await telegramService.sendMessage(
+      chatId,
+      `Если хочешь не просто понять прогноз, а <b>реально прожить 2026 в росте</b>, это делается через среду и этапы.\n\n` +
+      `В клубе <b>«Код Денег»</b> мы переводим прогноз в действия, состояние — в доход, а потенциал — в результат.\n\n` +
+      `Забирай гайд и заходи в поле ☝️`,
+      { reply_markup: keyboard, parse_mode: 'HTML' }
+    );
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in topic handler: деньги в 2026');
+  }
 });
 
 bot.hears('💰 почему доход не растет', async (ctx) => {
-  const keyboard = new InlineKeyboard()
-    .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
+  try {
+    const chatId = ctx.chat.id;
+    const keyboard = new InlineKeyboard()
+      .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
 
-  await ctx.reply(
-    `Если деньги не растут —\n` +
-    `причина чаще не в знаниях, а в состоянии и сценариях.\n\n` +
-    `В гайде ты увидишь:\n` +
-    `— где именно ты застряла\n` +
-    `— какие установки тормозят доход\n` +
-    `— какой шаг сейчас даст рост`
-  );
+    await telegramService.sendMessage(
+      chatId,
+      `Если деньги не растут —\n` +
+      `причина чаще не в знаниях, а в состоянии и сценариях.\n\n` +
+      `В гайде ты увидишь:\n` +
+      `— где именно ты застряла\n` +
+      `— какие установки тормозят доход\n` +
+      `— какой шаг сейчас даст рост`
+    );
 
-  await ctx.replyWithDocument('https://t.me/mate_bot_open/9258');
+    await telegramService.sendDocument(chatId, 'https://t.me/mate_bot_open/9258');
 
-  await ctx.reply(
-    `А если хочешь не просто понять причину, а <b>реально выйти из финансового тупика</b>, это делается через этапы и среду.\n\n` +
-    `В клубе <b>«Код Денег»</b> мы переводим осознание\n` +
-    `в действия, действия — в результат, а результат — в стабильный доход.\n\n` +
-    `Забирай гайд и заходи в поле ☝️`,
-    { reply_markup: keyboard, parse_mode: 'HTML' }
-  );
+    await telegramService.sendMessage(
+      chatId,
+      `А если хочешь не просто понять причину, а <b>реально выйти из финансового тупика</b>, это делается через этапы и среду.\n\n` +
+      `В клубе <b>«Код Денег»</b> мы переводим осознание\n` +
+      `в действия, действия — в результат, а результат — в стабильный доход.\n\n` +
+      `Забирай гайд и заходи в поле ☝️`,
+      { reply_markup: keyboard, parse_mode: 'HTML' }
+    );
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in topic handler: доход не растет');
+  }
 });
 
 bot.hears('🧠 состояние vs деньги', async (ctx) => {
-  const keyboard = new InlineKeyboard()
-    .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
+  try {
+    const chatId = ctx.chat.id;
+    const keyboard = new InlineKeyboard()
+      .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
 
-  await ctx.reply(
-    `Если состояние не держит — деньги не удерживаются.\n\n` +
-    `В гайде ты увидишь:\n` +
-    `— где у тебя утекает энергия\n` +
-    `— через что к тебе приходят деньги\n` +
-    `— персональную расшифровку <b>по дате рождения</b>\n\n` +
-    `А если хочешь не просто понять,\n` +
-    `а <b>реально выстроить доход </b>—\n` +
-    `дальше это делается через среду и этапы.`,
-    { parse_mode: 'HTML' }
-  );
+    await telegramService.sendMessage(
+      chatId,
+      `Если состояние не держит — деньги не удерживаются.\n\n` +
+      `В гайде ты увидишь:\n` +
+      `— где у тебя утекает энергия\n` +
+      `— через что к тебе приходят деньги\n` +
+      `— персональную расшифровку <b>по дате рождения</b>\n\n` +
+      `А если хочешь не просто понять,\n` +
+      `а <b>реально выстроить доход </b>—\n` +
+      `дальше это делается через среду и этапы.`,
+      { parse_mode: 'HTML' }
+    );
 
-  await ctx.replyWithDocument('https://t.me/mate_bot_open/9259');
+    await telegramService.sendDocument(chatId, 'https://t.me/mate_bot_open/9259');
 
-  await ctx.reply(
-    `В клубе <b>«Код Денег»</b> мы переводим состояние в действия,\n` +
-    `а действия — в деньги.\n\n` +
-    `Забирай гайд и заходи в поле ☝️`,
-    { reply_markup: keyboard, parse_mode: 'HTML' }
-  );
+    await telegramService.sendMessage(
+      chatId,
+      `В клубе <b>«Код Денег»</b> мы переводим состояние в действия,\n` +
+      `а действия — в деньги.\n\n` +
+      `Забирай гайд и заходи в поле ☝️`,
+      { reply_markup: keyboard, parse_mode: 'HTML' }
+    );
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in topic handler: состояние vs деньги');
+  }
 });
 
 bot.hears('🌍 окружение', async (ctx) => {
-  const keyboard = new InlineKeyboard()
-    .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
+  try {
+    const chatId = ctx.chat.id;
+    const keyboard = new InlineKeyboard()
+      .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
 
-  // Send all images as media group
-  await ctx.replyWithMediaGroup([
-    { type: 'photo', media: 'https://t.me/mate_bot_open/9251' },
-    { type: 'photo', media: 'https://t.me/mate_bot_open/9252' },
-    { type: 'photo', media: 'https://t.me/mate_bot_open/9253' },
-    { type: 'photo', media: 'https://t.me/mate_bot_open/9254' },
-    { type: 'photo', media: 'https://t.me/mate_bot_open/9255' },
-    { type: 'photo', media: 'https://t.me/mate_bot_open/9256' }
-  ]);
+    // Send all images as media group
+    await telegramService.sendMediaGroup(chatId, [
+      { type: 'photo', media: 'https://t.me/mate_bot_open/9251' },
+      { type: 'photo', media: 'https://t.me/mate_bot_open/9252' },
+      { type: 'photo', media: 'https://t.me/mate_bot_open/9253' },
+      { type: 'photo', media: 'https://t.me/mate_bot_open/9254' },
+      { type: 'photo', media: 'https://t.me/mate_bot_open/9255' },
+      { type: 'photo', media: 'https://t.me/mate_bot_open/9256' }
+    ]);
 
-  await ctx.reply(
-    `<b>🌍 Твоё окружение — твоя точка роста.</b>\n\n` +
-    `Когда ты оказываешься в правильной среде,\n` +
-    `рост перестаёт быть борьбой.\n\n` +
-    `💡 Появляется ясность, энергия и движение.\n` +
-    `👥 Рядом — люди, которые понимают твой путь,\n` +
-    `поддерживают и <b>идут к своим целям</b>, а не обсуждают чужие.\n\n` +
-    `«Я сделала то, что откладывала месяцами».\n` +
-    `«Доход сдвинулся, потому что я перестала быть в одиночке».\n\n` +
-    `✨ Это не магия.\n` +
-    `Это <b>сила среды</b>, которая работает всегда.\n` +
-    `Недаром говорят: <i>ты — среднее из тех, кто рядом с тобой.</i>\n\n` +
-    `В клубе <b>«Код Денег»</b> — тысячи участников по всей стране.\n` +
-    `🌍 Сообщество в <b>60+ городах</b>, живые встречи, десятки.\n` +
-    `🤝 Поддержка, обмен опытом и рост через поле.\n\n` +
-    `Ты попадаешь в среду, где: действуют, растут, фиксируют результат\n\n` +
-    `👉 Подключайся.\n` +
-    `Когда ты не один —\n` +
-    `двигаться к деньгам и целям становится проще.`,
-    { reply_markup: keyboard, parse_mode: 'HTML' }
-  );
+    await telegramService.sendMessage(
+      chatId,
+      `<b>🌍 Твоё окружение — твоя точка роста.</b>\n\n` +
+      `Когда ты оказываешься в правильной среде,\n` +
+      `рост перестаёт быть борьбой.\n\n` +
+      `💡 Появляется ясность, энергия и движение.\n` +
+      `👥 Рядом — люди, которые понимают твой путь,\n` +
+      `поддерживают и <b>идут к своим целям</b>, а не обсуждают чужие.\n\n` +
+      `«Я сделала то, что откладывала месяцами».\n` +
+      `«Доход сдвинулся, потому что я перестала быть в одиночке».\n\n` +
+      `✨ Это не магия.\n` +
+      `Это <b>сила среды</b>, которая работает всегда.\n` +
+      `Недаром говорят: <i>ты — среднее из тех, кто рядом с тобой.</i>\n\n` +
+      `В клубе <b>«Код Денег»</b> — тысячи участников по всей стране.\n` +
+      `🌍 Сообщество в <b>60+ городах</b>, живые встречи, десятки.\n` +
+      `🤝 Поддержка, обмен опытом и рост через поле.\n\n` +
+      `Ты попадаешь в среду, где: действуют, растут, фиксируют результат\n\n` +
+      `👉 Подключайся.\n` +
+      `Когда ты не один —\n` +
+      `двигаться к деньгам и целям становится проще.`,
+      { reply_markup: keyboard, parse_mode: 'HTML' }
+    );
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in topic handler: окружение');
+  }
 });
 
 bot.command('app', async (ctx) => {
-  const keyboard = new InlineKeyboard()
-    .webApp('🚀 Открыть приложение', config.WEBAPP_URL);
+  try {
+    const keyboard = new InlineKeyboard()
+      .webApp('🚀 Открыть приложение', config.WEBAPP_URL);
 
-  await ctx.reply('Нажми кнопку, чтобы открыть приложение:', {
-    reply_markup: keyboard,
-  });
+    await telegramService.sendMessage(
+      ctx.chat.id,
+      'Нажми кнопку, чтобы открыть приложение:',
+      { reply_markup: keyboard }
+    );
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in /app command');
+  }
 });
 
 bot.command('today', async (ctx) => {
-  const telegramId = String(ctx.from?.id);
+  try {
+    const telegramId = String(ctx.from?.id);
 
-  // Get user
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.telegramId, telegramId))
-    .limit(1);
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.telegramId, telegramId))
+      .limit(1);
 
-  if (!user) {
-    await ctx.reply('Сначала открой приложение, чтобы зарегистрироваться! /app');
-    return;
+    if (!user) {
+      await telegramService.sendMessage(
+        ctx.chat.id,
+        'Сначала открой приложение, чтобы зарегистрироваться! /app'
+      );
+      return;
+    }
+
+    const progress = await db
+      .select({
+        currentDay: courseProgress.currentDay,
+        courseTitle: courses.title,
+        courseId: courses.id,
+      })
+      .from(courseProgress)
+      .innerJoin(courses, eq(courseProgress.courseId, courses.id))
+      .where(eq(courseProgress.userId, user.id))
+      .orderBy(desc(courseProgress.lastAccessedAt))
+      .limit(3);
+
+    if (progress.length === 0) {
+      await telegramService.sendMessage(
+        ctx.chat.id,
+        '📚 У тебя пока нет активных курсов.\n\n' +
+        'Открой приложение и начни первый курс! /app'
+      );
+      return;
+    }
+
+    let message = '📅 Твои курсы на сегодня:\n\n';
+
+    progress.forEach((p, i) => {
+      message += `${i + 1}. ${p.courseTitle}\n`;
+      message += `   📍 День ${p.currentDay}\n\n`;
+    });
+
+    const keyboard = new InlineKeyboard()
+      .webApp('🚀 Продолжить обучение', config.WEBAPP_URL);
+
+    await telegramService.sendMessage(ctx.chat.id, message, { reply_markup: keyboard });
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in /today command');
   }
-
-  // Get user's courses with progress
-  const progress = await db
-    .select({
-      currentDay: courseProgress.currentDay,
-      courseTitle: courses.title,
-      courseId: courses.id,
-    })
-    .from(courseProgress)
-    .innerJoin(courses, eq(courseProgress.courseId, courses.id))
-    .where(eq(courseProgress.userId, user.id))
-    .orderBy(desc(courseProgress.lastAccessedAt))
-    .limit(3);
-
-  if (progress.length === 0) {
-    await ctx.reply(
-      '📚 У тебя пока нет активных курсов.\n\n' +
-      'Открой приложение и начни первый курс! /app'
-    );
-    return;
-  }
-
-  let message = '📅 Твои курсы на сегодня:\n\n';
-
-  progress.forEach((p, i) => {
-    message += `${i + 1}. ${p.courseTitle}\n`;
-    message += `   📍 День ${p.currentDay}\n\n`;
-  });
-
-  const keyboard = new InlineKeyboard()
-    .webApp('🚀 Продолжить обучение', config.WEBAPP_URL);
-
-  await ctx.reply(message, { reply_markup: keyboard });
 });
 
 bot.command('progress', async (ctx) => {
-  const telegramId = String(ctx.from?.id);
+  try {
+    const telegramId = String(ctx.from?.id);
 
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.telegramId, telegramId))
-    .limit(1);
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.telegramId, telegramId))
+      .limit(1);
 
-  if (!user) {
-    await ctx.reply('Сначала открой приложение! /app');
-    return;
+    if (!user) {
+      await telegramService.sendMessage(ctx.chat.id, 'Сначала открой приложение! /app');
+      return;
+    }
+
+    const stats = await gamificationService.getUserStats(user.id);
+
+    if (!stats) {
+      await telegramService.sendMessage(ctx.chat.id, 'Статистика недоступна');
+      return;
+    }
+
+    const progressBar = '█'.repeat(Math.floor(stats.progressPercent / 10)) +
+                        '░'.repeat(10 - Math.floor(stats.progressPercent / 10));
+
+    await telegramService.sendMessage(
+      ctx.chat.id,
+      `📊 Твой прогресс:\n\n` +
+      `🏆 Уровень: ${stats.level}\n` +
+      `⭐ Опыт: ${stats.experience} XP\n` +
+      `🔥 Серия дней: ${stats.streak}\n\n` +
+      `Прогресс до следующего уровня:\n` +
+      `[${progressBar}] ${stats.progressPercent}%\n` +
+      `${stats.progressToNextLevel}/${stats.xpNeededForNextLevel} XP`
+    );
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in /progress command');
   }
-
-  const stats = await gamificationService.getUserStats(user.id);
-
-  if (!stats) {
-    await ctx.reply('Статистика недоступна');
-    return;
-  }
-
-  const progressBar = '█'.repeat(Math.floor(stats.progressPercent / 10)) +
-                      '░'.repeat(10 - Math.floor(stats.progressPercent / 10));
-
-  await ctx.reply(
-    `📊 Твой прогресс:\n\n` +
-    `🏆 Уровень: ${stats.level}\n` +
-    `⭐ Опыт: ${stats.experience} XP\n` +
-    `🔥 Серия дней: ${stats.streak}\n\n` +
-    `Прогресс до следующего уровня:\n` +
-    `[${progressBar}] ${stats.progressPercent}%\n` +
-    `${stats.progressToNextLevel}/${stats.xpNeededForNextLevel} XP`
-  );
 });
 
 bot.command('meditate', async (ctx) => {
-  // Get random meditation
-  const meditationsList = await db
-    .select()
-    .from(meditations)
-    .where(eq(meditations.isPremium, false))
-    .limit(5);
+  try {
+    const meditationsList = await db
+      .select()
+      .from(meditations)
+      .where(eq(meditations.isPremium, false))
+      .limit(5);
 
-  if (meditationsList.length === 0) {
-    await ctx.reply('Медитации пока недоступны. Попробуй позже!');
-    return;
-  }
-
-  const randomMeditation = meditationsList[Math.floor(Math.random() * meditationsList.length)];
-
-  const keyboard = new InlineKeyboard()
-    .webApp('🧘 Начать медитацию', `${config.WEBAPP_URL}/meditations/${randomMeditation.id}`);
-
-  await ctx.reply(
-    `🧘 Рекомендуем медитацию:\n\n` +
-    `*${randomMeditation.title}*\n` +
-    `⏱ ${Math.floor(randomMeditation.duration / 60)} минут\n\n` +
-    `${randomMeditation.description || ''}`,
-    {
-      parse_mode: 'Markdown',
-      reply_markup: keyboard,
+    if (meditationsList.length === 0) {
+      await telegramService.sendMessage(ctx.chat.id, 'Медитации пока недоступны. Попробуй позже!');
+      return;
     }
-  );
+
+    const randomMeditation = meditationsList[Math.floor(Math.random() * meditationsList.length)];
+
+    const keyboard = new InlineKeyboard()
+      .webApp('🧘 Начать медитацию', `${config.WEBAPP_URL}/meditations/${randomMeditation.id}`);
+
+    await telegramService.sendMessage(
+      ctx.chat.id,
+      `🧘 Рекомендуем медитацию:\n\n` +
+      `*${randomMeditation.title}*\n` +
+      `⏱ ${Math.floor(randomMeditation.duration / 60)} минут\n\n` +
+      `${randomMeditation.description || ''}`,
+      {
+        parse_mode: 'Markdown',
+        reply_markup: keyboard,
+      }
+    );
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in /meditate command');
+  }
 });
 
 // Callback handlers
 bot.callbackQuery('my_courses', async (ctx) => {
-  await ctx.answerCallbackQuery();
+  try {
+    await ctx.answerCallbackQuery();
 
-  const keyboard = new InlineKeyboard()
-    .webApp('📚 Открыть курсы', `${config.WEBAPP_URL}/courses`);
+    const keyboard = new InlineKeyboard()
+      .webApp('📚 Открыть курсы', `${config.WEBAPP_URL}/courses`);
 
-  await ctx.reply('Открой приложение, чтобы увидеть свои курсы:', {
-    reply_markup: keyboard,
-  });
+    await telegramService.sendMessage(
+      ctx.chat!.id,
+      'Открой приложение, чтобы увидеть свои курсы:',
+      { reply_markup: keyboard }
+    );
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in my_courses callback');
+  }
 });
 
 bot.callbackQuery('meditations', async (ctx) => {
-  await ctx.answerCallbackQuery();
+  try {
+    await ctx.answerCallbackQuery();
 
-  const keyboard = new InlineKeyboard()
-    .webApp('🧘 Открыть медитации', `${config.WEBAPP_URL}/meditations`);
+    const keyboard = new InlineKeyboard()
+      .webApp('🧘 Открыть медитации', `${config.WEBAPP_URL}/meditations`);
 
-  await ctx.reply('Открой приложение, чтобы увидеть медитации:', {
-    reply_markup: keyboard,
-  });
+    await telegramService.sendMessage(
+      ctx.chat!.id,
+      'Открой приложение, чтобы увидеть медитации:',
+      { reply_markup: keyboard }
+    );
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in meditations callback');
+  }
 });
 
 // Error handler
