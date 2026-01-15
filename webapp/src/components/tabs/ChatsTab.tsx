@@ -29,6 +29,14 @@ const clubChannels = [
     members: '15K+',
   },
   {
+    id: 'kod-app',
+    title: 'Приложение KOD',
+    description: 'Подписка на приложение ментального здоровья',
+    icon: HeadphonesIcon,
+    url: 'http://qr.numschool-web.ru/',
+    members: 'app',
+  },
+  {
     id: 'support',
     title: 'Служба заботы',
     description: 'Помощь и поддержка участников клуба',
@@ -155,7 +163,7 @@ export function ChatsTab() {
                   <div className="flex-1">
                     <h3 className="font-semibold text-[#3d2f1f] mb-0.5">{channel.title}</h3>
                     <p className="text-[#6b5a4a] text-xs mb-1">{channel.description}</p>
-                    {channel.members !== 'support' && (
+                    {channel.members !== 'support' && channel.members !== 'app' && (
                       <div className="flex items-center gap-1 text-[#8b4513] text-xs">
                         <Users className="w-3 h-3" />
                         <span>{channel.members} участников</span>
@@ -169,29 +177,6 @@ export function ChatsTab() {
             );
           })}
         </div>
-      </div>
-
-      {/* KOD App */}
-      <div className="mb-6">
-        <Card
-          className="p-5 cursor-pointer hover:scale-[1.02] transition-all bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10 border-[#8b4513]/30"
-          onClick={() => openLink('http://qr.numschool-web.ru/')}
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center shadow-lg">
-              <HeadphonesIcon className="w-7 h-7 text-white" strokeWidth={2} />
-            </div>
-
-            <div className="flex-1">
-              <h3 className="font-bold text-[#3d2f1f] mb-1">Приложение KOD</h3>
-              <p className="text-[#6b5a4a] text-sm">
-                Тебе доступна подписка на наше приложение ментального здоровья
-              </p>
-            </div>
-
-            <ExternalLink className="w-5 h-5 text-[#8b4513]" />
-          </div>
-        </Card>
       </div>
 
       {/* Referral Card */}
