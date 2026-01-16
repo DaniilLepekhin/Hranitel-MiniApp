@@ -72,20 +72,20 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
           <div className="w-full h-px bg-white/20 mb-4" />
 
           {/* Ссылка - СВЕТЛАЯ ПЛАШКА */}
-          <div className="bg-white/95 rounded-xl p-4 flex items-center gap-3">
+          <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 flex items-center gap-3 border border-white/10">
             <div className="flex-1 min-w-0">
-              <p className="text-[#6b5a4a] text-xs font-semibold mb-1.5">
+              <p className="text-white/80 text-xs font-semibold mb-1.5">
                 Отправьте эту ссылку другу
               </p>
-              <p className="text-[#3d2f1f] text-sm truncate font-mono font-medium">
+              <p className="text-white text-sm truncate font-mono font-medium">
                 {referralLink}
               </p>
             </div>
             <button
               onClick={handleCopyReferralLink}
-              className="flex-shrink-0 w-11 h-11 rounded-xl bg-[#3d2f1f]/10 hover:bg-[#3d2f1f]/20 flex items-center justify-center transition-colors"
+              className="flex-shrink-0 w-11 h-11 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
             >
-              <Copy className="w-5 h-5 text-[#3d2f1f]" />
+              <Copy className="w-5 h-5 text-white" />
             </button>
           </div>
         </div>
@@ -118,64 +118,48 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
         </p>
       </div>
 
-      {/* 4. Мой баланс - КРАСНАЯ КАРТОЧКА С ЗУБЧАТЫМ КРАЕМ */}
-      <div className="mb-6 relative">
-        {/* Основная карточка */}
-        <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-[#a52a2a] via-[#8b1a1a] to-[#7a1717] shadow-xl">
-          {/* Картинка монет слева внизу */}
-          <div className="absolute left-4 bottom-4 w-40 h-20 opacity-50">
+      {/* 4. Мой баланс - КРАСНАЯ КАРТОЧКА */}
+      <div className="mb-6">
+        <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-[#8b3a3a] via-[#7d2828] to-[#6b1a1a] shadow-xl">
+          {/* Картинка телефона слева внизу */}
+          <div className="absolute left-2 bottom-2 w-48 h-28 opacity-40">
             <img
-              src="https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=300&h=150&fit=crop&q=80"
-              alt="coins"
+              src="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&h=250&fit=crop&q=80"
+              alt="phone"
               className="w-full h-full object-cover rounded-lg"
               style={{ mixBlendMode: 'overlay' }}
             />
           </div>
 
-          <div className="relative z-10 p-6 flex items-start justify-between min-h-[140px]">
-            {/* Левая часть */}
-            <div className="flex-1">
-              <h2
-                className="text-white font-light mb-3"
-                style={{
-                  fontFamily: 'TT Nooks, serif',
-                  fontSize: '24px',
-                  fontWeight: 300,
-                }}
-              >
-                Мой баланс
-              </h2>
-            </div>
+          <div className="relative z-10 p-6">
+            <h2
+              className="text-white font-light mb-3"
+              style={{
+                fontFamily: 'TT Nooks, serif',
+                fontSize: '26px',
+                fontWeight: 300,
+              }}
+            >
+              Мой баланс
+            </h2>
 
-            {/* Правая часть с зубчатым краем */}
-            <div className="relative">
-              {/* Пунктирная линия */}
-              <div className="absolute left-[-24px] top-0 bottom-0 w-px border-l-2 border-dashed border-white/30" />
-
-              {/* Зубчатый край (круглые вырезы) */}
-              <div className="absolute left-[-32px] top-0 bottom-0 w-4 flex flex-col justify-around">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="w-3 h-3 rounded-full bg-[#f7f1e8]" />
-                ))}
-              </div>
-
-              {/* Число */}
-              <div className="text-right pl-10 pr-2">
+            <div className="flex items-end justify-end">
+              <div className="text-right">
                 <div
                   className="text-white font-bold leading-none"
                   style={{
                     fontFamily: 'Gilroy, sans-serif',
-                    fontSize: '68px',
+                    fontSize: '72px',
                     fontWeight: 700,
                   }}
                 >
                   {epBalance}
                 </div>
                 <div
-                  className="text-white font-normal mt-1"
+                  className="text-white/90 font-normal mt-1"
                   style={{
                     fontFamily: 'Gilroy, sans-serif',
-                    fontSize: '20px',
+                    fontSize: '22px',
                     fontWeight: 400,
                   }}
                 >
