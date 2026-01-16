@@ -89,50 +89,62 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
         </p>
       </div>
 
-      {/* Мой баланс - КРАСНАЯ КАРТОЧКА С КАРТИНКОЙ */}
-      <div className="mb-6 rounded-2xl overflow-hidden bg-gradient-to-br from-[#8b2424] via-[#a52a2a] to-[#7a1e1e] shadow-lg relative">
-        {/* Картинка монет */}
-        <div className="absolute left-0 bottom-0 w-48 h-32 opacity-40">
-          <div className="w-full h-full bg-gradient-to-tr from-yellow-600/30 to-transparent rounded-full blur-2xl" />
-        </div>
-
-        <div className="relative z-10 p-6 flex items-center justify-between">
-          <div>
-            <h2
-              className="text-white font-light mb-3"
-              style={{
-                fontFamily: 'TT Nooks, serif',
-                fontSize: '23.6px',
-                fontWeight: 300,
-              }}
-            >
-              Мой баланс
-            </h2>
-            {/* Имитация картинки монет */}
-            <div className="w-40 h-16 rounded-lg bg-black/10 mt-4" />
+      {/* Мой баланс - КРАСНАЯ КАРТОЧКА КАК КУПОН */}
+      <div className="mb-6 relative">
+        <div className="rounded-2xl overflow-hidden bg-gradient-to-r from-[#9c1f23] to-[#8b1a1e] shadow-xl relative">
+          {/* Картинка монет слева - SVG */}
+          <div className="absolute left-4 bottom-4 w-32 h-20 opacity-50">
+            <svg viewBox="0 0 128 80" className="w-full h-full">
+              <circle cx="24" cy="56" r="20" fill="#d4af37" opacity="0.7"/>
+              <circle cx="40" cy="50" r="22" fill="#ffd700" opacity="0.8"/>
+              <circle cx="56" cy="46" r="20" fill="#d4af37" opacity="0.7"/>
+              <ellipse cx="40" cy="50" rx="22" ry="8" fill="#b8860b" opacity="0.5"/>
+              <ellipse cx="24" cy="56" rx="20" ry="7" fill="#b8860b" opacity="0.5"/>
+            </svg>
           </div>
 
-          <div className="text-right">
-            <div
-              className="text-white font-semibold"
-              style={{
-                fontFamily: 'Gilroy, sans-serif',
-                fontSize: '62px',
-                fontWeight: 600,
-                lineHeight: '1',
-              }}
-            >
-              {epBalance}
+          <div className="relative z-10 p-6 flex items-center justify-between min-h-[140px]">
+            <div>
+              <h2
+                className="text-white font-light"
+                style={{
+                  fontFamily: 'TT Nooks, serif',
+                  fontSize: '24px',
+                  fontWeight: 300,
+                }}
+              >
+                Мой баланс
+              </h2>
             </div>
-            <div
-              className="text-white font-normal"
-              style={{
-                fontFamily: 'Gilroy, sans-serif',
-                fontSize: '24px',
-                fontWeight: 400,
-              }}
-            >
-              энергий
+
+            {/* Правая часть - число */}
+            <div className="relative">
+              {/* Пунктирная линия */}
+              <div className="absolute left-[-20px] top-0 bottom-0 w-px border-l-2 border-dashed border-white/25" />
+
+              <div className="text-right pl-8 bg-gradient-to-l from-[#7a1717]/30 to-transparent pr-4 py-4 rounded-r-2xl">
+                <div
+                  className="text-white font-bold"
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontSize: '64px',
+                    fontWeight: 700,
+                    lineHeight: '0.85',
+                  }}
+                >
+                  {epBalance}
+                </div>
+                <div
+                  className="text-white font-normal"
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontSize: '18px',
+                    fontWeight: 400,
+                  }}
+                >
+                  энергий
+                </div>
+              </div>
             </div>
           </div>
         </div>
