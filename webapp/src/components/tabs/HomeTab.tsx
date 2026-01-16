@@ -17,7 +17,6 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Получаем статистику пользователя
   const { data: statsData } = useQuery({
     queryKey: ['gamification-stats'],
     queryFn: () => gamificationApi.stats(),
@@ -26,8 +25,6 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
 
   const stats = statsData?.stats;
   const epBalance = stats?.experience || 0;
-
-  // Генерируем реферальную ссылку
   const referralLink = user ? `https://t.me/hranitelkodbot?start=ref_${user.id}` : '';
 
   const handleCopyReferralLink = () => {
@@ -44,8 +41,8 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
   };
 
   return (
-    <div className="px-4 pt-6 pb-24">
-      {/* Поиск - точно по Figma */}
+    <div className="min-h-screen bg-[#f7f1e8] px-4 pt-6 pb-24">
+      {/* Поиск */}
       <form onSubmit={handleSearch} className="mb-6">
         <div className="relative">
           <input
@@ -57,35 +54,34 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
               fontFamily: 'Gilroy, sans-serif',
               fontSize: '13.44px',
               fontWeight: 600,
-              lineHeight: '16.46px',
             }}
-            className="w-full bg-[#2d2520] text-[#f7f1e8] placeholder:text-[#f7f1e8] placeholder:opacity-70 rounded-lg px-11 py-3 focus:outline-none focus:ring-2 focus:ring-[#a01f23]/30"
+            className="w-full bg-[#3c3430] text-[#f7f1e8] placeholder:text-[#f7f1e8]/70 rounded-xl px-11 py-3.5 focus:outline-none"
           />
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#f7f1e8] opacity-70" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#f7f1e8]/70" />
         </div>
       </form>
 
-      {/* Приветствие - точно по Figma */}
-      <div className="mb-6">
+      {/* Приветствие */}
+      <div className="mb-8">
         <h1
-          className="text-[#463631] font-light mb-1"
+          className="text-[#3d2f1f] font-light mb-2"
           style={{
             fontFamily: 'TT Nooks, serif',
             fontSize: '53.7px',
             fontWeight: 300,
-            lineHeight: '51.02px',
+            lineHeight: '51px',
             letterSpacing: '-3.22px',
           }}
         >
           Привет, {user?.firstName || 'Даниил'}!
         </h1>
         <p
-          className="text-[#463631] font-light"
+          className="text-[#3d2f1f] font-light opacity-70"
           style={{
             fontFamily: 'TT Nooks, serif',
             fontSize: '20.98px',
             fontWeight: 300,
-            lineHeight: '19.94px',
+            lineHeight: '20px',
             letterSpacing: '-1.26px',
           }}
         >
@@ -93,140 +89,129 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
         </p>
       </div>
 
-      {/* Мой баланс - точно по Figma */}
-      <Card className="mb-6 p-6 bg-white border border-[#e5e5e5] shadow-sm">
-        <h2
-          className="text-[#463631] font-light mb-3"
-          style={{
-            fontFamily: 'TT Nooks, serif',
-            fontSize: '23.6px',
-            fontWeight: 300,
-            lineHeight: '30.57px',
-          }}
-        >
-          Мой баланс
-        </h2>
-        <div className="flex items-baseline gap-2">
-          <span
-            className="text-[#463631]"
-            style={{
-              fontFamily: 'Gilroy, sans-serif',
-              fontSize: '46.44px',
-              fontWeight: 600,
-              lineHeight: '56.88px',
-            }}
-          >
-            {epBalance}
-          </span>
-          <span
-            className="text-[#463631]"
-            style={{
-              fontFamily: 'Gilroy, sans-serif',
-              fontSize: '18.57px',
-              fontWeight: 400,
-              lineHeight: '22.29px',
-            }}
-          >
-            энергий
-          </span>
+      {/* Мой баланс - КРАСНАЯ КАРТОЧКА С КАРТИНКОЙ */}
+      <div className="mb-6 rounded-2xl overflow-hidden bg-gradient-to-br from-[#8b2424] via-[#a52a2a] to-[#7a1e1e] shadow-lg relative">
+        {/* Картинка монет */}
+        <div className="absolute left-0 bottom-0 w-48 h-32 opacity-40">
+          <div className="w-full h-full bg-gradient-to-tr from-yellow-600/30 to-transparent rounded-full blur-2xl" />
         </div>
-      </Card>
 
-      {/* Пригласи друга - точно по Figma с красной плашкой */}
-      <Card className="mb-6 p-0 bg-white border border-[#e5e5e5] shadow-sm overflow-hidden relative">
-        {/* Красная декоративная плашка */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-[#9c1723] opacity-20 rounded-full blur-2xl" />
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-[#9c1723] opacity-10 rounded-full blur-xl" />
+        <div className="relative z-10 p-6 flex items-center justify-between">
+          <div>
+            <h2
+              className="text-white font-light mb-3"
+              style={{
+                fontFamily: 'TT Nooks, serif',
+                fontSize: '23.6px',
+                fontWeight: 300,
+              }}
+            >
+              Мой баланс
+            </h2>
+            {/* Имитация картинки монет */}
+            <div className="w-40 h-16 rounded-lg bg-black/10 mt-4" />
+          </div>
 
-        <div className="relative z-10 p-5">
+          <div className="text-right">
+            <div
+              className="text-white font-semibold"
+              style={{
+                fontFamily: 'Gilroy, sans-serif',
+                fontSize: '62px',
+                fontWeight: 600,
+                lineHeight: '1',
+              }}
+            >
+              {epBalance}
+            </div>
+            <div
+              className="text-white font-normal"
+              style={{
+                fontFamily: 'Gilroy, sans-serif',
+                fontSize: '24px',
+                fontWeight: 400,
+              }}
+            >
+              энергий
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Пригласи друга - КРАСНАЯ КАРТОЧКА */}
+      <div className="mb-6 rounded-2xl overflow-hidden bg-gradient-to-br from-[#9c1b1b] to-[#7a1717] shadow-lg">
+        <div className="p-5">
           <div className="flex items-center gap-3 mb-4">
-            {/* Логотип КОД */}
-            <div className="w-12 h-12 rounded-full bg-[#a0111f] flex items-center justify-center flex-shrink-0">
+            {/* Круглый логотип КОД */}
+            <div className="w-16 h-16 rounded-full bg-[#a01f23] flex items-center justify-center flex-shrink-0 shadow-md">
               <span
-                className="text-[#f7f1e8] font-bold"
+                className="text-white font-bold"
                 style={{
                   fontFamily: 'Gilroy, sans-serif',
-                  fontSize: '10px',
+                  fontSize: '14px',
+                  letterSpacing: '1px',
                 }}
               >
                 КОД
               </span>
             </div>
             <h3
-              className="text-[#463631] flex-1"
+              className="text-white flex-1"
               style={{
                 fontFamily: 'Gilroy, sans-serif',
-                fontSize: '13.44px',
+                fontSize: '16px',
                 fontWeight: 600,
-                lineHeight: '16.46px',
               }}
             >
               Пригласи друга в клуб КОД ДЕНЕГ
             </h3>
           </div>
 
-          {/* Ссылка */}
-          <div className="bg-[#2d2620] rounded-lg p-3 flex items-center gap-2">
+          {/* Линия разделитель */}
+          <div className="w-full h-px bg-white/20 mb-4" />
+
+          {/* Ссылка - СВЕТЛАЯ ПЛАШКА */}
+          <div className="bg-[#e8dcc6] rounded-xl p-4 flex items-center gap-3">
             <div className="flex-1 min-w-0">
               <p
-                className="text-[#2d2620] mb-1"
+                className="text-[#3d2f1f] opacity-60 mb-1.5"
                 style={{
                   fontFamily: 'Gilroy, sans-serif',
-                  fontSize: '9.62px',
+                  fontSize: '11px',
                   fontWeight: 600,
-                  lineHeight: '11.78px',
-                  color: '#f7f1e8',
-                  opacity: 0.7,
                 }}
               >
                 Отправьте эту ссылку другу
               </p>
-              <p className="text-[#f7f1e8] text-xs truncate font-mono">{referralLink}</p>
+              <p className="text-[#3d2f1f] text-sm truncate font-mono font-medium">
+                {referralLink}
+              </p>
             </div>
             <button
               onClick={handleCopyReferralLink}
-              className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#f7f1e8]/10 hover:bg-[#f7f1e8]/20 flex items-center justify-center transition-colors active:scale-95"
+              className="flex-shrink-0 w-12 h-12 rounded-xl bg-[#3d2f1f]/10 hover:bg-[#3d2f1f]/20 flex items-center justify-center transition-colors active:scale-95"
             >
-              <Copy className="w-4 h-4 text-[#f7f1e8]" />
+              <Copy className="w-5 h-5 text-[#3d2f1f]" />
             </button>
           </div>
         </div>
-      </Card>
+      </div>
 
-      {/* Анонсы - точно по Figma */}
+      {/* Анонсы */}
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-4">
           <h2
-            className="text-[#463631] font-light"
+            className="text-[#3d2f1f] font-light"
             style={{
               fontFamily: 'TT Nooks, serif',
-              fontSize: '20.98px',
+              fontSize: '28px',
               fontWeight: 300,
-              lineHeight: '19.94px',
               letterSpacing: '-1.26px',
             }}
           >
             Анонсы
           </h2>
-          <Megaphone className="w-5 h-5 text-[#a01f23]" />
-        </div>
-
-        <div className="space-y-3">
-          {/* Placeholder для анонсов */}
-          <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
-            <div className="flex gap-3">
-              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-[#a01f23] to-[#9c1723] flex items-center justify-center flex-shrink-0">
-                <Megaphone className="w-6 h-6 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-[#463631] mb-1 text-sm">Ближайший эфир</h3>
-                <p className="text-xs text-[#463631] opacity-70 line-clamp-2">
-                  Закрытый эфир с Кристиной: "Как удвоить доход в 2026"
-                </p>
-                <p className="text-xs text-[#a01f23] mt-1 font-medium">Сегодня в 19:00</p>
-              </div>
-            </div>
-          </Card>
+          <Megaphone className="w-6 h-6 text-[#a01f23]" />
         </div>
       </div>
     </div>
