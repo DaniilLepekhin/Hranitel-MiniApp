@@ -29,7 +29,7 @@ const tabs = [
   },
   {
     id: 'ratings' as TabType,
-    label: 'Рейтинги',
+    label: 'Рейтинги / баллы',
     icon: Trophy,
   },
   {
