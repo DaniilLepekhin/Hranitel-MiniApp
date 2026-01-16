@@ -50,8 +50,8 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-[#f7f1e8] border-t border-[#3d2f1f]/10 safe-area-inset-bottom z-50">
-      <div className="flex items-center justify-around px-2 pt-2 pb-safe">
+    <nav className="fixed bottom-0 left-0 right-0 bg-[#2d2520] safe-area-inset-bottom z-50">
+      <div className="flex items-center justify-around px-2 py-3">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
 
@@ -68,22 +68,22 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
               key={tab.id}
               onClick={() => handleTabClick(tab.id)}
               className={clsx(
-                'flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all active:scale-95',
+                'flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all active:scale-95 min-w-[70px]',
                 isActive
-                  ? 'bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10'
-                  : 'hover:bg-[#3d2f1f]/5'
+                  ? 'bg-[#a52a2a]'
+                  : ''
               )}
             >
               <Icon
                 className={clsx(
-                  'w-5 h-5',
-                  isActive ? 'text-[#8b0000]' : 'text-[#6b5a4a]'
+                  'w-6 h-6',
+                  isActive ? 'text-white' : 'text-[#a8998a]'
                 )}
               />
               <span
                 className={clsx(
-                  'text-[10px] font-semibold',
-                  isActive ? 'text-[#8b0000]' : 'text-[#6b5a4a]'
+                  'text-[10px] font-medium',
+                  isActive ? 'text-white' : 'text-[#a8998a]'
                 )}
               >
                 {tab.label}
