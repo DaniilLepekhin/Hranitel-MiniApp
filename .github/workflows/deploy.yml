@@ -41,7 +41,7 @@ jobs:
             echo "🔧 Deploying Backend..."
             cd backend
 
-            # Create .env for backend (bot disabled, only webapp)
+            # Create .env for backend (with bot support)
             echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
             echo "PORT=3002" >> .env
             echo "NODE_ENV=production" >> .env
@@ -50,7 +50,10 @@ jobs:
             echo "CORS_ORIGIN=https://hranitel.daniillepekhin.com" >> .env
             echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" >> .env
             echo "API_URL=https://hranitel.daniillepekhin.com" >> .env
-            echo "OPENAI_API_KEY=" >> .env
+            echo "TELEGRAM_WEBHOOK_SECRET=${{ secrets.TELEGRAM_WEBHOOK_SECRET }}" >> .env
+            echo "TELEGRAM_BOT_USERNAME=${{ secrets.TELEGRAM_BOT_USERNAME }}" >> .env
+            echo "REDIS_URL=${{ secrets.REDIS_URL }}" >> .env
+            echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
 
             # Install Bun if not exists
             if ! command -v bun &> /dev/null; then
