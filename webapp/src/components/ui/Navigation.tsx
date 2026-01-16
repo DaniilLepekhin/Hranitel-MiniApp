@@ -50,12 +50,18 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-[#2d2520] safe-area-inset-bottom z-50">
-      <div className="flex items-center justify-around px-2 py-3">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 safe-area-inset-bottom"
+      style={{
+        height: '72px',
+        background: 'rgb(45, 38, 32)',
+        borderRadius: '16.789px 16.789px 0 0',
+      }}
+    >
+      <div className="flex items-center justify-around h-full px-[9px]">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
 
-          // Safety check for icon
           if (!tab.icon) {
             console.error('Missing icon for tab:', tab.id);
             return null;
@@ -68,23 +74,37 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
               key={tab.id}
               onClick={() => handleTabClick(tab.id)}
               className={clsx(
-                'flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all active:scale-95 min-w-[70px]',
-                isActive
-                  ? 'bg-[#a52a2a]'
-                  : ''
+                'flex flex-col items-center justify-center transition-all active:scale-95',
+                isActive ? 'h-[72px] rounded-[9px]' : ''
               )}
+              style={isActive ? {
+                width: '77px',
+                background: 'linear-gradient(261.695deg, rgb(174, 30, 43) 17.09%, rgb(156, 23, 35) 108.05%)',
+                borderColor: '#d03240',
+                borderWidth: '1px',
+                borderStyle: 'solid',
+              } : {
+                width: '61px',
+              }}
             >
               <Icon
-                className={clsx(
-                  'w-6 h-6',
-                  isActive ? 'text-white' : 'text-[#a8998a]'
-                )}
+                className="mb-[4px]"
+                style={{
+                  width: '15.326px',
+                  height: '15.326px',
+                  color: '#f7f1e8',
+                }}
               />
               <span
-                className={clsx(
-                  'text-[10px] font-medium',
-                  isActive ? 'text-white' : 'text-[#a8998a]'
-                )}
+                style={{
+                  fontFamily: 'Gilroy, sans-serif',
+                  fontSize: '11.931px',
+                  fontWeight: 500,
+                  lineHeight: '0.95',
+                  letterSpacing: '-0.3579px',
+                  color: '#f7f1e8',
+                  textAlign: 'center',
+                }}
               >
                 {tab.label}
               </span>

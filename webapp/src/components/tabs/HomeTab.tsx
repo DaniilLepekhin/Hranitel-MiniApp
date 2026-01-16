@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { Search, Copy, Megaphone } from 'lucide-react';
+import { Search, Copy, Megaphone, Home, TrendingUp, MessageCircle, Trophy, User } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { gamificationApi } from '@/lib/api';
 
@@ -24,7 +24,8 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
 
   const stats = statsData?.stats;
   const epBalance = stats?.experience || 1250;
-  const referralLink = user ? `https://t.me/hranitelkodbot?start=ref_${user.id}` : '';
+  const referralLink = user ? `https://t.me/hranitelkodbot?start=ref_${user.id}` : 'https://t.me/hranitelkodbot?start=ref_...';
+  const userName = user?.firstName || '{Имя}';
 
   const handleCopyReferralLink = () => {
     if (referralLink) {
@@ -40,152 +41,207 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f1e8] px-4 pt-6 pb-24">
-      {/* 1. Поиск */}
-      <form onSubmit={handleSearch} className="mb-6">
-        <div className="relative">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Поиск..."
-            className="w-full bg-[#2d2520] text-[#f7f1e8] placeholder:text-[#f7f1e8]/70 rounded-xl px-12 py-3.5 text-sm font-semibold focus:outline-none"
-          />
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#f7f1e8]/70" />
-        </div>
-      </form>
+    <div className="min-h-screen bg-[#f7f1e8] relative overflow-hidden">
+      {/* Контент */}
+      <div className="relative z-10 px-[29px] pt-[17px] pb-[100px]">
 
-      {/* 2. Пригласи друга - КРАСНАЯ КАРТОЧКА (СВЕРХУ!) */}
-      <div className="mb-6 rounded-2xl overflow-hidden bg-gradient-to-br from-[#a52a2a] via-[#8b1a1a] to-[#6b1515] shadow-lg relative">
-        <div className="p-5">
-          <div className="flex items-center gap-3 mb-4">
-            {/* Круглый логотип КОД */}
-            <div className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-sm border-2 border-white/20 flex items-center justify-center flex-shrink-0">
-              <span className="text-white font-bold text-xs tracking-wider">КОД</span>
-            </div>
-            <h3 className="text-white flex-1 font-semibold text-base">
-              Пригласи друга в клуб КОД ДЕНЕГ
-            </h3>
-          </div>
-
-          {/* Линия разделитель */}
-          <div className="w-full h-px bg-white/20 mb-4" />
-
-          {/* Ссылка - СВЕТЛАЯ ПЛАШКА */}
-          <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 flex items-center gap-3 border border-white/10">
-            <div className="flex-1 min-w-0">
-              <p className="text-white/80 text-xs font-semibold mb-1.5">
-                Отправьте эту ссылку другу
-              </p>
-              <p className="text-white text-sm truncate font-mono font-medium">
-                {referralLink}
-              </p>
-            </div>
-            <button
-              onClick={handleCopyReferralLink}
-              className="flex-shrink-0 w-11 h-11 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+        {/* 1. Поиск - точные размеры из Figma */}
+        <form onSubmit={handleSearch} className="mb-[20px]">
+          <div className="relative">
+            <div
+              className="w-[341px] h-[36px] bg-[#2d2620] rounded-[6px] mx-auto flex items-center"
             >
-              <Copy className="w-5 h-5 text-white" />
-            </button>
+              <Search className="w-[16px] h-[16px] text-[#f7f1e8] opacity-70 ml-[10px]" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Поиск..."
+                className="flex-1 bg-transparent text-[#f7f1e8] placeholder:text-[#f7f1e8]/70 px-[10px] text-[13.438px] font-semibold focus:outline-none"
+                style={{ fontFamily: 'Gilroy, sans-serif' }}
+              />
+            </div>
+          </div>
+        </form>
+
+        {/* 2. Пригласи друга - красная карточка */}
+        <div
+          className="w-[341px] mx-auto mb-[20px] rounded-[6px] overflow-hidden border border-[#d93547]"
+          style={{
+            background: 'linear-gradient(243.413deg, rgb(174, 30, 43) 15.721%, rgb(156, 23, 35) 99.389%)',
+          }}
+        >
+          <div className="p-[14px]">
+            {/* Заголовок с логотипом */}
+            <div className="flex items-center gap-[10px] mb-[12px]">
+              {/* Круглый логотип КОД */}
+              <div className="relative w-[40px] h-[40px] flex-shrink-0">
+                <div className="absolute inset-0 rounded-full bg-white/10 mix-blend-soft-light" />
+                <div className="absolute inset-[4px] rounded-full border border-white/30 flex items-center justify-center">
+                  <span
+                    className="text-white text-[8px] font-bold tracking-wider"
+                    style={{ fontFamily: 'Gilroy, sans-serif' }}
+                  >
+                    КОД
+                  </span>
+                </div>
+              </div>
+              <p
+                className="text-[#f7f1e8] text-[13.438px] font-semibold"
+                style={{ fontFamily: 'Gilroy, sans-serif' }}
+              >
+                Пригласи друга в клуб КОД ДЕНЕГ
+              </p>
+            </div>
+
+            {/* Линия разделитель */}
+            <div className="w-full h-[1px] bg-white/20 mb-[14px]" />
+
+            {/* Белая плашка со ссылкой - ТОЧНО КАК В FIGMA */}
+            <div
+              className="w-[312px] h-[63px] mx-auto rounded-[6px] border border-white flex items-center px-[14px]"
+              style={{ background: 'rgb(247, 241, 232)' }}
+            >
+              <div className="flex-1 min-w-0">
+                <p
+                  className="text-[#2d2620] text-[9.619px] font-semibold mb-[4px]"
+                  style={{ fontFamily: 'Gilroy, sans-serif' }}
+                >
+                  Отправьте эту ссылку другу
+                </p>
+                <p
+                  className="text-[#2d2620] text-[11px] truncate"
+                  style={{ fontFamily: 'monospace' }}
+                >
+                  {referralLink}
+                </p>
+              </div>
+              <button
+                onClick={handleCopyReferralLink}
+                className="flex-shrink-0 w-[28px] h-[28px] flex items-center justify-center ml-[10px]"
+              >
+                <Copy className="w-[14px] h-[14px] text-[#2d2620]" />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* 3. Приветствие */}
-      <div className="mb-6">
-        <h1
-          className="text-[#3d2f1f] font-light mb-2"
-          style={{
-            fontFamily: 'TT Nooks, serif',
-            fontSize: '48px',
-            fontWeight: 300,
-            lineHeight: '1.1',
-            letterSpacing: '-2px',
-          }}
-        >
-          Привет, {'{Имя}'}!
-        </h1>
-        <p
-          className="text-[#6b5a4a] font-light"
-          style={{
-            fontFamily: 'TT Nooks, serif',
-            fontSize: '18px',
-            fontWeight: 300,
-            letterSpacing: '-0.5px',
-          }}
-        >
-          Ты в пространстве клуба «Код Денег»
-        </p>
-      </div>
+        {/* 3. Приветствие - точные размеры из Figma */}
+        <div className="text-center mb-[23px]">
+          <h1
+            className="text-[#2d2620] mb-[4px]"
+            style={{
+              fontFamily: 'TT Nooks, serif',
+              fontSize: '53.701px',
+              fontWeight: 300,
+              lineHeight: '0.95',
+              letterSpacing: '-3.222px',
+            }}
+          >
+            Привет, {userName}!
+          </h1>
+          <p
+            className="text-[#2d2620]"
+            style={{
+              fontFamily: 'TT Nooks, serif',
+              fontSize: '20.985px',
+              fontWeight: 300,
+              lineHeight: '0.95',
+              letterSpacing: '-1.2591px',
+            }}
+          >
+            Ты в пространстве клуба «Код Денег»
+          </p>
+        </div>
 
-      {/* 4. Мой баланс - КРАСНАЯ КАРТОЧКА */}
-      <div className="mb-6">
-        <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-[#8b3a3a] via-[#7d2828] to-[#6b1a1a] shadow-xl">
-          {/* Картинка телефона слева внизу */}
-          <div className="absolute left-2 bottom-2 w-48 h-28 opacity-40">
-            <img
-              src="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&h=250&fit=crop&q=80"
-              alt="phone"
-              className="w-full h-full object-cover rounded-lg"
-              style={{ mixBlendMode: 'overlay' }}
-            />
+        {/* 4. Мой баланс - красная карточка с особой формой */}
+        <div className="w-[341px] h-[93px] mx-auto mb-[30px] relative">
+          {/* Фоновая карточка с градиентом */}
+          <div
+            className="absolute inset-0 rounded-[6px] overflow-hidden"
+            style={{
+              background: 'linear-gradient(243.413deg, rgb(174, 30, 43) 15.721%, rgb(156, 23, 35) 99.389%)',
+            }}
+          >
+            {/* Картинка молотка/денег слева */}
+            <div
+              className="absolute left-[14px] top-[42px] w-[175px] h-[37px] rounded-[6px] overflow-hidden border border-[rgba(244,214,182,0.4)]"
+            >
+              <img
+                src="/assets/balance-image.png"
+                alt=""
+                className="w-full h-full object-cover"
+              />
+            </div>
           </div>
 
-          <div className="relative z-10 p-6">
-            <h2
-              className="text-white font-light mb-3"
+          {/* Контент */}
+          <div className="relative z-10 h-full flex items-start justify-between p-[9px]">
+            <p
+              className="text-[#f7f1e8] w-[137px]"
               style={{
                 fontFamily: 'TT Nooks, serif',
-                fontSize: '26px',
+                fontSize: '23.603px',
                 fontWeight: 300,
+                lineHeight: 'normal',
               }}
             >
               Мой баланс
-            </h2>
+            </p>
 
-            <div className="flex items-end justify-end">
-              <div className="text-right">
-                <div
-                  className="text-white font-bold leading-none"
-                  style={{
-                    fontFamily: 'Gilroy, sans-serif',
-                    fontSize: '72px',
-                    fontWeight: 700,
-                  }}
-                >
-                  {epBalance}
-                </div>
-                <div
-                  className="text-white/90 font-normal mt-1"
-                  style={{
-                    fontFamily: 'Gilroy, sans-serif',
-                    fontSize: '22px',
-                    fontWeight: 400,
-                  }}
-                >
-                  энергий
-                </div>
-              </div>
+            <div className="text-right">
+              <p
+                className="text-[#f7f1e8]"
+                style={{
+                  fontFamily: 'Gilroy, sans-serif',
+                  fontSize: '46.436px',
+                  fontWeight: 600,
+                  lineHeight: 'normal',
+                }}
+              >
+                {epBalance}
+              </p>
+              <p
+                className="text-[#f7f1e8]"
+                style={{
+                  fontFamily: 'Gilroy, sans-serif',
+                  fontSize: '18.574px',
+                  fontWeight: 400,
+                  lineHeight: 'normal',
+                }}
+              >
+                энергий
+              </p>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* 5. Анонсы */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <h2
-            className="text-[#3d2f1f] font-light"
-            style={{
-              fontFamily: 'TT Nooks, serif',
-              fontSize: '24px',
-              fontWeight: 300,
-            }}
-          >
-            Анонсы
-          </h2>
-          <Megaphone className="w-5 h-5 text-[#a01f23]" />
+        {/* 5. Анонсы */}
+        <div className="w-[341px] mx-auto">
+          <div className="flex items-center gap-[6px] mb-[10px]">
+            <p
+              className="text-[#2d2620]"
+              style={{
+                fontFamily: 'TT Nooks, serif',
+                fontSize: '20.985px',
+                fontWeight: 300,
+                lineHeight: '0.95',
+                letterSpacing: '-1.2591px',
+              }}
+            >
+              Анонсы
+            </p>
+            <Megaphone
+              className="w-[19px] h-[19px]"
+              style={{
+                color: 'rgb(174, 30, 43)',
+              }}
+            />
+          </div>
+          {/* Линия под анонсами */}
+          <div className="w-full h-[1px] bg-[#2d2620]/20" />
         </div>
+
       </div>
     </div>
   );
