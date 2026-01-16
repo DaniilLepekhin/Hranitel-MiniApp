@@ -92,21 +92,20 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
       {/* Мой баланс - КРАСНАЯ КАРТОЧКА КАК КУПОН */}
       <div className="mb-6 relative">
         <div className="rounded-2xl overflow-hidden bg-gradient-to-r from-[#9c1f23] to-[#8b1a1e] shadow-xl relative">
-          {/* Картинка монет слева - SVG */}
-          <div className="absolute left-4 bottom-4 w-32 h-20 opacity-50">
-            <svg viewBox="0 0 128 80" className="w-full h-full">
-              <circle cx="24" cy="56" r="20" fill="#d4af37" opacity="0.7"/>
-              <circle cx="40" cy="50" r="22" fill="#ffd700" opacity="0.8"/>
-              <circle cx="56" cy="46" r="20" fill="#d4af37" opacity="0.7"/>
-              <ellipse cx="40" cy="50" rx="22" ry="8" fill="#b8860b" opacity="0.5"/>
-              <ellipse cx="24" cy="56" rx="20" ry="7" fill="#b8860b" opacity="0.5"/>
-            </svg>
+          {/* Картинка монет слева */}
+          <div className="absolute left-0 bottom-0 w-48 h-24 overflow-hidden rounded-bl-2xl">
+            <img
+              src="https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=400&h=200&fit=crop&q=80"
+              alt="coins"
+              className="w-full h-full object-cover opacity-40"
+              style={{ mixBlendMode: 'overlay' }}
+            />
           </div>
 
           <div className="relative z-10 p-6 flex items-center justify-between min-h-[140px]">
             <div>
               <h2
-                className="text-white font-light"
+                className="text-white font-light mb-2"
                 style={{
                   fontFamily: 'TT Nooks, serif',
                   fontSize: '24px',
@@ -115,6 +114,15 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
               >
                 Мой баланс
               </h2>
+              {/* Placeholder для картинки под текстом */}
+              <div className="w-40 h-16 relative rounded-lg overflow-hidden opacity-60">
+                <img
+                  src="https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=300&h=100&fit=crop&q=80"
+                  alt="coins stack"
+                  className="w-full h-full object-cover"
+                  style={{ mixBlendMode: 'overlay' }}
+                />
+              </div>
             </div>
 
             {/* Правая часть - число */}
