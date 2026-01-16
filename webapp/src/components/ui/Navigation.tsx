@@ -1,10 +1,10 @@
 'use client';
 
-import { Home, Key, MessageCircle, ShoppingBag, User } from 'lucide-react';
+import { Home, TrendingUp, MessageCircle, Trophy, User } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { clsx } from 'clsx';
 
-export type TabType = 'home' | 'path' | 'chats' | 'shop' | 'profile';
+export type TabType = 'home' | 'path' | 'chats' | 'ratings' | 'profile';
 
 interface NavigationProps {
   activeTab: TabType;
@@ -20,7 +20,7 @@ const tabs = [
   {
     id: 'path' as TabType,
     label: 'Путь',
-    icon: Key,
+    icon: TrendingUp,
   },
   {
     id: 'chats' as TabType,
@@ -28,9 +28,9 @@ const tabs = [
     icon: MessageCircle,
   },
   {
-    id: 'shop' as TabType,
-    label: 'Магазин',
-    icon: ShoppingBag,
+    id: 'ratings' as TabType,
+    label: 'Рейтинги',
+    icon: Trophy,
   },
   {
     id: 'profile' as TabType,
@@ -50,43 +50,47 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 safe-bottom">
-      <div className="mx-3 mb-1.5">
-        <div className="glass rounded-xl p-1 shadow-lg flex justify-between border-2 border-[#8b4513]/30">
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.id;
+    <nav className="fixed bottom-0 left-0 right-0 bg-[#f7f1e8] border-t border-[#3d2f1f]/10 safe-area-inset-bottom z-50">
+      <div className="flex items-center justify-around px-2 pt-2 pb-safe">
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
 
-            // Safety check for icon
-            if (!tab.icon) {
-              console.error('Missing icon for tab:', tab.id);
-              return null;
-            }
+          // Safety check for icon
+          if (!tab.icon) {
+            console.error('Missing icon for tab:', tab.id);
+            return null;
+          }
 
-            const Icon = tab.icon;
+          const Icon = tab.icon;
 
-            return (
-              <button
-                key={tab.id}
-                onClick={() => handleTabClick(tab.id)}
+          return (
+            <button
+              key={tab.id}
+              onClick={() => handleTabClick(tab.id)}
+              className={clsx(
+                'flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all active:scale-95',
+                isActive
+                  ? 'bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10'
+                  : 'hover:bg-[#3d2f1f]/5'
+              )}
+            >
+              <Icon
                 className={clsx(
-                  'flex-1 flex flex-col items-center py-1.5 px-1.5 rounded-lg transition-all duration-300',
-                  isActive
-                    ? 'bg-[#8b0000] text-white shadow-md scale-105'
-                    : 'text-[#6b5a4a] hover:text-[#3d2f1f]'
+                  'w-5 h-5',
+                  isActive ? 'text-[#8b0000]' : 'text-[#6b5a4a]'
+                )}
+              />
+              <span
+                className={clsx(
+                  'text-[10px] font-semibold',
+                  isActive ? 'text-[#8b0000]' : 'text-[#6b5a4a]'
                 )}
               >
-                <Icon
-                  className={clsx(
-                    'w-5 h-5 transition-transform duration-300',
-                    isActive ? 'scale-110' : 'scale-100'
-                  )}
-                  strokeWidth={isActive ? 2.5 : 2}
-                />
-                <span className="text-[9px] font-medium mt-0.5">{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
+                {tab.label}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </nav>
   );

@@ -16,7 +16,7 @@ import { authApi, coursesApi, meditationsApi, gamificationApi, setAuthToken } fr
 import { HomeTab } from '@/components/tabs/HomeTab';
 import { PathTab } from '@/components/tabs/PathTab';
 import { ChatsTab } from '@/components/tabs/ChatsTab';
-import { ShopTab } from '@/components/tabs/ShopTab';
+import { RatingsTab } from '@/components/tabs/RatingsTab';
 import { ProfileTab } from '@/components/tabs/ProfileTab';
 
 function HomeContent() {
@@ -26,7 +26,7 @@ function HomeContent() {
   // Handle tab query parameter
   useEffect(() => {
     const tab = searchParams.get('tab') as TabType;
-    if (tab && ['home', 'path', 'chats', 'shop', 'profile'].includes(tab)) {
+    if (tab && ['home', 'path', 'chats', 'ratings', 'profile'].includes(tab)) {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -109,7 +109,7 @@ function HomeContent() {
     home: <HomeTab onProfileClick={() => setActiveTab('profile')} />,
     path: <PathTab />,
     chats: <ChatsTab />,
-    shop: <ShopTab />,
+    ratings: <RatingsTab />,
     profile: <ProfileTab />,
   };
 
