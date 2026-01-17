@@ -2,12 +2,9 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ExternalLink, Users, MessageCircle, HeadphonesIcon, MapPin, Globe, Radio, Headset } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
-import { Card } from '@/components/ui/Card';
 import { cityChatsApi } from '@/lib/api';
-import { ReferralCard } from '@/components/ReferralCard';
 
 // API endpoints
 const teamsApi = {
@@ -18,31 +15,48 @@ const teamsApi = {
   },
 };
 
-// Каналы клуба (статические ссылки)
-const clubChannels = [
-  {
-    id: 'main',
-    title: 'КОД ДЕНЕГ',
-    description: 'Основной канал клуба с важными объявлениями',
-    icon: Radio,
-    url: 'https://t.me/+mwJ5e0d78GYzNDRi',
-    members: '15K+',
-  },
+// Карточки чатов с данными
+const chatCards = [
   {
     id: 'kod-app',
     title: 'Приложение KOD',
-    description: 'Подписка на приложение ментального здоровья',
-    icon: HeadphonesIcon,
+    description: 'Тебе доступна подписка на наше приложение ментального здоровья',
+    buttonText: 'получить доступ',
     url: 'http://qr.numschool-web.ru/',
-    members: 'app',
+    image: '/assets/chat-kod-app.jpg',
+  },
+  {
+    id: 'main-channel',
+    title: 'Основной канал клуба',
+    description: 'Здесь все важные новости клуба, анонсы эфиров и ключевые обновления. Рекомендуем быть здесь всегда и закрепить этот канал.',
+    buttonText: 'вступить',
+    url: 'https://t.me/+mwJ5e0d78GYzNDRi',
+    image: '/assets/chat-main-channel.jpg',
+  },
+  {
+    id: 'city-chat',
+    title: 'Чат города',
+    description: 'Пространство для общения с участниками из твоего города, встреч и живого контакта рядом.',
+    buttonText: 'вступить в чат города',
+    image: '/assets/chat-city.jpg',
+    isCityChat: true,
+  },
+  {
+    id: 'desyatka',
+    title: 'Десятка',
+    description: 'Твоя малая группа для роста, поддержки и совместной работы внутри клуба.',
+    secondaryText: '*десятка формируется внутри чата города',
+    buttonText: 'вступить в десятку',
+    image: '/assets/chat-desyatka.jpg',
+    isTeam: true,
   },
   {
     id: 'support',
     title: 'Служба заботы',
-    description: 'Помощь и поддержка участников клуба',
-    icon: Headset,
+    description: 'Мы рядом, если возник вопрос или нужна помощь. Напиши — тебе обязательно ответят!',
+    buttonText: 'перейти в бот',
     url: 'https://t.me/Egiazarova_support_bot',
-    members: 'support',
+    image: '/assets/chat-support.jpg',
   },
 ];
 
@@ -53,9 +67,10 @@ export function ChatsTab() {
   // City chat selection state
   const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [selectedCity, setSelectedCity] = useState<string>('');
+  const [showCitySelector, setShowCitySelector] = useState(false);
 
   // Fetch user team
-  const { data: teamData, isLoading } = useQuery({
+  const { data: teamData } = useQuery({
     queryKey: ['teams', 'my', user?.id],
     queryFn: () => teamsApi.getUserTeam(user!.id),
     enabled: !!user,
@@ -87,7 +102,6 @@ export function ChatsTab() {
 
   const openLink = (url: string) => {
     haptic.impact('light');
-    // Use openTelegramLink for Telegram URLs to open directly in app
     if (url.includes('t.me')) {
       if (webApp?.openTelegramLink) {
         webApp.openTelegramLink(url);
@@ -97,7 +111,6 @@ export function ChatsTab() {
         window.open(url, '_blank');
       }
     } else {
-      // Regular URLs
       if (webApp?.openLink) {
         webApp.openLink(url);
       } else {
@@ -117,10 +130,9 @@ export function ChatsTab() {
     setSelectedCity(city);
   };
 
-  const handleJoinChat = () => {
+  const handleJoinCityChat = () => {
     if (chatLinkData?.chatLink) {
       haptic.impact('medium');
-      // Use Telegram WebApp method to open link
       if (webApp?.openTelegramLink) {
         webApp.openTelegramLink(chatLinkData.chatLink);
       } else {
@@ -129,236 +141,442 @@ export function ChatsTab() {
     }
   };
 
+  const handleCardClick = (card: typeof chatCards[0]) => {
+    haptic.impact('light');
+
+    if (card.isCityChat) {
+      setShowCitySelector(!showCitySelector);
+      return;
+    }
+
+    if (card.isTeam) {
+      if (team?.cityChat) {
+        openLink(team.cityChat);
+      }
+      return;
+    }
+
+    if (card.url) {
+      openLink(card.url);
+    }
+  };
+
   return (
-    <div className="px-4 pt-6 pb-8">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="section-title">Чаты</h1>
-        <p className="text-[#6b5a4a] text-sm text-center">
-          Общайся с единомышленниками
-        </p>
+    <div className="min-h-screen w-full bg-[#f7f1e8] relative">
+      {/* ===== ФОН ===== */}
+      <div
+        className="fixed pointer-events-none overflow-hidden bg-[#f7f1e8]"
+        style={{
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100%',
+          height: '100%',
+        }}
+      >
+        {/* Газетная текстура */}
+        <div
+          className="absolute"
+          style={{
+            width: '250%',
+            height: '250%',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%) rotate(-60.8deg)',
+            opacity: 0.18,
+            mixBlendMode: 'overlay',
+          }}
+        >
+          <img
+            src="/assets/newspaper-texture.jpg"
+            alt=""
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {/* Монеты/молоток слева */}
+        <div
+          className="absolute"
+          style={{
+            width: '160%',
+            height: '120%',
+            left: '-50%',
+            top: '-10%',
+            mixBlendMode: 'multiply',
+            opacity: 0.4,
+          }}
+        >
+          <img
+            src="/assets/bg-coins.jpg"
+            alt=""
+            className="w-full h-full object-cover object-left-top"
+          />
+        </div>
+
+        {/* Размытое цветное пятно - слева внизу */}
+        <div
+          className="absolute"
+          style={{
+            width: '150%',
+            height: '130%',
+            left: '-80%',
+            bottom: '-30%',
+            mixBlendMode: 'color-dodge',
+            filter: 'blur(200px)',
+            transform: 'rotate(-22.76deg)',
+            opacity: 0.5,
+          }}
+        >
+          <img
+            src="/assets/bg-blur.jpg"
+            alt=""
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {/* Размытое цветное пятно - справа вверху */}
+        <div
+          className="absolute"
+          style={{
+            width: '150%',
+            height: '130%',
+            right: '-80%',
+            top: '-70%',
+            mixBlendMode: 'color-dodge',
+            filter: 'blur(200px)',
+            transform: 'rotate(77.63deg) scaleY(-1)',
+            opacity: 0.5,
+          }}
+        >
+          <img
+            src="/assets/bg-blur.jpg"
+            alt=""
+            className="w-full h-full object-cover"
+          />
+        </div>
       </div>
 
-      {/* Club Channels */}
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold text-[#3d2f1f] mb-3 flex items-center gap-2 border-b-2 border-[#8b0000] pb-2">
-          <MessageCircle className="w-5 h-5 text-[#8b0000]" />
-          Каналы клуба
-        </h2>
+      {/* ===== КОНТЕНТ ===== */}
+      <div className="relative z-10 pt-[23px] pb-28 max-w-2xl mx-auto" style={{ paddingLeft: '29px', paddingRight: '29px' }}>
+        {/* Иконка чата - бордовый цвет */}
+        <div className="flex justify-center mb-4">
+          <div
+            style={{
+              width: '37px',
+              height: '37px',
+              backgroundColor: '#9c1723',
+              WebkitMaskImage: 'url(/assets/chat-icon.png)',
+              WebkitMaskSize: 'contain',
+              WebkitMaskRepeat: 'no-repeat',
+              WebkitMaskPosition: 'center',
+              maskImage: 'url(/assets/chat-icon.png)',
+              maskSize: 'contain',
+              maskRepeat: 'no-repeat',
+              maskPosition: 'center',
+            }}
+          />
+        </div>
 
-        <div className="grid gap-3">
-          {clubChannels.map((channel) => {
-            const IconComponent = channel.icon;
-            return (
-              <Card
-                key={channel.id}
-                className="p-4 cursor-pointer hover:scale-[1.02] transition-all"
-                onClick={() => openLink(channel.url)}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center shadow-md">
-                    <IconComponent className="w-6 h-6 text-white" strokeWidth={2} />
-                  </div>
+        {/* Подзаголовок */}
+        <p
+          className="text-center"
+          style={{
+            fontFamily: 'Gilroy, sans-serif',
+            fontWeight: 400,
+            fontSize: '13px',
+            lineHeight: 1.45,
+            letterSpacing: '-0.26px',
+            color: '#2d2620',
+            marginBottom: '8px',
+          }}
+        >
+          В этом разделе собраны все чаты клуба
+        </p>
 
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-[#3d2f1f] mb-0.5">{channel.title}</h3>
-                    <p className="text-[#6b5a4a] text-xs mb-1">{channel.description}</p>
-                    {channel.members !== 'support' && channel.members !== 'app' && (
-                      <div className="flex items-center gap-1 text-[#8b4513] text-xs">
-                        <Users className="w-3 h-3" />
-                        <span>{channel.members} участников</span>
+        {/* Заголовок */}
+        <h1
+          className="text-center"
+          style={{
+            fontFamily: '"TT Nooks", Georgia, serif',
+            fontWeight: 300,
+            fontSize: '45.8px',
+            lineHeight: 0.95,
+            letterSpacing: '-2.75px',
+            color: '#2d2620',
+            marginBottom: '16px',
+          }}
+        >
+          всё общение в одном месте
+        </h1>
+
+        {/* Описание */}
+        <p
+          className="text-center"
+          style={{
+            fontFamily: 'Gilroy, sans-serif',
+            fontWeight: 400,
+            fontSize: '13px',
+            lineHeight: 1.45,
+            letterSpacing: '-0.26px',
+            color: '#2d2620',
+            marginBottom: '24px',
+            maxWidth: '341px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+          }}
+        >
+          Здесь ты всегда знаешь, где <span style={{ fontWeight: 700 }}>задать вопрос, получить поддержку</span> и быть на связи с сообществом.
+        </p>
+
+        {/* Карточки чатов */}
+        <div className="flex flex-col gap-[10px]">
+          {chatCards.map((card) => (
+            <div key={card.id}>
+              <ChatCard
+                title={card.title}
+                description={card.description}
+                secondaryText={card.secondaryText}
+                buttonText={card.buttonText}
+                image={card.image}
+                onClick={() => handleCardClick(card)}
+                isExpanded={card.isCityChat && showCitySelector}
+                isDisabled={card.isTeam && !team?.cityChat}
+              />
+
+              {/* Селектор города (показывается при клике на "Чат города") */}
+              {card.isCityChat && showCitySelector && (
+                <div
+                  className="mt-2 p-4 rounded-lg"
+                  style={{
+                    background: 'rgba(247, 241, 232, 0.95)',
+                    border: '1px solid #d93547',
+                  }}
+                >
+                  {/* Выбор страны */}
+                  <div className="mb-3">
+                    <label
+                      className="block mb-1.5"
+                      style={{
+                        fontFamily: 'Gilroy, sans-serif',
+                        fontWeight: 600,
+                        fontSize: '12px',
+                        color: '#2d2620',
+                      }}
+                    >
+                      Страна
+                    </label>
+                    {isLoadingCountries ? (
+                      <div className="p-3 bg-white/50 rounded-lg text-center text-[#6b5a4a] text-sm">
+                        Загрузка...
                       </div>
+                    ) : (
+                      <select
+                        value={selectedCountry}
+                        onChange={(e) => handleCountrySelect(e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-lg border bg-white text-[#2d2620] font-medium text-sm focus:outline-none"
+                        style={{ borderColor: '#d93547' }}
+                      >
+                        <option value="">Выберите страну</option>
+                        {countries.map((country) => (
+                          <option key={country} value={country}>
+                            {country}
+                          </option>
+                        ))}
+                      </select>
                     )}
                   </div>
 
-                  <ExternalLink className="w-5 h-5 text-[#8b4513]" />
+                  {/* Выбор города */}
+                  {selectedCountry && (
+                    <div className="mb-3">
+                      <label
+                        className="block mb-1.5"
+                        style={{
+                          fontFamily: 'Gilroy, sans-serif',
+                          fontWeight: 600,
+                          fontSize: '12px',
+                          color: '#2d2620',
+                        }}
+                      >
+                        Город
+                      </label>
+                      {isLoadingCities ? (
+                        <div className="p-3 bg-white/50 rounded-lg text-center text-[#6b5a4a] text-sm">
+                          Загрузка городов...
+                        </div>
+                      ) : cities.length === 0 ? (
+                        <div className="p-3 bg-white/50 rounded-lg text-center text-[#6b5a4a] text-sm">
+                          Нет доступных городов
+                        </div>
+                      ) : (
+                        <select
+                          value={selectedCity}
+                          onChange={(e) => handleCitySelect(e.target.value)}
+                          className="w-full px-3 py-2.5 rounded-lg border bg-white text-[#2d2620] font-medium text-sm focus:outline-none"
+                          style={{ borderColor: '#d93547' }}
+                        >
+                          <option value="">Выберите город</option>
+                          {cities.map((city) => (
+                            <option key={city.name} value={city.name}>
+                              {city.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Кнопка вступить */}
+                  {selectedCity && chatLinkData?.chatLink && (
+                    <button
+                      onClick={handleJoinCityChat}
+                      className="w-full py-3 rounded-lg text-center active:scale-[0.98] transition-transform"
+                      style={{
+                        background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
+                        fontFamily: 'Gilroy, sans-serif',
+                        fontWeight: 600,
+                        fontSize: '14px',
+                        color: '#f7f1e8',
+                        textTransform: 'lowercase',
+                      }}
+                    >
+                      вступить в чат
+                    </button>
+                  )}
                 </div>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Referral Card */}
-      <div className="mb-6">
-        <ReferralCard invitedCount={0} />
-      </div>
-
-      {/* City Chats (Городские чаты) */}
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold text-[#3d2f1f] mb-3 flex items-center gap-2 border-b-2 border-[#8b0000] pb-2">
-          <MapPin className="w-5 h-5 text-[#8b0000]" />
-          Городские чаты
-        </h2>
-
-        <Card className="p-4 space-y-3">
-          {/* Country Selection */}
-          <div>
-            <label className="block text-xs font-medium text-[#6b5a4a] mb-1.5 flex items-center gap-1.5">
-              <Globe className="w-3.5 h-3.5 text-[#8b0000]" />
-              Страна
-            </label>
-
-            {isLoadingCountries ? (
-              <div className="p-3 bg-[#e8dcc6]/50 rounded-lg text-center text-[#6b5a4a] text-sm">
-                Загрузка...
-              </div>
-            ) : (
-              <select
-                value={selectedCountry}
-                onChange={(e) => handleCountrySelect(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border-2 border-[#8b4513]/30 bg-white text-[#3d2f1f] font-medium text-sm focus:border-[#8b0000] focus:outline-none transition-colors"
-              >
-                <option value="">Выберите страну</option>
-                {countries.map((country) => (
-                  <option key={country} value={country}>
-                    {country}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-
-          {/* City Selection */}
-          {selectedCountry && (
-            <div>
-              <label className="block text-xs font-medium text-[#6b5a4a] mb-1.5 flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-[#8b0000]" />
-                Город
-              </label>
-
-              {isLoadingCities ? (
-                <div className="p-3 bg-[#e8dcc6]/50 rounded-lg text-center text-[#6b5a4a] text-sm">
-                  Загрузка городов...
-                </div>
-              ) : cities.length === 0 ? (
-                <div className="p-3 bg-[#e8dcc6]/50 rounded-lg text-center text-[#6b5a4a] text-sm">
-                  Нет доступных городов
-                </div>
-              ) : (
-                <select
-                  value={selectedCity}
-                  onChange={(e) => handleCitySelect(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-lg border-2 border-[#8b4513]/30 bg-white text-[#3d2f1f] font-medium text-sm focus:border-[#8b0000] focus:outline-none transition-colors"
-                >
-                  <option value="">Выберите город</option>
-                  {cities.map((city) => (
-                    <option key={city.name} value={city.name}>
-                      {city.name}
-                    </option>
-                  ))}
-                </select>
               )}
             </div>
-          )}
-
-          {/* Join Chat Button */}
-          {selectedCity && chatLinkData?.chatLink ? (
-            <button
-              onClick={handleJoinChat}
-              className="w-full px-4 py-3 rounded-lg bg-gradient-to-r from-[#8b0000] to-[#8b4513] text-white font-semibold flex items-center justify-center gap-2 hover:shadow-lg transition-all active:scale-95 mt-3"
-            >
-              <MessageCircle className="w-5 h-5" />
-              Вступить в чат
-            </button>
-          ) : !selectedCountry ? (
-            <div className="p-3 bg-gradient-to-br from-[#8b0000]/5 to-[#8b4513]/5 rounded-lg border border-[#8b4513]/20 text-center mt-2">
-              <p className="text-[#6b5a4a] text-xs">
-                Выберите страну и город для вступления в чат
-              </p>
-            </div>
-          ) : null}
-        </Card>
-      </div>
-
-      {/* User Team (Десятка) */}
-      <div>
-        <h2 className="text-lg font-semibold text-[#3d2f1f] mb-3 flex items-center gap-2 border-b-2 border-[#8b0000] pb-2">
-          <Users className="w-5 h-5 text-[#8b0000]" />
-          Моя Десятка
-        </h2>
-
-        {isLoading ? (
-          <Card className="p-6 text-center">
-            <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-[#8b0000] to-[#8b4513] animate-pulse" />
-            <p className="text-[#6b5a4a]">Загрузка...</p>
-          </Card>
-        ) : !team ? (
-          <Card className="p-6 text-center">
-            <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-[#8b0000]/20 to-[#8b4513]/20 flex items-center justify-center border border-[#8b4513]/30">
-              <Users className="w-8 h-8 text-[#8b0000]" />
-            </div>
-            <h3 className="font-semibold text-[#3d2f1f] mb-2">Десятка формируется</h3>
-            <p className="text-[#6b5a4a] text-sm mb-4">
-              Скоро мы распределим тебя в команду с единомышленниками
-            </p>
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#8b0000]/10 rounded-lg border border-[#8b4513]/30">
-              <div className="w-2 h-2 bg-[#8b0000] rounded-full animate-pulse" />
-              <span className="text-[#8b0000] text-sm font-medium">Ожидание</span>
-            </div>
-          </Card>
-        ) : (
-          <Card className="p-4 bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10 border-[#8b4513]/30">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="font-bold text-[#3d2f1f] text-lg mb-1">{team.name}</h3>
-                {team.metka && (
-                  <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-[#8b0000]/20 rounded-lg border border-[#8b4513]/30">
-                    <span className="text-[#8b0000] text-xs font-semibold uppercase">{team.metka}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="text-right">
-                <div className="text-2xl font-bold text-[#3d2f1f]">{team.memberCount}</div>
-                <div className="text-xs text-[#6b5a4a]">из {team.maxMembers}</div>
-              </div>
-            </div>
-
-            {team.cityChat && (
-              <button
-                onClick={() => openLink(team.cityChat)}
-                className="w-full px-4 py-3 rounded-lg bg-gradient-to-r from-[#8b0000] to-[#8b4513] text-white font-semibold flex items-center justify-center gap-2 hover:shadow-lg transition-all active:scale-95"
-              >
-                <MessageCircle className="w-5 h-5" />
-                Открыть чат города
-              </button>
-            )}
-
-            {!team.cityChat && (
-              <div className="w-full px-4 py-3 rounded-lg bg-[#e8dcc6] text-[#6b5a4a] text-sm text-center border border-[#8b4513]/20">
-                Чат скоро будет создан
-              </div>
-            )}
-
-            <div className="mt-3 pt-3 border-t border-[#8b4513]/20">
-              <p className="text-[#6b5a4a] text-xs">
-                Твоя роль: <span className="text-[#3d2f1f] font-semibold">
-                  {team.userRole === 'leader' ? '👑 Лидер' : '👤 Участник'}
-                </span>
-              </p>
-              <p className="text-[#8b4513] text-xs mt-1">
-                Вступил: {new Date(team.joinedAt).toLocaleDateString('ru-RU')}
-              </p>
-            </div>
-          </Card>
-        )}
-      </div>
-
-      {/* Info Block */}
-      <div className="mt-6 p-4 bg-gradient-to-br from-[#8b0000]/5 to-[#8b4513]/5 rounded-xl border border-[#8b4513]/20">
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#8b0000]/20 flex items-center justify-center flex-shrink-0">
-            <HeadphonesIcon className="w-4 h-4 text-[#8b0000]" />
-          </div>
-          <div>
-            <h4 className="text-[#3d2f1f] font-semibold text-sm mb-1">Десятки - это</h4>
-            <p className="text-[#6b5a4a] text-xs leading-relaxed">
-              Небольшие группы участников (6-12 человек) для совместного прохождения программы,
-              поддержки и обмена опытом. Ты автоматически распределен в команду по твоим интересам.
-            </p>
-          </div>
+          ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Компонент карточки чата
+interface ChatCardProps {
+  title: string;
+  description: string;
+  secondaryText?: string;
+  buttonText: string;
+  image: string;
+  onClick: () => void;
+  isExpanded?: boolean;
+  isDisabled?: boolean;
+}
+
+function ChatCard({
+  title,
+  description,
+  secondaryText,
+  buttonText,
+  image,
+  onClick,
+  isExpanded,
+  isDisabled
+}: ChatCardProps) {
+  return (
+    <div
+      onClick={onClick}
+      className={`relative overflow-hidden cursor-pointer active:scale-[0.99] transition-transform ${isDisabled ? 'opacity-60' : ''}`}
+      style={{
+        borderRadius: '8px',
+        border: '1px solid #d93547',
+        background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
+        minHeight: '140px',
+      }}
+    >
+      {/* Изображение справа */}
+      <div
+        className="absolute right-0 top-0 bottom-0 overflow-hidden"
+        style={{
+          width: '45%',
+          borderTopRightRadius: '8px',
+          borderBottomRightRadius: '8px',
+        }}
+      >
+        <img
+          src={image}
+          alt=""
+          className="w-full h-full object-cover"
+          style={{
+            objectPosition: 'center',
+            mixBlendMode: 'luminosity',
+            opacity: 0.85,
+          }}
+        />
+        {/* Градиент поверх изображения для плавного перехода */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(to right, rgb(156, 23, 35) 0%, transparent 50%)',
+          }}
+        />
+      </div>
+
+      {/* Контент слева */}
+      <div className="relative z-10 p-4" style={{ maxWidth: '60%' }}>
+        {/* Заголовок */}
+        <h3
+          style={{
+            fontFamily: '"TT Nooks", Georgia, serif',
+            fontWeight: 300,
+            fontSize: '22px',
+            lineHeight: 1.1,
+            color: '#f7f1e8',
+            marginBottom: '8px',
+          }}
+        >
+          {title}
+        </h3>
+
+        {/* Описание */}
+        <p
+          style={{
+            fontFamily: 'Gilroy, sans-serif',
+            fontWeight: 400,
+            fontSize: '11px',
+            lineHeight: 1.4,
+            color: 'rgba(247, 241, 232, 0.85)',
+            marginBottom: secondaryText ? '4px' : '12px',
+          }}
+        >
+          {description}
+        </p>
+
+        {/* Дополнительный текст */}
+        {secondaryText && (
+          <p
+            style={{
+              fontFamily: 'Gilroy, sans-serif',
+              fontWeight: 400,
+              fontSize: '10px',
+              lineHeight: 1.4,
+              color: 'rgba(247, 241, 232, 0.6)',
+              marginBottom: '12px',
+              fontStyle: 'italic',
+            }}
+          >
+            {secondaryText}
+          </p>
+        )}
+
+        {/* Кнопка */}
+        <button
+          className="px-4 py-2 rounded-full active:scale-[0.98] transition-transform"
+          style={{
+            background: '#f7f1e8',
+            fontFamily: 'Gilroy, sans-serif',
+            fontWeight: 600,
+            fontSize: '12px',
+            color: '#9c1723',
+            textTransform: 'lowercase',
+            border: 'none',
+          }}
+        >
+          {buttonText}
+        </button>
       </div>
     </div>
   );
