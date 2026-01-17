@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
@@ -46,15 +45,15 @@ export function ProfileTab() {
           height: '100%',
         }}
       >
-        {/* Газетная текстура */}
+        {/* Газетная текстура - overlay blend */}
         <div
           className="absolute"
           style={{
-            width: '250%',
-            height: '250%',
+            width: '683.5%',
+            height: '200.9%',
             left: '50%',
             top: '50%',
-            transform: 'translate(-50%, -50%) rotate(-60.8deg)',
+            transform: 'translate(-50%, -50%) rotate(299.198deg)',
             opacity: 0.18,
             mixBlendMode: 'overlay',
           }}
@@ -66,37 +65,68 @@ export function ProfileTab() {
           />
         </div>
 
-        {/* Монеты/молоток слева */}
+        {/* Изображение монет/молоток - верх - multiply blend, scaleY(-1) */}
         <div
           className="absolute"
           style={{
-            width: '160%',
-            height: '120%',
-            left: '-50%',
-            top: '-10%',
+            width: '161.7%',
+            height: '116.5%',
+            left: '50%',
+            top: '-11.9%',
+            transform: 'translate(-50%, 0) scaleY(-1)',
             mixBlendMode: 'multiply',
-            opacity: 0.4,
           }}
         >
           <img
             src="/assets/bg-coins.jpg"
             alt=""
-            className="w-full h-full object-cover object-left-top"
+            className="w-full h-full object-cover"
           />
         </div>
 
-        {/* Размытое цветное пятно - слева внизу */}
+        {/* Изображение монет/молоток - низ - multiply blend */}
         <div
           className="absolute"
           style={{
-            width: '150%',
-            height: '130%',
-            left: '-80%',
-            bottom: '-30%',
+            width: '161.7%',
+            height: '116.5%',
+            left: '50%',
+            top: '104.6%',
+            transform: 'translate(-50%, 0)',
+            mixBlendMode: 'multiply',
+          }}
+        >
+          <img
+            src="/assets/bg-coins.jpg"
+            alt=""
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {/* Серая полоса с blur */}
+        <div
+          className="absolute"
+          style={{
+            background: '#e1ded9',
+            filter: 'blur(21px)',
+            height: '38px',
+            left: '-7px',
+            top: '849px',
+            width: '784px',
+          }}
+        />
+
+        {/* Размытое цветное пятно - верх слева - color-dodge, scaleY(-1) */}
+        <div
+          className="absolute"
+          style={{
+            width: '293.7%',
+            height: '151.7%',
+            left: '-108.1%',
+            top: '-85.6%',
+            transform: 'rotate(77.626deg) scaleY(-1)',
             mixBlendMode: 'color-dodge',
-            filter: 'blur(200px)',
-            transform: 'rotate(-22.76deg)',
-            opacity: 0.5,
+            filter: 'blur(199.985px)',
           }}
         >
           <img
@@ -106,18 +136,37 @@ export function ProfileTab() {
           />
         </div>
 
-        {/* Размытое цветное пятно - справа вверху */}
+        {/* Размытое цветное пятно - низ слева - color-dodge, scaleY(-1) */}
         <div
           className="absolute"
           style={{
-            width: '150%',
-            height: '130%',
-            right: '-80%',
-            top: '-70%',
+            width: '315.9%',
+            height: '141.5%',
+            left: '7.3%',
+            top: '39.9%',
+            transform: 'rotate(192.502deg) scaleY(-1)',
             mixBlendMode: 'color-dodge',
-            filter: 'blur(200px)',
-            transform: 'rotate(77.63deg) scaleY(-1)',
-            opacity: 0.5,
+            filter: 'blur(199.985px)',
+          }}
+        >
+          <img
+            src="/assets/bg-blur.jpg"
+            alt=""
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {/* Размытое цветное пятно - верх справа - color-dodge */}
+        <div
+          className="absolute"
+          style={{
+            width: '342.3%',
+            height: '157.3%',
+            left: '46.9%',
+            top: '-0.2%',
+            transform: 'rotate(337.245deg)',
+            mixBlendMode: 'color-dodge',
+            filter: 'blur(199.985px)',
           }}
         >
           <img
@@ -129,14 +178,13 @@ export function ProfileTab() {
       </div>
 
       {/* ===== КОНТЕНТ ===== */}
-      <div className="relative z-10 pt-[23px] pb-28 max-w-2xl mx-auto" style={{ paddingLeft: '29px', paddingRight: '29px' }}>
-
-        {/* Иконка чата - бордовый цвет */}
+      <div className="relative z-10 pt-[23px] pb-28">
+        {/* Иконка профиля - бордовый цвет */}
         <div className="flex justify-center mb-4">
           <div
             style={{
-              width: '37px',
-              height: '37px',
+              width: '37.326px',
+              height: '37.326px',
               backgroundColor: '#9c1723',
               WebkitMaskImage: 'url(/assets/profile-icon.png)',
               WebkitMaskSize: 'contain',
@@ -156,10 +204,13 @@ export function ProfileTab() {
           style={{
             fontFamily: '"TT Nooks", Georgia, serif',
             fontWeight: 300,
-            fontSize: '42.9px',
+            fontSize: '42.949px',
             lineHeight: 0.95,
-            letterSpacing: '-2.58px',
+            letterSpacing: '-2.5769px',
             color: '#2d2620',
+            maxWidth: '340px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
           }}
         >
           Это твой личный кабинет в клубе.
@@ -186,175 +237,218 @@ export function ProfileTab() {
 
         {/* ===== КАРТОЧКА ПРОФИЛЯ ===== */}
         <div
-          className="relative mb-6"
+          className="relative mx-[30px]"
           style={{
             border: '1px solid #2d2620',
             borderRadius: '20px',
-            padding: '24px',
-            minHeight: '252px',
+            height: '252px',
+            marginBottom: '24px',
           }}
         >
-          {/* Аватар */}
-          <div className="flex justify-center mb-4">
-            {user?.photoUrl ? (
-              <img
-                src={user.photoUrl}
-                alt={displayName}
-                className="rounded-full"
-                style={{
-                  width: '93px',
-                  height: '93px',
-                  objectFit: 'cover',
-                }}
-              />
-            ) : (
-              <div
-                className="rounded-full flex items-center justify-center text-white text-3xl font-bold"
-                style={{
-                  width: '93px',
-                  height: '93px',
-                  background: 'linear-gradient(135deg, #9c1723 0%, #ae1e2b 100%)',
-                }}
-              >
-                {user?.firstName?.[0] || '?'}
+          {/* Контент карточки - центрированный flex контейнер */}
+          <div className="absolute inset-0 flex flex-col items-center justify-start pt-[24px] px-[24px]">
+
+            {/* Верхняя часть - Аватар и текст */}
+            <div className="flex items-start justify-center mb-6" style={{ width: '100%' }}>
+              {/* Аватар слева */}
+              <div style={{ flexShrink: 0 }}>
+                {user?.photoUrl ? (
+                  <img
+                    src={user.photoUrl}
+                    alt={displayName}
+                    className="rounded-full"
+                    style={{
+                      width: '93px',
+                      height: '93px',
+                      objectFit: 'cover',
+                    }}
+                  />
+                ) : (
+                  <div
+                    className="rounded-full flex items-center justify-center"
+                    style={{
+                      width: '93px',
+                      height: '93px',
+                      background: '#d9d9d9',
+                    }}
+                  />
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Имя */}
-          <p
-            className="text-center mb-2"
-            style={{
-              fontFamily: 'Gilroy, sans-serif',
-              fontWeight: 400,
-              fontSize: '21.17px',
-              lineHeight: 1.45,
-              letterSpacing: '-0.42px',
-              color: '#2d2620',
-            }}
-          >
-            {displayName}
-          </p>
-
-          {/* Город */}
-          <p
-            className="text-center mb-4"
-            style={{
-              fontFamily: 'Gilroy, sans-serif',
-              fontWeight: 400,
-              fontSize: '16px',
-              lineHeight: 1.45,
-              letterSpacing: '-0.32px',
-              color: '#2d2620',
-            }}
-          >
-            {user?.city || 'Город не указан'}
-          </p>
-
-          {/* Бейдж статуса */}
-          <div className="flex justify-center mb-6">
-            <div
-              className="px-4 py-2"
-              style={{
-                border: '0.955px solid #d93547',
-                borderRadius: '5.73px',
-                background: 'linear-gradient(242.8deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
-              }}
-            >
-              <p
-                style={{
-                  fontFamily: 'Gilroy, sans-serif',
-                  fontWeight: 700,
-                  fontSize: '14px',
-                  lineHeight: 1.45,
-                  letterSpacing: '-0.28px',
-                  color: 'white',
-                }}
-              >
-                {user?.isPro ? 'Участник' : 'Новичек'}
-              </p>
-            </div>
-          </div>
-
-          {/* ===== БЛОК БАЛАНСА ===== */}
-          <div
-            className="relative overflow-hidden"
-            style={{
-              borderRadius: '10px',
-              height: '79px',
-            }}
-          >
-            {/* Фоновое изображение */}
-            <div className="absolute inset-0" style={{ opacity: 0.3 }}>
-              <img
-                src="/assets/balance-bg.jpg"
-                alt=""
-                className="w-full h-full object-cover"
-                style={{ filter: 'blur(21px)' }}
-              />
-            </div>
-
-            {/* Градиент фона */}
-            <div
-              className="absolute inset-0"
-              style={{
-                background: 'linear-gradient(256deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
-              }}
-            />
-
-            {/* Контент */}
-            <div className="relative z-10 h-full flex items-center justify-between px-4">
-              <p
-                style={{
-                  fontFamily: '"TT Nooks", Georgia, serif',
-                  fontWeight: 300,
-                  fontSize: '20px',
-                  color: '#f7f1e8',
-                }}
-              >
-                Мой баланс
-              </p>
-
-              <div className="text-right">
+              {/* Текстовая часть справа от аватара */}
+              <div className="flex-1 flex flex-col items-center justify-start ml-4">
+                {/* Имя */}
                 <p
-                  style={{
-                    fontFamily: 'Gilroy, sans-serif',
-                    fontWeight: 600,
-                    fontSize: '39.6px',
-                    lineHeight: 1,
-                    color: '#f7f1e8',
-                  }}
-                >
-                  {userBalance}
-                </p>
-                <p
+                  className="text-center mb-[8px]"
                   style={{
                     fontFamily: 'Gilroy, sans-serif',
                     fontWeight: 400,
-                    fontSize: '15.85px',
+                    fontSize: '21.167px',
+                    lineHeight: 1.45,
+                    letterSpacing: '-0.4233px',
+                    color: '#2d2620',
+                  }}
+                >
+                  {displayName}
+                </p>
+
+                {/* Город */}
+                <p
+                  className="text-center mb-[16px]"
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontWeight: 400,
+                    fontSize: '15.993px',
+                    lineHeight: 1.45,
+                    letterSpacing: '-0.3199px',
+                    color: '#2d2620',
+                  }}
+                >
+                  {user?.city ? `г. ${user.city}` : 'Город не указан'}
+                </p>
+
+                {/* Бейдж статуса */}
+                <div
+                  style={{
+                    border: '0.955px solid #d93547',
+                    borderRadius: '5.731px',
+                    background: 'linear-gradient(242.804deg, rgb(174, 30, 43) 15.721%, rgb(156, 23, 35) 99.389%)',
+                    paddingLeft: '16px',
+                    paddingRight: '16px',
+                    height: '33px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <p
+                    style={{
+                      fontFamily: 'Gilroy, sans-serif',
+                      fontWeight: 700,
+                      fontSize: '14px',
+                      lineHeight: 1.45,
+                      letterSpacing: '-0.28px',
+                      color: 'white',
+                    }}
+                  >
+                    {user?.isPro ? 'Участник' : 'Новичек'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* ===== БЛОК БАЛАНСА ===== */}
+            <div
+              className="relative overflow-hidden"
+              style={{
+                borderRadius: '10px',
+                width: '291px',
+                height: '79.363px',
+              }}
+            >
+              {/* Фоновое изображение с размытием и overlay */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  transform: 'scaleY(-1)',
+                  mixBlendMode: 'overlay',
+                }}
+              >
+                <img
+                  src="/assets/balance-bg.jpg"
+                  alt=""
+                  className="w-full h-full object-cover"
+                  style={{ filter: 'blur(21.056px)' }}
+                />
+              </div>
+
+              {/* Градиент фона */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: 'linear-gradient(256deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
+                }}
+              />
+
+              {/* Декоративная рамка поверх */}
+              <div
+                className="absolute"
+                style={{
+                  left: '11.947px',
+                  top: '35.842px',
+                  width: '149.34px',
+                  height: '31.575px',
+                  border: '0.853px solid rgba(244, 214, 182, 0.4)',
+                  borderRadius: '5.12px',
+                  overflow: 'hidden',
+                }}
+              >
+                <img
+                  src="/assets/balance-frame.png"
+                  alt=""
+                  className="w-full h-full object-cover"
+                  style={{ borderRadius: '5.12px' }}
+                />
+              </div>
+
+              {/* Контент */}
+              <div className="relative z-10 h-full flex items-center justify-between px-4">
+                <p
+                  style={{
+                    fontFamily: '"TT Nooks", Georgia, serif',
+                    fontWeight: 300,
+                    fontSize: '20.142px',
+                    lineHeight: 'normal',
                     color: '#f7f1e8',
                   }}
                 >
-                  энергий
+                  Мой баланс
                 </p>
+
+                <div className="text-right">
+                  <p
+                    style={{
+                      fontFamily: 'Gilroy, sans-serif',
+                      fontWeight: 600,
+                      fontSize: '39.627px',
+                      lineHeight: 'normal',
+                      color: '#f7f1e8',
+                    }}
+                  >
+                    {userBalance}
+                  </p>
+                  <p
+                    style={{
+                      fontFamily: 'Gilroy, sans-serif',
+                      fontWeight: 400,
+                      fontSize: '15.851px',
+                      lineHeight: 'normal',
+                      color: '#f7f1e8',
+                    }}
+                  >
+                    энергий
+                  </p>
+                </div>
               </div>
             </div>
+
           </div>
         </div>
 
         {/* ===== ССЫЛКИ ===== */}
-        <div className="space-y-4">
+        <div className="space-y-[37px] px-[30px]">
           <button
             onClick={() => openLink('https://storage.daniillepekhin.com/IK%2Fclub_miniapp%2F%D0%9F%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0%20%D0%BA%D0%BB%D1%83%D0%B1%D0%B0.pdf')}
             className="w-full text-center"
             style={{
               fontFamily: 'Gilroy, sans-serif',
               fontWeight: 400,
-              fontSize: '18.52px',
+              fontSize: '18.517px',
               lineHeight: 1.45,
-              letterSpacing: '-0.37px',
+              letterSpacing: '-0.3703px',
               color: '#2d2620',
               textDecoration: 'underline',
+              textDecorationColor: '#2d2620',
             }}
           >
             Правила клуба
@@ -366,11 +460,12 @@ export function ProfileTab() {
             style={{
               fontFamily: 'Gilroy, sans-serif',
               fontWeight: 400,
-              fontSize: '18.52px',
+              fontSize: '18.517px',
               lineHeight: 1.45,
-              letterSpacing: '-0.37px',
+              letterSpacing: '-0.3703px',
               color: '#2d2620',
               textDecoration: 'underline',
+              textDecorationColor: '#2d2620',
             }}
           >
             Оферта
@@ -382,17 +477,17 @@ export function ProfileTab() {
             style={{
               fontFamily: 'Gilroy, sans-serif',
               fontWeight: 400,
-              fontSize: '18.52px',
+              fontSize: '18.517px',
               lineHeight: 1.45,
-              letterSpacing: '-0.37px',
+              letterSpacing: '-0.3703px',
               color: '#2d2620',
               textDecoration: 'underline',
+              textDecorationColor: '#2d2620',
             }}
           >
             Служба заботы
           </button>
         </div>
-
       </div>
     </div>
   );
