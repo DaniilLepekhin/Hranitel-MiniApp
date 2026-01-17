@@ -640,14 +640,21 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
               right: '0',
               top: '0',
               bottom: '0',
-              width: '50%',
+              width: '166px',
               borderRadius: '10px',
             }}
           >
             <img
               src="/assets/ratings-shop-bg.jpg"
               alt=""
-              className="w-full h-full object-cover"
+              style={{
+                position: 'absolute',
+                left: '-224px',
+                top: '0',
+                width: '341px',
+                height: '100%',
+                objectFit: 'cover',
+              }}
             />
           </div>
 
