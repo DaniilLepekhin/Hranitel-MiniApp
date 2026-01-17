@@ -264,7 +264,7 @@ function CategoryCard({ title, image, onClick }: CategoryCardProps) {
 
       {/* Нижняя часть - красный блок с текстом (45% высоты) */}
       <div
-        className="relative flex-1 flex flex-col justify-end"
+        className="relative flex-1 flex flex-col justify-center items-center"
         style={{
           background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
           borderBottomLeftRadius: '5.73px',
@@ -283,7 +283,7 @@ function CategoryCard({ title, image, onClick }: CategoryCardProps) {
 
         {/* Название категории */}
         <p
-          className="text-center px-2 pb-3"
+          className="text-center px-2"
           style={{
             fontFamily: '"TT Nooks", Georgia, serif',
             fontWeight: 300,
