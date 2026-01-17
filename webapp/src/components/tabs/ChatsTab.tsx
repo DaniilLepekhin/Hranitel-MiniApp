@@ -363,16 +363,16 @@ export function ChatsTab() {
             <div
               className="absolute overflow-hidden"
               style={{
-                right: '0',
-                top: '0',
-                bottom: '0',
-                width: '50%',
+                right: '-15px',
+                top: '-15px',
+                bottom: '-15px',
+                width: '55%',
               }}
             >
               <img
                 src="/assets/chat-main-channel.png"
                 alt=""
-                className="w-full h-full object-contain object-right-bottom"
+                className="w-full h-full object-cover object-center"
               />
             </div>
 
@@ -441,16 +441,16 @@ export function ChatsTab() {
               <div
                 className="absolute overflow-hidden"
                 style={{
-                  right: '0',
-                  top: '0',
-                  bottom: '0',
-                  width: '50%',
+                  right: '-15px',
+                  top: '-15px',
+                  bottom: '-15px',
+                  width: '55%',
                 }}
               >
                 <img
                   src="/assets/chat-city.png"
                   alt=""
-                  className="w-full h-full object-contain object-right-bottom"
+                  className="w-full h-full object-cover object-center"
                 />
               </div>
 
