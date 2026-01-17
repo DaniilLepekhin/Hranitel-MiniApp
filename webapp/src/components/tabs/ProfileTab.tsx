@@ -191,7 +191,7 @@ export function ProfileTab() {
           style={{
             border: '1px solid #2d2620',
             borderRadius: '20px',
-            minHeight: '380px',
+            minHeight: '280px',
             marginBottom: '24px',
           }}
         >
