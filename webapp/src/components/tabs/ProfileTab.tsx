@@ -289,44 +289,40 @@ export function ProfileTab() {
 
             {/* ===== БЛОК БАЛАНСА ===== */}
             <div
-              className="relative overflow-hidden"
+              className="w-full relative overflow-hidden"
               style={{
-                borderRadius: '10px',
-                width: '291px',
-                height: '79.363px',
-                background: 'linear-gradient(256deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
+                borderRadius: '8px',
+                background: 'linear-gradient(243.413deg, rgb(174, 30, 43) 15.721%, rgb(156, 23, 35) 99.389%)',
+                minHeight: '100px',
               }}
             >
-              {/* Декоративная картинка под "Мой баланс" */}
+              {/* Декоративная картинка */}
               <div
-                className="absolute"
+                className="absolute overflow-hidden"
                 style={{
-                  left: '11.947px',
-                  top: '35.842px',
-                  width: '149.34px',
-                  height: '31.575px',
-                  border: '0.853px solid rgba(244, 214, 182, 0.4)',
-                  borderRadius: '5.12px',
-                  overflow: 'hidden',
+                  left: '16px',
+                  bottom: '12px',
+                  width: 'min(50%, 200px)',
+                  height: '45px',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(244, 214, 182, 0.4)',
                 }}
               >
                 <img
-                  src="/assets/balance-frame.png"
                   alt=""
                   className="w-full h-full object-cover"
-                  style={{ borderRadius: '5.12px' }}
+                  src="/assets/balance-image.jpg"
                 />
               </div>
 
               {/* Контент */}
-              <div className="relative z-10 h-full flex items-center justify-between px-4">
+              <div className="relative z-10 h-full flex justify-between p-4">
                 <p
                   style={{
                     fontFamily: '"TT Nooks", Georgia, serif',
                     fontWeight: 300,
-                    fontSize: '20.142px',
-                    lineHeight: 'normal',
-                    color: '#f7f1e8',
+                    fontSize: 'clamp(20px, 5vw, 24px)',
+                    color: 'rgb(247, 241, 232)',
                   }}
                 >
                   Мой баланс
@@ -337,9 +333,9 @@ export function ProfileTab() {
                     style={{
                       fontFamily: 'Gilroy, sans-serif',
                       fontWeight: 600,
-                      fontSize: '39.627px',
-                      lineHeight: 'normal',
-                      color: '#f7f1e8',
+                      fontSize: 'clamp(40px, 10vw, 48px)',
+                      color: 'rgb(247, 241, 232)',
+                      lineHeight: 1,
                     }}
                   >
                     {userBalance}
@@ -348,9 +344,8 @@ export function ProfileTab() {
                     style={{
                       fontFamily: 'Gilroy, sans-serif',
                       fontWeight: 400,
-                      fontSize: '15.851px',
-                      lineHeight: 'normal',
-                      color: '#f7f1e8',
+                      fontSize: 'clamp(16px, 4vw, 19px)',
+                      color: 'rgb(247, 241, 232)',
                     }}
                   >
                     энергий
