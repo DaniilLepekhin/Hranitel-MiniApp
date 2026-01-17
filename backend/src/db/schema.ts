@@ -323,7 +323,7 @@ export const streamAttendance = pgTable('stream_attendance', {
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
   watchedOnline: boolean('watched_online').default(false).notNull(), // true если был онлайн
-  energiesEarned: integer('ep_earned').default(0).notNull(),
+  energiesEarned: integer('energies_earned').default(0).notNull(),
 }, (table) => [
   uniqueIndex('stream_attendance_stream_user_idx').on(table.streamId, table.userId),
   index('stream_attendance_user_id_idx').on(table.userId),
@@ -338,7 +338,7 @@ export const weeklyReports = pgTable('weekly_reports', {
   content: text('content').notNull(),
   submittedAt: timestamp('submitted_at').defaultNow().notNull(),
   deadline: timestamp('deadline').notNull(), // Воскресенье 23:59 МСК
-  energiesEarned: integer('ep_earned').default(100).notNull(),
+  energiesEarned: integer('energies_earned').default(100).notNull(),
 }, (table) => [
   index('weekly_reports_user_id_idx').on(table.userId),
   index('weekly_reports_week_number_idx').on(table.weekNumber),
@@ -443,7 +443,7 @@ export const userContentProgress = pgTable('user_content_progress', {
   watched: boolean('watched').default(false),
   watchTimeSeconds: integer('watch_time_seconds').default(0), // сколько секунд просмотрел
   completedAt: timestamp('completed_at'),
-  energiesEarned: integer('ep_earned').default(0), // сколько EP заработал
+  energiesEarned: integer('energies_earned').default(0), // сколько EP заработал
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
