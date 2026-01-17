@@ -635,27 +635,34 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
         >
           {/* Фоновое изображение справа */}
           <div
-            className="absolute overflow-hidden"
+            className="absolute"
             style={{
               right: '0',
               top: '0',
               bottom: '0',
               width: '166px',
               borderRadius: '10px',
+              overflow: 'hidden',
             }}
           >
-            <img
-              src="/assets/ratings-shop-bg.jpg"
-              alt=""
+            <div
               style={{
-                position: 'absolute',
-                left: '-224px',
-                top: '0',
+                position: 'relative',
                 width: '341px',
                 height: '100%',
-                objectFit: 'cover',
+                marginLeft: '-224px',
               }}
-            />
+            >
+              <img
+                src="/assets/ratings-shop-bg.jpg"
+                alt=""
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+              />
+            </div>
           </div>
 
           {/* Контент слева */}
