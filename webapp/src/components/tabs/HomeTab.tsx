@@ -68,22 +68,22 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
           />
         </div>
 
-        {/* Монеты/молоток слева - масштабируются с экраном */}
+        {/* Монеты/молоток слева - покрывают всю левую часть экрана */}
         <div
           className="absolute"
           style={{
-            width: 'clamp(300px, 50vw, 800px)',
-            height: 'clamp(400px, 80vh, 1200px)',
-            left: 'clamp(-150px, -10vw, -50px)',
-            top: 'clamp(-100px, -5vh, 0px)',
+            width: '120vmax',
+            height: '150vh',
+            left: '-30vw',
+            top: '-10vh',
             mixBlendMode: 'multiply',
-            opacity: 0.25,
+            opacity: 0.3,
           }}
         >
           <img
             src="/assets/bg-coins.png"
             alt=""
-            className="w-full h-full object-contain object-left-top"
+            className="w-full h-full object-cover object-left-top"
           />
         </div>
 
