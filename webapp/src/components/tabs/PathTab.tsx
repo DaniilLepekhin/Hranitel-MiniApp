@@ -1,7 +1,6 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Megaphone } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 
 // Категории контента с изображениями
@@ -144,25 +143,27 @@ export function PathTab() {
       </div>
 
       {/* ===== КОНТЕНТ ===== */}
-      <div className="relative z-10 px-4 sm:px-6 pt-6 pb-28 max-w-2xl mx-auto">
-        {/* Иконка мегафона */}
+      <div className="relative z-10 pt-[23px] pb-28 max-w-2xl mx-auto" style={{ paddingLeft: '29px', paddingRight: '29px' }}>
+        {/* Иконка указателя из макета */}
         <div className="flex justify-center mb-4">
-          <Megaphone
-            className="w-9 h-9"
-            style={{ color: '#9c1723' }}
+          <img
+            src="/assets/path-icon.png"
+            alt=""
+            style={{ width: '37px', height: '37px' }}
           />
         </div>
 
         {/* Заголовок */}
         <h1
-          className="text-center mb-4"
+          className="text-center"
           style={{
             fontFamily: '"TT Nooks", Georgia, serif',
             fontWeight: 300,
-            fontSize: 'clamp(36px, 10vw, 46px)',
+            fontSize: '45.8px',
             lineHeight: 0.95,
-            letterSpacing: '-0.06em',
+            letterSpacing: '-2.75px',
             color: '#2d2620',
+            marginBottom: '16px',
           }}
         >
           Здесь твой обучающий путь:
@@ -170,14 +171,18 @@ export function PathTab() {
 
         {/* Описание */}
         <p
-          className="text-center mb-8"
+          className="text-center"
           style={{
             fontFamily: 'Gilroy, sans-serif',
             fontWeight: 400,
             fontSize: '13px',
             lineHeight: 1.45,
-            letterSpacing: '-0.02em',
+            letterSpacing: '-0.26px',
             color: '#2d2620',
+            marginBottom: '24px',
+            maxWidth: '341px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
           }}
         >
           <span style={{ fontWeight: 700 }}>
@@ -187,7 +192,7 @@ export function PathTab() {
         </p>
 
         {/* Сетка категорий 2x2 */}
-        <div className="grid grid-cols-2 gap-3 mb-3">
+        <div className="grid grid-cols-2 mb-[5px]" style={{ gap: '5px' }}>
           {contentCategories.slice(0, 4).map((category) => (
             <CategoryCard
               key={category.id}
@@ -200,7 +205,7 @@ export function PathTab() {
 
         {/* Практики - центрированная карточка */}
         <div className="flex justify-center">
-          <div className="w-[calc(50%-6px)]">
+          <div style={{ width: '165px' }}>
             <CategoryCard
               title={contentCategories[4].title}
               image={contentCategories[4].image}
@@ -226,42 +231,46 @@ function CategoryCard({ title, image, onClick }: CategoryCardProps) {
       onClick={onClick}
       className="relative overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
       style={{
-        borderRadius: '6px',
-        border: '1px solid #d93547',
+        borderRadius: '5.73px',
+        border: '0.955px solid #d93547',
         background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
-        aspectRatio: '165 / 160',
+        aspectRatio: '165.456 / 160.471',
       }}
     >
-      {/* Изображение с маской */}
+      {/* Изображение */}
       <div
-        className="absolute inset-0 overflow-hidden"
+        className="absolute overflow-hidden"
         style={{
-          borderRadius: '6px',
+          borderRadius: '10px',
+          top: '20%',
+          left: 0,
+          right: 0,
+          bottom: '20%',
         }}
       >
         <img
           src={image}
           alt={title}
           className="w-full h-full object-cover"
-          style={{
-            opacity: 0.85,
-            mixBlendMode: 'luminosity',
-          }}
-        />
-        {/* Градиентный оверлей снизу для читаемости текста */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'linear-gradient(to top, rgba(156, 23, 35, 0.9) 0%, rgba(156, 23, 35, 0.4) 50%, transparent 100%)',
-          }}
         />
       </div>
 
+      {/* Градиентный оверлей для читаемости текста */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: 'linear-gradient(to top, rgba(156, 23, 35, 0.95) 0%, rgba(156, 23, 35, 0.7) 35%, rgba(156, 23, 35, 0.3) 60%, transparent 100%)',
+          borderRadius: '5.73px',
+        }}
+      />
+
       {/* Декоративная линия */}
       <div
-        className="absolute left-3 right-3"
+        className="absolute"
         style={{
-          bottom: '45px',
+          left: '12px',
+          right: '12px',
+          bottom: '37px',
           height: '1px',
           backgroundColor: 'rgba(255, 255, 255, 0.3)',
         }}
@@ -271,10 +280,10 @@ function CategoryCard({ title, image, onClick }: CategoryCardProps) {
       <p
         className="absolute left-0 right-0 text-center px-2"
         style={{
-          bottom: '12px',
+          bottom: '10px',
           fontFamily: '"TT Nooks", Georgia, serif',
           fontWeight: 300,
-          fontSize: 'clamp(18px, 5vw, 22px)',
+          fontSize: '22.39px',
           lineHeight: 1.05,
           color: '#f7f1e8',
         }}
