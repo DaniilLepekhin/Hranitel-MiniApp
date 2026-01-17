@@ -286,6 +286,52 @@ export class SchedulerService {
   }
 
   /**
+   * Cancel ALL tasks for a specific user (when user pays)
+   * @param userId User ID
+   * @returns Number of cancelled tasks
+   */
+  async cancelAllUserTasks(userId: number): Promise<number> {
+    try {
+      // Get all task IDs from user index
+      const allTaskMappings = await redis.hgetall(this.USER_INDEX_KEY);
+      const tasksToCancel: string[] = [];
+
+      // Find all tasks for this user
+      for (const [taskId, value] of Object.entries(allTaskMappings)) {
+        if (value.startsWith(`${userId}:`)) {
+          tasksToCancel.push(taskId);
+        }
+      }
+
+      if (tasksToCancel.length === 0) {
+        return 0;
+      }
+
+      // Find and remove from sorted set
+      const allTasks = await redis.zrange(this.QUEUE_KEY, 0, -1);
+      let cancelled = 0;
+
+      for (const taskJson of allTasks) {
+        const task = JSON.parse(taskJson) as ScheduledTask;
+        if (tasksToCancel.includes(task.id)) {
+          await redis
+            .multi()
+            .zrem(this.QUEUE_KEY, taskJson)
+            .hdel(this.USER_INDEX_KEY, task.id)
+            .exec();
+          cancelled++;
+        }
+      }
+
+      logger.info({ userId, cancelled }, 'All user tasks cancelled (user paid)');
+      return cancelled;
+    } catch (error) {
+      logger.error({ error, userId }, 'Failed to cancel all user tasks');
+      return 0;
+    }
+  }
+
+  /**
    * Clear all tasks (use with caution)
    */
   async clearAll(): Promise<void> {

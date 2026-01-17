@@ -28,7 +28,17 @@ async function checkPaymentStatus(userId: number): Promise<boolean> {
       .where(eq(users.telegramId, String(userId)))
       .limit(1);
 
-    return user?.hasAccess || false;
+    // Check if user has active subscription (isPro = true OR subscription hasn't expired)
+    if (!user) return false;
+
+    if (user.isPro) return true;
+
+    // Also check subscription expiration date
+    if (user.subscriptionExpires && new Date(user.subscriptionExpires) > new Date()) {
+      return true;
+    }
+
+    return false;
   } catch (error) {
     logger.error({ error, userId }, 'Failed to check payment status');
     return false;
@@ -66,7 +76,9 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
     // Check if user already paid
     const paid = await checkPaymentStatus(userId);
     if (paid) {
-      logger.info({ userId, taskType: type }, 'User already paid, skipping reminder');
+      logger.info({ userId, taskType: type }, 'User already paid, cancelling all remaining tasks');
+      // Cancel ALL remaining tasks for this user
+      await schedulerService.cancelAllUserTasks(userId);
       return;
     }
 
@@ -319,9 +331,10 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
   }
 }
 
-// Clear all scheduled tasks on bot restart and start processing
-await schedulerService.clearAll();
-logger.info('Cleared all scheduled tasks on bot restart');
+// Start processing scheduled tasks (preserve tasks between restarts)
+// NOTE: We DON'T clear tasks on restart to ensure users receive all scheduled messages
+const pendingCount = await schedulerService.getPendingCount();
+logger.info({ pendingCount }, 'Bot restarted, resuming scheduled task processing');
 schedulerService.startProcessing(processScheduledTask);
 
 // Bot commands
@@ -411,23 +424,41 @@ bot.callbackQuery('get_access', async (ctx) => {
       5 * 60 * 1000 // 5 minutes
     );
 
-    // Check payment after 10 seconds
-    setTimeout(async () => {
+    // Start periodic payment check (every 30 seconds for 5 minutes)
+    // This will detect payment and cancel all scheduled reminders
+    let checkCount = 0;
+    const maxChecks = 10; // 10 checks * 30 seconds = 5 minutes
+
+    const paymentCheckInterval = setInterval(async () => {
+      checkCount++;
       try {
         const paid = await checkPaymentStatus(userId);
         if (paid) {
+          // Clear interval
+          clearInterval(paymentCheckInterval);
+
+          // Cancel all scheduled tasks for this user
+          await schedulerService.cancelAllUserTasks(userId);
+
+          // Send congratulations
           await telegramService.sendMessage(
             chatId,
             '🎉 <b>Поздравляю с покупкой!</b>\n\n' +
-            'Добро пожаловать в клуб «Код Денег»! Теперь у тебя есть полный доступ ко всем материалам.',
+            'Добро пожаловать в клуб «Код Денег»! Теперь у тебя есть полный доступ ко всем материалам.\n\n' +
+            'Нажми /app чтобы открыть приложение клуба.',
             { parse_mode: 'HTML' }
           );
           await stateService.setState(userId, 'paid');
+          logger.info({ userId }, 'Payment detected, user welcomed');
+        } else if (checkCount >= maxChecks) {
+          // Stop checking after 5 minutes
+          clearInterval(paymentCheckInterval);
+          logger.info({ userId }, 'Payment check period ended');
         }
       } catch (error) {
         logger.error({ error, userId }, 'Error checking payment status');
       }
-    }, 10000); // Check after 10 seconds
+    }, 30000); // Check every 30 seconds
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in get_access handler');
   }
