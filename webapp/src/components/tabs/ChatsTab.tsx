@@ -15,51 +15,6 @@ const teamsApi = {
   },
 };
 
-// Карточки чатов с данными
-const chatCards = [
-  {
-    id: 'kod-app',
-    title: 'Приложение KOD',
-    description: 'Тебе доступна подписка на наше приложение ментального здоровья',
-    buttonText: 'получить доступ',
-    url: 'http://qr.numschool-web.ru/',
-    image: '/assets/chat-kod-app.jpg',
-  },
-  {
-    id: 'main-channel',
-    title: 'Основной канал клуба',
-    description: 'Здесь все важные новости клуба, анонсы эфиров и ключевые обновления. Рекомендуем быть здесь всегда и закрепить этот канал.',
-    buttonText: 'вступить',
-    url: 'https://t.me/+mwJ5e0d78GYzNDRi',
-    image: '/assets/chat-main-channel.jpg',
-  },
-  {
-    id: 'city-chat',
-    title: 'Чат города',
-    description: 'Пространство для общения с участниками из твоего города, встреч и живого контакта рядом.',
-    buttonText: 'вступить в чат города',
-    image: '/assets/chat-city.jpg',
-    isCityChat: true,
-  },
-  {
-    id: 'desyatka',
-    title: 'Десятка',
-    description: 'Твоя малая группа для роста, поддержки и совместной работы внутри клуба.',
-    secondaryText: '*десятка формируется внутри чата города',
-    buttonText: 'вступить в десятку',
-    image: '/assets/chat-desyatka.jpg',
-    isTeam: true,
-  },
-  {
-    id: 'support',
-    title: 'Служба заботы',
-    description: 'Мы рядом, если возник вопрос или нужна помощь. Напиши — тебе обязательно ответят!',
-    buttonText: 'перейти в бот',
-    url: 'https://t.me/Egiazarova_support_bot',
-    image: '/assets/chat-support.jpg',
-  },
-];
-
 export function ChatsTab() {
   const { haptic, webApp } = useTelegram();
   const { user } = useAuthStore();
@@ -138,26 +93,6 @@ export function ChatsTab() {
       } else {
         openLink(chatLinkData.chatLink);
       }
-    }
-  };
-
-  const handleCardClick = (card: typeof chatCards[0]) => {
-    haptic.impact('light');
-
-    if (card.isCityChat) {
-      setShowCitySelector(!showCitySelector);
-      return;
-    }
-
-    if (card.isTeam) {
-      if (team?.cityChat) {
-        openLink(team.cityChat);
-      }
-      return;
-    }
-
-    if (card.url) {
-      openLink(card.url);
     }
   };
 
@@ -331,29 +266,283 @@ export function ChatsTab() {
 
         {/* Карточки чатов */}
         <div className="flex flex-col gap-[10px]">
-          {chatCards.map((card) => (
-            <div key={card.id}>
-              <ChatCard
-                title={card.title}
-                description={card.description}
-                secondaryText={card.secondaryText}
-                buttonText={card.buttonText}
-                image={card.image}
-                onClick={() => handleCardClick(card)}
-                isExpanded={card.isCityChat && showCitySelector}
-                isDisabled={card.isTeam && !team?.cityChat}
-              />
 
-              {/* Селектор города (показывается при клике на "Чат города") */}
-              {card.isCityChat && showCitySelector && (
-                <div
-                  className="mt-2 p-4 rounded-lg"
+          {/* 1. Приложение KOD - картинка выступает сверху */}
+          <div
+            className="relative overflow-visible cursor-pointer active:scale-[0.99] transition-transform"
+            onClick={() => {
+              haptic.impact('light');
+              openLink('http://qr.numschool-web.ru/');
+            }}
+            style={{
+              borderRadius: '5.73px',
+              border: '0.955px solid #d93547',
+              background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
+              height: '156px',
+              marginTop: '24px', // Отступ для выступающей картинки
+            }}
+          >
+            {/* Изображение справа - выступает сверху */}
+            <div
+              className="absolute overflow-visible"
+              style={{
+                right: '0',
+                top: '-24px',
+                width: '45%',
+                height: 'calc(100% + 24px)',
+              }}
+            >
+              <img
+                src="/assets/chat-kod-app.jpg"
+                alt=""
+                className="w-full h-full object-contain object-right-bottom"
+              />
+            </div>
+
+            {/* Контент слева */}
+            <div className="relative z-10 p-4 pr-2" style={{ maxWidth: '55%' }}>
+              <h3
+                style={{
+                  fontFamily: '"TT Nooks", Georgia, serif',
+                  fontWeight: 300,
+                  fontSize: '19.4px',
+                  lineHeight: 1.05,
+                  color: '#f7f1e8',
+                  marginBottom: '8px',
+                }}
+              >
+                Приложение KOD
+              </h3>
+
+              <p
+                style={{
+                  fontFamily: 'Gilroy, sans-serif',
+                  fontWeight: 400,
+                  fontSize: '10px',
+                  lineHeight: 1.4,
+                  color: '#f7f1e8',
+                  marginBottom: '12px',
+                }}
+              >
+                <span style={{ fontWeight: 700 }}>Тебе доступна подписка</span> на наше приложение ментального здоровья
+              </p>
+
+              <button
+                className="px-5 py-3 rounded-[5.73px] active:scale-[0.98] transition-transform"
+                style={{
+                  background: '#f7f1e8',
+                  fontFamily: 'Gilroy, sans-serif',
+                  fontWeight: 700,
+                  fontSize: '11.14px',
+                  color: '#a81b28',
+                  textTransform: 'uppercase',
+                  border: 'none',
+                  boxShadow: '0 4px 12px rgba(33, 23, 10, 0.3)',
+                }}
+              >
+                получить доступ
+              </button>
+            </div>
+          </div>
+
+          {/* 2. Основной канал клуба */}
+          <div
+            className="relative overflow-hidden cursor-pointer active:scale-[0.99] transition-transform"
+            onClick={() => {
+              haptic.impact('light');
+              openLink('https://t.me/+mwJ5e0d78GYzNDRi');
+            }}
+            style={{
+              borderRadius: '5.73px',
+              border: '0.955px solid #d93547',
+              background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
+              height: '198px',
+            }}
+          >
+            {/* Изображение справа */}
+            <div
+              className="absolute overflow-hidden"
+              style={{
+                right: '0',
+                top: '0',
+                bottom: '0',
+                width: '50%',
+              }}
+            >
+              <img
+                src="/assets/chat-main-channel.jpg"
+                alt=""
+                className="w-full h-full object-cover object-center"
+              />
+            </div>
+
+            {/* Контент слева */}
+            <div className="relative z-10 p-4 pr-2" style={{ maxWidth: '50%' }}>
+              <h3
+                style={{
+                  fontFamily: '"TT Nooks", Georgia, serif',
+                  fontWeight: 300,
+                  fontSize: '19.4px',
+                  lineHeight: 1.05,
+                  color: '#f7f1e8',
+                  marginBottom: '8px',
+                }}
+              >
+                Основной канал клуба
+              </h3>
+
+              <p
+                style={{
+                  fontFamily: 'Gilroy, sans-serif',
+                  fontWeight: 400,
+                  fontSize: '10px',
+                  lineHeight: 1.4,
+                  color: '#f7f1e8',
+                  marginBottom: '16px',
+                }}
+              >
+                <span style={{ fontWeight: 700 }}>Здесь все важные новости клуба,</span> анонсы эфиров и ключевые обновления. <span style={{ fontWeight: 700 }}>Рекомендуем быть здесь всегда и закрепить этот канал.</span>
+              </p>
+
+              <button
+                className="px-8 py-3 rounded-[5.73px] active:scale-[0.98] transition-transform"
+                style={{
+                  background: '#f7f1e8',
+                  fontFamily: 'Gilroy, sans-serif',
+                  fontWeight: 700,
+                  fontSize: '11.14px',
+                  color: '#a81b28',
+                  textTransform: 'uppercase',
+                  border: 'none',
+                  boxShadow: '0 4px 12px rgba(33, 23, 10, 0.3)',
+                }}
+              >
+                вступить
+              </button>
+            </div>
+          </div>
+
+          {/* 3. Чат города */}
+          <div>
+            <div
+              className="relative overflow-hidden cursor-pointer active:scale-[0.99] transition-transform"
+              onClick={() => {
+                haptic.impact('light');
+                setShowCitySelector(!showCitySelector);
+              }}
+              style={{
+                borderRadius: '5.73px',
+                border: '0.955px solid #d93547',
+                background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
+                height: '161px',
+              }}
+            >
+              {/* Изображение справа */}
+              <div
+                className="absolute overflow-hidden"
+                style={{
+                  right: '0',
+                  top: '0',
+                  bottom: '0',
+                  width: '50%',
+                }}
+              >
+                <img
+                  src="/assets/chat-city.jpg"
+                  alt=""
+                  className="w-full h-full object-cover object-center"
+                />
+              </div>
+
+              {/* Контент слева */}
+              <div className="relative z-10 p-4 pr-2" style={{ maxWidth: '50%' }}>
+                <h3
                   style={{
-                    background: 'rgba(247, 241, 232, 0.95)',
-                    border: '1px solid #d93547',
+                    fontFamily: '"TT Nooks", Georgia, serif',
+                    fontWeight: 300,
+                    fontSize: '19.4px',
+                    lineHeight: 1.05,
+                    color: '#f7f1e8',
+                    marginBottom: '8px',
                   }}
                 >
-                  {/* Выбор страны */}
+                  Чат города
+                </h3>
+
+                <p
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontWeight: 400,
+                    fontSize: '10px',
+                    lineHeight: 1.4,
+                    color: '#f7f1e8',
+                    marginBottom: '12px',
+                  }}
+                >
+                  Пространство для общения с <span style={{ fontWeight: 700 }}>участниками из твоего города,</span> встреч и живого контакта рядом
+                </p>
+
+                <button
+                  className="px-4 py-3 rounded-[5.73px] active:scale-[0.98] transition-transform"
+                  style={{
+                    background: '#f7f1e8',
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontWeight: 700,
+                    fontSize: '11.14px',
+                    color: '#a81b28',
+                    textTransform: 'uppercase',
+                    border: 'none',
+                    boxShadow: '0 4px 12px rgba(33, 23, 10, 0.3)',
+                  }}
+                >
+                  вступить в чат города
+                </button>
+              </div>
+            </div>
+
+            {/* Селектор города */}
+            {showCitySelector && (
+              <div
+                className="mt-2 p-4 rounded-lg"
+                style={{
+                  background: 'rgba(247, 241, 232, 0.95)',
+                  border: '1px solid #d93547',
+                }}
+              >
+                <div className="mb-3">
+                  <label
+                    className="block mb-1.5"
+                    style={{
+                      fontFamily: 'Gilroy, sans-serif',
+                      fontWeight: 600,
+                      fontSize: '12px',
+                      color: '#2d2620',
+                    }}
+                  >
+                    Страна
+                  </label>
+                  {isLoadingCountries ? (
+                    <div className="p-3 bg-white/50 rounded-lg text-center text-[#6b5a4a] text-sm">
+                      Загрузка...
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedCountry}
+                      onChange={(e) => handleCountrySelect(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-lg border bg-white text-[#2d2620] font-medium text-sm focus:outline-none"
+                      style={{ borderColor: '#d93547' }}
+                    >
+                      <option value="">Выберите страну</option>
+                      {countries.map((country) => (
+                        <option key={country} value={country}>
+                          {country}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                {selectedCountry && (
                   <div className="mb-3">
                     <label
                       className="block mb-1.5"
@@ -364,219 +553,225 @@ export function ChatsTab() {
                         color: '#2d2620',
                       }}
                     >
-                      Страна
+                      Город
                     </label>
-                    {isLoadingCountries ? (
+                    {isLoadingCities ? (
                       <div className="p-3 bg-white/50 rounded-lg text-center text-[#6b5a4a] text-sm">
-                        Загрузка...
+                        Загрузка городов...
+                      </div>
+                    ) : cities.length === 0 ? (
+                      <div className="p-3 bg-white/50 rounded-lg text-center text-[#6b5a4a] text-sm">
+                        Нет доступных городов
                       </div>
                     ) : (
                       <select
-                        value={selectedCountry}
-                        onChange={(e) => handleCountrySelect(e.target.value)}
+                        value={selectedCity}
+                        onChange={(e) => handleCitySelect(e.target.value)}
                         className="w-full px-3 py-2.5 rounded-lg border bg-white text-[#2d2620] font-medium text-sm focus:outline-none"
                         style={{ borderColor: '#d93547' }}
                       >
-                        <option value="">Выберите страну</option>
-                        {countries.map((country) => (
-                          <option key={country} value={country}>
-                            {country}
+                        <option value="">Выберите город</option>
+                        {cities.map((city) => (
+                          <option key={city.name} value={city.name}>
+                            {city.name}
                           </option>
                         ))}
                       </select>
                     )}
                   </div>
+                )}
 
-                  {/* Выбор города */}
-                  {selectedCountry && (
-                    <div className="mb-3">
-                      <label
-                        className="block mb-1.5"
-                        style={{
-                          fontFamily: 'Gilroy, sans-serif',
-                          fontWeight: 600,
-                          fontSize: '12px',
-                          color: '#2d2620',
-                        }}
-                      >
-                        Город
-                      </label>
-                      {isLoadingCities ? (
-                        <div className="p-3 bg-white/50 rounded-lg text-center text-[#6b5a4a] text-sm">
-                          Загрузка городов...
-                        </div>
-                      ) : cities.length === 0 ? (
-                        <div className="p-3 bg-white/50 rounded-lg text-center text-[#6b5a4a] text-sm">
-                          Нет доступных городов
-                        </div>
-                      ) : (
-                        <select
-                          value={selectedCity}
-                          onChange={(e) => handleCitySelect(e.target.value)}
-                          className="w-full px-3 py-2.5 rounded-lg border bg-white text-[#2d2620] font-medium text-sm focus:outline-none"
-                          style={{ borderColor: '#d93547' }}
-                        >
-                          <option value="">Выберите город</option>
-                          {cities.map((city) => (
-                            <option key={city.name} value={city.name}>
-                              {city.name}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-                  )}
+                {selectedCity && chatLinkData?.chatLink && (
+                  <button
+                    onClick={handleJoinCityChat}
+                    className="w-full py-3 rounded-lg text-center active:scale-[0.98] transition-transform"
+                    style={{
+                      background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
+                      fontFamily: 'Gilroy, sans-serif',
+                      fontWeight: 600,
+                      fontSize: '14px',
+                      color: '#f7f1e8',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    вступить в чат
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
 
-                  {/* Кнопка вступить */}
-                  {selectedCity && chatLinkData?.chatLink && (
-                    <button
-                      onClick={handleJoinCityChat}
-                      className="w-full py-3 rounded-lg text-center active:scale-[0.98] transition-transform"
-                      style={{
-                        background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
-                        fontFamily: 'Gilroy, sans-serif',
-                        fontWeight: 600,
-                        fontSize: '14px',
-                        color: '#f7f1e8',
-                        textTransform: 'lowercase',
-                      }}
-                    >
-                      вступить в чат
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Компонент карточки чата
-interface ChatCardProps {
-  title: string;
-  description: string;
-  secondaryText?: string;
-  buttonText: string;
-  image: string;
-  onClick: () => void;
-  isExpanded?: boolean;
-  isDisabled?: boolean;
-}
-
-function ChatCard({
-  title,
-  description,
-  secondaryText,
-  buttonText,
-  image,
-  onClick,
-  isExpanded,
-  isDisabled
-}: ChatCardProps) {
-  return (
-    <div
-      onClick={onClick}
-      className={`relative overflow-hidden cursor-pointer active:scale-[0.99] transition-transform ${isDisabled ? 'opacity-60' : ''}`}
-      style={{
-        borderRadius: '8px',
-        border: '1px solid #d93547',
-        background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
-        minHeight: '140px',
-      }}
-    >
-      {/* Изображение справа */}
-      <div
-        className="absolute right-0 top-0 bottom-0 overflow-hidden"
-        style={{
-          width: '45%',
-          borderTopRightRadius: '8px',
-          borderBottomRightRadius: '8px',
-        }}
-      >
-        <img
-          src={image}
-          alt=""
-          className="w-full h-full object-cover"
-          style={{
-            objectPosition: 'center',
-            mixBlendMode: 'luminosity',
-            opacity: 0.85,
-          }}
-        />
-        {/* Градиент поверх изображения для плавного перехода */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'linear-gradient(to right, rgb(156, 23, 35) 0%, transparent 50%)',
-          }}
-        />
-      </div>
-
-      {/* Контент слева */}
-      <div className="relative z-10 p-4" style={{ maxWidth: '60%' }}>
-        {/* Заголовок */}
-        <h3
-          style={{
-            fontFamily: '"TT Nooks", Georgia, serif',
-            fontWeight: 300,
-            fontSize: '22px',
-            lineHeight: 1.1,
-            color: '#f7f1e8',
-            marginBottom: '8px',
-          }}
-        >
-          {title}
-        </h3>
-
-        {/* Описание */}
-        <p
-          style={{
-            fontFamily: 'Gilroy, sans-serif',
-            fontWeight: 400,
-            fontSize: '11px',
-            lineHeight: 1.4,
-            color: 'rgba(247, 241, 232, 0.85)',
-            marginBottom: secondaryText ? '4px' : '12px',
-          }}
-        >
-          {description}
-        </p>
-
-        {/* Дополнительный текст */}
-        {secondaryText && (
-          <p
+          {/* 4. Десятка */}
+          <div
+            className="relative overflow-hidden cursor-pointer active:scale-[0.99] transition-transform"
+            onClick={() => {
+              haptic.impact('light');
+              if (team?.cityChat) {
+                openLink(team.cityChat);
+              }
+            }}
             style={{
-              fontFamily: 'Gilroy, sans-serif',
-              fontWeight: 400,
-              fontSize: '10px',
-              lineHeight: 1.4,
-              color: 'rgba(247, 241, 232, 0.6)',
-              marginBottom: '12px',
-              fontStyle: 'italic',
+              borderRadius: '5.73px',
+              border: '0.955px solid #d93547',
+              background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
+              height: '169px',
+              opacity: team?.cityChat ? 1 : 0.7,
             }}
           >
-            {secondaryText}
-          </p>
-        )}
+            {/* Изображение справа */}
+            <div
+              className="absolute overflow-hidden"
+              style={{
+                right: '-10px',
+                top: '0',
+                bottom: '0',
+                width: '55%',
+              }}
+            >
+              <img
+                src="/assets/chat-desyatka.jpg"
+                alt=""
+                className="w-full h-full object-contain object-right-bottom"
+              />
+            </div>
 
-        {/* Кнопка */}
-        <button
-          className="px-4 py-2 rounded-full active:scale-[0.98] transition-transform"
-          style={{
-            background: '#f7f1e8',
-            fontFamily: 'Gilroy, sans-serif',
-            fontWeight: 600,
-            fontSize: '12px',
-            color: '#9c1723',
-            textTransform: 'lowercase',
-            border: 'none',
-          }}
-        >
-          {buttonText}
-        </button>
+            {/* Контент слева */}
+            <div className="relative z-10 p-4 pr-2" style={{ maxWidth: '55%' }}>
+              <h3
+                style={{
+                  fontFamily: '"TT Nooks", Georgia, serif',
+                  fontWeight: 300,
+                  fontSize: '19.4px',
+                  lineHeight: 1.05,
+                  color: '#f7f1e8',
+                  marginBottom: '8px',
+                }}
+              >
+                Десятка
+              </h3>
+
+              <p
+                style={{
+                  fontFamily: 'Gilroy, sans-serif',
+                  fontWeight: 400,
+                  fontSize: '10px',
+                  lineHeight: 1.4,
+                  color: '#f7f1e8',
+                  marginBottom: '4px',
+                }}
+              >
+                <span style={{ fontWeight: 700 }}>Твоя малая группа</span> для роста, поддержки и совместной работы внутри клуба.
+              </p>
+
+              <p
+                style={{
+                  fontFamily: 'Gilroy, sans-serif',
+                  fontWeight: 400,
+                  fontSize: '9px',
+                  lineHeight: 1.4,
+                  color: '#f7f1e8',
+                  marginBottom: '12px',
+                }}
+              >
+                *десятка формируется внутри чата города
+              </p>
+
+              <button
+                className="px-4 py-3 rounded-[5.73px] active:scale-[0.98] transition-transform"
+                style={{
+                  background: '#f7f1e8',
+                  fontFamily: 'Gilroy, sans-serif',
+                  fontWeight: 700,
+                  fontSize: '11.14px',
+                  color: '#a81b28',
+                  textTransform: 'uppercase',
+                  border: 'none',
+                  boxShadow: '0 4px 12px rgba(33, 23, 10, 0.3)',
+                }}
+              >
+                вступить в десятку
+              </button>
+            </div>
+          </div>
+
+          {/* 5. Служба заботы */}
+          <div
+            className="relative overflow-hidden cursor-pointer active:scale-[0.99] transition-transform"
+            onClick={() => {
+              haptic.impact('light');
+              openLink('https://t.me/Egiazarova_support_bot');
+            }}
+            style={{
+              borderRadius: '5.73px',
+              border: '0.955px solid #d93547',
+              background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
+              height: '161px',
+            }}
+          >
+            {/* Изображение справа */}
+            <div
+              className="absolute overflow-hidden"
+              style={{
+                right: '-20px',
+                top: '-15px',
+                bottom: '-15px',
+                width: '55%',
+              }}
+            >
+              <img
+                src="/assets/chat-support.jpg"
+                alt=""
+                className="w-full h-full object-contain object-right-center"
+              />
+            </div>
+
+            {/* Контент слева */}
+            <div className="relative z-10 p-4 pr-2" style={{ maxWidth: '50%' }}>
+              <h3
+                style={{
+                  fontFamily: '"TT Nooks", Georgia, serif',
+                  fontWeight: 300,
+                  fontSize: '19.4px',
+                  lineHeight: 1.05,
+                  color: '#f7f1e8',
+                  marginBottom: '8px',
+                }}
+              >
+                Служба заботы
+              </h3>
+
+              <p
+                style={{
+                  fontFamily: 'Gilroy, sans-serif',
+                  fontWeight: 400,
+                  fontSize: '10px',
+                  lineHeight: 1.4,
+                  color: '#f7f1e8',
+                  marginBottom: '16px',
+                }}
+              >
+                <span style={{ fontWeight: 700 }}>Мы рядом, если возник вопрос или нужна помощь.</span> Напиши — тебе обязательно ответят
+              </p>
+
+              <button
+                className="px-5 py-3 rounded-[5.73px] active:scale-[0.98] transition-transform"
+                style={{
+                  background: '#f7f1e8',
+                  fontFamily: 'Gilroy, sans-serif',
+                  fontWeight: 700,
+                  fontSize: '11.14px',
+                  color: '#a81b28',
+                  textTransform: 'uppercase',
+                  border: 'none',
+                  boxShadow: '0 4px 12px rgba(33, 23, 10, 0.3)',
+                }}
+              >
+                перейти в бот
+              </button>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
   );
