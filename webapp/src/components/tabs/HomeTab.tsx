@@ -42,16 +42,16 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
 
   return (
     <div className="min-h-screen bg-[#f7f1e8] relative overflow-hidden">
-      {/* ===== ФОН - точно как в Figma ===== */}
+      {/* ===== ФОН - на всю ширину ===== */}
 
-      {/* Газетная текстура - mix-blend-overlay, opacity 18%, повернута */}
+      {/* Газетная текстура */}
       <div
         className="absolute pointer-events-none"
         style={{
-          width: '1039px',
-          height: '1559px',
-          left: '-725px',
-          top: '-491px',
+          width: '150vw',
+          height: '150vh',
+          left: '-25vw',
+          top: '-25vh',
           opacity: 0.18,
           mixBlendMode: 'overlay',
           transform: 'rotate(-60.8deg)',
@@ -64,14 +64,15 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
         />
       </div>
 
-      {/* Монеты/молоток слева - mix-blend-multiply */}
+      {/* Монеты/молоток слева */}
       <div
         className="absolute pointer-events-none"
         style={{
-          width: '645px',
-          height: '967px',
-          left: '-210px',
-          top: '-99px',
+          width: '50vw',
+          maxWidth: '645px',
+          height: '100vh',
+          left: '-10vw',
+          top: '-10vh',
           mixBlendMode: 'multiply',
         }}
       >
@@ -82,14 +83,14 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
         />
       </div>
 
-      {/* Размытое цветное пятно 1 - mix-blend-color-dodge */}
+      {/* Размытое цветное пятно 1 */}
       <div
         className="absolute pointer-events-none"
         style={{
-          width: '1077px',
-          height: '963px',
-          left: '-735px',
-          top: '0px',
+          width: '100vw',
+          height: '100vh',
+          left: '-50vw',
+          top: '0',
           mixBlendMode: 'color-dodge',
           filter: 'blur(200px)',
           transform: 'rotate(-22.76deg)',
@@ -102,14 +103,14 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
         />
       </div>
 
-      {/* Размытое цветное пятно 2 - mix-blend-color-dodge, перевернутое */}
+      {/* Размытое цветное пятно 2 */}
       <div
         className="absolute pointer-events-none"
         style={{
-          width: '1077px',
-          height: '963px',
-          left: '-431px',
-          top: '-710px',
+          width: '100vw',
+          height: '100vh',
+          left: '-30vw',
+          top: '-50vh',
           mixBlendMode: 'color-dodge',
           filter: 'blur(200px)',
           transform: 'rotate(77.63deg) scaleY(-1)',
@@ -122,49 +123,48 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
         />
       </div>
 
-      {/* ===== КОНТЕНТ ===== */}
-      <div className="relative z-10 px-[29px] pt-[17px] pb-[100px]">
+      {/* ===== КОНТЕНТ - адаптивный ===== */}
+      <div className="relative z-10 px-4 sm:px-6 lg:px-8 pt-4 pb-24 max-w-2xl mx-auto">
 
-        {/* 1. Поиск */}
-        <form onSubmit={handleSearch} className="mb-[20px]">
+        {/* 1. Поиск - адаптивная ширина */}
+        <form onSubmit={handleSearch} className="mb-5">
           <div
-            className="w-[341px] h-[36px] bg-[#2d2620] mx-auto flex items-center"
-            style={{ borderRadius: '5.731px' }}
+            className="w-full h-[40px] sm:h-[44px] bg-[#2d2620] flex items-center rounded-lg"
           >
             <Search
-              className="ml-[10px] opacity-70"
-              style={{ width: '16.238px', height: '16.238px', color: '#f7f1e8' }}
+              className="ml-3 sm:ml-4 opacity-70 flex-shrink-0"
+              style={{ width: '18px', height: '18px', color: '#f7f1e8' }}
             />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Поиск..."
-              className="flex-1 bg-transparent placeholder:opacity-70 px-[10px] focus:outline-none"
+              className="flex-1 bg-transparent placeholder:opacity-70 px-3 focus:outline-none"
               style={{
                 fontFamily: 'Gilroy, sans-serif',
                 fontWeight: 600,
-                fontSize: '13.438px',
+                fontSize: '14px',
                 color: '#f7f1e8',
               }}
             />
           </div>
         </form>
 
-        {/* 2. Пригласи друга */}
+        {/* 2. Пригласи друга - адаптивная ширина */}
         <div
-          className="w-[341px] h-[160px] mx-auto mb-[30px] relative overflow-hidden"
+          className="w-full mb-6 relative overflow-hidden"
           style={{
-            borderRadius: '5.731px',
-            border: '0.955px solid #d93547',
+            borderRadius: '8px',
+            border: '1px solid #d93547',
             background: 'linear-gradient(243.413deg, rgb(174, 30, 43) 15.721%, rgb(156, 23, 35) 99.389%)',
           }}
         >
-          <div className="p-[14px]">
+          <div className="p-4 sm:p-5">
             {/* Заголовок с логотипом КОД */}
-            <div className="flex items-center gap-[10px] mb-[12px]">
+            <div className="flex items-center gap-3 mb-3">
               {/* Круг КОД */}
-              <div className="relative" style={{ width: '40.118px', height: '40.118px' }}>
+              <div className="relative flex-shrink-0" style={{ width: '44px', height: '44px' }}>
                 <div
                   className="absolute inset-0 rounded-full"
                   style={{ background: 'rgba(255,255,255,0.1)', mixBlendMode: 'soft-light' }}
@@ -172,7 +172,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
                 <div
                   className="absolute rounded-full flex items-center justify-center"
                   style={{
-                    inset: '3.83px',
+                    inset: '4px',
                     border: '1px solid rgba(255,255,255,0.3)',
                   }}
                 >
@@ -180,7 +180,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
                     style={{
                       fontFamily: 'Gilroy, sans-serif',
                       fontWeight: 700,
-                      fontSize: '7.716px',
+                      fontSize: '9px',
                       color: 'white',
                       letterSpacing: '0.5px',
                     }}
@@ -193,7 +193,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
                 style={{
                   fontFamily: 'Gilroy, sans-serif',
                   fontWeight: 600,
-                  fontSize: '13.438px',
+                  fontSize: '14px',
                   color: '#f7f1e8',
                 }}
               >
@@ -202,14 +202,14 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
             </div>
 
             {/* Линия */}
-            <div className="w-full h-[1px] bg-white/20 mb-[14px]" />
+            <div className="w-full h-[1px] bg-white/20 mb-4" />
 
             {/* Белая плашка со ссылкой */}
             <div
-              className="w-[312px] h-[63px] mx-auto flex items-center px-[14px]"
+              className="w-full flex items-center px-4 py-3"
               style={{
-                borderRadius: '5.731px',
-                border: '0.955px solid white',
+                borderRadius: '8px',
+                border: '1px solid white',
                 background: 'rgb(247, 241, 232)',
               }}
             >
@@ -218,7 +218,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
                   style={{
                     fontFamily: 'Gilroy, sans-serif',
                     fontWeight: 600,
-                    fontSize: '9.619px',
+                    fontSize: '11px',
                     color: '#2d2620',
                     marginBottom: '4px',
                   }}
@@ -229,7 +229,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
                   className="truncate"
                   style={{
                     fontFamily: 'monospace',
-                    fontSize: '11px',
+                    fontSize: '12px',
                     color: '#2d2620',
                   }}
                 >
@@ -238,26 +238,25 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
               </div>
               <button
                 onClick={handleCopyReferralLink}
-                className="flex-shrink-0 flex items-center justify-center ml-[10px]"
-                style={{ width: '14.328px', height: '14.328px' }}
+                className="flex-shrink-0 flex items-center justify-center ml-3 p-2 hover:bg-black/5 rounded-lg transition-colors"
               >
-                <Copy style={{ width: '14.328px', height: '14.328px', color: '#2d2620' }} />
+                <Copy style={{ width: '18px', height: '18px', color: '#2d2620' }} />
               </button>
             </div>
           </div>
         </div>
 
-        {/* 3. Приветствие - ШРИФТ TT Nooks LIGHT (не жирный!) */}
-        <div className="text-center mb-[23px]">
+        {/* 3. Приветствие */}
+        <div className="text-center mb-6">
           <p
             style={{
               fontFamily: '"TT Nooks", Georgia, serif',
-              fontWeight: 300, // LIGHT - не жирный!
-              fontSize: '53.701px',
+              fontWeight: 300,
+              fontSize: 'clamp(40px, 10vw, 54px)',
               lineHeight: 0.95,
-              letterSpacing: '-3.222px',
+              letterSpacing: '-0.06em',
               color: '#2d2620',
-              marginBottom: '4px',
+              marginBottom: '8px',
             }}
           >
             Привет, {userName}!
@@ -265,10 +264,10 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
           <p
             style={{
               fontFamily: '"TT Nooks", Georgia, serif',
-              fontWeight: 300, // LIGHT
-              fontSize: '20.985px',
+              fontWeight: 300,
+              fontSize: 'clamp(16px, 4vw, 21px)',
               lineHeight: 0.95,
-              letterSpacing: '-1.2591px',
+              letterSpacing: '-0.06em',
               color: '#2d2620',
             }}
           >
@@ -276,22 +275,23 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
           </p>
         </div>
 
-        {/* 4. Мой баланс */}
+        {/* 4. Мой баланс - адаптивная ширина */}
         <div
-          className="w-[341px] h-[93px] mx-auto mb-[30px] relative overflow-hidden"
+          className="w-full mb-6 relative overflow-hidden"
           style={{
-            borderRadius: '6px',
+            borderRadius: '8px',
             background: 'linear-gradient(243.413deg, rgb(174, 30, 43) 15.721%, rgb(156, 23, 35) 99.389%)',
+            minHeight: '100px',
           }}
         >
           {/* Картинка молотка/денег */}
           <div
             className="absolute overflow-hidden"
             style={{
-              left: '14px',
-              top: '42px',
-              width: '175px',
-              height: '37px',
+              left: '16px',
+              bottom: '12px',
+              width: 'min(50%, 200px)',
+              height: '45px',
               borderRadius: '6px',
               border: '1px solid rgba(244, 214, 182, 0.4)',
             }}
@@ -304,14 +304,13 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
           </div>
 
           {/* Контент */}
-          <div className="relative z-10 h-full flex justify-between p-[9px]">
+          <div className="relative z-10 h-full flex justify-between p-4">
             <p
               style={{
                 fontFamily: '"TT Nooks", Georgia, serif',
-                fontWeight: 300, // LIGHT
-                fontSize: '23.603px',
+                fontWeight: 300,
+                fontSize: 'clamp(20px, 5vw, 24px)',
                 color: '#f7f1e8',
-                width: '137px',
               }}
             >
               Мой баланс
@@ -322,7 +321,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
                 style={{
                   fontFamily: 'Gilroy, sans-serif',
                   fontWeight: 600,
-                  fontSize: '46.436px',
+                  fontSize: 'clamp(40px, 10vw, 48px)',
                   color: '#f7f1e8',
                   lineHeight: 1,
                 }}
@@ -333,7 +332,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
                 style={{
                   fontFamily: 'Gilroy, sans-serif',
                   fontWeight: 400,
-                  fontSize: '18.574px',
+                  fontSize: 'clamp(16px, 4vw, 19px)',
                   color: '#f7f1e8',
                 }}
               >
@@ -344,15 +343,15 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
         </div>
 
         {/* 5. Анонсы */}
-        <div className="w-[341px] mx-auto">
-          <div className="flex items-center gap-[6px] mb-[10px]">
+        <div className="w-full">
+          <div className="flex items-center gap-2 mb-3">
             <p
               style={{
                 fontFamily: '"TT Nooks", Georgia, serif',
-                fontWeight: 300, // LIGHT
-                fontSize: '20.985px',
+                fontWeight: 300,
+                fontSize: 'clamp(18px, 4vw, 21px)',
                 lineHeight: 0.95,
-                letterSpacing: '-1.2591px',
+                letterSpacing: '-0.06em',
                 color: '#2d2620',
               }}
             >
@@ -360,8 +359,8 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
             </p>
             <Megaphone
               style={{
-                width: '19px',
-                height: '19px',
+                width: '20px',
+                height: '20px',
                 color: 'rgb(174, 30, 43)',
               }}
             />
