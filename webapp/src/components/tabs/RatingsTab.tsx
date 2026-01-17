@@ -563,7 +563,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
                       }}
                     >
                       <span className="truncate">{item.city}</span>
-                      <span className="ml-1">{String(index + 1).padStart(2, '0')}</span>
+                      <span className="ml-1">{index + 1}</span>
                     </div>
                   ))}
                 </div>
@@ -653,7 +653,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
                       }}
                     >
                       <span className="truncate">{item.teamName}</span>
-                      <span className="ml-1">{String(index + 1).padStart(2, '0')}</span>
+                      <span className="ml-1">{index + 1}</span>
                     </div>
                   ))}
                 </div>
