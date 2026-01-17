@@ -78,7 +78,24 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
     const simpleKeyboard = new InlineKeyboard()
       .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
 
-    if (type === 'five_min_reminder') {
+    if (type === 'start_reminder') {
+      // Send 120-second reminder if user didn't click "Получить доступ"
+      const startKeyboard = new InlineKeyboard()
+        .text('Получить доступ', 'get_access');
+
+      await telegramService.sendMessage(
+        chatId,
+        `<b>Привет! 👋</b>\n\n` +
+        `Ты посмотрела видео, но ещё не открыла доступ к клубу.\n\n` +
+        `Может, остались вопросы? Или просто не хватило времени нажать кнопку?\n\n` +
+        `Внутри клуба <b>«Код Денег»</b> — 15 000+ участников, живое сообщество и поддержка на каждом шаге.\n\n` +
+        `Нажми кнопку, чтобы узнать подробности 👇`,
+        {
+          parse_mode: 'HTML',
+          reply_markup: startKeyboard
+        }
+      );
+    } else if (type === 'five_min_reminder') {
       // Send 5-minute reminder with video - "3 ловушки"
       await telegramService.sendVideo(
         chatId,
@@ -292,6 +309,9 @@ schedulerService.startProcessing(processScheduledTask);
 // Bot commands
 bot.command('start', async (ctx) => {
   try {
+    const userId = ctx.from!.id;
+    const chatId = ctx.chat.id;
+
     const keyboard = new InlineKeyboard()
       .text('Получить доступ', 'get_access')
       .row()
@@ -299,7 +319,7 @@ bot.command('start', async (ctx) => {
 
     // Send video with message
     await telegramService.sendVideo(
-      ctx.chat.id,
+      chatId,
       'https://t.me/mate_bot_open/9275',
       {
         caption:
@@ -311,6 +331,16 @@ bot.command('start', async (ctx) => {
         reply_markup: keyboard,
         parse_mode: 'HTML'
       }
+    );
+
+    // Schedule 120-second reminder if user doesn't click "Получить доступ"
+    await schedulerService.schedule(
+      {
+        type: 'start_reminder',
+        userId,
+        chatId,
+      },
+      120 * 1000 // 120 seconds = 2 minutes
     );
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in /start command');
@@ -325,6 +355,9 @@ bot.callbackQuery('get_access', async (ctx) => {
     const userId = ctx.from!.id;
     const chatId = ctx.chat!.id;
     const webAppUrl = `https://ishodnyi-kod.com/webappclubik`;
+
+    // Cancel the 120-second start reminder since user clicked the button
+    await schedulerService.cancelUserTasksByType(userId, 'start_reminder');
 
     const keyboard = new InlineKeyboard()
       .webApp('Оплатить', webAppUrl);
