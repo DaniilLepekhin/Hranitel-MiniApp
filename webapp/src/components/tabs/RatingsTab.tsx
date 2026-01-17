@@ -31,6 +31,23 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
   const { haptic, webApp } = useTelegram();
   const { user, token } = useAuthStore();
   const [showFullLeaderboard, setShowFullLeaderboard] = useState(false);
+  const [showFullCityRatings, setShowFullCityRatings] = useState(false);
+  const [showFullTeamRatings, setShowFullTeamRatings] = useState(false);
+
+  // Вычисляем staleTime до следующего дня 00:01 МСК
+  const getStaleTimeUntilMidnight = () => {
+    const now = new Date();
+    const midnight = new Date(now);
+    // 00:01 МСК = 21:01 UTC (предыдущего дня)
+    midnight.setUTCHours(21, 1, 0, 0);
+
+    // Если сейчас уже после 21:01 UTC, берем следующий день
+    if (now.getTime() >= midnight.getTime()) {
+      midnight.setUTCDate(midnight.getUTCDate() + 1);
+    }
+
+    return midnight.getTime() - now.getTime();
+  };
 
   // Получаем баланс энергий пользователя
   const { data: balanceData } = useQuery({
@@ -38,16 +55,16 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     queryFn: () => energiesApi.getBalance(user!.id),
     enabled: !!user && !!token,
     retry: false,
-    staleTime: 30 * 1000,
+    staleTime: getStaleTimeUntilMidnight(),
   });
 
-  // Получаем общий рейтинг
+  // Получаем общий рейтинг (только пользователи с активной подпиской)
   const { data: leaderboardData } = useQuery({
-    queryKey: ['leaderboard', showFullLeaderboard ? 100 : 10],
-    queryFn: () => gamificationApi.leaderboard(showFullLeaderboard ? 100 : 10),
+    queryKey: ['leaderboard', showFullLeaderboard ? 50 : 10],
+    queryFn: () => gamificationApi.leaderboard(showFullLeaderboard ? 50 : 10),
     enabled: !!user && !!token,
     retry: false,
-    staleTime: 60 * 1000,
+    staleTime: getStaleTimeUntilMidnight(),
   });
 
   const userBalance = balanceData?.balance || 0;
@@ -55,8 +72,8 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
 
   // Находим позицию пользователя в рейтинге
   const userRank = leaderboard.findIndex(entry => entry.id === user?.id) + 1 || 32;
-  const userCityRank = 10; // Мок (нет API)
-  const userTeamRank = 10; // Мок (нет API)
+  const userCityRank = 10; // TODO: Подключить реальный API
+  const userTeamRank = 10; // TODO: Подключить реальный API
 
   const openLink = (url: string) => {
     haptic.impact('light');
@@ -368,11 +385,12 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
                   ? `${entry.firstName} ${entry.lastName}`
                   : entry.username || 'Пользователь';
                 const isCurrentUser = entry.id === user?.id;
+                const energies = entry.experience || 0; // experience хранит энергии
 
                 return (
                   <div
                     key={entry.id}
-                    className="flex items-center justify-between"
+                    className="flex items-center justify-between gap-2"
                     style={{
                       fontFamily: 'Gilroy, sans-serif',
                       fontWeight: isCurrentUser ? 700 : 400,
@@ -382,11 +400,11 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
                       color: isCurrentUser ? '#9c1723' : '#2d2620',
                     }}
                   >
-                    <span>
-                      {displayName}{'...............................................................................'.slice(0, Math.max(5, 50 - displayName.length))}
+                    <span className="flex-1 truncate">
+                      {displayName}
                     </span>
-                    <span style={{ fontWeight: isCurrentUser ? 700 : 400 }}>
-                      {String(entry.rank || index + 1).padStart(2, '0')}
+                    <span style={{ fontWeight: isCurrentUser ? 700 : 400, minWidth: '80px', textAlign: 'right' }}>
+                      {energies.toLocaleString('ru-RU')} ⚡
                     </span>
                   </div>
                 );
