@@ -621,7 +621,7 @@ export function ChatsTab() {
             <div
               className="absolute overflow-hidden"
               style={{
-                right: '5px',
+                right: '0px',
                 top: '0',
                 bottom: '0',
                 width: '55%',
@@ -711,7 +711,7 @@ export function ChatsTab() {
             <div
               className="absolute overflow-hidden"
               style={{
-                right: '-5px',
+                right: '-10px',
                 top: '-15px',
                 bottom: '-15px',
                 width: '55%',
