@@ -49,6 +49,8 @@ export default function ContentDetailPage() {
       return contentApi.getUserProgress(user.id);
     },
     enabled: !!user?.id,
+    retry: false,
+    staleTime: 60 * 1000,
   });
 
   const item = itemData?.item;

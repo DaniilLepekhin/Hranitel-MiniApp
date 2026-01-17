@@ -46,6 +46,8 @@ export function PathTab() {
       return contentApi.getUserProgress(user.id);
     },
     enabled: !!user?.id,
+    retry: false,
+    staleTime: 60 * 1000,
   });
 
   const items = contentData?.items || [];

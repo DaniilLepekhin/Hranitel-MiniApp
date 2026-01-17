@@ -38,6 +38,8 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
     queryKey: ['gamification-stats'],
     queryFn: () => gamificationApi.stats(),
     enabled: !!user,
+    retry: false,
+    staleTime: 60 * 1000,
   });
 
   const stats = statsData?.stats;

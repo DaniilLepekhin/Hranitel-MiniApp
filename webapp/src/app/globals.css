@@ -312,7 +312,7 @@ body {
 :fullscreen,
 :-webkit-full-screen,
 :-moz-full-screen {
-  background: #f7f1e8 !important;
+  background: #f0ece8 !important;
   overflow-y: auto !important;
 }
 

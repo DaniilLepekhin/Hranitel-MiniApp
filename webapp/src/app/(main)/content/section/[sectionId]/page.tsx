@@ -26,7 +26,9 @@ export default function SectionPage() {
   const { data: progressData } = useQuery({
     queryKey: ['content', 'progress', user?.id],
     queryFn: () => contentApi.getUserProgress(user!.id),
-    enabled: !!user,
+    enabled: !!user?.id,
+    retry: false,
+    staleTime: 60 * 1000,
   });
 
   const videos = videosData?.videos || [];
