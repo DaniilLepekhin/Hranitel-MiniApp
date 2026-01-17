@@ -297,6 +297,27 @@ export function ProfileTab() {
                 background: 'linear-gradient(256deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
               }}
             >
+              {/* Декоративная картинка под "Мой баланс" */}
+              <div
+                className="absolute"
+                style={{
+                  left: '11.947px',
+                  top: '35.842px',
+                  width: '149.34px',
+                  height: '31.575px',
+                  border: '0.853px solid rgba(244, 214, 182, 0.4)',
+                  borderRadius: '5.12px',
+                  overflow: 'hidden',
+                }}
+              >
+                <img
+                  src="/assets/balance-frame.png"
+                  alt=""
+                  className="w-full h-full object-cover"
+                  style={{ borderRadius: '5.12px' }}
+                />
+              </div>
+
               {/* Контент */}
               <div className="relative z-10 h-full flex items-center justify-between px-4">
                 <p
