@@ -41,10 +41,12 @@ class ApiClient {
     this.baseUrl = baseUrl;
   }
 
-  private async request<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
+  private async request<T>(endpoint: string, options: ApiOptions = {}, skipV1Prefix = false): Promise<T> {
     const { params, ...init } = options;
 
-    let url = `${this.baseUrl}/api/v1${endpoint}`;
+    let url = skipV1Prefix
+      ? `${this.baseUrl}${endpoint}`
+      : `${this.baseUrl}/api/v1${endpoint}`;
 
     if (params) {
       const searchParams = new URLSearchParams();
@@ -87,12 +89,26 @@ class ApiClient {
     return this.request<T>(endpoint, { ...options, method: 'GET' });
   }
 
+  // GET без префикса /api/v1
+  getRaw<T>(endpoint: string, options?: ApiOptions): Promise<T> {
+    return this.request<T>(endpoint, { ...options, method: 'GET' }, true);
+  }
+
   post<T>(endpoint: string, data?: unknown, options?: ApiOptions): Promise<T> {
     return this.request<T>(endpoint, {
       ...options,
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
     });
+  }
+
+  // POST без префикса /api/v1
+  postRaw<T>(endpoint: string, data?: unknown, options?: ApiOptions): Promise<T> {
+    return this.request<T>(endpoint, {
+      ...options,
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    }, true);
   }
 
   patch<T>(endpoint: string, data?: unknown, options?: ApiOptions): Promise<T> {
@@ -184,13 +200,13 @@ export const aiApi = {
 // Energies (КОД ДЕНЕГ 4.0)
 export const energiesApi = {
   getBalance: (userId: string) =>
-    api.get<{ success: boolean; balance: number }>(`/energies/balance`, { params: { userId } }),
+    api.getRaw<{ success: boolean; balance: number }>(`/api/energies/balance`, { params: { userId } }),
   getHistory: (userId: string, limit?: number) =>
-    api.get<{ success: boolean; transactions: EnergyTransaction[] }>(`/energies/history`, {
+    api.getRaw<{ success: boolean; transactions: EnergyTransaction[] }>(`/api/energies/history`, {
       params: { userId, limit }
     }),
   getStats: (userId: string) =>
-    api.get<{ success: boolean; stats: EnergyStats }>(`/energies/stats`, { params: { userId } }),
+    api.getRaw<{ success: boolean; stats: EnergyStats }>(`/api/energies/stats`, { params: { userId } }),
 };
 
 // Shop (КОД ДЕНЕГ 4.0)
