@@ -79,21 +79,39 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
       .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
 
     if (type === 'start_reminder') {
-      // Send 120-second reminder if user didn't click "Получить доступ"
-      const startKeyboard = new InlineKeyboard()
-        .text('Получить доступ', 'get_access');
+      // Send 120-second reminder with ticket info (same as get_access flow)
+      // This is sent if user didn't click "Получить доступ" button
+      const ticketKeyboard = new InlineKeyboard()
+        .webApp('Оплатить', `https://ishodnyi-kod.com/webappclubik`);
 
-      await telegramService.sendMessage(
+      await telegramService.sendPhoto(
         chatId,
-        `<b>Привет! 👋</b>\n\n` +
-        `Ты посмотрела видео, но ещё не открыла доступ к клубу.\n\n` +
-        `Может, остались вопросы? Или просто не хватило времени нажать кнопку?\n\n` +
-        `Внутри клуба <b>«Код Денег»</b> — 15 000+ участников, живое сообщество и поддержка на каждом шаге.\n\n` +
-        `Нажми кнопку, чтобы узнать подробности 👇`,
+        'https://t.me/mate_bot_open/9276',
         {
-          parse_mode: 'HTML',
-          reply_markup: startKeyboard
+          caption:
+            `<b>🎫 Твой билет в КОД ДЕНЕГ</b>\n\n` +
+            `<b>Информация о подписке на клуб «Код Денег»:</b>\n\n` +
+            `👉🏼 1 месяц = 2.900 ₽\n` +
+            `👉🏼 В подписку входит полный доступ к клубу «Код Денег»: обучение и мини-курсы по мягким нишам,\n` +
+            `десятки — мини-группы поддержки, чаты и офлайн-встречи по городам, закрытые эфиры и разборы с Кристиной, подкасты, баллы и приложение\n` +
+            `👉🏼 Подписка продлевается автоматически кажды 30 дней. Отписаться можно в любой момент в меню участника.\n` +
+            `👉🏼 Если при оплате возникают сложности обратитесь в службу заботы клуба @Egiazarova_support_bot`,
+          reply_markup: ticketKeyboard,
+          parse_mode: 'HTML'
         }
+      );
+
+      // Mark user as awaiting payment
+      await stateService.setState(userId, 'awaiting_payment');
+
+      // Schedule 5-minute reminder (3 ловушки) - same as get_access flow
+      await schedulerService.schedule(
+        {
+          type: 'five_min_reminder',
+          userId,
+          chatId,
+        },
+        5 * 60 * 1000 // 5 minutes
       );
     } else if (type === 'five_min_reminder') {
       // Send 5-minute reminder with video - "3 ловушки"
