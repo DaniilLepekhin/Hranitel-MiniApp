@@ -34,9 +34,9 @@ export default function RootLayout({
         <meta httpEquiv="Pragma" content="no-cache" />
         <meta httpEquiv="Expires" content="0" />
         {/* Предзагрузка изображений фона для моментального отображения */}
-        <link rel="preload" href="/assets/newspaper-texture.png" as="image" />
-        <link rel="preload" href="/assets/bg-coins.png" as="image" />
-        <link rel="preload" href="/assets/bg-blur.png" as="image" />
+        <link rel="preload" href="/assets/newspaper-texture.jpg" as="image" />
+        <link rel="preload" href="/assets/bg-coins.jpg" as="image" />
+        <link rel="preload" href="/assets/bg-blur.jpg" as="image" />
         <script src="https://telegram.org/js/telegram-web-app.js" />
         <script
           dangerouslySetInnerHTML={{

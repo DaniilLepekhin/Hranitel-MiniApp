@@ -8,9 +8,9 @@ import { useAuthStore } from '@/store/auth';
 // Предзагрузка изображений фона для моментального отображения
 const preloadImages = () => {
   const images = [
-    '/assets/newspaper-texture.png',
-    '/assets/bg-coins.png',
-    '/assets/bg-blur.png',
+    '/assets/newspaper-texture.jpg',
+    '/assets/bg-coins.jpg',
+    '/assets/bg-blur.jpg',
   ];
   images.forEach((src) => {
     const img = new Image();
@@ -81,7 +81,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
           }}
         >
           <img
-            src="/assets/newspaper-texture.png"
+            src="/assets/newspaper-texture.jpg"
             alt=""
             className="w-full h-full object-cover"
           />
@@ -100,7 +100,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
           }}
         >
           <img
-            src="/assets/bg-coins.png"
+            src="/assets/bg-coins.jpg"
             alt=""
             className="w-full h-full object-cover object-left-top"
           />
@@ -121,7 +121,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
           }}
         >
           <img
-            src="/assets/bg-blur.png"
+            src="/assets/bg-blur.jpg"
             alt=""
             className="w-full h-full object-cover"
           />
@@ -142,7 +142,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
           }}
         >
           <img
-            src="/assets/bg-blur.png"
+            src="/assets/bg-blur.jpg"
             alt=""
             className="w-full h-full object-cover"
           />
@@ -323,7 +323,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
             }}
           >
             <img
-              src="/assets/balance-image.png"
+              src="/assets/balance-image.jpg"
               alt=""
               className="w-full h-full object-cover"
             />

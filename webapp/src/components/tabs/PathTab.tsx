@@ -74,7 +74,7 @@ export function PathTab() {
           }}
         >
           <img
-            src="/assets/newspaper-texture.png"
+            src="/assets/newspaper-texture.jpg"
             alt=""
             className="w-full h-full object-cover"
           />
@@ -93,7 +93,7 @@ export function PathTab() {
           }}
         >
           <img
-            src="/assets/bg-coins.png"
+            src="/assets/bg-coins.jpg"
             alt=""
             className="w-full h-full object-cover object-left-top"
           />
@@ -114,7 +114,7 @@ export function PathTab() {
           }}
         >
           <img
-            src="/assets/bg-blur.png"
+            src="/assets/bg-blur.jpg"
             alt=""
             className="w-full h-full object-cover"
           />
@@ -135,7 +135,7 @@ export function PathTab() {
           }}
         >
           <img
-            src="/assets/bg-blur.png"
+            src="/assets/bg-blur.jpg"
             alt=""
             className="w-full h-full object-cover"
           />
