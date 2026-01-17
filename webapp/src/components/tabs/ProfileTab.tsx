@@ -45,15 +45,15 @@ export function ProfileTab() {
           height: '100%',
         }}
       >
-        {/* Газетная текстура - overlay blend */}
+        {/* Газетная текстура */}
         <div
           className="absolute"
           style={{
-            width: '683.5%',
-            height: '200.9%',
+            width: '250%',
+            height: '250%',
             left: '50%',
             top: '50%',
-            transform: 'translate(-50%, -50%) rotate(299.198deg)',
+            transform: 'translate(-50%, -50%) rotate(-60.8deg)',
             opacity: 0.18,
             mixBlendMode: 'overlay',
           }}
@@ -65,68 +65,37 @@ export function ProfileTab() {
           />
         </div>
 
-        {/* Изображение монет/молоток - верх - multiply blend, scaleY(-1) */}
+        {/* Монеты/молоток слева */}
         <div
           className="absolute"
           style={{
-            width: '161.7%',
-            height: '116.5%',
-            left: '50%',
-            top: '-11.9%',
-            transform: 'translate(-50%, 0) scaleY(-1)',
+            width: '160%',
+            height: '120%',
+            left: '-50%',
+            top: '-10%',
             mixBlendMode: 'multiply',
+            opacity: 0.4,
           }}
         >
           <img
             src="/assets/bg-coins.jpg"
             alt=""
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-left-top"
           />
         </div>
 
-        {/* Изображение монет/молоток - низ - multiply blend */}
+        {/* Размытое цветное пятно - слева внизу */}
         <div
           className="absolute"
           style={{
-            width: '161.7%',
-            height: '116.5%',
-            left: '50%',
-            top: '104.6%',
-            transform: 'translate(-50%, 0)',
-            mixBlendMode: 'multiply',
-          }}
-        >
-          <img
-            src="/assets/bg-coins.jpg"
-            alt=""
-            className="w-full h-full object-cover"
-          />
-        </div>
-
-        {/* Серая полоса с blur */}
-        <div
-          className="absolute"
-          style={{
-            background: '#e1ded9',
-            filter: 'blur(21px)',
-            height: '38px',
-            left: '-7px',
-            top: '849px',
-            width: '784px',
-          }}
-        />
-
-        {/* Размытое цветное пятно - верх слева - color-dodge, scaleY(-1) */}
-        <div
-          className="absolute"
-          style={{
-            width: '293.7%',
-            height: '151.7%',
-            left: '-108.1%',
-            top: '-85.6%',
-            transform: 'rotate(77.626deg) scaleY(-1)',
+            width: '150%',
+            height: '130%',
+            left: '-80%',
+            bottom: '-30%',
             mixBlendMode: 'color-dodge',
-            filter: 'blur(199.985px)',
+            filter: 'blur(200px)',
+            transform: 'rotate(-22.76deg)',
+            opacity: 0.5,
           }}
         >
           <img
@@ -136,37 +105,18 @@ export function ProfileTab() {
           />
         </div>
 
-        {/* Размытое цветное пятно - низ слева - color-dodge, scaleY(-1) */}
+        {/* Размытое цветное пятно - справа вверху */}
         <div
           className="absolute"
           style={{
-            width: '315.9%',
-            height: '141.5%',
-            left: '7.3%',
-            top: '39.9%',
-            transform: 'rotate(192.502deg) scaleY(-1)',
+            width: '150%',
+            height: '130%',
+            right: '-80%',
+            top: '-70%',
             mixBlendMode: 'color-dodge',
-            filter: 'blur(199.985px)',
-          }}
-        >
-          <img
-            src="/assets/bg-blur.jpg"
-            alt=""
-            className="w-full h-full object-cover"
-          />
-        </div>
-
-        {/* Размытое цветное пятно - верх справа - color-dodge */}
-        <div
-          className="absolute"
-          style={{
-            width: '342.3%',
-            height: '157.3%',
-            left: '46.9%',
-            top: '-0.2%',
-            transform: 'rotate(337.245deg)',
-            mixBlendMode: 'color-dodge',
-            filter: 'blur(199.985px)',
+            filter: 'blur(200px)',
+            transform: 'rotate(77.63deg) scaleY(-1)',
+            opacity: 0.5,
           }}
         >
           <img
@@ -346,22 +296,6 @@ export function ProfileTab() {
                 height: '79.363px',
               }}
             >
-              {/* Фоновое изображение с размытием и overlay */}
-              <div
-                className="absolute inset-0"
-                style={{
-                  transform: 'scaleY(-1)',
-                  mixBlendMode: 'overlay',
-                }}
-              >
-                <img
-                  src="/assets/balance-bg.jpg"
-                  alt=""
-                  className="w-full h-full object-cover"
-                  style={{ filter: 'blur(21.056px)' }}
-                />
-              </div>
-
               {/* Градиент фона */}
               <div
                 className="absolute inset-0"
@@ -370,9 +304,32 @@ export function ProfileTab() {
                 }}
               />
 
-              {/* Декоративная рамка поверх */}
+              {/* Фоновое изображение с размытием поверх градиента */}
               <div
-                className="absolute"
+                className="absolute inset-0"
+                style={{
+                  mixBlendMode: 'overlay',
+                }}
+              >
+                <div
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    transform: 'scaleY(-1)',
+                  }}
+                >
+                  <img
+                    src="/assets/balance-bg.jpg"
+                    alt=""
+                    className="w-full h-full object-cover"
+                    style={{ filter: 'blur(21.056px)' }}
+                  />
+                </div>
+              </div>
+
+              {/* Декоративная рамка поверх - с вопросительным знаком */}
+              <div
+                className="absolute flex items-center justify-center"
                 style={{
                   left: '11.947px',
                   top: '35.842px',
@@ -386,9 +343,29 @@ export function ProfileTab() {
                 <img
                   src="/assets/balance-frame.png"
                   alt=""
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover absolute inset-0"
                   style={{ borderRadius: '5.12px' }}
                 />
+                <div
+                  className="relative z-10 flex items-center justify-center"
+                  style={{
+                    width: '22px',
+                    height: '22px',
+                    borderRadius: '50%',
+                    background: 'rgba(45, 38, 32, 0.4)',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: 'Gilroy, sans-serif',
+                      fontWeight: 700,
+                      fontSize: '14px',
+                      color: '#f7f1e8',
+                    }}
+                  >
+                    ?
+                  </span>
+                </div>
               </div>
 
               {/* Контент */}
