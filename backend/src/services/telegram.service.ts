@@ -23,6 +23,12 @@ interface SendDocumentOptions {
   parse_mode?: 'HTML' | 'Markdown';
 }
 
+interface SendPhotoOptions {
+  caption?: string;
+  parse_mode?: 'HTML' | 'Markdown';
+  reply_markup?: any;
+}
+
 interface MediaGroupItem {
   type: 'photo' | 'video';
   media: string;
@@ -68,9 +74,11 @@ export class TelegramService {
     options?: SendVideoOptions,
     retryOptions?: RetryOptions
   ): Promise<boolean> {
+    logger.info({ chatId, video, options }, 'Attempting to send video');
     return this.executeWithRetry(
       async () => {
-        await this.api.sendVideo(chatId, video, options);
+        const result = await this.api.sendVideo(chatId, video, options);
+        logger.info({ chatId, video, messageId: result.message_id }, 'Video sent successfully');
         return true;
       },
       {
@@ -97,6 +105,58 @@ export class TelegramService {
       },
       {
         operation: 'sendDocument',
+        chatId,
+        ...retryOptions,
+      }
+    );
+  }
+
+  /**
+   * Send a photo with retry logic
+   */
+  async sendPhoto(
+    chatId: number,
+    photo: string,
+    options?: SendPhotoOptions,
+    retryOptions?: RetryOptions
+  ): Promise<boolean> {
+    logger.info({ chatId, photo, options }, 'Attempting to send photo');
+    return this.executeWithRetry(
+      async () => {
+        const result = await this.api.sendPhoto(chatId, photo, options);
+        logger.info({ chatId, photo, messageId: result.message_id }, 'Photo sent successfully');
+        return true;
+      },
+      {
+        operation: 'sendPhoto',
+        chatId,
+        ...retryOptions,
+      }
+    );
+  }
+
+  /**
+   * Copy a message from a channel with custom caption and keyboard
+   * Use for t.me/channel/messageId links
+   */
+  async copyMessage(
+    chatId: number,
+    fromChatId: string | number,
+    messageId: number,
+    options?: {
+      caption?: string;
+      parse_mode?: 'HTML' | 'Markdown';
+      reply_markup?: any;
+    },
+    retryOptions?: RetryOptions
+  ): Promise<boolean> {
+    return this.executeWithRetry(
+      async () => {
+        await this.api.copyMessage(chatId, fromChatId, messageId, options);
+        return true;
+      },
+      {
+        operation: 'copyMessage',
         chatId,
         ...retryOptions,
       }
