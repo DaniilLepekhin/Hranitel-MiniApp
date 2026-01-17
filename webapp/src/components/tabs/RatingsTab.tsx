@@ -4,24 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
-import { gamificationApi, energiesApi } from '@/lib/api';
-
-// Моки для городов и десяток (пока нет API)
-const mockCityRatings = [
-  { city: 'г. Москва', score: 1 },
-  { city: 'г. Санкт-Петербург', score: 2 },
-  { city: 'г. Казань', score: 3 },
-  { city: 'г. Новосибирск', score: 4 },
-  { city: 'г. Екатеринбург', score: 5 },
-];
-
-const mockTeamRatings = [
-  { name: 'Десятка №1', score: 1 },
-  { name: 'Десятка №2', score: 2 },
-  { name: 'Десятка №3', score: 3 },
-  { name: 'Десятка №4', score: 4 },
-  { name: 'Десятка №5', score: 5 },
-];
+import { gamificationApi, energiesApi, ratingsApi } from '@/lib/api';
 
 interface RatingsTabProps {
   onShopClick?: () => void;
@@ -67,13 +50,43 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     staleTime: getStaleTimeUntilMidnight(),
   });
 
+  // Получаем рейтинг городов
+  const { data: cityRatingsData } = useQuery({
+    queryKey: ['city-ratings', showFullCityRatings ? 50 : 5],
+    queryFn: () => ratingsApi.getCityRatings(showFullCityRatings ? 50 : 5),
+    enabled: !!user && !!token,
+    retry: false,
+    staleTime: getStaleTimeUntilMidnight(),
+  });
+
+  // Получаем рейтинг команд
+  const { data: teamRatingsData } = useQuery({
+    queryKey: ['team-ratings', showFullTeamRatings ? 50 : 5],
+    queryFn: () => ratingsApi.getTeamRatings(showFullTeamRatings ? 50 : 5),
+    enabled: !!user && !!token,
+    retry: false,
+    staleTime: getStaleTimeUntilMidnight(),
+  });
+
+  // Получаем позицию пользователя
+  const { data: userPositionData } = useQuery({
+    queryKey: ['user-position', user?.id],
+    queryFn: () => ratingsApi.getUserPosition(user!.id),
+    enabled: !!user && !!token,
+    retry: false,
+    staleTime: getStaleTimeUntilMidnight(),
+  });
+
   const userBalance = balanceData?.balance || 0;
   const leaderboard = leaderboardData?.leaderboard || [];
+  const cityRatings = cityRatingsData?.ratings || [];
+  const teamRatings = teamRatingsData?.ratings || [];
+  const userPosition = userPositionData?.position;
 
   // Находим позицию пользователя в рейтинге
-  const userRank = leaderboard.findIndex(entry => entry.id === user?.id) + 1 || 32;
-  const userCityRank = 10; // TODO: Подключить реальный API
-  const userTeamRank = 10; // TODO: Подключить реальный API
+  const userRank = userPosition?.globalRank || 0;
+  const userCityRank = userPosition?.cityRank || null;
+  const userTeamRank = userPosition?.teamRank || null;
 
   const openLink = (url: string) => {
     haptic.impact('light');
@@ -538,7 +551,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
 
                 {/* Список городов */}
                 <div className="space-y-0.5">
-                  {mockCityRatings.map((item) => (
+                  {cityRatings.slice(0, showFullCityRatings ? 50 : 5).map((item) => (
                     <div
                       key={item.city}
                       className="flex items-center justify-between"
@@ -549,31 +562,54 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
                         color: '#f7f1e8',
                       }}
                     >
-                      <span>{item.city} {'....................................'.slice(0, 20)}</span>
-                      <span>{String(item.score).padStart(2, '0')}</span>
+                      <span className="truncate">{item.city}</span>
+                      <span className="ml-1">{item.totalEnergies.toLocaleString('ru-RU')} ⚡</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Кнопка места города */}
-              <div
-                className="absolute bottom-2 left-2 right-2 py-1 rounded-[5.73px] text-center"
-                style={{
-                  background: '#f7f1e8',
-                  border: '0.955px solid #d93547',
-                }}
-              >
-                <p
-                  style={{
-                    fontFamily: 'Gilroy, sans-serif',
-                    fontWeight: 700,
-                    fontSize: '10.6px',
-                    color: '#b82131',
-                  }}
-                >
-                  Место вашего города: {userCityRank}
-                </p>
+              {/* Кнопки */}
+              <div className="absolute bottom-2 left-2 right-2 flex gap-1">
+                {userCityRank && (
+                  <div
+                    className="flex-1 py-1 rounded-[5.73px] text-center"
+                    style={{
+                      background: '#f7f1e8',
+                      border: '0.955px solid #d93547',
+                    }}
+                  >
+                    <p
+                      style={{
+                        fontFamily: 'Gilroy, sans-serif',
+                        fontWeight: 700,
+                        fontSize: '10.6px',
+                        color: '#b82131',
+                      }}
+                    >
+                      Ваш город: {userCityRank}
+                    </p>
+                  </div>
+                )}
+                {cityRatings.length > 5 && (
+                  <button
+                    onClick={() => {
+                      haptic.selection();
+                      setShowFullCityRatings(!showFullCityRatings);
+                    }}
+                    className="px-2 py-1 rounded-[5.73px]"
+                    style={{
+                      background: '#f7f1e8',
+                      border: '0.955px solid #d93547',
+                      fontFamily: 'Gilroy, sans-serif',
+                      fontWeight: 400,
+                      fontSize: '8px',
+                      color: '#b82131',
+                    }}
+                  >
+                    {showFullCityRatings ? '↑' : '↓'}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -605,9 +641,9 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
 
                 {/* Список десяток */}
                 <div className="space-y-0.5">
-                  {mockTeamRatings.map((item) => (
+                  {teamRatings.slice(0, showFullTeamRatings ? 50 : 5).map((item) => (
                     <div
-                      key={item.name}
+                      key={item.teamId}
                       className="flex items-center justify-between"
                       style={{
                         fontFamily: 'Gilroy, sans-serif',
@@ -616,31 +652,54 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
                         color: '#f7f1e8',
                       }}
                     >
-                      <span>{item.name} {'..................................'.slice(0, 18)}</span>
-                      <span>{String(item.score).padStart(2, '0')}</span>
+                      <span className="truncate">{item.teamName}</span>
+                      <span className="ml-1">{item.totalEnergies.toLocaleString('ru-RU')} ⚡</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Кнопка места десятки */}
-              <div
-                className="absolute bottom-2 left-2 right-2 py-1 rounded-[5.73px] text-center"
-                style={{
-                  background: '#f7f1e8',
-                  border: '0.955px solid #d93547',
-                }}
-              >
-                <p
-                  style={{
-                    fontFamily: 'Gilroy, sans-serif',
-                    fontWeight: 700,
-                    fontSize: '10.6px',
-                    color: '#b82131',
-                  }}
-                >
-                  Место вашей десятки: {userTeamRank}
-                </p>
+              {/* Кнопки */}
+              <div className="absolute bottom-2 left-2 right-2 flex gap-1">
+                {userTeamRank && (
+                  <div
+                    className="flex-1 py-1 rounded-[5.73px] text-center"
+                    style={{
+                      background: '#f7f1e8',
+                      border: '0.955px solid #d93547',
+                    }}
+                  >
+                    <p
+                      style={{
+                        fontFamily: 'Gilroy, sans-serif',
+                        fontWeight: 700,
+                        fontSize: '10.6px',
+                        color: '#b82131',
+                      }}
+                    >
+                      Ваша десятка: {userTeamRank}
+                    </p>
+                  </div>
+                )}
+                {teamRatings.length > 5 && (
+                  <button
+                    onClick={() => {
+                      haptic.selection();
+                      setShowFullTeamRatings(!showFullTeamRatings);
+                    }}
+                    className="px-2 py-1 rounded-[5.73px]"
+                    style={{
+                      background: '#f7f1e8',
+                      border: '0.955px solid #d93547',
+                      fontFamily: 'Gilroy, sans-serif',
+                      fontWeight: 400,
+                      fontSize: '8px',
+                      color: '#b82131',
+                    }}
+                  >
+                    {showFullTeamRatings ? '↑' : '↓'}
+                  </button>
+                )}
               </div>
             </div>
           </div>

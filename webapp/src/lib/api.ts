@@ -355,6 +355,22 @@ export const cityChatsApi = {
     ),
 };
 
+// Ratings (Рейтинги) (КОД ДЕНЕГ 4.0)
+export const ratingsApi = {
+  getCityRatings: (limit?: number) =>
+    api.get<{ success: boolean; ratings: CityRating[] }>('/ratings/cities', {
+      params: { limit },
+    }),
+  getTeamRatings: (limit?: number) =>
+    api.get<{ success: boolean; ratings: TeamRating[] }>('/ratings/teams', {
+      params: { limit },
+    }),
+  getUserPosition: (userId: string) =>
+    api.get<{ success: boolean; position: UserPosition }>('/ratings/user-position', {
+      params: { userId },
+    }),
+};
+
 // Types
 export interface User {
   id: string;
@@ -626,6 +642,29 @@ export interface ReportStats {
 export interface CityInfo {
   name: string;
   chatName: string;
+}
+
+export interface CityRating {
+  city: string;
+  totalEnergies: number;
+  userCount: number;
+  rank: number;
+}
+
+export interface TeamRating {
+  teamId: string;
+  teamName: string;
+  totalEnergies: number;
+  memberCount: number;
+  rank: number;
+}
+
+export interface UserPosition {
+  globalRank: number;
+  cityRank: number | null;
+  teamRank: number | null;
+  city: string | null;
+  teamId: string | null;
 }
 
 // Content System Types (Путь - Обучающий контент)

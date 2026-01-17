@@ -29,6 +29,7 @@ import { streamsRoutes } from '@/modules/streams';
 import { reportsRoutes } from '@/modules/reports';
 import { cityChatModule } from '@/modules/city-chats';
 import { contentModule } from '@/modules/content';
+import { ratingsRoutes } from '@/modules/ratings';
 
 const app = new Elysia()
   // Global plugins
@@ -118,6 +119,7 @@ const app = new Elysia()
   .use(teamsRoutes)
   .use(streamsRoutes)
   .use(reportsRoutes)
+  .group('/api/v1', (app) => app.use(ratingsRoutes))
   // Start server
   .listen(Number(config.PORT));
 

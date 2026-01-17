@@ -138,8 +138,9 @@ export const gamificationModule = new Elysia({ prefix: '/gamification', tags: ['
 
       // Import here to avoid circular dependency
       const { db, users } = await import('@/db');
-      const { desc } = await import('drizzle-orm');
+      const { desc, eq } = await import('drizzle-orm');
 
+      // Only show users with active subscription (isPro = true)
       const leaderboard = await db
         .select({
           id: users.id,
@@ -152,6 +153,7 @@ export const gamificationModule = new Elysia({ prefix: '/gamification', tags: ['
           streak: users.streak,
         })
         .from(users)
+        .where(eq(users.isPro, true))
         .orderBy(desc(users.experience))
         .limit(limit);
 
