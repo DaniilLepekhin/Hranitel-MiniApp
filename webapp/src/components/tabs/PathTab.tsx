@@ -144,12 +144,22 @@ export function PathTab() {
 
       {/* ===== КОНТЕНТ ===== */}
       <div className="relative z-10 pt-[23px] pb-28 max-w-2xl mx-auto" style={{ paddingLeft: '29px', paddingRight: '29px' }}>
-        {/* Иконка указателя из макета */}
+        {/* Иконка указателя из макета - бордовый цвет */}
         <div className="flex justify-center mb-4">
-          <img
-            src="/assets/path-icon.png"
-            alt=""
-            style={{ width: '37px', height: '37px' }}
+          <div
+            style={{
+              width: '37px',
+              height: '37px',
+              backgroundColor: '#9c1723',
+              WebkitMaskImage: 'url(/assets/path-icon.png)',
+              WebkitMaskSize: 'contain',
+              WebkitMaskRepeat: 'no-repeat',
+              WebkitMaskPosition: 'center',
+              maskImage: 'url(/assets/path-icon.png)',
+              maskSize: 'contain',
+              maskRepeat: 'no-repeat',
+              maskPosition: 'center',
+            }}
           />
         </div>
 
@@ -229,23 +239,20 @@ function CategoryCard({ title, image, onClick }: CategoryCardProps) {
   return (
     <div
       onClick={onClick}
-      className="relative overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
+      className="relative overflow-hidden cursor-pointer active:scale-[0.98] transition-transform flex flex-col"
       style={{
         borderRadius: '5.73px',
         border: '0.955px solid #d93547',
-        background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
         aspectRatio: '165.456 / 160.471',
       }}
     >
-      {/* Изображение */}
+      {/* Верхняя часть - изображение (примерно 55% высоты) */}
       <div
-        className="absolute overflow-hidden"
+        className="relative overflow-hidden"
         style={{
-          borderRadius: '10px',
-          top: '20%',
-          left: 0,
-          right: 0,
-          bottom: '20%',
+          flex: '0 0 55%',
+          borderTopLeftRadius: '5.73px',
+          borderTopRightRadius: '5.73px',
         }}
       >
         <img
@@ -255,41 +262,39 @@ function CategoryCard({ title, image, onClick }: CategoryCardProps) {
         />
       </div>
 
-      {/* Градиентный оверлей для читаемости текста */}
+      {/* Нижняя часть - красный блок с текстом (45% высоты) */}
       <div
-        className="absolute inset-0"
+        className="relative flex-1 flex flex-col justify-end"
         style={{
-          background: 'linear-gradient(to top, rgba(156, 23, 35, 0.95) 0%, rgba(156, 23, 35, 0.7) 35%, rgba(156, 23, 35, 0.3) 60%, transparent 100%)',
-          borderRadius: '5.73px',
-        }}
-      />
-
-      {/* Декоративная линия */}
-      <div
-        className="absolute"
-        style={{
-          left: '12px',
-          right: '12px',
-          bottom: '37px',
-          height: '1px',
-          backgroundColor: 'rgba(255, 255, 255, 0.3)',
-        }}
-      />
-
-      {/* Название категории */}
-      <p
-        className="absolute left-0 right-0 text-center px-2"
-        style={{
-          bottom: '10px',
-          fontFamily: '"TT Nooks", Georgia, serif',
-          fontWeight: 300,
-          fontSize: '22.39px',
-          lineHeight: 1.05,
-          color: '#f7f1e8',
+          background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
+          borderBottomLeftRadius: '5.73px',
+          borderBottomRightRadius: '5.73px',
         }}
       >
-        {title}
-      </p>
+        {/* Декоративная линия */}
+        <div
+          className="absolute left-3 right-3"
+          style={{
+            top: '8px',
+            height: '1px',
+            backgroundColor: 'rgba(255, 255, 255, 0.3)',
+          }}
+        />
+
+        {/* Название категории */}
+        <p
+          className="text-center px-2 pb-3"
+          style={{
+            fontFamily: '"TT Nooks", Georgia, serif',
+            fontWeight: 300,
+            fontSize: '22.39px',
+            lineHeight: 1.05,
+            color: '#f7f1e8',
+          }}
+        >
+          {title}
+        </p>
+      </div>
     </div>
   );
 }
