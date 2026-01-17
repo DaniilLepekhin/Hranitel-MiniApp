@@ -19,7 +19,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  themeColor: '#F7E9DA',
+  themeColor: '#f0ece8',
 };
 
 export default function RootLayout({
@@ -33,6 +33,10 @@ export default function RootLayout({
         <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
         <meta httpEquiv="Pragma" content="no-cache" />
         <meta httpEquiv="Expires" content="0" />
+        {/* Предзагрузка изображений фона для моментального отображения */}
+        <link rel="preload" href="/assets/newspaper-texture.png" as="image" />
+        <link rel="preload" href="/assets/bg-coins.png" as="image" />
+        <link rel="preload" href="/assets/bg-blur.png" as="image" />
         <script src="https://telegram.org/js/telegram-web-app.js" />
         <script
           dangerouslySetInnerHTML={{

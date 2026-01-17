@@ -1,11 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { Search, Copy, Megaphone } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { gamificationApi } from '@/lib/api';
+
+// Предзагрузка изображений фона для моментального отображения
+const preloadImages = () => {
+  const images = [
+    '/assets/newspaper-texture.png',
+    '/assets/bg-coins.png',
+    '/assets/bg-blur.png',
+  ];
+  images.forEach((src) => {
+    const img = new Image();
+    img.src = src;
+  });
+};
+
+// Вызываем предзагрузку сразу при импорте модуля
+if (typeof window !== 'undefined') {
+  preloadImages();
+}
 
 interface HomeTabProps {
   onProfileClick?: () => void;
@@ -41,10 +59,10 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#f7f1e8] relative">
+    <div className="min-h-screen w-full bg-[#f0ece8] relative">
       {/* ===== ФОН - адаптивный на все устройства ===== */}
       <div
-        className="fixed pointer-events-none overflow-hidden bg-[#f7f1e8]"
+        className="fixed pointer-events-none overflow-hidden bg-[#f0ece8]"
         style={{
           top: 0,
           left: 0,
@@ -66,7 +84,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
             left: '50%',
             top: '50%',
             transform: 'translate(-50%, -50%) rotate(-60.8deg)',
-            opacity: 0.18,
+            opacity: 0.25,
             mixBlendMode: 'overlay',
           }}
         >
@@ -86,7 +104,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
             left: '-50%',
             top: '-10%',
             mixBlendMode: 'multiply',
-            opacity: 0.3,
+            opacity: 0.4,
           }}
         >
           <img
@@ -107,7 +125,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
             mixBlendMode: 'color-dodge',
             filter: 'blur(200px)',
             transform: 'rotate(-22.76deg)',
-            opacity: 0.4,
+            opacity: 0.5,
           }}
         >
           <img
@@ -128,7 +146,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
             mixBlendMode: 'color-dodge',
             filter: 'blur(200px)',
             transform: 'rotate(77.63deg) scaleY(-1)',
-            opacity: 0.4,
+            opacity: 0.5,
           }}
         >
           <img

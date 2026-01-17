@@ -13,8 +13,8 @@ function TelegramInit() {
     if (webApp) {
       ready();
       webApp.expand();
-      webApp.setHeaderColor('#F7E9DA');
-      webApp.setBackgroundColor('#F7E9DA');
+      webApp.setHeaderColor('#f0ece8');
+      webApp.setBackgroundColor('#f0ece8');
 
       // Enable closing confirmation
       webApp.enableClosingConfirmation();
