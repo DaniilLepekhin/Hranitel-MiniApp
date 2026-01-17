@@ -41,19 +41,28 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f1e8] relative">
-      {/* ===== ФОН - фиксированный на всю ширину ===== */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden bg-[#f7f1e8]">
+    <div className="min-h-screen w-full bg-[#f7f1e8] relative">
+      {/* ===== ФОН - адаптивный на все устройства ===== */}
+      <div
+        className="fixed pointer-events-none overflow-hidden bg-[#f7f1e8]"
+        style={{
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100%',
+          height: '100%',
+        }}
+      >
         {/*
-          Газетная текстура - покрывает весь экран любого размера
-          Используем 300vmax чтобы гарантированно покрыть экран при любом соотношении сторон
-          vmax = максимум из vw и vh, умножаем на 3 для запаса при повороте
+          Газетная текстура - покрывает весь экран
+          Используем большой размер с центрированием для покрытия при любом соотношении сторон
         */}
         <div
           className="absolute"
           style={{
-            width: '300vmax',
-            height: '300vmax',
+            width: '250%',
+            height: '250%',
             left: '50%',
             top: '50%',
             transform: 'translate(-50%, -50%) rotate(-60.8deg)',
@@ -68,14 +77,14 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
           />
         </div>
 
-        {/* Монеты/молоток слева - покрывают всю левую часть экрана */}
+        {/* Монеты/молоток слева */}
         <div
           className="absolute"
           style={{
-            width: '120vmax',
-            height: '150vh',
-            left: '-30vw',
-            top: '-10vh',
+            width: '160%',
+            height: '120%',
+            left: '-50%',
+            top: '-10%',
             mixBlendMode: 'multiply',
             opacity: 0.3,
           }}
@@ -91,10 +100,10 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
         <div
           className="absolute"
           style={{
-            width: 'clamp(400px, 80vw, 1500px)',
-            height: 'clamp(400px, 80vh, 1500px)',
-            left: 'clamp(-400px, -30vw, -100px)',
-            bottom: 'clamp(-300px, -20vh, 0px)',
+            width: '150%',
+            height: '130%',
+            left: '-80%',
+            bottom: '-30%',
             mixBlendMode: 'color-dodge',
             filter: 'blur(200px)',
             transform: 'rotate(-22.76deg)',
@@ -112,10 +121,10 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
         <div
           className="absolute"
           style={{
-            width: 'clamp(400px, 80vw, 1500px)',
-            height: 'clamp(400px, 80vh, 1500px)',
-            right: 'clamp(-400px, -30vw, -100px)',
-            top: 'clamp(-400px, -30vh, -100px)',
+            width: '150%',
+            height: '130%',
+            right: '-80%',
+            top: '-70%',
             mixBlendMode: 'color-dodge',
             filter: 'blur(200px)',
             transform: 'rotate(77.63deg) scaleY(-1)',
