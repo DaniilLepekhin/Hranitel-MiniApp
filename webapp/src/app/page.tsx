@@ -58,8 +58,10 @@ function HomeContent() {
         if (initData) {
           // Telegram WebApp auth
           const response = await authApi.login(initData, webApp?.initDataUnsafe);
-          setUser(response.user, response.token);
+          // IMPORTANT: Set auth token BEFORE updating user state to prevent race conditions
+          // where React Query makes requests before the token is available
           setAuthToken(response.token);
+          setUser(response.user, response.token);
         } else if (tgUser) {
           // Dev mode - try to get existing session
           try {

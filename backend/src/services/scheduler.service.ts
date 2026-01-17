@@ -2,9 +2,10 @@ import { redis } from '@/utils/redis';
 import { nanoid } from 'nanoid';
 import { logger } from '@/utils/logger';
 
-// Ensure Redis is available
-if (!redis) {
-  throw new Error('Redis is required for SchedulerService. Please configure REDIS_URL in environment variables.');
+// Check Redis availability
+const isRedisAvailable = !!redis;
+if (!isRedisAvailable) {
+  logger.warn('⚠️ Redis not configured - SchedulerService will be disabled. Scheduled messages will not work.');
 }
 
 export interface ScheduledTask {
@@ -27,12 +28,17 @@ export class SchedulerService {
    * Schedule a task to be executed at a specific time
    * @param task Task details
    * @param executeInMs Delay in milliseconds from now
-   * @returns Task ID or null if duplicate exists
+   * @returns Task ID or null if duplicate exists or Redis unavailable
    */
   async schedule(
     task: Omit<ScheduledTask, 'id' | 'executeAt'>,
     executeInMs: number
   ): Promise<string | null> {
+    if (!isRedisAvailable || !redis) {
+      logger.warn({ userId: task.userId, type: task.type }, 'Cannot schedule task - Redis not available');
+      return null;
+    }
+
     // Check for duplicate task (same user + same type)
     const existingTasks = await this.getUserTasks(task.userId);
     const duplicate = existingTasks.find(t => t.type === task.type);
@@ -71,6 +77,10 @@ export class SchedulerService {
    * @param taskId Task ID to cancel
    */
   async cancel(taskId: string): Promise<boolean> {
+    if (!isRedisAvailable || !redis) {
+      return false;
+    }
+
     try {
       // Find and remove task by ID
       const tasks = await redis.zrange(this.QUEUE_KEY, 0, -1);
@@ -100,6 +110,10 @@ export class SchedulerService {
    * @param type Task type to cancel
    */
   async cancelUserTasksByType(userId: number, type: ScheduledTask['type']): Promise<number> {
+    if (!isRedisAvailable || !redis) {
+      return 0;
+    }
+
     try {
       // Get all task IDs from user index
       const allTaskMappings = await redis.hgetall(this.USER_INDEX_KEY);
@@ -145,6 +159,11 @@ export class SchedulerService {
    * Checks for due tasks every 5 seconds
    */
   startProcessing(callback: (task: ScheduledTask) => Promise<void>): void {
+    if (!isRedisAvailable || !redis) {
+      logger.warn('Cannot start scheduler - Redis not available');
+      return;
+    }
+
     if (this.processingInterval) {
       logger.warn('Scheduler already running');
       return;
@@ -255,6 +274,10 @@ export class SchedulerService {
    * Get count of pending tasks
    */
   async getPendingCount(): Promise<number> {
+    if (!isRedisAvailable || !redis) {
+      return 0;
+    }
+
     try {
       return await redis.zcard(this.QUEUE_KEY);
     } catch (error) {
@@ -267,6 +290,10 @@ export class SchedulerService {
    * Get tasks for a specific user
    */
   async getUserTasks(userId: number): Promise<ScheduledTask[]> {
+    if (!isRedisAvailable || !redis) {
+      return [];
+    }
+
     try {
       const allTasks = await redis.zrange(this.QUEUE_KEY, 0, -1);
       const userTasks: ScheduledTask[] = [];
@@ -291,6 +318,10 @@ export class SchedulerService {
    * @returns Number of cancelled tasks
    */
   async cancelAllUserTasks(userId: number): Promise<number> {
+    if (!isRedisAvailable || !redis) {
+      return 0;
+    }
+
     try {
       // Get all task IDs from user index
       const allTaskMappings = await redis.hgetall(this.USER_INDEX_KEY);
@@ -335,6 +366,10 @@ export class SchedulerService {
    * Clear all tasks (use with caution)
    */
   async clearAll(): Promise<void> {
+    if (!isRedisAvailable || !redis) {
+      return;
+    }
+
     try {
       await redis.del(this.QUEUE_KEY);
       await redis.del(this.PROCESSING_KEY);

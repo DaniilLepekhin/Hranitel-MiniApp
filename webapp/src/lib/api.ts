@@ -6,14 +6,33 @@ interface ApiOptions extends RequestInit {
   params?: Record<string, string | number | undefined>;
 }
 
-// Token management
+// Token management - synchronized with auth store
 let authToken: string | null = null;
+let tokenSetPromise: Promise<void> | null = null;
+let resolveTokenSet: (() => void) | null = null;
 
 export const setAuthToken = (token: string | null) => {
   authToken = token;
+  // Resolve any pending token wait
+  if (resolveTokenSet) {
+    resolveTokenSet();
+    resolveTokenSet = null;
+    tokenSetPromise = null;
+  }
 };
 
 export const getAuthToken = () => authToken;
+
+// Wait for token to be set (used internally)
+const waitForToken = (): Promise<void> => {
+  if (authToken) return Promise.resolve();
+  if (!tokenSetPromise) {
+    tokenSetPromise = new Promise((resolve) => {
+      resolveTokenSet = resolve;
+    });
+  }
+  return tokenSetPromise;
+};
 
 class ApiClient {
   private baseUrl: string;

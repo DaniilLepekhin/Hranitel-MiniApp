@@ -141,7 +141,8 @@ export const contentModule = new Elysia({ prefix: '/api/v1/content' })
         .orderBy(desc(userContentProgress.updatedAt));
 
       return { success: true, progress };
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error fetching progress:', error?.message || error, { userId });
       set.status = 500;
       return { success: false, error: 'Failed to fetch progress', progress: [] };
     }
