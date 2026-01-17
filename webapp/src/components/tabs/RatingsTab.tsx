@@ -1,26 +1,45 @@
 'use client';
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Trophy, TrendingUp, Star, Medal, Crown } from 'lucide-react';
+import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { gamificationApi } from '@/lib/api';
-import { Card } from '@/components/ui/Card';
-import { motion } from 'framer-motion';
 
-interface LeaderboardEntry {
-  rank: number;
-  user: {
-    id: string;
-    firstName: string;
-    lastName?: string;
-    username?: string;
-  };
-  score: number;
-  level: number;
-}
+// Мок данные для рейтинга
+const mockLeaderboard = [
+  { id: '1', name: 'Анна Смирнова', score: 2450 },
+  { id: '2', name: 'Михаил Петров', score: 2380 },
+  { id: '3', name: 'Елена Козлова', score: 2290 },
+  { id: '4', name: 'Дмитрий Иванов', score: 2150 },
+  { id: '5', name: 'Ольга Новикова', score: 2080 },
+  { id: '6', name: 'Сергей Морозов', score: 1950 },
+  { id: '7', name: 'Мария Волкова', score: 1890 },
+  { id: '8', name: 'Алексей Соколов', score: 1820 },
+  { id: '9', name: 'Наталья Лебедева', score: 1750 },
+  { id: '10', name: 'Игорь Федоров', score: 1680 },
+];
+
+const mockCityRatings = [
+  { city: 'г. Москва', score: 1 },
+  { city: 'г. Санкт-Петербург', score: 2 },
+  { city: 'г. Казань', score: 3 },
+  { city: 'г. Новосибирск', score: 4 },
+  { city: 'г. Екатеринбург', score: 5 },
+];
+
+const mockTeamRatings = [
+  { name: 'Десятка №1', score: 1 },
+  { name: 'Десятка №2', score: 2 },
+  { name: 'Десятка №3', score: 3 },
+  { name: 'Десятка №4', score: 4 },
+  { name: 'Десятка №5', score: 5 },
+];
 
 export function RatingsTab() {
+  const { haptic, webApp } = useTelegram();
   const { user, token } = useAuthStore();
+  const [showFullLeaderboard, setShowFullLeaderboard] = useState(false);
 
   // Получаем статистику пользователя
   const { data: statsData } = useQuery({
@@ -32,135 +51,737 @@ export function RatingsTab() {
   });
 
   const stats = statsData?.stats;
+  const userBalance = user?.experience || stats?.experience || 0;
+  const userRank = 32; // Мок позиция пользователя
+  const userCityRank = 10;
+  const userTeamRank = 10;
 
-  // Мокап данных для лидерборда (позже заменить на реальный API)
-  const mockLeaderboard: LeaderboardEntry[] = [
-    { rank: 1, user: { id: '1', firstName: 'Анна', lastName: 'К.' }, score: 15420, level: 24 },
-    { rank: 2, user: { id: '2', firstName: 'Михаил', username: '@mikhail' }, score: 14280, level: 23 },
-    { rank: 3, user: { id: '3', firstName: 'Елена', lastName: 'С.' }, score: 12950, level: 21 },
-    { rank: 4, user: { id: '4', firstName: 'Дмитрий' }, score: 11840, level: 20 },
-    { rank: 5, user: { id: '5', firstName: 'Ольга', lastName: 'П.' }, score: 10720, level: 19 },
-  ];
-
-  const getRankIcon = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return <Crown className="w-5 h-5 text-yellow-500" />;
-      case 2:
-        return <Medal className="w-5 h-5 text-gray-400" />;
-      case 3:
-        return <Medal className="w-5 h-5 text-amber-600" />;
-      default:
-        return <span className="text-sm font-bold text-[#6b5a4a]">#{rank}</span>;
+  const openLink = (url: string) => {
+    haptic.impact('light');
+    if (webApp?.openLink) {
+      webApp.openLink(url);
+    } else {
+      window.open(url, '_blank');
     }
   };
 
-  const getUserDisplayName = (user: LeaderboardEntry['user']) => {
-    const name = user.lastName ? `${user.firstName} ${user.lastName}` : user.firstName;
-    return user.username ? `${name} ${user.username}` : name;
-  };
+  const displayedLeaderboard = showFullLeaderboard ? mockLeaderboard : mockLeaderboard.slice(0, 10);
 
   return (
-    <div className="px-4 pt-6 pb-24">
-      {/* Заголовок */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <Trophy className="w-8 h-8 text-[#8b0000]" />
-          <h1 className="text-4xl font-light text-[#3d2f1f]" style={{ fontFamily: 'TT Nooks, serif' }}>
-            Рейтинги
-          </h1>
+    <div className="min-h-screen w-full bg-[#f7f1e8] relative">
+      {/* ===== ФОН ===== */}
+      <div
+        className="fixed pointer-events-none overflow-hidden bg-[#f7f1e8]"
+        style={{
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100%',
+          height: '100%',
+        }}
+      >
+        {/* Газетная текстура */}
+        <div
+          className="absolute"
+          style={{
+            width: '250%',
+            height: '250%',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%) rotate(-60.8deg)',
+            opacity: 0.18,
+            mixBlendMode: 'overlay',
+          }}
+        >
+          <img
+            src="/assets/newspaper-texture.jpg"
+            alt=""
+            className="w-full h-full object-cover"
+          />
         </div>
-        <p className="text-lg text-[#6b5a4a]" style={{ fontFamily: 'TT Nooks, serif' }}>
-          Твои достижения и место в общем рейтинге
+
+        {/* Монеты/молоток слева */}
+        <div
+          className="absolute"
+          style={{
+            width: '160%',
+            height: '120%',
+            left: '-50%',
+            top: '-10%',
+            mixBlendMode: 'multiply',
+            opacity: 0.4,
+          }}
+        >
+          <img
+            src="/assets/bg-coins.jpg"
+            alt=""
+            className="w-full h-full object-cover object-left-top"
+          />
+        </div>
+
+        {/* Размытое цветное пятно - слева внизу */}
+        <div
+          className="absolute"
+          style={{
+            width: '150%',
+            height: '130%',
+            left: '-80%',
+            bottom: '-30%',
+            mixBlendMode: 'color-dodge',
+            filter: 'blur(200px)',
+            transform: 'rotate(-22.76deg)',
+            opacity: 0.5,
+          }}
+        >
+          <img
+            src="/assets/bg-blur.jpg"
+            alt=""
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {/* Размытое цветное пятно - справа вверху */}
+        <div
+          className="absolute"
+          style={{
+            width: '150%',
+            height: '130%',
+            right: '-80%',
+            top: '-70%',
+            mixBlendMode: 'color-dodge',
+            filter: 'blur(200px)',
+            transform: 'rotate(77.63deg) scaleY(-1)',
+            opacity: 0.5,
+          }}
+        >
+          <img
+            src="/assets/bg-blur.jpg"
+            alt=""
+            className="w-full h-full object-cover"
+          />
+        </div>
+      </div>
+
+      {/* ===== КОНТЕНТ ===== */}
+      <div className="relative z-10 pt-[23px] pb-28 max-w-2xl mx-auto" style={{ paddingLeft: '29px', paddingRight: '29px' }}>
+
+        {/* Иконка рейтинга - бордовый цвет */}
+        <div className="flex justify-center mb-4">
+          <div
+            style={{
+              width: '37px',
+              height: '37px',
+              backgroundColor: '#9c1723',
+              WebkitMaskImage: 'url(/assets/ratings-icon.png)',
+              WebkitMaskSize: 'contain',
+              WebkitMaskRepeat: 'no-repeat',
+              WebkitMaskPosition: 'center',
+              maskImage: 'url(/assets/ratings-icon.png)',
+              maskSize: 'contain',
+              maskRepeat: 'no-repeat',
+              maskPosition: 'center',
+            }}
+          />
+        </div>
+
+        {/* Подзаголовок */}
+        <p
+          className="text-center"
+          style={{
+            fontFamily: '"TT Nooks", Georgia, serif',
+            fontWeight: 300,
+            fontSize: '23.9px',
+            lineHeight: 0.95,
+            letterSpacing: '-1.43px',
+            color: '#2d2620',
+            marginBottom: '4px',
+          }}
+        >
+          Здесь ты видишь свой
         </p>
-      </div>
 
-      {/* Твоя статистика */}
-      <Card className="mb-6 p-5 bg-gradient-to-br from-[#8b0000]/5 to-[#8b4513]/5">
-        <h2 className="text-xl font-semibold text-[#3d2f1f] mb-4">Твоя статистика</h2>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-[#8b0000] mb-1">
-              {stats?.level || 1}
+        {/* Заголовок */}
+        <h1
+          className="text-center"
+          style={{
+            fontFamily: '"TT Nooks", Georgia, serif',
+            fontWeight: 300,
+            fontSize: '45.4px',
+            lineHeight: 0.95,
+            letterSpacing: '-2.73px',
+            color: '#2d2620',
+            marginBottom: '16px',
+          }}
+        >
+          прогресс в клубе:
+        </h1>
+
+        {/* Описание */}
+        <p
+          className="text-center"
+          style={{
+            fontFamily: 'Gilroy, sans-serif',
+            fontWeight: 400,
+            fontSize: '13px',
+            lineHeight: 1.45,
+            letterSpacing: '-0.26px',
+            color: '#2d2620',
+            marginBottom: '24px',
+            maxWidth: '317px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+          }}
+        >
+          Баллы за активность, участие и рост.{' '}
+          <span style={{ fontWeight: 700 }}>
+            Баллы можно копить, использовать и отслеживать своё движение
+          </span>{' '}
+          вместе с другими участниками
+        </p>
+
+        {/* ===== БЛОК ТЕКУЩИЙ БАЛАНС ===== */}
+        <div
+          className="relative overflow-hidden mb-6"
+          style={{
+            borderRadius: '5.73px',
+            background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
+            height: '93px',
+          }}
+        >
+          <div className="flex items-center justify-between h-full px-4">
+            {/* Левая часть */}
+            <div style={{ maxWidth: '50%' }}>
+              <p
+                style={{
+                  fontFamily: '"TT Nooks", Georgia, serif',
+                  fontWeight: 300,
+                  fontSize: '21.6px',
+                  color: '#f7f1e8',
+                  marginBottom: '4px',
+                }}
+              >
+                Текущий баланс
+              </p>
+              <p
+                style={{
+                  fontFamily: 'Gilroy, sans-serif',
+                  fontWeight: 700,
+                  fontSize: '10px',
+                  lineHeight: 1.4,
+                  color: '#f7f1e8',
+                }}
+              >
+                Твой личный счёт в клубе.{' '}
+                <span style={{ fontWeight: 400 }}>
+                  Энергии (баллы) отражают твою активность и движение вперёд
+                </span>
+              </p>
             </div>
-            <div className="text-xs text-[#6b5a4a] font-medium">Уровень</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-[#8b4513] mb-1">
-              {stats?.experience || 0}
+
+            {/* Правая часть - баланс */}
+            <div className="text-right">
+              <p
+                style={{
+                  fontFamily: 'Gilroy, sans-serif',
+                  fontWeight: 600,
+                  fontSize: '46.4px',
+                  color: '#f7f1e8',
+                  lineHeight: 1,
+                }}
+              >
+                {userBalance}
+              </p>
+              <p
+                style={{
+                  fontFamily: 'Gilroy, sans-serif',
+                  fontWeight: 400,
+                  fontSize: '18.6px',
+                  color: '#f7f1e8',
+                }}
+              >
+                энергий
+              </p>
             </div>
-            <div className="text-xs text-[#6b5a4a] font-medium">Опыт</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-[#3d2f1f] mb-1">
-              {stats?.streak || 0}
-            </div>
-            <div className="text-xs text-[#6b5a4a] font-medium">Дни подряд</div>
           </div>
         </div>
-      </Card>
 
-      {/* Топ участников */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <TrendingUp className="w-5 h-5 text-[#8b0000]" />
-          <h2 className="text-xl font-semibold text-[#3d2f1f]">Топ участников</h2>
-        </div>
-
-        <div className="space-y-3">
-          {mockLeaderboard.map((entry, index) => (
-            <motion.div
-              key={entry.user.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
+        {/* ===== СЕКЦИЯ ОБЩИЙ РЕЙТИНГ ===== */}
+        <div className="mb-6">
+          {/* Заголовок секции */}
+          <div className="flex items-center gap-2 mb-2">
+            <div
+              style={{
+                width: '17px',
+                height: '17px',
+                background: 'linear-gradient(262.23deg, rgb(174, 30, 43) 17.09%, rgb(156, 23, 35) 108.05%)',
+                WebkitMaskImage: 'url(/assets/ratings-star-icon.png)',
+                WebkitMaskSize: 'contain',
+                WebkitMaskRepeat: 'no-repeat',
+                WebkitMaskPosition: 'center',
+                maskImage: 'url(/assets/ratings-star-icon.png)',
+                maskSize: 'contain',
+                maskRepeat: 'no-repeat',
+                maskPosition: 'center',
+              }}
+            />
+            <p
+              style={{
+                fontFamily: '"TT Nooks", Georgia, serif',
+                fontWeight: 300,
+                fontSize: '21px',
+                lineHeight: 0.95,
+                letterSpacing: '-1.26px',
+                color: '#2d2620',
+                textTransform: 'uppercase',
+              }}
             >
-              <Card className={`p-4 ${entry.user.id === user?.id ? 'bg-[#8b0000]/10 border-2 border-[#8b0000]/30' : ''}`}>
-                <div className="flex items-center gap-4">
-                  {/* Rank */}
-                  <div className="flex-shrink-0 w-10 flex justify-center">
-                    {getRankIcon(entry.rank)}
-                  </div>
+              Общий рейтинг
+            </p>
+          </div>
 
-                  {/* User info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-[#3d2f1f] truncate">
-                      {getUserDisplayName(entry.user)}
-                      {entry.user.id === user?.id && (
-                        <span className="ml-2 text-xs text-[#8b0000]">(Ты)</span>
-                      )}
-                    </div>
-                    <div className="text-xs text-[#6b5a4a]">Уровень {entry.level}</div>
-                  </div>
+          {/* Описание */}
+          <p
+            style={{
+              fontFamily: 'Gilroy, sans-serif',
+              fontWeight: 400,
+              fontSize: '10px',
+              lineHeight: 1.45,
+              letterSpacing: '-0.2px',
+              color: '#2d2620',
+              marginBottom: '12px',
+            }}
+          >
+            Общий рейтинг участников клуба — твой прогресс в общем движении.
+          </p>
 
-                  {/* Score */}
-                  <div className="text-right">
-                    <div className="font-bold text-[#8b0000]">{entry.score.toLocaleString()}</div>
-                    <div className="text-xs text-[#6b5a4a]">очков</div>
-                  </div>
+          {/* Разделитель */}
+          <div className="w-full h-[1px] bg-[#2d2620]/20 mb-4" />
+
+          {/* Таблица рейтинга */}
+          <div className="relative">
+            <div className="space-y-1">
+              {displayedLeaderboard.map((entry, index) => (
+                <div
+                  key={entry.id}
+                  className="flex items-center justify-between"
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontWeight: 400,
+                    fontSize: '14px',
+                    lineHeight: 1.45,
+                    letterSpacing: '-0.28px',
+                    color: '#2d2620',
+                  }}
+                >
+                  <span>
+                    {entry.name}{'...............................................................................'.slice(0, 50 - entry.name.length)}
+                  </span>
+                  <span style={{ fontWeight: 400 }}>
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
                 </div>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-      </div>
+              ))}
+            </div>
 
-      {/* Информация о системе баллов */}
-      <Card className="p-5 bg-gradient-to-br from-[#8b4513]/5 to-[#3d2f1f]/5">
-        <div className="flex items-start gap-3">
-          <Star className="w-5 h-5 text-[#8b4513] flex-shrink-0 mt-1" />
-          <div>
-            <h3 className="font-semibold text-[#3d2f1f] mb-2">Как зарабатывать баллы?</h3>
-            <ul className="text-sm text-[#6b5a4a] space-y-1">
-              <li>• Прохождение медитаций и практик</li>
-              <li>• Выполнение заданий и челленджей</li>
-              <li>• Участие в эфирах и мероприятиях</li>
-              <li>• Ежедневная активность (streak)</li>
-              <li>• Приглашение друзей в клуб</li>
-            </ul>
+            {/* Градиент для fade эффекта если не развернуто */}
+            {!showFullLeaderboard && (
+              <div
+                className="absolute bottom-0 left-0 right-0 pointer-events-none"
+                style={{
+                  height: '100px',
+                  background: 'linear-gradient(to bottom, rgba(247,241,232,0) 0%, #f7f1e8 100%)',
+                }}
+              />
+            )}
+          </div>
+
+          {/* Кнопка Ваше место и Развернуть */}
+          <div className="flex items-center gap-4 mt-4">
+            <button
+              className="px-4 py-2 rounded-[5.73px]"
+              style={{
+                background: 'linear-gradient(230.38deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
+                border: '0.955px solid #d93547',
+                fontFamily: 'Gilroy, sans-serif',
+                fontWeight: 700,
+                fontSize: '14px',
+                color: 'white',
+              }}
+            >
+              Ваше место: {userRank}
+            </button>
+            <button
+              onClick={() => {
+                haptic.selection();
+                setShowFullLeaderboard(!showFullLeaderboard);
+              }}
+              style={{
+                fontFamily: 'Gilroy, sans-serif',
+                fontWeight: 400,
+                fontSize: '11px',
+                color: '#2d2620',
+                textDecoration: 'underline',
+              }}
+            >
+              {showFullLeaderboard ? 'Свернуть таблицу' : 'Развернуть таблицу'}
+            </button>
           </div>
         </div>
-      </Card>
+
+        {/* ===== СЕКЦИЯ РЕЙТИНГ ГОРОДА И ДЕСЯТОК ===== */}
+        <div className="mb-6">
+          {/* Заголовок секции */}
+          <div className="flex items-center gap-2 mb-2">
+            <div
+              style={{
+                width: '17px',
+                height: '17px',
+                background: 'linear-gradient(262.23deg, rgb(174, 30, 43) 17.09%, rgb(156, 23, 35) 108.05%)',
+                WebkitMaskImage: 'url(/assets/ratings-star-icon.png)',
+                WebkitMaskSize: 'contain',
+                WebkitMaskRepeat: 'no-repeat',
+                WebkitMaskPosition: 'center',
+                maskImage: 'url(/assets/ratings-star-icon.png)',
+                maskSize: 'contain',
+                maskRepeat: 'no-repeat',
+                maskPosition: 'center',
+              }}
+            />
+            <p
+              style={{
+                fontFamily: '"TT Nooks", Georgia, serif',
+                fontWeight: 300,
+                fontSize: '21px',
+                lineHeight: 0.95,
+                letterSpacing: '-1.26px',
+                color: '#2d2620',
+              }}
+            >
+              Рейтинг города и десяток
+            </p>
+          </div>
+
+          {/* Описание */}
+          <p
+            style={{
+              fontFamily: 'Gilroy, sans-serif',
+              fontWeight: 400,
+              fontSize: '10px',
+              lineHeight: 1.45,
+              letterSpacing: '-0.2px',
+              color: '#2d2620',
+              marginBottom: '12px',
+              maxWidth: '217px',
+            }}
+          >
+            Рейтинг внутри твоего города или десятки. Малые шаги, которые дают большой рост.
+          </p>
+
+          {/* Разделитель */}
+          <div className="w-full h-[1px] bg-[#2d2620]/20 mb-4" />
+
+          {/* Две карточки рядом */}
+          <div className="grid grid-cols-2 gap-[10px]">
+            {/* Рейтинг городов */}
+            <div
+              className="relative overflow-hidden"
+              style={{
+                borderRadius: '5.73px',
+                border: '0.955px solid #d93547',
+                background: 'linear-gradient(256.06deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
+                height: '157px',
+              }}
+            >
+              <div className="p-3">
+                <p
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    color: '#f7f1e8',
+                    marginBottom: '8px',
+                  }}
+                >
+                  Рейтинг городов
+                </p>
+
+                {/* Разделитель */}
+                <div className="w-full h-[1px] bg-white/20 mb-2" />
+
+                {/* Список городов */}
+                <div className="space-y-0.5">
+                  {mockCityRatings.map((item) => (
+                    <div
+                      key={item.city}
+                      className="flex items-center justify-between"
+                      style={{
+                        fontFamily: 'Gilroy, sans-serif',
+                        fontWeight: 400,
+                        fontSize: '10px',
+                        color: '#f7f1e8',
+                      }}
+                    >
+                      <span>{item.city} {'....................................'.slice(0, 20)}</span>
+                      <span>{String(item.score).padStart(2, '0')}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Кнопка места города */}
+              <div
+                className="absolute bottom-2 left-2 right-2 py-1 rounded-[5.73px] text-center"
+                style={{
+                  background: '#f7f1e8',
+                  border: '0.955px solid #d93547',
+                }}
+              >
+                <p
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontWeight: 700,
+                    fontSize: '10.6px',
+                    color: '#b82131',
+                  }}
+                >
+                  Место вашего города: {userCityRank}
+                </p>
+              </div>
+            </div>
+
+            {/* Рейтинг десяток */}
+            <div
+              className="relative overflow-hidden"
+              style={{
+                borderRadius: '5.73px',
+                border: '0.955px solid #d93547',
+                background: 'linear-gradient(256.06deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
+                height: '157px',
+              }}
+            >
+              <div className="p-3">
+                <p
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    color: '#f7f1e8',
+                    marginBottom: '8px',
+                  }}
+                >
+                  Рейтинг десяток
+                </p>
+
+                {/* Разделитель */}
+                <div className="w-full h-[1px] bg-white/20 mb-2" />
+
+                {/* Список десяток */}
+                <div className="space-y-0.5">
+                  {mockTeamRatings.map((item) => (
+                    <div
+                      key={item.name}
+                      className="flex items-center justify-between"
+                      style={{
+                        fontFamily: 'Gilroy, sans-serif',
+                        fontWeight: 400,
+                        fontSize: '10px',
+                        color: '#f7f1e8',
+                      }}
+                    >
+                      <span>{item.name} {'..................................'.slice(0, 18)}</span>
+                      <span>{String(item.score).padStart(2, '0')}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Кнопка места десятки */}
+              <div
+                className="absolute bottom-2 left-2 right-2 py-1 rounded-[5.73px] text-center"
+                style={{
+                  background: '#f7f1e8',
+                  border: '0.955px solid #d93547',
+                }}
+              >
+                <p
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontWeight: 700,
+                    fontSize: '10.6px',
+                    color: '#b82131',
+                  }}
+                >
+                  Место вашей десятки: {userTeamRank}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ===== БЛОК МАГАЗИН ЭНЕРГИЙ ===== */}
+        <div
+          className="relative overflow-hidden mb-6"
+          style={{
+            borderRadius: '5.73px',
+            border: '0.955px solid #d93547',
+            background: 'linear-gradient(242.61deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
+            height: '155px',
+          }}
+        >
+          {/* Фоновое изображение справа */}
+          <div
+            className="absolute overflow-hidden"
+            style={{
+              right: '0',
+              top: '0',
+              bottom: '0',
+              width: '50%',
+              borderRadius: '10px',
+            }}
+          >
+            <img
+              src="/assets/ratings-shop-bg.jpg"
+              alt=""
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          {/* Контент слева */}
+          <div className="relative z-10 p-4" style={{ maxWidth: '55%' }}>
+            <p
+              style={{
+                fontFamily: '"TT Nooks", Georgia, serif',
+                fontWeight: 300,
+                fontSize: '19.4px',
+                lineHeight: 1.05,
+                color: '#f7f1e8',
+                marginBottom: '4px',
+              }}
+            >
+              Магазин энергий
+            </p>
+
+            <p
+              style={{
+                fontFamily: 'Gilroy, sans-serif',
+                fontWeight: 400,
+                fontSize: '10px',
+                lineHeight: 1.4,
+                color: '#f7f1e8',
+                marginBottom: '16px',
+              }}
+            >
+              Здесь ты можешь обменивать баллы{' '}
+              <span style={{ fontWeight: 700 }}>на бонусы, подарки и возможности клуба</span>
+            </p>
+
+            <button
+              onClick={() => {
+                haptic.impact('light');
+                // TODO: переход в магазин
+              }}
+              className="px-6 py-3 rounded-[5.73px] active:scale-[0.98] transition-transform"
+              style={{
+                background: '#f7f1e8',
+                fontFamily: 'Gilroy, sans-serif',
+                fontWeight: 700,
+                fontSize: '11.14px',
+                color: '#a81b28',
+                textTransform: 'uppercase',
+                border: 'none',
+                boxShadow: '0 4px 12px rgba(33, 23, 10, 0.3)',
+              }}
+            >
+              перейти в магазин
+            </button>
+          </div>
+        </div>
+
+        {/* ===== СЕКЦИЯ КАК НАЧИСЛЯЮТСЯ БАЛЛЫ ===== */}
+        <div className="mb-6">
+          {/* Разделитель */}
+          <div className="w-full h-[1px] bg-[#2d2620]/20 mb-4" />
+
+          {/* Иконка по центру */}
+          <div className="flex justify-center mb-2">
+            <div
+              style={{
+                width: '17px',
+                height: '17px',
+                background: 'linear-gradient(262.23deg, rgb(174, 30, 43) 17.09%, rgb(156, 23, 35) 108.05%)',
+                WebkitMaskImage: 'url(/assets/ratings-info-icon.png)',
+                WebkitMaskSize: 'contain',
+                WebkitMaskRepeat: 'no-repeat',
+                WebkitMaskPosition: 'center',
+                maskImage: 'url(/assets/ratings-info-icon.png)',
+                maskSize: 'contain',
+                maskRepeat: 'no-repeat',
+                maskPosition: 'center',
+              }}
+            />
+          </div>
+
+          {/* Заголовок */}
+          <p
+            className="text-center"
+            style={{
+              fontFamily: '"TT Nooks", Georgia, serif',
+              fontWeight: 300,
+              fontSize: '21px',
+              lineHeight: 0.95,
+              letterSpacing: '-1.26px',
+              color: '#2d2620',
+              marginBottom: '8px',
+            }}
+          >
+            Как начисляются баллы
+          </p>
+
+          {/* Описание */}
+          <p
+            className="text-center"
+            style={{
+              fontFamily: 'Gilroy, sans-serif',
+              fontWeight: 400,
+              fontSize: '10px',
+              lineHeight: 1.45,
+              letterSpacing: '-0.2px',
+              color: '#2d2620',
+              marginBottom: '16px',
+              maxWidth: '269px',
+              marginLeft: 'auto',
+              marginRight: 'auto',
+            }}
+          >
+            мы подготовили документ, где описали основные правила и возможности получений баллов
+          </p>
+
+          {/* Кнопка */}
+          <div className="flex justify-center">
+            <button
+              onClick={() => {
+                haptic.impact('light');
+                // TODO: открыть документ
+              }}
+              className="px-8 py-3 rounded-[5.73px] active:scale-[0.98] transition-transform"
+              style={{
+                background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
+                fontFamily: 'Gilroy, sans-serif',
+                fontWeight: 700,
+                fontSize: '11.14px',
+                color: '#f7f1e8',
+                textTransform: 'uppercase',
+                border: 'none',
+                boxShadow: '0 4px 12px rgba(33, 23, 10, 0.3)',
+              }}
+            >
+              ознакомиться
+            </button>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }
