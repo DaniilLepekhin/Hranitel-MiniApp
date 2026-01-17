@@ -78,7 +78,43 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
     const simpleKeyboard = new InlineKeyboard()
       .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
 
-    if (type === 'payment_reminder') {
+    if (type === 'five_min_reminder') {
+      // Send 5-minute reminder with video - "3 ловушки"
+      await telegramService.sendVideo(
+        chatId,
+        'https://t.me/mate_bot_open/9250',
+        {
+          caption:
+            `<b>3 главные ловушки эксперта в мягких нишах.</b>\n\n` +
+            `Оставаться в одиночке.\n` +
+            `Копить знания без внедрения.\n` +
+            `Объяснять стагнацию «рынком», а не отсутствием среды.\n\n` +
+            `Одни продолжают искать причины.\n` +
+            `Другие — заходят в поле и двигаются по этапам.\n\n` +
+            `А ты из каких?\n\n` +
+            `В клубе «Код Денег» не мотивируют словами.\n` +
+            `Здесь:\n` +
+            `— дают обучение по мягким нишам,\n` +
+            `— проводят по этапам,\n` +
+            `— ставят в десятки,\n` +
+            `— фиксируют рост и статус.\n\n` +
+            `Оформи подписку — и получи доступ ко всей экосистеме клуба\n` +
+            `сразу после оплаты 👇`,
+          parse_mode: 'HTML',
+          reply_markup: keyboard
+        }
+      );
+
+      // Schedule 60-minute reminder
+      await schedulerService.schedule(
+        {
+          type: 'payment_reminder',
+          userId,
+          chatId,
+        },
+        55 * 60 * 1000 // 55 minutes (5 + 55 = 60 total from get_access)
+      );
+    } else if (type === 'payment_reminder') {
       // Send 60-minute reminder with video
       await telegramService.sendVideo(
         chatId,
@@ -312,14 +348,14 @@ bot.callbackQuery('get_access', async (ctx) => {
     // Mark user as awaiting payment
     await stateService.setState(userId, 'awaiting_payment');
 
-    // Schedule 60-minute reminder
+    // Schedule 5-minute reminder (3 ловушки)
     await schedulerService.schedule(
       {
-        type: 'payment_reminder',
+        type: 'five_min_reminder',
         userId,
         chatId,
       },
-      60 * 60 * 1000 // 60 minutes
+      5 * 60 * 1000 // 5 minutes
     );
 
     // Check payment after 10 seconds

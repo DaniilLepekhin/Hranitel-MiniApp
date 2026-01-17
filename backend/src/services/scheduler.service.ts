@@ -9,7 +9,7 @@ if (!redis) {
 
 export interface ScheduledTask {
   id: string;
-  type: 'payment_reminder' | 'final_reminder' | 'day2_reminder' | 'day3_reminder' | 'day4_reminder' | 'day5_final' | 'custom';
+  type: 'five_min_reminder' | 'payment_reminder' | 'final_reminder' | 'day2_reminder' | 'day3_reminder' | 'day4_reminder' | 'day5_final' | 'custom';
   userId: number;
   chatId: number;
   data?: Record<string, any>;
