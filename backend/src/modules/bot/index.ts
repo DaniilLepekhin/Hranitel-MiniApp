@@ -284,7 +284,9 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
   }
 }
 
-// Start scheduler processing
+// Clear all scheduled tasks on bot restart and start processing
+await schedulerService.clearAll();
+logger.info('Cleared all scheduled tasks on bot restart');
 schedulerService.startProcessing(processScheduledTask);
 
 // Bot commands

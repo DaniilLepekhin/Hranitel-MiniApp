@@ -26,12 +26,20 @@ export class SchedulerService {
    * Schedule a task to be executed at a specific time
    * @param task Task details
    * @param executeInMs Delay in milliseconds from now
-   * @returns Task ID
+   * @returns Task ID or null if duplicate exists
    */
   async schedule(
     task: Omit<ScheduledTask, 'id' | 'executeAt'>,
     executeInMs: number
-  ): Promise<string> {
+  ): Promise<string | null> {
+    // Check for duplicate task (same user + same type)
+    const existingTasks = await this.getUserTasks(task.userId);
+    const duplicate = existingTasks.find(t => t.type === task.type);
+    if (duplicate) {
+      logger.info({ userId: task.userId, type: task.type }, 'Duplicate task skipped');
+      return null;
+    }
+
     const taskId = nanoid();
     const executeAt = Date.now() + executeInMs;
 
