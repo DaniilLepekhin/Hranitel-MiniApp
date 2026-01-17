@@ -195,95 +195,91 @@ export function ProfileTab() {
             marginBottom: '24px',
           }}
         >
-          {/* Контент карточки - центрированный flex контейнер */}
+          {/* Контент карточки - вертикальная компоновка */}
           <div className="absolute inset-0 flex flex-col items-center justify-start pt-[24px] px-[24px]">
 
-            {/* Верхняя часть - Аватар и текст */}
-            <div className="flex items-start justify-center mb-6" style={{ width: '100%' }}>
-              {/* Аватар слева */}
-              <div style={{ flexShrink: 0 }}>
-                {user?.photoUrl ? (
-                  <img
-                    src={user.photoUrl}
-                    alt={displayName}
-                    className="rounded-full"
-                    style={{
-                      width: '93px',
-                      height: '93px',
-                      objectFit: 'cover',
-                    }}
-                  />
-                ) : (
-                  <div
-                    className="rounded-full flex items-center justify-center"
-                    style={{
-                      width: '93px',
-                      height: '93px',
-                      background: '#d9d9d9',
-                    }}
-                  />
-                )}
-              </div>
-
-              {/* Текстовая часть справа от аватара */}
-              <div className="flex-1 flex flex-col items-center justify-start ml-4">
-                {/* Имя */}
-                <p
-                  className="text-center mb-[8px]"
+            {/* Аватар */}
+            <div className="flex justify-center mb-4">
+              {user?.photoUrl ? (
+                <img
+                  src={user.photoUrl}
+                  alt={displayName}
+                  className="rounded-full"
                   style={{
-                    fontFamily: 'Gilroy, sans-serif',
-                    fontWeight: 400,
-                    fontSize: '21.167px',
-                    lineHeight: 1.45,
-                    letterSpacing: '-0.4233px',
-                    color: '#2d2620',
+                    width: '93px',
+                    height: '93px',
+                    objectFit: 'cover',
                   }}
-                >
-                  {displayName}
-                </p>
-
-                {/* Город */}
-                <p
-                  className="text-center mb-[16px]"
-                  style={{
-                    fontFamily: 'Gilroy, sans-serif',
-                    fontWeight: 400,
-                    fontSize: '15.993px',
-                    lineHeight: 1.45,
-                    letterSpacing: '-0.3199px',
-                    color: '#2d2620',
-                  }}
-                >
-                  {user?.city ? `г. ${user.city}` : 'Город не указан'}
-                </p>
-
-                {/* Бейдж статуса */}
+                />
+              ) : (
                 <div
+                  className="rounded-full flex items-center justify-center"
                   style={{
-                    border: '0.955px solid #d93547',
-                    borderRadius: '5.731px',
-                    background: 'linear-gradient(242.804deg, rgb(174, 30, 43) 15.721%, rgb(156, 23, 35) 99.389%)',
-                    paddingLeft: '16px',
-                    paddingRight: '16px',
-                    height: '33px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    width: '93px',
+                    height: '93px',
+                    background: '#d9d9d9',
+                  }}
+                />
+              )}
+            </div>
+
+            {/* Имя */}
+            <p
+              className="text-center mb-2"
+              style={{
+                fontFamily: 'Gilroy, sans-serif',
+                fontWeight: 400,
+                fontSize: '21.167px',
+                lineHeight: 1.45,
+                letterSpacing: '-0.4233px',
+                color: '#2d2620',
+              }}
+            >
+              {displayName}
+            </p>
+
+            {/* Город */}
+            <p
+              className="text-center mb-4"
+              style={{
+                fontFamily: 'Gilroy, sans-serif',
+                fontWeight: 400,
+                fontSize: '15.993px',
+                lineHeight: 1.45,
+                letterSpacing: '-0.3199px',
+                color: '#2d2620',
+              }}
+            >
+              {user?.city ? `г. ${user.city}` : 'Город не указан'}
+            </p>
+
+            {/* Бейдж статуса */}
+            <div className="flex justify-center mb-6">
+              <div
+                style={{
+                  border: '0.955px solid #d93547',
+                  borderRadius: '5.731px',
+                  background: 'linear-gradient(242.804deg, rgb(174, 30, 43) 15.721%, rgb(156, 23, 35) 99.389%)',
+                  paddingLeft: '16px',
+                  paddingRight: '16px',
+                  height: '33px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <p
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    lineHeight: 1.45,
+                    letterSpacing: '-0.28px',
+                    color: 'white',
                   }}
                 >
-                  <p
-                    style={{
-                      fontFamily: 'Gilroy, sans-serif',
-                      fontWeight: 700,
-                      fontSize: '14px',
-                      lineHeight: 1.45,
-                      letterSpacing: '-0.28px',
-                      color: 'white',
-                    }}
-                  >
-                    {user?.isPro ? 'Участник' : 'Новичек'}
-                  </p>
-                </div>
+                  {user?.isPro ? 'Участник' : 'Новичек'}
+                </p>
               </div>
             </div>
 
