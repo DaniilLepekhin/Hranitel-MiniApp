@@ -294,80 +294,9 @@ export function ProfileTab() {
                 borderRadius: '10px',
                 width: '291px',
                 height: '79.363px',
+                background: 'linear-gradient(256deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
               }}
             >
-              {/* Градиент фона */}
-              <div
-                className="absolute inset-0"
-                style={{
-                  background: 'linear-gradient(256deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
-                }}
-              />
-
-              {/* Фоновое изображение с размытием поверх градиента */}
-              <div
-                className="absolute inset-0"
-                style={{
-                  mixBlendMode: 'overlay',
-                }}
-              >
-                <div
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    transform: 'scaleY(-1)',
-                  }}
-                >
-                  <img
-                    src="/assets/balance-bg.jpg"
-                    alt=""
-                    className="w-full h-full object-cover"
-                    style={{ filter: 'blur(21.056px)' }}
-                  />
-                </div>
-              </div>
-
-              {/* Декоративная рамка поверх - с вопросительным знаком */}
-              <div
-                className="absolute flex items-center justify-center"
-                style={{
-                  left: '11.947px',
-                  top: '35.842px',
-                  width: '149.34px',
-                  height: '31.575px',
-                  border: '0.853px solid rgba(244, 214, 182, 0.4)',
-                  borderRadius: '5.12px',
-                  overflow: 'hidden',
-                }}
-              >
-                <img
-                  src="/assets/balance-frame.png"
-                  alt=""
-                  className="w-full h-full object-cover absolute inset-0"
-                  style={{ borderRadius: '5.12px' }}
-                />
-                <div
-                  className="relative z-10 flex items-center justify-center"
-                  style={{
-                    width: '22px',
-                    height: '22px',
-                    borderRadius: '50%',
-                    background: 'rgba(45, 38, 32, 0.4)',
-                  }}
-                >
-                  <span
-                    style={{
-                      fontFamily: 'Gilroy, sans-serif',
-                      fontWeight: 700,
-                      fontSize: '14px',
-                      color: '#f7f1e8',
-                    }}
-                  >
-                    ?
-                  </span>
-                </div>
-              </div>
-
               {/* Контент */}
               <div className="relative z-10 h-full flex items-center justify-between px-4">
                 <p
@@ -413,7 +342,7 @@ export function ProfileTab() {
         </div>
 
         {/* ===== ССЫЛКИ ===== */}
-        <div className="space-y-[37px] px-[30px]">
+        <div className="space-y-[20px] px-[30px]">
           <button
             onClick={() => openLink('https://storage.daniillepekhin.com/IK%2Fclub_miniapp%2F%D0%9F%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0%20%D0%BA%D0%BB%D1%83%D0%B1%D0%B0.pdf')}
             className="w-full text-center"
