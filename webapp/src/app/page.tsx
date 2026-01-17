@@ -18,6 +18,7 @@ import { PathTab } from '@/components/tabs/PathTab';
 import { ChatsTab } from '@/components/tabs/ChatsTab';
 import { RatingsTab } from '@/components/tabs/RatingsTab';
 import { ProfileTab } from '@/components/tabs/ProfileTab';
+import { ShopTab } from '@/components/tabs/ShopTab';
 
 function HomeContent() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
@@ -26,7 +27,7 @@ function HomeContent() {
   // Handle tab query parameter
   useEffect(() => {
     const tab = searchParams.get('tab') as TabType;
-    if (tab && ['home', 'path', 'chats', 'ratings', 'profile'].includes(tab)) {
+    if (tab && ['home', 'path', 'chats', 'ratings', 'profile', 'shop'].includes(tab)) {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -111,8 +112,9 @@ function HomeContent() {
     home: <HomeTab onProfileClick={() => setActiveTab('profile')} />,
     path: <PathTab />,
     chats: <ChatsTab />,
-    ratings: <RatingsTab />,
+    ratings: <RatingsTab onShopClick={() => setActiveTab('shop')} />,
     profile: <ProfileTab />,
+    shop: <ShopTab />,
   };
 
   return (

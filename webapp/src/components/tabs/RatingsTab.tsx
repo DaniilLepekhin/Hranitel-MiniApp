@@ -36,7 +36,11 @@ const mockTeamRatings = [
   { name: 'Десятка №5', score: 5 },
 ];
 
-export function RatingsTab() {
+interface RatingsTabProps {
+  onShopClick?: () => void;
+}
+
+export function RatingsTab({ onShopClick }: RatingsTabProps) {
   const { haptic, webApp } = useTelegram();
   const { user, token } = useAuthStore();
   const [showFullLeaderboard, setShowFullLeaderboard] = useState(false);
@@ -679,7 +683,7 @@ export function RatingsTab() {
             <button
               onClick={() => {
                 haptic.impact('light');
-                // TODO: переход в магазин
+                onShopClick?.();
               }}
               className="px-6 py-3 rounded-[5.73px] active:scale-[0.98] transition-transform"
               style={{

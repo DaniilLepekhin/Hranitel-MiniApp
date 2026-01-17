@@ -4,7 +4,7 @@ import { Home, TrendingUp, MessageCircle, Trophy, User } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { clsx } from 'clsx';
 
-export type TabType = 'home' | 'path' | 'chats' | 'ratings' | 'profile';
+export type TabType = 'home' | 'path' | 'chats' | 'ratings' | 'profile' | 'shop';
 
 interface NavigationProps {
   activeTab: TabType;
