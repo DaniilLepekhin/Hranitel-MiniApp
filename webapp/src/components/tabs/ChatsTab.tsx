@@ -293,7 +293,7 @@ export function ChatsTab() {
               }}
             >
               <img
-                src="/assets/chat-kod-app.jpg"
+                src="/assets/chat-kod-app.png"
                 alt=""
                 className="w-full h-full object-contain object-right-bottom"
               />
@@ -370,9 +370,9 @@ export function ChatsTab() {
               }}
             >
               <img
-                src="/assets/chat-main-channel.jpg"
+                src="/assets/chat-main-channel.png"
                 alt=""
-                className="w-full h-full object-cover object-center"
+                className="w-full h-full object-contain object-right-bottom"
               />
             </div>
 
@@ -448,9 +448,9 @@ export function ChatsTab() {
                 }}
               >
                 <img
-                  src="/assets/chat-city.jpg"
+                  src="/assets/chat-city.png"
                   alt=""
-                  className="w-full h-full object-cover object-center"
+                  className="w-full h-full object-contain object-right-bottom"
                 />
               </div>
 
@@ -615,7 +615,6 @@ export function ChatsTab() {
               border: '0.955px solid #d93547',
               background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
               height: '169px',
-              opacity: team?.cityChat ? 1 : 0.7,
             }}
           >
             {/* Изображение справа */}
@@ -629,7 +628,7 @@ export function ChatsTab() {
               }}
             >
               <img
-                src="/assets/chat-desyatka.jpg"
+                src="/assets/chat-desyatka.png"
                 alt=""
                 className="w-full h-full object-contain object-right-bottom"
               />
@@ -719,9 +718,9 @@ export function ChatsTab() {
               }}
             >
               <img
-                src="/assets/chat-support.jpg"
+                src="/assets/chat-support.png"
                 alt=""
-                className="w-full h-full object-contain object-right-center"
+                className="w-full h-full object-contain object-right-bottom"
               />
             </div>
 
