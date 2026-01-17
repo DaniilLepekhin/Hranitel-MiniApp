@@ -551,7 +551,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
 
                 {/* Список городов */}
                 <div className="space-y-0.5">
-                  {cityRatings.slice(0, showFullCityRatings ? 50 : 5).map((item) => (
+                  {cityRatings.slice(0, showFullCityRatings ? 50 : 5).map((item, index) => (
                     <div
                       key={item.city}
                       className="flex items-center justify-between"
@@ -563,7 +563,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
                       }}
                     >
                       <span className="truncate">{item.city}</span>
-                      <span className="ml-1">{item.totalEnergies.toLocaleString('ru-RU')} ⚡</span>
+                      <span className="ml-1">{String(index + 1).padStart(2, '0')}</span>
                     </div>
                   ))}
                 </div>
@@ -641,7 +641,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
 
                 {/* Список десяток */}
                 <div className="space-y-0.5">
-                  {teamRatings.slice(0, showFullTeamRatings ? 50 : 5).map((item) => (
+                  {teamRatings.slice(0, showFullTeamRatings ? 50 : 5).map((item, index) => (
                     <div
                       key={item.teamId}
                       className="flex items-center justify-between"
@@ -653,7 +653,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
                       }}
                     >
                       <span className="truncate">{item.teamName}</span>
-                      <span className="ml-1">{item.totalEnergies.toLocaleString('ru-RU')} ⚡</span>
+                      <span className="ml-1">{String(index + 1).padStart(2, '0')}</span>
                     </div>
                   ))}
                 </div>
