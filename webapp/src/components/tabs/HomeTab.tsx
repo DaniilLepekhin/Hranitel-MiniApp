@@ -43,17 +43,17 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
   return (
     <div className="min-h-screen bg-[#f7f1e8] relative">
       {/* ===== ФОН - фиксированный на всю ширину ===== */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {/* Газетная текстура - центрирована */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden bg-[#f7f1e8]">
+        {/* Газетная текстура - едва заметная */}
         <div
           className="absolute"
           style={{
-            width: '200%',
-            height: '200%',
+            width: '150%',
+            height: '150%',
             left: '50%',
             top: '50%',
             transform: 'translate(-50%, -50%) rotate(-60.8deg)',
-            opacity: 0.18,
+            opacity: 0.08,
             mixBlendMode: 'overlay',
           }}
         >
@@ -64,16 +64,17 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
           />
         </div>
 
-        {/* Монеты/молоток слева */}
+        {/* Монеты/молоток слева - едва заметные */}
         <div
           className="absolute"
           style={{
-            width: '60%',
-            maxWidth: '400px',
-            height: '80%',
-            left: '-5%',
-            top: '5%',
+            width: '50%',
+            maxWidth: '350px',
+            height: '70%',
+            left: '-8%',
+            top: '0%',
             mixBlendMode: 'multiply',
+            opacity: 0.15,
           }}
         >
           <img
@@ -83,17 +84,18 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
           />
         </div>
 
-        {/* Размытое цветное пятно 1 - слева внизу */}
+        {/* Размытое цветное пятно 1 - слева (очень слабое) */}
         <div
           className="absolute"
           style={{
-            width: '80%',
-            height: '80%',
-            left: '-20%',
-            bottom: '-20%',
+            width: '60%',
+            height: '60%',
+            left: '-15%',
+            bottom: '0%',
             mixBlendMode: 'color-dodge',
-            filter: 'blur(150px)',
+            filter: 'blur(200px)',
             transform: 'rotate(-22.76deg)',
+            opacity: 0.3,
           }}
         >
           <img
@@ -103,17 +105,18 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
           />
         </div>
 
-        {/* Размытое цветное пятно 2 - справа вверху */}
+        {/* Размытое цветное пятно 2 - справа вверху (очень слабое) */}
         <div
           className="absolute"
           style={{
-            width: '80%',
-            height: '80%',
-            right: '-20%',
-            top: '-20%',
+            width: '60%',
+            height: '60%',
+            right: '-15%',
+            top: '-10%',
             mixBlendMode: 'color-dodge',
-            filter: 'blur(150px)',
+            filter: 'blur(200px)',
             transform: 'rotate(77.63deg) scaleY(-1)',
+            opacity: 0.3,
           }}
         >
           <img
