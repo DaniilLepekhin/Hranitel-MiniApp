@@ -41,86 +41,87 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f1e8] relative overflow-hidden">
-      {/* ===== ФОН - на всю ширину ===== */}
+    <div className="min-h-screen bg-[#f7f1e8] relative">
+      {/* ===== ФОН - фиксированный на всю ширину ===== */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        {/* Газетная текстура - центрирована */}
+        <div
+          className="absolute"
+          style={{
+            width: '200%',
+            height: '200%',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%) rotate(-60.8deg)',
+            opacity: 0.18,
+            mixBlendMode: 'overlay',
+          }}
+        >
+          <img
+            src="/assets/newspaper-texture.png"
+            alt=""
+            className="w-full h-full object-cover"
+          />
+        </div>
 
-      {/* Газетная текстура */}
-      <div
-        className="absolute pointer-events-none"
-        style={{
-          width: '150vw',
-          height: '150vh',
-          left: '-25vw',
-          top: '-25vh',
-          opacity: 0.18,
-          mixBlendMode: 'overlay',
-          transform: 'rotate(-60.8deg)',
-        }}
-      >
-        <img
-          src="/assets/newspaper-texture.png"
-          alt=""
-          className="w-full h-full object-cover"
-        />
-      </div>
+        {/* Монеты/молоток слева */}
+        <div
+          className="absolute"
+          style={{
+            width: '60%',
+            maxWidth: '400px',
+            height: '80%',
+            left: '-5%',
+            top: '5%',
+            mixBlendMode: 'multiply',
+          }}
+        >
+          <img
+            src="/assets/bg-coins.png"
+            alt=""
+            className="w-full h-full object-contain object-left-top"
+          />
+        </div>
 
-      {/* Монеты/молоток слева */}
-      <div
-        className="absolute pointer-events-none"
-        style={{
-          width: '50vw',
-          maxWidth: '645px',
-          height: '100vh',
-          left: '-10vw',
-          top: '-10vh',
-          mixBlendMode: 'multiply',
-        }}
-      >
-        <img
-          src="/assets/bg-coins.png"
-          alt=""
-          className="w-full h-full object-cover"
-        />
-      </div>
+        {/* Размытое цветное пятно 1 - слева внизу */}
+        <div
+          className="absolute"
+          style={{
+            width: '80%',
+            height: '80%',
+            left: '-20%',
+            bottom: '-20%',
+            mixBlendMode: 'color-dodge',
+            filter: 'blur(150px)',
+            transform: 'rotate(-22.76deg)',
+          }}
+        >
+          <img
+            src="/assets/bg-blur.png"
+            alt=""
+            className="w-full h-full object-cover"
+          />
+        </div>
 
-      {/* Размытое цветное пятно 1 */}
-      <div
-        className="absolute pointer-events-none"
-        style={{
-          width: '100vw',
-          height: '100vh',
-          left: '-50vw',
-          top: '0',
-          mixBlendMode: 'color-dodge',
-          filter: 'blur(200px)',
-          transform: 'rotate(-22.76deg)',
-        }}
-      >
-        <img
-          src="/assets/bg-blur.png"
-          alt=""
-          className="w-full h-full object-cover"
-        />
-      </div>
-
-      {/* Размытое цветное пятно 2 */}
-      <div
-        className="absolute pointer-events-none"
-        style={{
-          width: '100vw',
-          height: '100vh',
-          left: '-30vw',
-          top: '-50vh',
-          mixBlendMode: 'color-dodge',
-          filter: 'blur(200px)',
-          transform: 'rotate(77.63deg) scaleY(-1)',
-        }}
-      >
-        <img
-          src="/assets/bg-blur.png"
-          alt=""
-          className="w-full h-full object-cover"
-        />
+        {/* Размытое цветное пятно 2 - справа вверху */}
+        <div
+          className="absolute"
+          style={{
+            width: '80%',
+            height: '80%',
+            right: '-20%',
+            top: '-20%',
+            mixBlendMode: 'color-dodge',
+            filter: 'blur(150px)',
+            transform: 'rotate(77.63deg) scaleY(-1)',
+          }}
+        >
+          <img
+            src="/assets/bg-blur.png"
+            alt=""
+            className="w-full h-full object-cover"
+          />
+        </div>
       </div>
 
       {/* ===== КОНТЕНТ - адаптивный ===== */}
