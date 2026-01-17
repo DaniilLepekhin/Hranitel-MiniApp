@@ -279,7 +279,7 @@ export function ChatsTab() {
               border: '0.955px solid #d93547',
               background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
               height: '156px',
-              marginTop: '24px', // Отступ для выступающей картинки
+              marginTop: '40px', // Отступ для выступающей картинки
             }}
           >
             {/* Изображение справа - выступает сверху */}
@@ -287,9 +287,9 @@ export function ChatsTab() {
               className="absolute overflow-visible"
               style={{
                 right: '0',
-                top: '-24px',
+                top: '-40px',
                 width: '45%',
-                height: 'calc(100% + 24px)',
+                height: 'calc(100% + 40px)',
               }}
             >
               <img
