@@ -30,14 +30,14 @@ interface HomeTabProps {
 }
 
 export function HomeTab({ onProfileClick }: HomeTabProps) {
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data: statsData } = useQuery({
     queryKey: ['gamification-stats'],
     queryFn: () => gamificationApi.stats(),
-    enabled: !!user,
+    enabled: !!user && !!token,
     retry: false,
     staleTime: 60 * 1000,
   });

@@ -20,13 +20,15 @@ interface LeaderboardEntry {
 }
 
 export function RatingsTab() {
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
 
   // Получаем статистику пользователя
   const { data: statsData } = useQuery({
     queryKey: ['gamification-stats'],
     queryFn: () => gamificationApi.stats(),
-    enabled: !!user,
+    enabled: !!user && !!token,
+    retry: false,
+    staleTime: 60 * 1000,
   });
 
   const stats = statsData?.stats;

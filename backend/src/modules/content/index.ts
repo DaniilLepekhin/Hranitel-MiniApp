@@ -125,52 +125,65 @@ export const contentModule = new Elysia({ prefix: '/api/v1/content' })
   })
 
   // Get user progress for all content
-  .get('/progress', async ({ query }) => {
+  .get('/progress', async ({ query, set }) => {
     const { userId } = query;
 
     if (!userId) {
-      throw new Error('userId is required');
+      set.status = 400;
+      return { success: false, error: 'userId is required', progress: [] };
     }
 
-    const progress = await db
-      .select()
-      .from(userContentProgress)
-      .where(eq(userContentProgress.userId, userId))
-      .orderBy(desc(userContentProgress.updatedAt));
+    try {
+      const progress = await db
+        .select()
+        .from(userContentProgress)
+        .where(eq(userContentProgress.userId, userId))
+        .orderBy(desc(userContentProgress.updatedAt));
 
-    return { progress };
+      return { success: true, progress };
+    } catch (error) {
+      set.status = 500;
+      return { success: false, error: 'Failed to fetch progress', progress: [] };
+    }
   }, {
     query: t.Object({
-      userId: t.String()
+      userId: t.Optional(t.String())
     })
   })
 
   // Get user progress stats
-  .get('/progress/stats', async ({ query }) => {
+  .get('/progress/stats', async ({ query, set }) => {
     const { userId } = query;
 
     if (!userId) {
-      throw new Error('userId is required');
+      set.status = 400;
+      return { success: false, error: 'userId is required', stats: { totalWatched: 0, totalEnergies: 0, totalWatchTime: 0 } };
     }
 
-    const stats = await db
-      .select({
-        totalWatched: sql<number>`count(*)`,
-        totalEnergies: sql<number>`sum(${userContentProgress.energiesEarned})`,
-        totalWatchTime: sql<number>`sum(${userContentProgress.watchTimeSeconds})`
-      })
-      .from(userContentProgress)
-      .where(and(
-        eq(userContentProgress.userId, userId),
-        eq(userContentProgress.watched, true)
-      ));
+    try {
+      const stats = await db
+        .select({
+          totalWatched: sql<number>`count(*)`,
+          totalEnergies: sql<number>`sum(${userContentProgress.energiesEarned})`,
+          totalWatchTime: sql<number>`sum(${userContentProgress.watchTimeSeconds})`
+        })
+        .from(userContentProgress)
+        .where(and(
+          eq(userContentProgress.userId, userId),
+          eq(userContentProgress.watched, true)
+        ));
 
-    return {
-      stats: stats[0] || { totalWatched: 0, totalEnergies: 0, totalWatchTime: 0 }
-    };
+      return {
+        success: true,
+        stats: stats[0] || { totalWatched: 0, totalEnergies: 0, totalWatchTime: 0 }
+      };
+    } catch (error) {
+      set.status = 500;
+      return { success: false, error: 'Failed to fetch stats', stats: { totalWatched: 0, totalEnergies: 0, totalWatchTime: 0 } };
+    }
   }, {
     query: t.Object({
-      userId: t.String()
+      userId: t.Optional(t.String())
     })
   })
 

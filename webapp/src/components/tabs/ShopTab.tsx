@@ -70,29 +70,34 @@ export function ShopTab() {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const { haptic, webApp } = useTelegram();
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const queryClient = useQueryClient();
 
   // Fetch shop items by category
   const { data: shopData, isLoading: itemsLoading } = useQuery({
     queryKey: ['shop', 'items-by-category'],
     queryFn: shopApi.getItemsByCategory,
-    enabled: !!user,
+    enabled: !!user && !!token,
+    retry: false,
+    staleTime: 60 * 1000,
   });
 
   // Fetch user balance
   const { data: balanceData } = useQuery({
     queryKey: ['ep', 'balance', user?.id],
     queryFn: () => shopApi.getUserBalance(user!.id),
-    enabled: !!user,
+    enabled: !!user && !!token,
     refetchInterval: 10000,
+    retry: false,
   });
 
   // Fetch user purchases
   const { data: purchasesData } = useQuery({
     queryKey: ['shop', 'purchases', user?.id],
     queryFn: () => shopApi.getUserPurchases(user!.id),
-    enabled: !!user,
+    enabled: !!user && !!token,
+    retry: false,
+    staleTime: 60 * 1000,
   });
 
   // Purchase mutation

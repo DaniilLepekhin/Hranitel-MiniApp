@@ -27,13 +27,15 @@ const monthThemes = [
 export function PathTab() {
   const router = useRouter();
   const { haptic } = useTelegram();
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
 
   // Fetch all content items
   const { data: contentData, isLoading } = useQuery({
     queryKey: ['content', 'all'],
     queryFn: () => contentApi.getItems(),
-    enabled: !!user,
+    enabled: !!user && !!token,
+    retry: false,
+    staleTime: 60 * 1000,
   });
 
   // Fetch user progress
@@ -45,7 +47,7 @@ export function PathTab() {
       }
       return contentApi.getUserProgress(user.id);
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && !!token,
     retry: false,
     staleTime: 60 * 1000,
   });

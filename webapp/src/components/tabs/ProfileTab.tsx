@@ -24,7 +24,7 @@ import { useRouter } from 'next/navigation';
 import { useTelegram } from '@/hooks/useTelegram';
 
 export function ProfileTab() {
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const router = useRouter();
   const { haptic } = useTelegram();
   const [isEditingName, setIsEditingName] = useState(false);
@@ -36,8 +36,10 @@ export function ProfileTab() {
   const { data: epData } = useQuery({
     queryKey: ['energies', 'balance', user?.id],
     queryFn: () => energiesApi.getBalance(user!.id),
-    enabled: !!user,
+    enabled: !!user && !!token,
     refetchInterval: 30000,
+    retry: false,
+    staleTime: 60 * 1000,
   });
 
   // Fetch countries for city selection

@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { FullMediaPlayer } from '@/components/player/FullMediaPlayer';
 import { MiniPlayer } from '@/components/player/MiniPlayer';
+import { useAuthStore } from '@/store/auth';
+import { setAuthToken } from '@/lib/api';
 
 function TelegramInit() {
   const { webApp, ready } = useTelegram();
@@ -20,6 +22,19 @@ function TelegramInit() {
       webApp.enableClosingConfirmation();
     }
   }, [webApp, ready]);
+
+  return null;
+}
+
+// Инициализация токена из persisted storage
+function AuthTokenInit() {
+  const { token } = useAuthStore();
+
+  useEffect(() => {
+    if (token) {
+      setAuthToken(token);
+    }
+  }, [token]);
 
   return null;
 }
@@ -42,6 +57,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <TelegramInit />
+      <AuthTokenInit />
       {children}
       <FullMediaPlayer />
       <MiniPlayer />
