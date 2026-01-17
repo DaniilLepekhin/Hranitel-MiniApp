@@ -4,22 +4,9 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
-import { gamificationApi } from '@/lib/api';
+import { gamificationApi, energiesApi } from '@/lib/api';
 
-// Мок данные для рейтинга
-const mockLeaderboard = [
-  { id: '1', name: 'Анна Смирнова', score: 2450 },
-  { id: '2', name: 'Михаил Петров', score: 2380 },
-  { id: '3', name: 'Елена Козлова', score: 2290 },
-  { id: '4', name: 'Дмитрий Иванов', score: 2150 },
-  { id: '5', name: 'Ольга Новикова', score: 2080 },
-  { id: '6', name: 'Сергей Морозов', score: 1950 },
-  { id: '7', name: 'Мария Волкова', score: 1890 },
-  { id: '8', name: 'Алексей Соколов', score: 1820 },
-  { id: '9', name: 'Наталья Лебедева', score: 1750 },
-  { id: '10', name: 'Игорь Федоров', score: 1680 },
-];
-
+// Моки для городов и десяток (пока нет API)
 const mockCityRatings = [
   { city: 'г. Москва', score: 1 },
   { city: 'г. Санкт-Петербург', score: 2 },
@@ -45,20 +32,31 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
   const { user, token } = useAuthStore();
   const [showFullLeaderboard, setShowFullLeaderboard] = useState(false);
 
-  // Получаем статистику пользователя
-  const { data: statsData } = useQuery({
-    queryKey: ['gamification-stats'],
-    queryFn: () => gamificationApi.stats(),
+  // Получаем баланс энергий пользователя
+  const { data: balanceData } = useQuery({
+    queryKey: ['energies-balance', user?.id],
+    queryFn: () => energiesApi.getBalance(user!.id),
+    enabled: !!user && !!token,
+    retry: false,
+    staleTime: 30 * 1000,
+  });
+
+  // Получаем общий рейтинг
+  const { data: leaderboardData } = useQuery({
+    queryKey: ['leaderboard', showFullLeaderboard ? 100 : 10],
+    queryFn: () => gamificationApi.leaderboard(showFullLeaderboard ? 100 : 10),
     enabled: !!user && !!token,
     retry: false,
     staleTime: 60 * 1000,
   });
 
-  const stats = statsData?.stats;
-  const userBalance = user?.experience || stats?.experience || 0;
-  const userRank = 32; // Мок позиция пользователя
-  const userCityRank = 10;
-  const userTeamRank = 10;
+  const userBalance = balanceData?.balance || 0;
+  const leaderboard = leaderboardData?.leaderboard || [];
+
+  // Находим позицию пользователя в рейтинге
+  const userRank = leaderboard.findIndex(entry => entry.id === user?.id) + 1 || 32;
+  const userCityRank = 10; // Мок (нет API)
+  const userTeamRank = 10; // Мок (нет API)
 
   const openLink = (url: string) => {
     haptic.impact('light');
@@ -69,7 +67,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     }
   };
 
-  const displayedLeaderboard = showFullLeaderboard ? mockLeaderboard : mockLeaderboard.slice(0, 10);
+  const displayedLeaderboard = leaderboard;
 
   return (
     <div className="min-h-screen w-full bg-[#f7f1e8] relative">
@@ -365,27 +363,34 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
           {/* Таблица рейтинга */}
           <div className="relative">
             <div className="space-y-1">
-              {displayedLeaderboard.map((entry, index) => (
-                <div
-                  key={entry.id}
-                  className="flex items-center justify-between"
-                  style={{
-                    fontFamily: 'Gilroy, sans-serif',
-                    fontWeight: 400,
-                    fontSize: '14px',
-                    lineHeight: 1.45,
-                    letterSpacing: '-0.28px',
-                    color: '#2d2620',
-                  }}
-                >
-                  <span>
-                    {entry.name}{'...............................................................................'.slice(0, 50 - entry.name.length)}
-                  </span>
-                  <span style={{ fontWeight: 400 }}>
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
-                </div>
-              ))}
+              {displayedLeaderboard.map((entry, index) => {
+                const displayName = entry.firstName && entry.lastName
+                  ? `${entry.firstName} ${entry.lastName}`
+                  : entry.username || 'Пользователь';
+                const isCurrentUser = entry.id === user?.id;
+
+                return (
+                  <div
+                    key={entry.id}
+                    className="flex items-center justify-between"
+                    style={{
+                      fontFamily: 'Gilroy, sans-serif',
+                      fontWeight: isCurrentUser ? 700 : 400,
+                      fontSize: '14px',
+                      lineHeight: 1.45,
+                      letterSpacing: '-0.28px',
+                      color: isCurrentUser ? '#9c1723' : '#2d2620',
+                    }}
+                  >
+                    <span>
+                      {displayName}{'...............................................................................'.slice(0, Math.max(5, 50 - displayName.length))}
+                    </span>
+                    <span style={{ fontWeight: isCurrentUser ? 700 : 400 }}>
+                      {String(entry.rank || index + 1).padStart(2, '0')}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Градиент для fade эффекта если не развернуто */}
