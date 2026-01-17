@@ -1,11 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Copy, Megaphone } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
-import { gamificationApi } from '@/lib/api';
 
 // Предзагрузка изображений фона для моментального отображения
 const preloadImages = () => {
@@ -30,20 +28,12 @@ interface HomeTabProps {
 }
 
 export function HomeTab({ onProfileClick }: HomeTabProps) {
-  const { user, token } = useAuthStore();
+  const { user } = useAuthStore();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { data: statsData } = useQuery({
-    queryKey: ['gamification-stats'],
-    queryFn: () => gamificationApi.stats(),
-    enabled: !!user && !!token,
-    retry: false,
-    staleTime: 60 * 1000,
-  });
-
-  const stats = statsData?.stats;
-  const epBalance = stats?.experience || 1250;
+  // Баланс энергий берём напрямую из user объекта (приходит при авторизации)
+  const epBalance = user?.experience || 0;
   const referralLink = user ? `https://t.me/hranitelkodbot?start=ref_${user.id}` : 'https://t.me/hranitelkodbot?start=ref_...';
   const userName = user?.firstName || '{Имя}';
 
