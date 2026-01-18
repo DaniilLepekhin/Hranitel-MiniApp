@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'next/navigation';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { Navigation, TabType } from '@/components/ui/Navigation';
@@ -10,10 +8,10 @@ import { MiniPlayer } from '@/components/ui/MiniPlayer';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
-import { usePlayerStore } from '@/store/player';
-import { authApi, coursesApi, meditationsApi, gamificationApi, setAuthToken } from '@/lib/api';
+import { authApi, setAuthToken } from '@/lib/api';
 
-// Tab Components
+// 🚀 КРИТИЧЕСКАЯ ОПТИМИЗАЦИЯ: Обычные импорты для мгновенного переключения
+// Dynamic imports создавали задержки при быстрой навигации
 import { HomeTab } from '@/components/tabs/HomeTab';
 import { PathTab } from '@/components/tabs/PathTab';
 import { ChatsTab } from '@/components/tabs/ChatsTab';
@@ -133,19 +131,10 @@ function HomeContent() {
         </button>
       )}
 
-      {/* Content */}
-      <AnimatePresence mode="popLayout">
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.15, ease: 'easeOut' }}
-          className="relative z-10"
-        >
-          {tabComponents[activeTab]}
-        </motion.div>
-      </AnimatePresence>
+      {/* Content - 🚀 БЕЗ АНИМАЦИИ для мгновенного переключения */}
+      <div className="relative z-10">
+        {tabComponents[activeTab]}
+      </div>
 
       {/* Mini Player - Global, persists across tabs */}
       <MiniPlayer />

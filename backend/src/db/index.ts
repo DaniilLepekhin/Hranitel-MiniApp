@@ -4,9 +4,10 @@ import { config, isDevelopment, isProduction } from '@/config';
 import { logger } from '@/utils/logger';
 import * as schema from './schema';
 
+// 🚀 КРИТИЧЕСКАЯ ОПТИМИЗАЦИЯ ДЛЯ 10,000 ПОЛЬЗОВАТЕЛЕЙ
 // Production-optimized connection pool configuration
 const poolConfig: postgres.Options<{}> = {
-  max: isProduction ? 50 : 10, // 50 connections for 10K+ users in production
+  max: isProduction ? 150 : 10, // 🔥 150 connections для 10K+ concurrent users
   idle_timeout: 20,
   connect_timeout: 10,
   max_lifetime: 60 * 30, // 30 minutes
@@ -22,7 +23,7 @@ const queryClient = postgres(config.DATABASE_URL, poolConfig);
 const readReplicaClient = config.READ_REPLICA_URL
   ? postgres(config.READ_REPLICA_URL, {
       ...poolConfig,
-      max: isProduction ? 100 : 10, // Больше connections для read replica
+      max: isProduction ? 200 : 10, // 🔥 200 connections для read replica (больше чем primary)
     })
   : queryClient;
 

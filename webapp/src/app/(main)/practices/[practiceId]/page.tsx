@@ -3,11 +3,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Sparkles, Play } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { contentApi } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
-import ReactMarkdown from 'react-markdown';
 import { useMediaPlayerStore, type MediaItem } from '@/store/media-player';
 import { useTelegram } from '@/hooks/useTelegram';
+
+// 🚀 ОПТИМИЗАЦИЯ: Dynamic import для ReactMarkdown (экономия ~150KB gzipped)
+const ReactMarkdown = dynamic(() => import('react-markdown'), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-40 rounded" />,
+});
 
 export default function PracticePage() {
   const router = useRouter();

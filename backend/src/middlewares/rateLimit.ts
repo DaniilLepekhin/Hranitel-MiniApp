@@ -91,8 +91,9 @@ export const authRateLimit = createRateLimiter({
   prefix: 'ratelimit:auth',
 });
 
+// 🚀 ОПТИМИЗАЦИЯ ДЛЯ 10,000 АКТИВНЫХ ПОЛЬЗОВАТЕЛЕЙ
 export const apiRateLimit = createRateLimiter({
-  max: 100,
+  max: 300, // 🔥 300 req/min для активных пользователей (было 100)
   windowSeconds: 60,
   prefix: 'ratelimit:api',
   skipPaths: ['/health', '/docs', '/swagger'],
