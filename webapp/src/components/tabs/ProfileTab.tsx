@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
@@ -10,6 +10,7 @@ import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
 export function ProfileTab() {
   const { haptic, webApp } = useTelegram();
   const { user, token } = useAuthStore();
+  const [loadingLink, setLoadingLink] = useState<string | null>(null);
 
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем баланс энергий пользователя
   const { data: balanceData } = useQuery({
@@ -29,14 +30,41 @@ export function ProfileTab() {
     return user?.firstName || user?.username || 'Пользователь';
   }, [user?.firstName, user?.lastName, user?.username]);
 
-  // 🚀 МЕМОИЗАЦИЯ: Функция не пересоздается при каждом рендере
-  const openLink = useCallback((url: string) => {
-    haptic.impact('light');
+  // 🚀 ОПТИМИЗИРОВАННАЯ функция открытия ссылок с визуальной обратной связью
+  const openLink = useCallback((url: string, linkType: string) => {
+    setLoadingLink(linkType);
+    haptic.impact('medium');
+
+    // ⚡️ МГНОВЕННОЕ открытие Telegram ссылок
+    if (url.startsWith('https://t.me/')) {
+      // Telegram ссылки открываются НАПРЯМУЮ через webApp.openTelegramLink
+      if (webApp?.openTelegramLink) {
+        webApp.openTelegramLink(url);
+      } else {
+        window.open(url, '_blank');
+      }
+      setTimeout(() => setLoadingLink(null), 300);
+      return;
+    }
+
+    // 📄 PDF файлы открываем через webApp.openLink (откроется в Telegram)
+    if (url.endsWith('.pdf') || url.includes('.pdf')) {
+      if (webApp?.openLink) {
+        webApp.openLink(url);
+      } else {
+        window.open(url, '_blank');
+      }
+      setTimeout(() => setLoadingLink(null), 500);
+      return;
+    }
+
+    // 🌐 Обычные ссылки
     if (webApp?.openLink) {
       webApp.openLink(url);
     } else {
       window.open(url, '_blank');
     }
+    setTimeout(() => setLoadingLink(null), 500);
   }, [haptic, webApp]);
 
   return (
@@ -277,54 +305,57 @@ export function ProfileTab() {
         {/* ===== ССЫЛКИ ===== */}
         <div className="space-y-[20px] px-[30px]">
           <button
-            onClick={() => openLink('https://storage.daniillepekhin.com/IK%2Fclub_miniapp%2F%D0%9F%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0%20%D0%BA%D0%BB%D1%83%D0%B1%D0%B0.pdf')}
-            className="w-full text-center"
+            onClick={() => openLink('https://storage.daniillepekhin.com/IK%2Fclub_miniapp%2F%D0%9F%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0%20%D0%BA%D0%BB%D1%83%D0%B1%D0%B0.pdf', 'rules')}
+            disabled={loadingLink === 'rules'}
+            className="w-full text-center transition-all active:scale-95 disabled:opacity-50"
             style={{
               fontFamily: 'Gilroy, sans-serif',
               fontWeight: 400,
               fontSize: '18.517px',
               lineHeight: 1.45,
               letterSpacing: '-0.3703px',
-              color: '#2d2620',
+              color: loadingLink === 'rules' ? '#9c1723' : '#2d2620',
               textDecoration: 'underline',
-              textDecorationColor: '#2d2620',
+              textDecorationColor: loadingLink === 'rules' ? '#9c1723' : '#2d2620',
             }}
           >
-            Правила клуба
+            {loadingLink === 'rules' ? 'Открываю...' : 'Правила клуба'}
           </button>
 
           <button
-            onClick={() => openLink('https://ishodnyi-kod.com/clubofert')}
-            className="w-full text-center"
+            onClick={() => openLink('https://ishodnyi-kod.com/clubofert', 'offer')}
+            disabled={loadingLink === 'offer'}
+            className="w-full text-center transition-all active:scale-95 disabled:opacity-50"
             style={{
               fontFamily: 'Gilroy, sans-serif',
               fontWeight: 400,
               fontSize: '18.517px',
               lineHeight: 1.45,
               letterSpacing: '-0.3703px',
-              color: '#2d2620',
+              color: loadingLink === 'offer' ? '#9c1723' : '#2d2620',
               textDecoration: 'underline',
-              textDecorationColor: '#2d2620',
+              textDecorationColor: loadingLink === 'offer' ? '#9c1723' : '#2d2620',
             }}
           >
-            Оферта
+            {loadingLink === 'offer' ? 'Открываю...' : 'Оферта'}
           </button>
 
           <button
-            onClick={() => openLink('https://t.me/Egiazarova_support_bot')}
-            className="w-full text-center"
+            onClick={() => openLink('https://t.me/Egiazarova_support_bot', 'support')}
+            disabled={loadingLink === 'support'}
+            className="w-full text-center transition-all active:scale-95 disabled:opacity-50"
             style={{
               fontFamily: 'Gilroy, sans-serif',
               fontWeight: 400,
               fontSize: '18.517px',
               lineHeight: 1.45,
               letterSpacing: '-0.3703px',
-              color: '#2d2620',
+              color: loadingLink === 'support' ? '#9c1723' : '#2d2620',
               textDecoration: 'underline',
-              textDecorationColor: '#2d2620',
+              textDecorationColor: loadingLink === 'support' ? '#9c1723' : '#2d2620',
             }}
           >
-            Служба заботы
+            {loadingLink === 'support' ? 'Открываю...' : 'Служба заботы'}
           </button>
         </div>
       </div>
