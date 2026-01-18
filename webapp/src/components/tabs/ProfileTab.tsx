@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tantml:parameter>
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { energiesApi, usersApi } from '@/lib/api';
