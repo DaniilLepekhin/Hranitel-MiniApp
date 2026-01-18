@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Play,
   Pause,
@@ -12,6 +12,8 @@ import {
   ChevronDown,
   Headphones,
   Radio,
+  Maximize,
+  Minimize,
 } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useMediaPlayerStore } from '@/store/media-player';
@@ -20,6 +22,7 @@ export function FullMediaPlayer() {
   const { haptic } = useTelegram();
   const audioRef = useRef<HTMLAudioElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [isVideoFullscreen, setIsVideoFullscreen] = useState(false);
 
   const {
     currentMedia,
@@ -135,7 +138,49 @@ export function FullMediaPlayer() {
     haptic.impact('light');
   };
 
+  const toggleVideoFullscreen = () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (!isVideoFullscreen) {
+      // Enter fullscreen
+      if (video.requestFullscreen) {
+        video.requestFullscreen();
+      } else if ((video as any).webkitRequestFullscreen) {
+        (video as any).webkitRequestFullscreen();
+      }
+      setIsVideoFullscreen(true);
+    } else {
+      // Exit fullscreen
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      }
+      setIsVideoFullscreen(false);
+    }
+    haptic.impact('medium');
+  };
+
+  // Listen to fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isFullscreen = !!(document.fullscreenElement || (document as any).webkitFullscreenElement);
+      setIsVideoFullscreen(isFullscreen);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
   if (!showFullPlayer || !currentMedia) return null;
+
+  const isVideo = currentMedia.type === 'video';
 
   return (
     <div className="fixed inset-0 z-[100] bg-gradient-to-b from-[#2b2520] to-[#2a1f1a] flex flex-col">
@@ -150,8 +195,8 @@ export function FullMediaPlayer() {
         )}
       </div>
 
-      {/* Audio/Video Element */}
-      {currentMedia.type === 'audio' || currentMedia.type === 'meditation' ? (
+      {/* Audio Element */}
+      {(currentMedia.type === 'audio' || currentMedia.type === 'meditation') && (
         <audio
           ref={audioRef}
           src={currentMedia.url}
@@ -159,14 +204,19 @@ export function FullMediaPlayer() {
           onLoadedMetadata={handleLoadedMetadata}
           onEnded={() => setIsPlaying(false)}
         />
-      ) : (
+      )}
+
+      {/* Video Element */}
+      {currentMedia.type === 'video' && (
         <video
           ref={videoRef}
           src={currentMedia.url}
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
           onEnded={() => setIsPlaying(false)}
-          className="hidden"
+          className="absolute inset-0 w-full h-full object-contain bg-black"
+          controls={false}
+          playsInline
         />
       )}
 
@@ -188,8 +238,8 @@ export function FullMediaPlayer() {
       </div>
 
       {/* Content Area */}
-      <div className="relative z-10 flex-1 flex flex-col overflow-y-auto px-4 pb-32">
-        {/* Cover Art */}
+      <div className={`relative z-10 flex-1 flex flex-col overflow-y-auto px-4 pb-32 ${isVideo ? 'hidden' : ''}`}>
+        {/* Cover Art - Only for audio */}
         <div className="flex-shrink-0 flex items-center justify-center py-8">
           <div className="relative">
             {/* Animated rings */}
@@ -345,13 +395,27 @@ export function FullMediaPlayer() {
             <SkipForward className="w-6 h-6 text-white" />
           </button>
 
-          <button
-            onClick={toggleMute}
-            className="w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all opacity-0"
-            disabled
-          >
-            <Volume2 className="w-5 h-5 text-white" />
-          </button>
+          {/* Fullscreen button for video */}
+          {isVideo ? (
+            <button
+              onClick={toggleVideoFullscreen}
+              className="w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"
+              title={isVideoFullscreen ? 'Выйти из полноэкранного режима' : 'Полноэкранный режим'}
+            >
+              {isVideoFullscreen ? (
+                <Minimize className="w-5 h-5 text-white" />
+              ) : (
+                <Maximize className="w-5 h-5 text-white" />
+              )}
+            </button>
+          ) : (
+            <button
+              className="w-12 h-12 rounded-xl bg-white/10 opacity-0"
+              disabled
+            >
+              <Volume2 className="w-5 h-5 text-white" />
+            </button>
+          )}
         </div>
       </div>
     </div>
