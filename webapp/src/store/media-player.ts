@@ -91,7 +91,6 @@ export const useMediaPlayerStore = create<MediaPlayerState>()(
       // Persist only essential state, not transient values
       partialize: (state) => ({
         currentMedia: state.currentMedia,
-        timecodes: state.timecodes,
         isPlaying: state.isPlaying,
         currentTime: state.currentTime,
         duration: state.duration,
