@@ -52,16 +52,16 @@ ${referralLink}
   };
 
   return (
-    <Card className="p-4 bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10 border-[#8b4513]/30">
+    <Card className="p-4 bg-gradient-to-br from-[#d93547]/10 to-[#9c1723]/10 border-[#9c1723]/30">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-base font-bold text-[#3d2f1f] flex items-center gap-2">
-          <Users className="w-5 h-5 text-[#8b0000]" />
+        <h3 className="text-base font-bold text-[#2b2520] flex items-center gap-2">
+          <Users className="w-5 h-5 text-[#d93547]" />
           Пригласи друзей
         </h3>
-        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#8b0000]/20 rounded-lg border border-[#8b4513]/30">
-          <Users className="w-3.5 h-3.5 text-[#8b0000]" />
-          <span className="text-[#3d2f1f] font-bold text-sm">{invitedCount}</span>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#d93547]/20 rounded-lg border border-[#9c1723]/30">
+          <Users className="w-3.5 h-3.5 text-[#d93547]" />
+          <span className="text-[#2b2520] font-bold text-sm">{invitedCount}</span>
         </div>
       </div>
 
@@ -71,10 +71,10 @@ ${referralLink}
       </p>
 
       {/* Referral Link */}
-      <div className="mb-3 p-2.5 bg-white/80 rounded-lg border border-[#8b4513]/20 flex items-center gap-2">
+      <div className="mb-3 p-2.5 bg-white/80 rounded-lg border border-[#9c1723]/20 flex items-center gap-2">
         <div className="flex-1 overflow-hidden">
           <p className="text-[#6b5a4a] text-[9px] mb-0.5 font-medium">Твоя реферальная ссылка:</p>
-          <p className="text-[#3d2f1f] text-xs font-mono truncate">{referralLink}</p>
+          <p className="text-[#2b2520] text-xs font-mono truncate">{referralLink}</p>
         </div>
         <button
           onClick={handleCopyLink}
@@ -83,7 +83,7 @@ ${referralLink}
           {copied ? (
             <CheckCircle2 className="w-4 h-4 text-green-600" />
           ) : (
-            <Copy className="w-4 h-4 text-[#8b0000]" />
+            <Copy className="w-4 h-4 text-[#d93547]" />
           )}
         </button>
       </div>
@@ -92,14 +92,14 @@ ${referralLink}
       <div className="grid grid-cols-2 gap-2">
         <button
           onClick={handleCopyLink}
-          className="px-3 py-2.5 rounded-lg bg-white border-2 border-[#8b4513]/30 text-[#3d2f1f] font-semibold text-xs flex items-center justify-center gap-2 hover:border-[#8b0000] hover:bg-[#8b0000]/5 active:scale-95 transition-all"
+          className="px-3 py-2.5 rounded-lg bg-white border-2 border-[#9c1723]/30 text-[#2b2520] font-semibold text-xs flex items-center justify-center gap-2 hover:border-[#d93547] hover:bg-[#d93547]/5 active:scale-95 transition-all"
         >
           <Copy className="w-4 h-4" />
           {copied ? 'Скопировано!' : 'Копировать'}
         </button>
         <button
           onClick={handleShareMessage}
-          className="px-3 py-2.5 rounded-lg bg-gradient-to-r from-[#8b0000] to-[#8b4513] text-white font-semibold text-xs flex items-center justify-center gap-2 hover:shadow-lg active:scale-95 transition-all"
+          className="px-3 py-2.5 rounded-lg bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white font-semibold text-xs flex items-center justify-center gap-2 hover:shadow-lg active:scale-95 transition-all"
         >
           <Share2 className="w-4 h-4" />
           Отправить
