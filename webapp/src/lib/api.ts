@@ -400,6 +400,7 @@ export interface User {
   phone?: string;
   level: number;
   experience: number;
+  energies: number; // Energy Points (основная валюта)
   streak: number;
   isPro: boolean;
   subscriptionExpires?: string;
