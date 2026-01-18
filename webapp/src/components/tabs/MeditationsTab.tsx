@@ -153,17 +153,20 @@ export function MeditationsTab() {
 
   return (
     <div className="px-4 pt-6 pb-24">
+      {/* 🎨 НОВЫЙ ДИЗАЙН: Красная тема как на Главной/Рейтинге/Профиле */}
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white mb-1">Медитации</h1>
-        <p className="text-gray-300">Найдите свой момент покоя</p>
+        <h1 className="section-title">Медитации</h1>
+        <p className="text-[#6b5a4a] text-sm text-center">
+          Найдите свой момент покоя
+        </p>
       </div>
 
       {/* Featured Meditation */}
       {meditations[0] && (
         <div
           onClick={() => playMeditation(meditations[0])}
-          className="relative glass rounded-3xl overflow-hidden mb-6 cursor-pointer hover:shadow-xl transition-all active:scale-[0.98]"
+          className="relative bg-white/70 backdrop-blur-sm rounded-3xl overflow-hidden mb-6 cursor-pointer hover:shadow-xl transition-all active:scale-[0.98] border border-[#9c1723]/10"
         >
           <div className="aspect-video relative">
             {meditations[0].coverUrl ? (
@@ -173,14 +176,14 @@ export function MeditationsTab() {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-emerald-400 to-teal-500" />
+              <div className="w-full h-full bg-gradient-to-br from-[#d93547] to-[#9c1723]" />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
 
             {/* Play button overlay */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-16 h-16 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
-                <Play className="w-8 h-8 text-emerald-600 ml-1" />
+              <div className="w-16 h-16 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg shadow-[#d93547]/30">
+                <Play className="w-8 h-8 text-[#d93547] ml-1" />
               </div>
             </div>
 

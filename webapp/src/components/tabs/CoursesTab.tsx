@@ -45,21 +45,24 @@ export function CoursesTab() {
 
   return (
     <div className="px-4 pt-6 pb-24">
+      {/* 🎨 НОВЫЙ ДИЗАЙН: Красная тема как на Главной/Рейтинге/Профиле */}
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white mb-1">Курсы</h1>
-        <p className="text-gray-300">Выберите курс для обучения</p>
+        <h1 className="section-title">Курсы</h1>
+        <p className="text-[#6b5a4a] text-sm text-center">
+          Выберите курс для обучения
+        </p>
       </div>
 
       {/* Search */}
       <div className="relative mb-4">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#9c1723]/60" />
         <input
           type="text"
           placeholder="Поиск курсов..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 glass rounded-2xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
+          className="w-full pl-12 pr-4 py-3 bg-white/80 backdrop-blur-sm rounded-2xl text-[#2b2520] placeholder-[#9c1723]/40 focus:outline-none focus:ring-2 focus:ring-[#d93547]/50 border border-[#9c1723]/10"
         />
       </div>
 
@@ -73,8 +76,8 @@ export function CoursesTab() {
               onClick={() => setSelectedCategory(category.value)}
               className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all ${
                 selectedCategory === category.value
-                  ? 'bg-gradient-to-r from-purple-400 to-indigo-500 text-white shadow-lg'
-                  : 'glass text-gray-200 hover:shadow-md'
+                  ? 'bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white shadow-lg shadow-[#d93547]/30'
+                  : 'bg-white/60 backdrop-blur-sm text-[#6b5a4a] hover:bg-white/80 border border-[#9c1723]/10'
               }`}
             >
               <IconComponent className="w-4 h-4" />

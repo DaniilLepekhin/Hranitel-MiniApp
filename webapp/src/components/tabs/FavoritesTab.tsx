@@ -22,15 +22,16 @@ export function FavoritesTab() {
 
   return (
     <div className="px-4 pt-6 pb-24">
+      {/* 🎨 НОВЫЙ ДИЗАЙН: Красная тема как на Главной/Рейтинге/Профиле */}
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center">
+        <div className="flex items-center justify-center gap-3 mb-2">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#d93547] to-[#9c1723] flex items-center justify-center shadow-lg shadow-[#d93547]/30">
             <Heart className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Избранное</h1>
+          <h1 className="section-title">Избранное</h1>
         </div>
-        <p className="text-gray-300">
+        <p className="text-[#6b5a4a] text-sm text-center">
           {favorites.length > 0
             ? `${favorites.length} ${favorites.length === 1 ? 'курс' : favorites.length < 5 ? 'курса' : 'курсов'}`
             : 'Добавьте курсы в избранное'}
@@ -41,23 +42,23 @@ export function FavoritesTab() {
       {isLoading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="card rounded-3xl h-32 animate-pulse" />
+            <div key={i} className="bg-white/60 backdrop-blur-sm rounded-3xl h-32 animate-pulse border border-[#9c1723]/10" />
           ))}
         </div>
       ) : favorites.length === 0 ? (
         <div className="text-center py-16">
-          <div className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-pink-100 to-rose-100 flex items-center justify-center">
-            <Heart className="w-10 h-10 text-pink-400" />
+          <div className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-[#d93547]/20 to-[#9c1723]/20 flex items-center justify-center">
+            <Heart className="w-10 h-10 text-[#d93547]" />
           </div>
-          <h3 className="text-lg font-semibold text-white mb-2">
+          <h3 className="text-lg font-semibold text-[#2b2520] mb-2">
             Пока нет избранных курсов
           </h3>
-          <p className="text-gray-400 mb-6">
+          <p className="text-[#6b5a4a] mb-6 text-sm">
             Нажмите на звёздочку на курсе, чтобы добавить его в избранное
           </p>
           <button
             onClick={() => router.push('/')}
-            className="px-6 py-3 bg-gradient-to-r from-pink-400 to-rose-500 text-white rounded-2xl font-semibold active:scale-95 transition-transform"
+            className="px-6 py-3 bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white rounded-2xl font-semibold active:scale-95 transition-transform shadow-lg shadow-[#d93547]/30"
           >
             Перейти к курсам
           </button>
@@ -131,7 +132,7 @@ function FavoriteCourseCard({
   return (
     <div
       onClick={handleClick}
-      className="card rounded-3xl overflow-hidden hover:shadow-xl transition-all duration-300 active:scale-[0.98] cursor-pointer"
+      className="bg-white/70 backdrop-blur-sm rounded-3xl overflow-hidden hover:shadow-xl transition-all duration-300 active:scale-[0.98] cursor-pointer border border-[#9c1723]/10"
     >
       <div className="flex">
         {/* Cover Image */}
@@ -143,7 +144,7 @@ function FavoriteCourseCard({
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center">
+            <div className="w-full h-full bg-gradient-to-br from-[#d93547] to-[#9c1723] flex items-center justify-center">
               <BookOpen className="w-8 h-8 text-white" />
             </div>
           )}
@@ -180,9 +181,9 @@ function FavoriteCourseCard({
           {/* Progress bar */}
           {progress !== undefined && progress > 0 && (
             <div className="mt-2">
-              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-[#9c1723]/10 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-purple-400 to-indigo-500 rounded-full transition-all"
+                  className="h-full bg-gradient-to-r from-[#d93547] to-[#9c1723] rounded-full transition-all"
                   style={{ width: `${progress}%` }}
                 />
               </div>
