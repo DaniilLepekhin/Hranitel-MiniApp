@@ -108,11 +108,11 @@ export function MonthCalendar({ items, onDayClick }: MonthCalendarProps) {
           onClick={goToPrevMonth}
           className="w-8 h-8 rounded-lg bg-[#f8f6f0] flex items-center justify-center hover:bg-[#e8dcc6] transition-colors"
         >
-          <ChevronLeft className="w-5 h-5 text-[#3d2f1f]" />
+          <ChevronLeft className="w-5 h-5 text-[#2b2520]" />
         </button>
 
         <div className="text-center">
-          <h3 className="text-lg font-bold text-[#3d2f1f]">
+          <h3 className="text-lg font-bold text-[#2b2520]">
             {monthNames[month]} {year}
           </h3>
         </div>
@@ -121,7 +121,7 @@ export function MonthCalendar({ items, onDayClick }: MonthCalendarProps) {
           onClick={goToNextMonth}
           className="w-8 h-8 rounded-lg bg-[#f8f6f0] flex items-center justify-center hover:bg-[#e8dcc6] transition-colors"
         >
-          <ChevronRight className="w-5 h-5 text-[#3d2f1f]" />
+          <ChevronRight className="w-5 h-5 text-[#2b2520]" />
         </button>
       </div>
 
@@ -148,13 +148,13 @@ export function MonthCalendar({ items, onDayClick }: MonthCalendarProps) {
                 aspect-square rounded-lg flex items-center justify-center text-sm font-medium
                 transition-all relative
                 ${dayInfo.isToday
-                  ? 'bg-gradient-to-br from-[#8b0000] to-[#8b4513] text-white font-bold shadow-lg scale-110'
+                  ? 'bg-gradient-to-br from-[#d93547] to-[#9c1723] text-white font-bold shadow-lg scale-110'
                   : dayInfo.isCurrentMonth
                     ? hasContent
-                      ? 'bg-[#8b0000]/10 text-[#3d2f1f] hover:bg-[#8b0000]/20 border border-[#8b0000]/30'
+                      ? 'bg-[#d93547]/10 text-[#2b2520] hover:bg-[#d93547]/20 border border-[#d93547]/30'
                       : dayInfo.isPast
                         ? 'text-[#6b5a4a]/50 hover:bg-[#f8f6f0]'
-                        : 'text-[#3d2f1f] hover:bg-[#f8f6f0]'
+                        : 'text-[#2b2520] hover:bg-[#f8f6f0]'
                     : 'text-[#6b5a4a]/30'
                 }
                 ${dayInfo.isCurrentMonth && !dayInfo.isToday ? 'cursor-pointer' : ''}
@@ -164,7 +164,7 @@ export function MonthCalendar({ items, onDayClick }: MonthCalendarProps) {
 
               {/* Content indicator dot */}
               {hasContent && !dayInfo.isToday && (
-                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#8b0000]" />
+                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#d93547]" />
               )}
             </button>
           );
@@ -174,11 +174,11 @@ export function MonthCalendar({ items, onDayClick }: MonthCalendarProps) {
       {/* Legend */}
       <div className="mt-4 flex items-center justify-center gap-4 text-xs text-[#6b5a4a]">
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded bg-gradient-to-br from-[#8b0000] to-[#8b4513]" />
+          <div className="w-3 h-3 rounded bg-gradient-to-br from-[#d93547] to-[#9c1723]" />
           <span>Сегодня</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded bg-[#8b0000]/10 border border-[#8b0000]/30" />
+          <div className="w-3 h-3 rounded bg-[#d93547]/10 border border-[#d93547]/30" />
           <span>Материалы</span>
         </div>
       </div>

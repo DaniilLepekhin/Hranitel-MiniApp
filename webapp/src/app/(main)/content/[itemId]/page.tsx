@@ -153,8 +153,8 @@ export default function ContentDetailPage() {
     return (
       <div className="px-4 pt-6 pb-24">
         <div className="text-center py-12">
-          <BookOpen className="w-16 h-16 mx-auto text-[#8b4513]/50 mb-4" />
-          <h3 className="text-lg font-semibold text-[#3d2f1f] mb-2">Контент не найден</h3>
+          <BookOpen className="w-16 h-16 mx-auto text-[#d93547]/50 mb-4" />
+          <h3 className="text-lg font-semibold text-[#2b2520] mb-2">Контент не найден</h3>
           <p className="text-[#6b5a4a]">Попробуйте вернуться назад</p>
         </div>
       </div>
@@ -169,16 +169,16 @@ export default function ContentDetailPage() {
       <div className="flex items-center gap-4 mb-6">
         <button
           onClick={() => router.back()}
-          className="w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center hover:bg-white/80 transition-all border border-[#8b4513]/30"
+          className="w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center hover:bg-white/80 transition-all border border-[#d93547]/30"
         >
-          <ArrowLeft className="w-5 h-5 text-[#3d2f1f]" />
+          <ArrowLeft className="w-5 h-5 text-[#2b2520]" />
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <Icon className="w-4 h-4 text-[#8b0000]" />
-            <span className="text-xs text-[#8b0000] font-semibold">{getTypeLabel(item.type)}</span>
+            <Icon className="w-4 h-4 text-[#d93547]" />
+            <span className="text-xs text-[#d93547] font-semibold">{getTypeLabel(item.type)}</span>
           </div>
-          <h1 className="text-xl font-bold text-[#3d2f1f]">{item.title}</h1>
+          <h1 className="text-xl font-bold text-[#2b2520]">{item.title}</h1>
         </div>
       </div>
 
@@ -195,7 +195,7 @@ export default function ContentDetailPage() {
 
       {/* Description */}
       {item.description && (
-        <Card className="p-4 mb-6 bg-gradient-to-br from-[#8b0000]/5 to-[#8b4513]/5">
+        <Card className="p-4 mb-6 bg-gradient-to-br from-[#d93547]/5 to-[#9c1723]/5">
           <p className="text-[#6b5a4a] leading-relaxed">{item.description}</p>
         </Card>
       )}
@@ -203,11 +203,11 @@ export default function ContentDetailPage() {
       {/* Key Badge */}
       {item.keyNumber && (
         <div className="mb-6 flex items-center gap-2">
-          <div className="px-4 py-2 rounded-full bg-gradient-to-r from-[#8b0000] to-[#8b4513] text-white text-sm font-semibold">
+          <div className="px-4 py-2 rounded-full bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white text-sm font-semibold">
             Ключ #{item.keyNumber}
           </div>
           {item.monthProgram && (
-            <div className="px-4 py-2 rounded-full bg-white/60 border border-[#8b4513]/30 text-[#3d2f1f] text-sm font-semibold">
+            <div className="px-4 py-2 rounded-full bg-white/60 border border-[#d93547]/30 text-[#2b2520] text-sm font-semibold">
               Программа месяца
             </div>
           )}
@@ -217,15 +217,15 @@ export default function ContentDetailPage() {
       {/* Podcasts/Streams - Play button */}
       {(item.type === 'podcast' || item.type === 'stream_record') && videos.length > 0 && (
         <Card
-          className="p-6 hover:scale-[1.02] transition-all cursor-pointer bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10 border-2 border-[#8b0000]"
+          className="p-6 hover:scale-[1.02] transition-all cursor-pointer bg-gradient-to-br from-[#d93547]/10 to-[#9c1723]/10 border-2 border-[#d93547]"
           onClick={handlePlayMedia}
         >
           <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center shadow-lg flex-shrink-0">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#d93547] to-[#9c1723] flex items-center justify-center shadow-lg flex-shrink-0">
               <Play className="w-10 h-10 text-white ml-1" fill="white" />
             </div>
             <div className="flex-1">
-              <h3 className="font-bold text-[#3d2f1f] text-lg mb-1">
+              <h3 className="font-bold text-[#2b2520] text-lg mb-1">
                 {item.type === 'podcast' ? 'Слушать подкаст' : 'Смотреть запись эфира'}
               </h3>
               <p className="text-[#6b5a4a] text-sm">
@@ -234,7 +234,7 @@ export default function ContentDetailPage() {
                   : 'С таймкодами для навигации'}
               </p>
             </div>
-            <ChevronRight className="w-6 h-6 text-[#8b4513]" />
+            <ChevronRight className="w-6 h-6 text-[#d93547]" />
           </div>
         </Card>
       )}
@@ -242,7 +242,7 @@ export default function ContentDetailPage() {
       {/* Course Sections */}
       {item.type === 'course' && sections.length > 0 && (
         <div className="space-y-3">
-          <h2 className="font-bold text-[#3d2f1f] text-lg mb-3">Уроки</h2>
+          <h2 className="font-bold text-[#2b2520] text-lg mb-3">Уроки</h2>
           {sections.map((section, index) => {
             const sectionProgress = progress.filter((p) => p.contentItemId === itemId);
             const isCompleted = false; // TODO: calculate based on all videos in section
@@ -257,7 +257,7 @@ export default function ContentDetailPage() {
                   <div className={`
                     w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg shadow-md
                     ${isCompleted
-                      ? 'bg-gradient-to-br from-[#8b0000] to-[#8b4513] text-white'
+                      ? 'bg-gradient-to-br from-[#d93547] to-[#9c1723] text-white'
                       : 'bg-[#e8dcc6] text-[#6b5a4a]'
                     }
                   `}>
@@ -269,7 +269,7 @@ export default function ContentDetailPage() {
                   </div>
 
                   <div className="flex-1">
-                    <h3 className="font-semibold text-[#3d2f1f]">{section.title}</h3>
+                    <h3 className="font-semibold text-[#2b2520]">{section.title}</h3>
                     {section.description && (
                       <p className="text-sm text-[#6b5a4a] line-clamp-1 mt-0.5">
                         {section.description}
@@ -277,7 +277,7 @@ export default function ContentDetailPage() {
                     )}
                   </div>
 
-                  <ChevronRight className="w-5 h-5 text-[#8b4513]" />
+                  <ChevronRight className="w-5 h-5 text-[#d93547]" />
                 </div>
               </Card>
             );
@@ -289,18 +289,18 @@ export default function ContentDetailPage() {
       {/* Practice Button */}
       {item.type === 'practice' && (
         <Card
-          className="p-6 hover:scale-[1.02] transition-all cursor-pointer bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10"
+          className="p-6 hover:scale-[1.02] transition-all cursor-pointer bg-gradient-to-br from-[#d93547]/10 to-[#9c1723]/10"
           onClick={handlePracticeClick}
         >
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center shadow-lg">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#d93547] to-[#9c1723] flex items-center justify-center shadow-lg">
               <Sparkles className="w-8 h-8 text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="font-bold text-[#3d2f1f] text-lg mb-1">Начать практику</h3>
+              <h3 className="font-bold text-[#2b2520] text-lg mb-1">Начать практику</h3>
               <p className="text-[#6b5a4a] text-sm">Откройте контент практики</p>
             </div>
-            <ChevronRight className="w-6 h-6 text-[#8b4513]" />
+            <ChevronRight className="w-6 h-6 text-[#d93547]" />
           </div>
         </Card>
       )}
