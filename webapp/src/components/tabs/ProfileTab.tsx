@@ -1,16 +1,21 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tantml:parameter>
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
-import { energiesApi } from '@/lib/api';
+import { energiesApi, usersApi } from '@/lib/api';
 import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
+import { Edit2, X, Check } from 'lucide-react';
 
 export function ProfileTab() {
   const { haptic, webApp } = useTelegram();
-  const { user, token } = useAuthStore();
+  const { user, token, setUser } = useAuthStore();
+  const queryClient = useQueryClient();
   const [loadingLink, setLoadingLink] = useState<string | null>(null);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editFirstName, setEditFirstName] = useState('');
+  const [editLastName, setEditLastName] = useState('');
 
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем баланс энергий пользователя
   const { data: balanceData } = useQuery({
@@ -29,6 +34,48 @@ export function ProfileTab() {
     }
     return user?.firstName || user?.username || 'Пользователь';
   }, [user?.firstName, user?.lastName, user?.username]);
+
+  // ✏️ Mutation для обновления профиля
+  const updateProfileMutation = useMutation({
+    mutationFn: usersApi.updateProfile,
+    onSuccess: (data) => {
+      haptic.notification('success');
+      // Обновляем пользователя в store
+      if (user && data.user) {
+        setUser({ ...user, ...data.user });
+      }
+      setIsEditingName(false);
+    },
+    onError: () => {
+      haptic.notification('error');
+    },
+  });
+
+  // 📝 Функции для редактирования имени
+  const startEditingName = useCallback(() => {
+    setEditFirstName(user?.firstName || '');
+    setEditLastName(user?.lastName || '');
+    setIsEditingName(true);
+    haptic.impact('light');
+  }, [user, haptic]);
+
+  const cancelEditingName = useCallback(() => {
+    setIsEditingName(false);
+    haptic.impact('light');
+  }, [haptic]);
+
+  const saveEditedName = useCallback(() => {
+    if (!editFirstName.trim()) {
+      haptic.notification('warning');
+      return;
+    }
+
+    haptic.impact('medium');
+    updateProfileMutation.mutate({
+      firstName: editFirstName.trim(),
+      lastName: editLastName.trim() || undefined,
+    });
+  }, [editFirstName, editLastName, updateProfileMutation, haptic]);
 
   // 🚀 ОПТИМИЗИРОВАННАЯ функция открытия ссылок с визуальной обратной связью
   const openLink = useCallback((url: string, linkType: string) => {
@@ -172,20 +219,29 @@ export function ProfileTab() {
 
               {/* Текстовая часть справа от аватара */}
               <div className="flex-1 flex flex-col items-center justify-start ml-4">
-                {/* Имя */}
-                <p
-                  className="text-center mb-[8px]"
-                  style={{
-                    fontFamily: 'Gilroy, sans-serif',
-                    fontWeight: 400,
-                    fontSize: '21.167px',
-                    lineHeight: 1.45,
-                    letterSpacing: '-0.4233px',
-                    color: '#2d2620',
-                  }}
-                >
-                  {displayName}
-                </p>
+                {/* Имя с кнопкой редактирования */}
+                <div className="flex items-center justify-center gap-2 mb-[8px]">
+                  <p
+                    className="text-center"
+                    style={{
+                      fontFamily: 'Gilroy, sans-serif',
+                      fontWeight: 400,
+                      fontSize: '21.167px',
+                      lineHeight: 1.45,
+                      letterSpacing: '-0.4233px',
+                      color: '#2d2620',
+                    }}
+                  >
+                    {displayName}
+                  </p>
+                  <button
+                    onClick={startEditingName}
+                    className="flex items-center justify-center p-1 hover:bg-black/5 rounded-full transition-colors active:scale-95"
+                    aria-label="Редактировать имя"
+                  >
+                    <Edit2 className="w-4 h-4" style={{ color: '#9c1723' }} />
+                  </button>
+                </div>
 
                 {/* Город */}
                 <p
@@ -359,6 +415,153 @@ export function ProfileTab() {
           </button>
         </div>
       </div>
+
+      {/* ===== МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ ИМЕНИ ===== */}
+      {isEditingName && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+          onClick={cancelEditingName}
+        >
+          <div
+            className="bg-[#f7f1e8] rounded-2xl p-6 mx-4 w-full max-w-md"
+            style={{ border: '1px solid #2d2620' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3
+                style={{
+                  fontFamily: '"TT Nooks", Georgia, serif',
+                  fontWeight: 300,
+                  fontSize: '24px',
+                  color: '#2d2620',
+                }}
+              >
+                Редактировать имя
+              </h3>
+              <button
+                onClick={cancelEditingName}
+                className="p-1 hover:bg-black/5 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" style={{ color: '#2d2620' }} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Поле "Имя" */}
+              <div>
+                <label
+                  htmlFor="firstName"
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: '#2d2620',
+                    display: 'block',
+                    marginBottom: '8px',
+                  }}
+                >
+                  Имя <span style={{ color: '#9c1723' }}>*</span>
+                </label>
+                <input
+                  id="firstName"
+                  type="text"
+                  value={editFirstName}
+                  onChange={(e) => setEditFirstName(e.target.value)}
+                  placeholder="Введите имя"
+                  autoFocus
+                  className="w-full px-4 py-3 rounded-lg"
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontSize: '16px',
+                    color: '#2d2620',
+                    border: '1px solid #2d2620',
+                    backgroundColor: '#fff',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
+              {/* Поле "Фамилия" */}
+              <div>
+                <label
+                  htmlFor="lastName"
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: '#2d2620',
+                    display: 'block',
+                    marginBottom: '8px',
+                  }}
+                >
+                  Фамилия
+                </label>
+                <input
+                  id="lastName"
+                  type="text"
+                  value={editLastName}
+                  onChange={(e) => setEditLastName(e.target.value)}
+                  placeholder="Введите фамилию (необязательно)"
+                  className="w-full px-4 py-3 rounded-lg"
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontSize: '16px',
+                    color: '#2d2620',
+                    border: '1px solid #2d2620',
+                    backgroundColor: '#fff',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
+              {/* Кнопки */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={cancelEditingName}
+                  disabled={updateProfileMutation.isPending}
+                  className="flex-1 py-3 rounded-lg transition-all active:scale-95"
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontWeight: 600,
+                    fontSize: '16px',
+                    color: '#2d2620',
+                    border: '1px solid #2d2620',
+                    backgroundColor: 'transparent',
+                  }}
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={saveEditedName}
+                  disabled={updateProfileMutation.isPending || !editFirstName.trim()}
+                  className="flex-1 py-3 rounded-lg transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontWeight: 600,
+                    fontSize: '16px',
+                    color: '#fff',
+                    background: 'linear-gradient(243.413deg, rgb(174, 30, 43) 15.721%, rgb(156, 23, 35) 99.389%)',
+                    border: 'none',
+                  }}
+                >
+                  {updateProfileMutation.isPending ? (
+                    <>
+                      <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Сохраняю...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-5 h-5" />
+                      Сохранить
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

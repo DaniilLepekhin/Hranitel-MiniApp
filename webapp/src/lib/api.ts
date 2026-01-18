@@ -137,6 +137,12 @@ export const authApi = {
   logout: () => api.post<{ success: boolean }>('/auth/logout'),
 };
 
+// Users
+export const usersApi = {
+  updateProfile: (data: { firstName?: string; lastName?: string; city?: string }) =>
+    api.patch<{ success: boolean; user: Partial<User> }>('/users/me', data),
+};
+
 // Courses
 export const coursesApi = {
   list: (category?: string) =>

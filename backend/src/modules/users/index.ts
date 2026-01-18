@@ -42,7 +42,7 @@ export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
   .patch(
     '/me',
     async ({ user, body }) => {
-      const { settings, languageCode } = body;
+      const { settings, languageCode, firstName, lastName, city } = body;
 
       const updateData: Partial<typeof users.$inferInsert> = {
         updatedAt: new Date(),
@@ -59,16 +59,33 @@ export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
         updateData.languageCode = languageCode;
       }
 
+      if (firstName !== undefined) {
+        updateData.firstName = firstName;
+      }
+
+      if (lastName !== undefined) {
+        updateData.lastName = lastName;
+      }
+
+      if (city !== undefined) {
+        updateData.city = city;
+      }
+
       const [updatedUser] = await db
         .update(users)
         .set(updateData)
         .where(eq(users.id, user!.id))
         .returning();
 
+      logger.info({ userId: user!.id, updates: Object.keys(updateData) }, 'User profile updated');
+
       return {
         success: true,
         user: {
           id: updatedUser.id,
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+          city: updatedUser.city,
           settings: updatedUser.settings,
           languageCode: updatedUser.languageCode,
         },
@@ -78,9 +95,12 @@ export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
       body: t.Object({
         settings: t.Optional(t.Record(t.String(), t.Unknown())),
         languageCode: t.Optional(t.String()),
+        firstName: t.Optional(t.String()),
+        lastName: t.Optional(t.String()),
+        city: t.Optional(t.String()),
       }),
       detail: {
-        summary: 'Update user profile',
+        summary: 'Update user profile (firstName, lastName, city, settings, languageCode)',
       },
     }
   )
