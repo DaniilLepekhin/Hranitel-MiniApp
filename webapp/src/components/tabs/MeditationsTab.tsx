@@ -83,7 +83,7 @@ export function MeditationsTab() {
   const { data: meditationsData, isLoading } = useQuery({
     queryKey: ['meditations'],
     queryFn: () => meditationsApi.list(),
-    placeholderData: { meditations: [] },
+    placeholderData: { success: true, meditations: [] },
   });
 
   const logSessionMutation = useMutation({
