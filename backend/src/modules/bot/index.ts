@@ -226,8 +226,9 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
 
-      // Schedule day 3 reminder at 11:00 Moscow time
-      const delayToDay3 = getDelayUntilMoscowTime(11, 0);
+      // Schedule day 3 reminder at 11:00 Moscow time next day (25 hours from day2)
+      // Since day2 is sent at 10:00, we need 25 hours = 1 day + 1 hour
+      const delayToDay3 = 25 * 60 * 60 * 1000; // 25 hours
       await schedulerService.schedule(
         {
           type: 'day3_reminder',
