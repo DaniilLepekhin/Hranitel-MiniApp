@@ -33,10 +33,12 @@ export function FullMediaPlayer() {
     isMuted,
     showFullPlayer,
     seekTime,
+    playbackRate,
     setIsPlaying,
     setCurrentTime,
     setDuration,
     setIsMuted,
+    setPlaybackRate,
     seekTo,
     clearSeek,
     minimizePlayer,
@@ -80,6 +82,14 @@ export function FullMediaPlayer() {
 
     media.muted = isMuted;
   }, [isMuted, mediaRef]);
+
+  // Handle playback rate
+  useEffect(() => {
+    const media = mediaRef.current;
+    if (!media) return;
+
+    media.playbackRate = playbackRate;
+  }, [playbackRate, mediaRef]);
 
   // Update time
   const handleTimeUpdate = () => {
@@ -276,6 +286,29 @@ export function FullMediaPlayer() {
           {currentMedia.description && (
             <p className="text-white/60 text-sm line-clamp-2">{currentMedia.description}</p>
           )}
+        </div>
+
+        {/* Playback Speed Control */}
+        <div className="flex-shrink-0 mb-6">
+          <h3 className="text-white font-semibold mb-3 text-sm">Скорость воспроизведения</h3>
+          <div className="flex gap-2 flex-wrap">
+            {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => (
+              <button
+                key={rate}
+                onClick={() => {
+                  setPlaybackRate(rate);
+                  haptic.impact('light');
+                }}
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                  playbackRate === rate
+                    ? 'bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white shadow-lg'
+                    : 'bg-white/10 text-white/80 hover:bg-white/20'
+                }`}
+              >
+                {rate}x
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Timecodes */}
