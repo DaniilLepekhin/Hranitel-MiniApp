@@ -156,7 +156,7 @@ export function ShopTab() {
             <p className="text-[#6b5a4a] text-sm mb-1">Твой баланс</p>
             <div className="flex items-center gap-2">
               <Zap className="w-6 h-6 text-[#d93547]" />
-              <p className="text-3xl font-bold text-[#3d2f1f]">{balance.toLocaleString()}</p>
+              <p className="text-3xl font-bold text-[#2b2520]">{balance.toLocaleString()}</p>
               <span className="text-[#d93547] font-semibold">Энергии</span>
             </div>
           </div>
@@ -230,7 +230,7 @@ export function ShopTab() {
               >
                 <div className="flex gap-4">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-[#3d2f1f] mb-1">{item.title}</h3>
+                    <h3 className="font-semibold text-[#2b2520] mb-1">{item.title}</h3>
                     <p className="text-[#6b5a4a] text-xs mb-3 line-clamp-2">{item.description}</p>
 
                     <div className="flex items-center justify-between">
@@ -286,7 +286,7 @@ export function ShopTab() {
               onClick={(e) => e.stopPropagation()}
               className="bg-[#f8f6f0] rounded-2xl p-6 max-w-sm w-full border-2 border-[#9c1723]"
             >
-              <h3 className="text-xl font-bold text-[#3d2f1f] mb-2">Подтверди покупку</h3>
+              <h3 className="text-xl font-bold text-[#2b2520] mb-2">Подтверди покупку</h3>
               <p className="text-[#6b5a4a] mb-4">{selectedItem.title}</p>
 
               <div className="bg-white/80 rounded-lg p-3 mb-4 border border-[#9c1723]/20">
@@ -300,7 +300,7 @@ export function ShopTab() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-[#6b5a4a] text-sm">Останется:</span>
-                  <span className="text-[#3d2f1f] font-bold">{(balance - selectedItem.price).toLocaleString()} Энергии</span>
+                  <span className="text-[#2b2520] font-bold">{(balance - selectedItem.price).toLocaleString()} Энергии</span>
                 </div>
               </div>
 
@@ -308,7 +308,7 @@ export function ShopTab() {
                 <button
                   onClick={() => setShowPurchaseModal(false)}
                   disabled={purchaseMutation.isPending}
-                  className="flex-1 px-4 py-3 rounded-lg bg-white text-[#3d2f1f] font-semibold border border-[#9c1723]/30 hover:bg-[#e8dcc6] transition-all active:scale-95"
+                  className="flex-1 px-4 py-3 rounded-lg bg-white text-[#2b2520] font-semibold border border-[#9c1723]/30 hover:bg-[#e8dcc6] transition-all active:scale-95"
                 >
                   Отмена
                 </button>

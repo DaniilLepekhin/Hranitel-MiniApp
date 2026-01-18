@@ -25,7 +25,7 @@ export function Card({
   const variantStyles = {
     default: 'card',
     glass: 'glass',
-    gradient: gradient ? `bg-gradient-to-br ${gradient}` : 'bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/5',
+    gradient: gradient ? `bg-gradient-to-br ${gradient}` : 'bg-gradient-to-br from-[#d93547]/10 to-[#9c1723]/5',
     feature: 'feature-card',
   };
 
@@ -83,7 +83,7 @@ export function FeatureCard({
     >
       <span className="icon-badge">{icon}</span>
       <div className="flex-1">
-        <span className="font-semibold text-sm text-[#3d2f1f]">{title}</span>
+        <span className="font-semibold text-sm text-[#2b2520]">{title}</span>
         {description && (
           <p className="text-xs text-[#6b5a4a] mt-0.5">{description}</p>
         )}
@@ -116,7 +116,7 @@ export function CourseCard({
       onClick={onClick}
       className={clsx(
         'relative h-32 rounded-xl overflow-hidden cursor-pointer',
-        'border-2 border-[#8b4513]/30',
+        'border-2 border-[#9c1723]/30',
         'transition-all duration-300 hover:shadow-lg active:scale-[0.98]',
         isLocked && 'opacity-70'
       )}
@@ -128,7 +128,7 @@ export function CourseCard({
           style={{ backgroundImage: `url(${coverUrl})` }}
         />
       ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-[#8b0000] to-[#8b4513]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#d93547] to-[#9c1723]" />
       )}
 
       {/* Overlay */}
@@ -158,8 +158,8 @@ export function CourseCard({
               </div>
             </div>
           )}
-          <button className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md border border-[#8b4513]/20">
-            <span className="text-[#8b0000]">▶</span>
+          <button className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md border border-[#9c1723]/20">
+            <span className="text-[#d93547]">▶</span>
           </button>
         </div>
       </div>

@@ -54,7 +54,7 @@ export const FloatingPlayer: React.FC = () => {
           {/* Play/Pause */}
           <button
             onClick={state.isPlaying ? pause : resume}
-            className="w-10 h-10 rounded-full bg-[#8b0000] flex items-center justify-center hover:bg-[#a00000] transition-colors"
+            className="w-10 h-10 rounded-full bg-[#d93547] flex items-center justify-center hover:bg-[#a00000] transition-colors"
           >
             {state.isPlaying ? (
               <Pause className="w-5 h-5 text-white" />
@@ -87,7 +87,7 @@ export const FloatingPlayer: React.FC = () => {
           <span>{formatTime(state.progress)}</span>
           <div className="flex-1 h-1 bg-gray-700 rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#8b0000] transition-all duration-300"
+              className="h-full bg-[#d93547] transition-all duration-300"
               style={{
                 width: `${state.duration > 0 ? (state.progress / state.duration) * 100 : 0}%`,
               }}

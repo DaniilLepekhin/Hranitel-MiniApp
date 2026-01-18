@@ -13,7 +13,7 @@ export const AudioBars: React.FC<AudioBarsProps> = ({ isPlaying, className = '' 
       {[0, 1, 2, 3, 4].map((i) => (
         <div
           key={i}
-          className={`w-1 rounded-full bg-[#8b0000] transition-all ${
+          className={`w-1 rounded-full bg-[#d93547] transition-all ${
             isPlaying ? 'animate-soundbar' : 'h-2'
           }`}
           style={{

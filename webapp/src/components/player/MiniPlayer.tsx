@@ -48,7 +48,7 @@ export function MiniPlayer() {
   return (
     <div
       onClick={handleOpen}
-      className="fixed bottom-20 left-4 right-4 z-50 bg-gradient-to-r from-[#8b0000] to-[#8b4513] rounded-2xl shadow-2xl cursor-pointer hover:shadow-[#8b0000]/30 transition-all active:scale-[0.98] backdrop-blur-md"
+      className="fixed bottom-20 left-4 right-4 z-50 bg-gradient-to-r from-[#d93547] to-[#9c1723] rounded-2xl shadow-2xl cursor-pointer hover:shadow-[#d93547]/30 transition-all active:scale-[0.98] backdrop-blur-md"
     >
       {/* Progress bar */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-white/20 rounded-t-2xl overflow-hidden">
@@ -69,7 +69,7 @@ export function MiniPlayer() {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full bg-[#3d2f1f] flex items-center justify-center">
+            <div className="w-full h-full bg-[#2b2520] flex items-center justify-center">
               {currentMedia.type === 'audio' || currentMedia.type === 'meditation' ? (
                 <Headphones className="w-6 h-6 text-white/80" />
               ) : (

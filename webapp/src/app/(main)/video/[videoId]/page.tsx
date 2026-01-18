@@ -83,11 +83,11 @@ export default function VideoPage() {
       <div className="flex items-center gap-4 mb-6">
         <button
           onClick={() => router.back()}
-          className="w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center hover:bg-white/80 transition-all border border-[#8b4513]/30"
+          className="w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center hover:bg-white/80 transition-all border border-[#9c1723]/30"
         >
-          <ArrowLeft className="w-5 h-5 text-[#3d2f1f]" />
+          <ArrowLeft className="w-5 h-5 text-[#2b2520]" />
         </button>
-        <h1 className="flex-1 text-xl font-bold text-[#3d2f1f] line-clamp-1">{video.title}</h1>
+        <h1 className="flex-1 text-xl font-bold text-[#2b2520] line-clamp-1">{video.title}</h1>
       </div>
 
       {/* Video Player */}
@@ -99,8 +99,8 @@ export default function VideoPage() {
       />
 
       {/* Video Info */}
-      <Card className="mt-6 p-4 bg-gradient-to-br from-[#8b0000]/5 to-[#8b4513]/5">
-        <h2 className="font-bold text-[#3d2f1f] mb-2">{video.title}</h2>
+      <Card className="mt-6 p-4 bg-gradient-to-br from-[#d93547]/5 to-[#9c1723]/5">
+        <h2 className="font-bold text-[#2b2520] mb-2">{video.title}</h2>
         {video.description && (
           <p className="text-[#6b5a4a] leading-relaxed">{video.description}</p>
         )}
@@ -108,7 +108,7 @@ export default function VideoPage() {
         {video.durationSeconds && (
           <div className="mt-4 flex items-center gap-2 text-sm">
             <span className="text-[#6b5a4a]">Длительность:</span>
-            <span className="text-[#3d2f1f] font-semibold">
+            <span className="text-[#2b2520] font-semibold">
               {Math.floor(video.durationSeconds / 60)} мин
             </span>
           </div>
@@ -116,13 +116,13 @@ export default function VideoPage() {
       </Card>
 
       {/* EP Info */}
-      <Card className="mt-4 p-4 bg-gradient-to-r from-[#8b0000]/10 to-[#8b4513]/10 border-[#8b4513]/30">
+      <Card className="mt-4 p-4 bg-gradient-to-r from-[#d93547]/10 to-[#9c1723]/10 border-[#9c1723]/30">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center shadow-lg flex-shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#d93547] to-[#9c1723] flex items-center justify-center shadow-lg flex-shrink-0">
             <Zap className="w-6 h-6 text-white" />
           </div>
           <div>
-            <p className="font-semibold text-[#3d2f1f]">Награда за просмотр</p>
+            <p className="font-semibold text-[#2b2520]">Награда за просмотр</p>
             <p className="text-[#6b5a4a] text-sm">
               Получите Энергии за просмотр этого видео
             </p>

@@ -166,7 +166,7 @@ export function VideoPlayer({ video, timecodes = [], onComplete, onTimeUpdate }:
             onClick={togglePlay}
           >
             <div className="w-20 h-20 rounded-full bg-white/90 flex items-center justify-center backdrop-blur-sm hover:scale-110 transition-transform">
-              <Play className="w-10 h-10 text-[#3d2f1f] ml-1" fill="currentColor" />
+              <Play className="w-10 h-10 text-[#2b2520] ml-1" fill="currentColor" />
             </div>
           </div>
         )}
@@ -185,7 +185,7 @@ export function VideoPlayer({ video, timecodes = [], onComplete, onTimeUpdate }:
               }}
             >
               <div
-                className="h-full bg-[#8b0000] rounded-full transition-all"
+                className="h-full bg-[#d93547] rounded-full transition-all"
                 style={{ width: `${(currentTime / duration) * 100}%` }}
               />
             </div>
@@ -228,7 +228,7 @@ export function VideoPlayer({ video, timecodes = [], onComplete, onTimeUpdate }:
                   onClick={togglePip}
                   className={`px-3 py-2 rounded-lg font-semibold text-xs transition-all ${
                     isInPip
-                      ? 'bg-[#8b0000] text-white'
+                      ? 'bg-[#d93547] text-white'
                       : 'bg-white/20 text-white hover:bg-white/30'
                   }`}
                 >
@@ -255,7 +255,7 @@ export function VideoPlayer({ video, timecodes = [], onComplete, onTimeUpdate }:
       {/* Timecodes */}
       {timecodes.length > 0 && (
         <div className="mt-4 space-y-2">
-          <h3 className="font-semibold text-[#3d2f1f] text-sm mb-3">Таймкоды</h3>
+          <h3 className="font-semibold text-[#2b2520] text-sm mb-3">Таймкоды</h3>
           {timecodes.map((timecode) => (
             <button
               key={timecode.id}
@@ -264,16 +264,16 @@ export function VideoPlayer({ video, timecodes = [], onComplete, onTimeUpdate }:
                 currentTime >= timecode.timeSeconds &&
                 (timecodes[timecodes.indexOf(timecode) + 1]?.timeSeconds === undefined ||
                   currentTime < timecodes[timecodes.indexOf(timecode) + 1].timeSeconds)
-                  ? 'bg-gradient-to-r from-[#8b0000]/20 to-[#8b4513]/20 border-2 border-[#8b0000]'
-                  : 'bg-white/60 border border-[#8b4513]/30'
+                  ? 'bg-gradient-to-r from-[#d93547]/20 to-[#9c1723]/20 border-2 border-[#d93547]'
+                  : 'bg-white/60 border border-[#9c1723]/30'
               }`}
             >
               <div className="flex items-center gap-3">
-                <span className="text-[#8b0000] font-semibold text-sm">
+                <span className="text-[#d93547] font-semibold text-sm">
                   {formatTime(timecode.timeSeconds)}
                 </span>
                 <div className="flex-1">
-                  <p className="font-medium text-[#3d2f1f] text-sm">{timecode.title}</p>
+                  <p className="font-medium text-[#2b2520] text-sm">{timecode.title}</p>
                   {timecode.description && (
                     <p className="text-[#6b5a4a] text-xs mt-0.5">{timecode.description}</p>
                   )}
@@ -292,7 +292,7 @@ export function VideoPlayer({ video, timecodes = [], onComplete, onTimeUpdate }:
             onComplete?.();
             haptic.notification('success');
           }}
-          className="w-full mt-4 px-6 py-4 rounded-xl bg-gradient-to-r from-[#8b0000] to-[#8b4513] text-white font-bold shadow-lg hover:shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+          className="w-full mt-4 px-6 py-4 rounded-xl bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white font-bold shadow-lg hover:shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
         >
           <CheckCircle className="w-5 h-5" />
           <span>Я посмотрел(а) видео</span>
@@ -300,10 +300,10 @@ export function VideoPlayer({ video, timecodes = [], onComplete, onTimeUpdate }:
       )}
 
       {hasWatched && (
-        <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-[#8b0000]/10 to-[#8b4513]/10 border border-[#8b4513]/30 flex items-center gap-3">
-          <CheckCircle className="w-6 h-6 text-[#8b0000] flex-shrink-0" />
+        <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-[#d93547]/10 to-[#9c1723]/10 border border-[#9c1723]/30 flex items-center gap-3">
+          <CheckCircle className="w-6 h-6 text-[#d93547] flex-shrink-0" />
           <div>
-            <p className="font-semibold text-[#3d2f1f]">Видео просмотрено!</p>
+            <p className="font-semibold text-[#2b2520]">Видео просмотрено!</p>
             <p className="text-[#6b5a4a] text-sm">Energy Points начислены на ваш счёт</p>
           </div>
         </div>

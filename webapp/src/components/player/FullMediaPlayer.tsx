@@ -138,7 +138,7 @@ export function FullMediaPlayer() {
   if (!showFullPlayer || !currentMedia) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-gradient-to-b from-[#3d2f1f] to-[#2a1f1a] flex flex-col">
+    <div className="fixed inset-0 z-[100] bg-gradient-to-b from-[#2b2520] to-[#2a1f1a] flex flex-col">
       {/* Background */}
       <div className="absolute inset-0">
         {currentMedia.coverUrl && (
@@ -194,9 +194,9 @@ export function FullMediaPlayer() {
           <div className="relative">
             {/* Animated rings */}
             <div className={`absolute inset-0 rounded-3xl ${isPlaying ? 'animate-pulse' : ''}`}>
-              <div className="absolute inset-[-15px] rounded-3xl border-2 border-[#8b0000]/20" />
-              <div className="absolute inset-[-30px] rounded-3xl border-2 border-[#8b0000]/10" />
-              <div className="absolute inset-[-45px] rounded-3xl border-2 border-[#8b0000]/5" />
+              <div className="absolute inset-[-15px] rounded-3xl border-2 border-[#d93547]/20" />
+              <div className="absolute inset-[-30px] rounded-3xl border-2 border-[#d93547]/10" />
+              <div className="absolute inset-[-45px] rounded-3xl border-2 border-[#d93547]/5" />
             </div>
 
             {/* Cover image */}
@@ -208,7 +208,7 @@ export function FullMediaPlayer() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center">
+                <div className="w-full h-full bg-gradient-to-br from-[#d93547] to-[#9c1723] flex items-center justify-center">
                   {currentMedia.type === 'audio' || currentMedia.type === 'meditation' ? (
                     <Headphones className="w-24 h-24 text-white/80" />
                   ) : (
@@ -245,7 +245,7 @@ export function FullMediaPlayer() {
                     onClick={() => handleTimecodeClick(timecode.timeSeconds)}
                     className={`w-full text-left p-4 rounded-xl transition-all hover:scale-[1.02] ${
                       isActive
-                        ? 'bg-gradient-to-r from-[#8b0000]/30 to-[#8b4513]/30 border-2 border-[#8b0000]'
+                        ? 'bg-gradient-to-r from-[#d93547]/30 to-[#9c1723]/30 border-2 border-[#d93547]'
                         : 'bg-white/5 hover:bg-white/10 border border-white/10'
                     }`}
                   >
@@ -291,10 +291,10 @@ export function FullMediaPlayer() {
               [&::-webkit-slider-thumb]:w-4
               [&::-webkit-slider-thumb]:h-4
               [&::-webkit-slider-thumb]:rounded-full
-              [&::-webkit-slider-thumb]:bg-[#8b0000]
+              [&::-webkit-slider-thumb]:bg-[#d93547]
               [&::-webkit-slider-thumb]:shadow-lg"
             style={{
-              background: `linear-gradient(to right, #8b0000 0%, #8b0000 ${
+              background: `linear-gradient(to right, #d93547 0%, #d93547 ${
                 (currentTime / (duration || 1)) * 100
               }%, rgba(255,255,255,0.2) ${
                 (currentTime / (duration || 1)) * 100
@@ -329,7 +329,7 @@ export function FullMediaPlayer() {
 
           <button
             onClick={togglePlay}
-            className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#8b0000] to-[#8b4513] hover:shadow-xl hover:shadow-[#8b0000]/30 flex items-center justify-center transition-all shadow-lg"
+            className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#d93547] to-[#9c1723] hover:shadow-xl hover:shadow-[#d93547]/30 flex items-center justify-center transition-all shadow-lg"
           >
             {isPlaying ? (
               <Pause className="w-10 h-10 text-white" fill="currentColor" />

@@ -48,7 +48,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ media }) => {
     <div className="bg-[#2A2A2A] rounded-2xl p-6">
       {/* Cover Image */}
       <div className="relative mx-auto mb-6" style={{ width: '192px', height: '192px' }}>
-        <div className="w-full h-full rounded-full overflow-hidden bg-gradient-to-br from-[#8b0000] to-[#3d2f1f]">
+        <div className="w-full h-full rounded-full overflow-hidden bg-gradient-to-br from-[#d93547] to-[#2b2520]">
           {media.thumbnail ? (
             <img
               src={media.thumbnail}
@@ -84,7 +84,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ media }) => {
             onClick={handleSeek}
           >
             <div
-              className="absolute inset-y-0 left-0 bg-[#8b0000] transition-all duration-300"
+              className="absolute inset-y-0 left-0 bg-[#d93547] transition-all duration-300"
               style={{
                 width: `${state.duration > 0 ? (state.progress / state.duration) * 100 : 0}%`,
               }}
@@ -111,7 +111,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ media }) => {
         {/* Play/Pause */}
         <button
           onClick={handlePlay}
-          className="w-16 h-16 rounded-full bg-[#8b0000] flex items-center justify-center hover:bg-[#a00000] transition-colors shadow-lg"
+          className="w-16 h-16 rounded-full bg-[#d93547] flex items-center justify-center hover:bg-[#a00000] transition-colors shadow-lg"
         >
           {isCurrentMedia && state.isPlaying ? (
             <Pause className="w-7 h-7 text-white" />
@@ -154,7 +154,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ media }) => {
                 onClick={() => play(media, index)}
                 className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
                   isCurrentMedia && state.currentTrackIndex === index
-                    ? 'bg-[#8b0000]/20 border border-[#8b0000]'
+                    ? 'bg-[#d93547]/20 border border-[#d93547]'
                     : 'bg-gray-700 hover:bg-gray-600'
                 }`}
               >
