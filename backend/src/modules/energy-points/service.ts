@@ -149,13 +149,14 @@ export class EnergyPointsService {
     return this.award(userId, 50, 'Воскресная практика', { practiceId });
   }
 
-  // Прямой эфир (+100 Энергииза онлайн)
+  // Просмотр записи эфира (награда зависит от recording.energiesReward)
+  async awardStreamRecording(userId: string, recordingId: string) {
+    return this.award(userId, 100, 'Просмотр записи эфира', { recordingId });
+  }
+
+  // Прямой эфир - DEPRECATED (оставлено для обратной совместимости)
   async awardLiveStream(userId: string, streamId: string, watchedOnline: boolean) {
-    if (watchedOnline) {
-      return this.award(userId, 100, 'Участие в прямом эфире', { streamId });
-    } else {
-      return this.award(userId, 10, 'Просмотр записи эфира', { streamId });
-    }
+    return this.awardStreamRecording(userId, streamId);
   }
 
   // Отчет недели (+100 EP)

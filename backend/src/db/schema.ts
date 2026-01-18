@@ -22,6 +22,9 @@ export const users = pgTable('users', {
   photoUrl: text('photo_url'),
   languageCode: text('language_code').default('ru'),
 
+  // Geography
+  city: text('city'), // Город пользователя для рейтингов и команд
+
   // Gamification
   level: integer('level').default(1).notNull(),
   experience: integer('experience').default(0).notNull(),
@@ -43,6 +46,7 @@ export const users = pgTable('users', {
 }, (table) => [
   uniqueIndex('users_telegram_id_idx').on(table.telegramId),
   index('users_level_idx').on(table.level),
+  index('users_city_idx').on(table.city), // Индекс для рейтингов по городам
 ]);
 
 // Courses (12 Keys)
@@ -298,36 +302,48 @@ export const teamMembers = pgTable('team_members', {
   index('team_members_team_id_idx').on(table.teamId),
 ]);
 
-// Live Streams
-export const liveStreams = pgTable('live_streams', {
+// Stream Recordings (записи прошедших эфиров)
+export const streamRecordings = pgTable('stream_recordings', {
   id: uuid('id').primaryKey().defaultRandom(),
   title: text('title').notNull(),
   description: text('description'),
-  scheduledAt: timestamp('scheduled_at').notNull(),
-  streamUrl: text('stream_url'),
+  recordedAt: timestamp('recorded_at').notNull(), // Дата проведения эфира
+  videoUrl: text('video_url'), // Ссылка на запись
   host: text('host'), // Кристина, Продюсер, etc
-  status: streamStatusEnum('status').default('scheduled').notNull(),
-  epReward: integer('ep_reward').default(100).notNull(), // Награда за онлайн присутствие
+  status: streamStatusEnum('status').default('scheduled').notNull(), // Оставлено для обратной совместимости
+  energiesReward: integer('energies_reward').default(100).notNull(), // Награда за просмотр записи
+
+  // Новые поля для записей
+  duration: integer('duration'), // Длительность в секундах
+  thumbnailUrl: text('thumbnail_url'), // Превью изображение
+  viewsCount: integer('views_count').default(0).notNull(), // Количество просмотров
+  category: text('category').default('general'), // general, meditation, practice, qa, workshop
+  sortOrder: integer('sort_order').default(0).notNull(), // Порядок сортировки
+  isPublished: boolean('is_published').default(true).notNull(), // Опубликована ли запись
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => [
-  index('live_streams_scheduled_at_idx').on(table.scheduledAt),
-  index('live_streams_status_idx').on(table.status),
+  index('stream_recordings_recorded_at_idx').on(table.recordedAt),
+  index('stream_recordings_status_idx').on(table.status),
+  index('stream_recordings_published_recorded_idx').on(table.isPublished, table.recordedAt),
+  index('stream_recordings_sort_order_idx').on(table.sortOrder),
+  index('stream_recordings_category_idx').on(table.category),
+  index('stream_recordings_views_idx').on(table.viewsCount),
 ]);
 
-// Stream Attendance
+// Stream Attendance (просмотры записей)
 export const streamAttendance = pgTable('stream_attendance', {
   id: uuid('id').primaryKey().defaultRandom(),
-  streamId: uuid('stream_id').references(() => liveStreams.id, { onDelete: 'cascade' }).notNull(),
+  streamId: uuid('stream_id').references(() => streamRecordings.id, { onDelete: 'cascade' }).notNull(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
-  watchedOnline: boolean('watched_online').default(false).notNull(), // true если был онлайн
+  watchedOnline: boolean('watched_online').default(false).notNull(), // true если смотрел
   energiesEarned: integer('energies_earned').default(0).notNull(),
 }, (table) => [
-  uniqueIndex('stream_attendance_stream_user_idx').on(table.streamId, table.userId),
+  uniqueIndex('stream_attendance_recording_user_idx').on(table.streamId, table.userId),
   index('stream_attendance_user_id_idx').on(table.userId),
-  index('stream_attendance_stream_id_idx').on(table.streamId),
+  index('stream_attendance_recording_id_idx').on(table.streamId),
 ]);
 
 // Weekly Reports
@@ -600,14 +616,14 @@ export const teamMembersRelations = relations(teamMembers, ({ one }) => ({
   }),
 }));
 
-export const liveStreamsRelations = relations(liveStreams, ({ many }) => ({
+export const streamRecordingsRelations = relations(streamRecordings, ({ many }) => ({
   attendance: many(streamAttendance),
 }));
 
 export const streamAttendanceRelations = relations(streamAttendance, ({ one }) => ({
-  stream: one(liveStreams, {
+  recording: one(streamRecordings, {
     fields: [streamAttendance.streamId],
-    references: [liveStreams.id],
+    references: [streamRecordings.id],
   }),
   user: one(users, {
     fields: [streamAttendance.userId],

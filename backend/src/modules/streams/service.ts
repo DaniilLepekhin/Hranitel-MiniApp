@@ -1,193 +1,228 @@
 import { db } from '@/db';
-import { liveStreams, streamAttendance, users } from '@/db/schema';
-import { eq, and, gte, desc, sql } from 'drizzle-orm';
+import { streamRecordings, streamAttendance, users } from '@/db/schema';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { energiesService as energyPointsService } from '../energy-points/service';
 
-export class StreamsService {
+export class StreamRecordingsService {
   /**
-   * Получить предстоящие эфиры
+   * Получить все записи эфиров
    */
-  async getUpcomingStreams(limit: number = 10) {
+  async getAllRecordings(
+    options?: {
+      category?: string;
+      isPublished?: boolean;
+      limit?: number;
+    }
+  ) {
     try {
-      const now = new Date();
+      let query = db.select().from(streamRecordings);
 
-      const streams = await db
+      // Фильтр по категории
+      if (options?.category) {
+        const allRecordings = await query;
+        query = db.select().from(streamRecordings);
+        const filtered = allRecordings.filter(r => r.category === options.category);
+        return filtered.sort((a, b) => b.recordedAt.getTime() - a.recordedAt.getTime());
+      }
+
+      // Фильтр по опубликованным
+      if (options?.isPublished !== undefined) {
+        const allRecordings = await query;
+        query = db.select().from(streamRecordings);
+        const filtered = allRecordings.filter(r => r.isPublished === options.isPublished);
+        return filtered
+          .sort((a, b) => {
+            // Сортируем сначала по sortOrder, потом по дате
+            if (a.sortOrder !== b.sortOrder) {
+              return a.sortOrder - b.sortOrder;
+            }
+            return b.recordedAt.getTime() - a.recordedAt.getTime();
+          })
+          .slice(0, options?.limit || 50);
+      }
+
+      const recordings = await query
+        .orderBy(desc(streamRecordings.sortOrder), desc(streamRecordings.recordedAt))
+        .limit(options?.limit || 50);
+
+      return recordings;
+    } catch (error) {
+      logger.error('[Recordings] Error getting all recordings:', error);
+      throw new Error('Failed to get recordings');
+    }
+  }
+
+  /**
+   * Получить последние записи (опубликованные)
+   */
+  async getRecentRecordings(limit: number = 10) {
+    try {
+      const recordings = await db
         .select()
-        .from(liveStreams)
-        .where(gte(liveStreams.scheduledAt, now))
-        .orderBy(liveStreams.scheduledAt)
+        .from(streamRecordings)
+        .where(eq(streamRecordings.isPublished, true))
+        .orderBy(desc(streamRecordings.recordedAt))
         .limit(limit);
 
-      return streams;
+      return recordings;
     } catch (error) {
-      logger.error('[Streams] Error getting upcoming streams:', error);
-      throw new Error('Failed to get upcoming streams');
+      logger.error('[Recordings] Error getting recent recordings:', error);
+      throw new Error('Failed to get recent recordings');
     }
   }
 
   /**
-   * Получить ближайший эфир
+   * Получить популярные записи (по просмотрам)
    */
-  async getNextStream() {
+  async getPopularRecordings(limit: number = 10) {
     try {
-      const streams = await this.getUpcomingStreams(1);
-      return streams.length > 0 ? streams[0] : null;
+      const recordings = await db
+        .select()
+        .from(streamRecordings)
+        .where(eq(streamRecordings.isPublished, true))
+        .orderBy(desc(streamRecordings.viewsCount))
+        .limit(limit);
+
+      return recordings;
     } catch (error) {
-      logger.error('[Streams] Error getting next stream:', error);
+      logger.error('[Recordings] Error getting popular recordings:', error);
+      throw new Error('Failed to get popular recordings');
+    }
+  }
+
+  /**
+   * Получить записи по категории
+   */
+  async getRecordingsByCategory(category: string, limit: number = 20) {
+    try {
+      return await this.getAllRecordings({ category, isPublished: true, limit });
+    } catch (error) {
+      logger.error('[Recordings] Error getting recordings by category:', error);
       throw error;
     }
   }
 
   /**
-   * Получить все эфиры (прошлые и будущие)
+   * Получить запись по ID
    */
-  async getAllStreams(status?: 'scheduled' | 'live' | 'ended') {
+  async getRecordingById(recordingId: string) {
     try {
-      const query = db.select().from(liveStreams);
-
-      if (status) {
-        const allStreams = await query;
-        return allStreams.filter(stream => stream.status === status);
-      }
-
-      return await query.orderBy(desc(liveStreams.scheduledAt));
-    } catch (error) {
-      logger.error('[Streams] Error getting all streams:', error);
-      throw new Error('Failed to get streams');
-    }
-  }
-
-  /**
-   * Получить эфир по ID
-   */
-  async getStreamById(streamId: string) {
-    try {
-      const stream = await db
+      const recording = await db
         .select()
-        .from(liveStreams)
-        .where(eq(liveStreams.id, streamId))
+        .from(streamRecordings)
+        .where(eq(streamRecordings.id, recordingId))
         .limit(1);
 
-      if (stream.length === 0) {
-        throw new Error('Stream not found');
+      if (recording.length === 0) {
+        throw new Error('Recording not found');
       }
 
-      return stream[0];
+      return recording[0];
     } catch (error) {
-      logger.error('[Streams] Error getting stream by ID:', error);
+      logger.error('[Recordings] Error getting recording by ID:', error);
       throw error;
     }
   }
 
   /**
-   * Отметить посещение эфира
+   * Отметить просмотр записи
    */
-  async markAttendance(userId: string, streamId: string, watchedOnline: boolean = false) {
+  async markWatched(userId: string, recordingId: string) {
     try {
-      // Проверяем, что эфир существует
-      const stream = await this.getStreamById(streamId);
+      // Проверяем, что запись существует
+      const recording = await this.getRecordingById(recordingId);
 
       // Проверяем, не отмечался ли уже пользователь
-      const existingAttendance = await db
+      const existingView = await db
         .select()
         .from(streamAttendance)
         .where(
           and(
-            eq(streamAttendance.streamId, streamId),
+            eq(streamAttendance.streamId, recordingId),
             eq(streamAttendance.userId, userId)
           )
         )
         .limit(1);
 
-      if (existingAttendance.length > 0) {
-        // Если уже отмечался, обновляем только если теперь был онлайн
-        if (watchedOnline && !existingAttendance[0].watchedOnline) {
-          await db
-            .update(streamAttendance)
-            .set({
-              watchedOnline: true,
-              energiesEarned: stream.energiesReward,
-            })
-            .where(eq(streamAttendance.id, existingAttendance[0].id));
-
-          // Начисляем дополнительные Энергии
-          await energyPointsService.awardLiveStream(userId, streamId, true);
-
-          logger.info(`[Streams] Updated attendance for user ${userId} to online for stream ${streamId}`);
-        }
-
-        return { success: true, updated: true };
+      if (existingView.length > 0) {
+        logger.info(`[Recordings] User ${userId} already watched recording ${recordingId}`);
+        return { success: true, alreadyWatched: true };
       }
 
-      // Определяем награду
-      const energiesReward = watchedOnline ? stream.energiesReward : 10;
-
-      // Создаем запись о посещении
+      // Создаем запись о просмотре
       await db.insert(streamAttendance).values({
-        streamId,
+        streamId: recordingId,
         userId,
-        watchedOnline,
-        energiesEarned: energiesReward,
+        watchedOnline: true,
+        energiesEarned: recording.energiesReward,
       });
 
-      // Начисляем Энергии
-      await energyPointsService.awardLiveStream(userId, streamId, watchedOnline);
+      // Увеличиваем счётчик просмотров
+      await db
+        .update(streamRecordings)
+        .set({
+          viewsCount: sql`${streamRecordings.viewsCount} + 1`,
+        })
+        .where(eq(streamRecordings.id, recordingId));
+
+      // Начисляем энергии
+      await energyPointsService.awardStreamRecording(userId, recordingId);
 
       logger.info(
-        `[Streams] User ${userId} marked attendance for stream ${streamId} (online: ${watchedOnline}, Энергии: ${energiesReward})`
+        `[Recordings] User ${userId} watched recording ${recordingId} (energies: ${recording.energiesReward})`
       );
 
       return {
         success: true,
-        energiesEarned: energiesReward,
-        watchedOnline,
+        energiesEarned: recording.energiesReward,
+        alreadyWatched: false,
       };
     } catch (error) {
-      logger.error('[Streams] Error marking attendance:', error);
+      logger.error('[Recordings] Error marking watched:', error);
       throw error;
     }
   }
 
   /**
-   * Получить историю посещений пользователя
+   * Получить историю просмотров пользователя
    */
-  async getUserAttendance(userId: string) {
+  async getUserWatchHistory(userId: string) {
     try {
-      const attendance = await db
+      const history = await db
         .select({
           id: streamAttendance.id,
-          joinedAt: streamAttendance.joinedAt,
-          watchedOnline: streamAttendance.watchedOnline,
+          watchedAt: streamAttendance.joinedAt,
           energiesEarned: streamAttendance.energiesEarned,
-          // Данные эфира
-          streamTitle: liveStreams.title,
-          streamScheduledAt: liveStreams.scheduledAt,
-          streamHost: liveStreams.host,
+          // Данные записи
+          recordingTitle: streamRecordings.title,
+          recordingRecordedAt: streamRecordings.recordedAt,
+          recordingHost: streamRecordings.host,
+          recordingCategory: streamRecordings.category,
+          recordingThumbnail: streamRecordings.thumbnailUrl,
         })
         .from(streamAttendance)
-        .leftJoin(liveStreams, eq(streamAttendance.streamId, liveStreams.id))
+        .leftJoin(streamRecordings, eq(streamAttendance.streamId, streamRecordings.id))
         .where(eq(streamAttendance.userId, userId))
         .orderBy(desc(streamAttendance.joinedAt));
 
-      return attendance;
+      return history;
     } catch (error) {
-      logger.error('[Streams] Error getting user attendance:', error);
-      throw new Error('Failed to get user attendance');
+      logger.error('[Recordings] Error getting user watch history:', error);
+      throw new Error('Failed to get user watch history');
     }
   }
 
   /**
-   * Получить участников эфира
+   * Получить зрителей записи
    */
-  async getStreamAttendees(streamId: string) {
+  async getRecordingViewers(recordingId: string) {
     try {
-      const attendees = await db
+      const viewers = await db
         .select({
           id: streamAttendance.id,
           userId: streamAttendance.userId,
-          joinedAt: streamAttendance.joinedAt,
-          watchedOnline: streamAttendance.watchedOnline,
+          watchedAt: streamAttendance.joinedAt,
           energiesEarned: streamAttendance.energiesEarned,
           // Данные пользователя
           username: users.username,
@@ -197,133 +232,180 @@ export class StreamsService {
         })
         .from(streamAttendance)
         .leftJoin(users, eq(streamAttendance.userId, users.id))
-        .where(eq(streamAttendance.streamId, streamId))
+        .where(eq(streamAttendance.streamId, recordingId))
         .orderBy(desc(streamAttendance.joinedAt));
 
-      return attendees;
+      return viewers;
     } catch (error) {
-      logger.error('[Streams] Error getting stream attendees:', error);
-      throw new Error('Failed to get stream attendees');
+      logger.error('[Recordings] Error getting recording viewers:', error);
+      throw new Error('Failed to get recording viewers');
     }
   }
 
   /**
-   * Создать новый эфир
+   * Создать новую запись эфира
    */
-  async createStream(
-    title: string,
-    scheduledAt: Date,
-    host: string,
-    description?: string,
-    streamUrl?: string,
-    energiesReward: number = 100
-  ) {
+  async createRecording(data: {
+    title: string;
+    recordedAt: Date;
+    host: string;
+    videoUrl: string;
+    description?: string;
+    duration?: number;
+    thumbnailUrl?: string;
+    category?: string;
+    energiesReward?: number;
+    sortOrder?: number;
+    isPublished?: boolean;
+  }) {
     try {
-      const newStream = await db
-        .insert(liveStreams)
+      const newRecording = await db
+        .insert(streamRecordings)
         .values({
-          title,
-          description,
-          scheduledAt,
-          streamUrl,
-          host,
-          energiesReward,
-          status: 'scheduled',
+          title: data.title,
+          description: data.description,
+          recordedAt: data.recordedAt,
+          videoUrl: data.videoUrl,
+          host: data.host,
+          duration: data.duration,
+          thumbnailUrl: data.thumbnailUrl,
+          category: data.category || 'general',
+          energiesReward: data.energiesReward || 100,
+          sortOrder: data.sortOrder || 0,
+          isPublished: data.isPublished ?? true,
+          status: 'ended', // Все записи имеют статус 'ended'
         })
         .returning();
 
-      logger.info(`[Streams] Created new stream "${title}" scheduled for ${scheduledAt}`);
+      logger.info(`[Recordings] Created new recording "${data.title}"`);
 
-      return newStream[0];
+      return newRecording[0];
     } catch (error) {
-      logger.error('[Streams] Error creating stream:', error);
-      throw new Error('Failed to create stream');
+      logger.error('[Recordings] Error creating recording:', error);
+      throw new Error('Failed to create recording');
     }
   }
 
   /**
-   * Обновить статус эфира
+   * Обновить запись эфира
    */
-  async updateStreamStatus(streamId: string, status: 'scheduled' | 'live' | 'ended') {
+  async updateRecording(
+    recordingId: string,
+    data: {
+      title?: string;
+      description?: string;
+      videoUrl?: string;
+      duration?: number;
+      thumbnailUrl?: string;
+      category?: string;
+      energiesReward?: number;
+      sortOrder?: number;
+      isPublished?: boolean;
+    }
+  ) {
     try {
       await db
-        .update(liveStreams)
-        .set({ status, updatedAt: new Date() })
-        .where(eq(liveStreams.id, streamId));
+        .update(streamRecordings)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(streamRecordings.id, recordingId));
 
-      logger.info(`[Streams] Stream ${streamId} status updated to ${status}`);
+      logger.info(`[Recordings] Recording ${recordingId} updated`);
 
       return { success: true };
     } catch (error) {
-      logger.error('[Streams] Error updating stream status:', error);
+      logger.error('[Recordings] Error updating recording:', error);
       throw error;
     }
   }
 
   /**
-   * Получить статистику эфира
+   * Удалить запись эфира
    */
-  async getStreamStats(streamId: string) {
+  async deleteRecording(recordingId: string) {
     try {
-      const attendees = await this.getStreamAttendees(streamId);
+      await db
+        .delete(streamRecordings)
+        .where(eq(streamRecordings.id, recordingId));
+
+      logger.info(`[Recordings] Recording ${recordingId} deleted`);
+
+      return { success: true };
+    } catch (error) {
+      logger.error('[Recordings] Error deleting recording:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Получить статистику записи
+   */
+  async getRecordingStats(recordingId: string) {
+    try {
+      const viewers = await this.getRecordingViewers(recordingId);
+      const recording = await this.getRecordingById(recordingId);
 
       const stats = {
-        totalAttendees: attendees.length,
-        onlineAttendees: attendees.filter(a => a.watchedOnline).length,
-        offlineAttendees: attendees.filter(a => !a.watchedOnline).length,
-        totalEpAwarded: attendees.reduce((sum, a) => sum + a.energiesEarned, 0),
+        totalViews: recording.viewsCount,
+        totalViewers: viewers.length,
+        totalEnergiesAwarded: viewers.reduce((sum, v) => sum + v.energiesEarned, 0),
+        averageEnergiesPerViewer: viewers.length > 0
+          ? viewers.reduce((sum, v) => sum + v.energiesEarned, 0) / viewers.length
+          : 0,
       };
 
       return stats;
     } catch (error) {
-      logger.error('[Streams] Error getting stream stats:', error);
+      logger.error('[Recordings] Error getting recording stats:', error);
       throw error;
     }
   }
 
   /**
-   * Получить статистику посещений пользователя
+   * Получить статистику просмотров пользователя
    */
-  async getUserAttendanceStats(userId: string) {
+  async getUserWatchStats(userId: string) {
     try {
-      const attendance = await this.getUserAttendance(userId);
+      const history = await this.getUserWatchHistory(userId);
 
       const stats = {
-        totalStreams: attendance.length,
-        onlineStreams: attendance.filter(a => a.watchedOnline).length,
-        offlineStreams: attendance.filter(a => !a.watchedOnline).length,
-        totalEpEarned: attendance.reduce((sum, a) => sum + a.energiesEarned, 0),
+        totalRecordingsWatched: history.length,
+        totalEnergiesEarned: history.reduce((sum, h) => sum + h.energiesEarned, 0),
+        categoriesWatched: [...new Set(history.map(h => h.recordingCategory))],
+        lastWatchedAt: history.length > 0 ? history[0].watchedAt : null,
       };
 
       return stats;
     } catch (error) {
-      logger.error('[Streams] Error getting user attendance stats:', error);
+      logger.error('[Recordings] Error getting user watch stats:', error);
       throw error;
     }
   }
 
   /**
-   * Проверить, был ли пользователь на эфире
+   * Проверить, смотрел ли пользователь запись
    */
-  async hasUserAttended(userId: string, streamId: string): Promise<boolean> {
+  async hasUserWatched(userId: string, recordingId: string): Promise<boolean> {
     try {
-      const attendance = await db
+      const view = await db
         .select()
         .from(streamAttendance)
         .where(
           and(
             eq(streamAttendance.userId, userId),
-            eq(streamAttendance.streamId, streamId)
+            eq(streamAttendance.streamId, recordingId)
           )
         )
         .limit(1);
 
-      return attendance.length > 0;
+      return view.length > 0;
     } catch (error) {
-      logger.error('[Streams] Error checking user attendance:', error);
+      logger.error('[Recordings] Error checking if user watched:', error);
       throw error;
     }
   }
 }
 
-export const streamsService = new StreamsService();
+export const streamRecordingsService = new StreamRecordingsService();
+
+// Экспортируем также под старым именем для обратной совместимости
+export const streamsService = streamRecordingsService;

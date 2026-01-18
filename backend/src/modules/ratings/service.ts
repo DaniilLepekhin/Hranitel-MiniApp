@@ -1,18 +1,18 @@
-import { db } from '@/db';
+import { db, dbRead } from '@/db';
 import { users, teams, teamMembers } from '@/db/schema';
 import { sql, eq, and, isNotNull, gt } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
+import { config } from '@/config';
 import postgres from 'postgres';
 
-// Connect directly to the old database for city_chats_ik table
-const oldDbConnection = postgres({
-  host: '31.128.36.81',
-  port: 5423,
-  database: 'club_hranitel',
-  username: 'postgres',
-  password: 'kH*kyrS&9z7K',
-  ssl: false,
-});
+// Connect to old database for city_chats_ik table (using env variable for security)
+const oldDbConnection = config.OLD_DATABASE_URL
+  ? postgres(config.OLD_DATABASE_URL, {
+      max: 5, // Limited pool for readonly operations
+      idle_timeout: 20,
+      connect_timeout: 10,
+    })
+  : null;
 
 interface CityRating {
   city: string;
@@ -44,6 +44,11 @@ export const ratingsService = {
    */
   async getCityRatings(limit: number = 50): Promise<CityRating[]> {
     try {
+      // Проверка что OLD_DATABASE_URL настроен
+      if (!oldDbConnection) {
+        throw new Error('OLD_DATABASE_URL not configured - cannot fetch city_chats');
+      }
+
       // Get cities from city_chats_ik (excluding Ukraine)
       const citiesResult = await oldDbConnection<{ city: string }[]>`
         SELECT DISTINCT city
@@ -55,8 +60,8 @@ export const ratingsService = {
 
       const validCities = citiesResult.map((row) => row.city);
 
-      // Get ratings from new database
-      const ratings = await db
+      // Get ratings from database (используем dbRead для read replica)
+      const ratings = await dbRead
         .select({
           city: users.city,
           totalEnergies: sql<number>`SUM(${users.energies})`,
@@ -102,7 +107,8 @@ export const ratingsService = {
    */
   async getTeamRatings(limit: number = 50): Promise<TeamRating[]> {
     try {
-      const ratings = await db
+      // Используем dbRead для read replica
+      const ratings = await dbRead
         .select({
           teamId: teams.id,
           teamName: teams.name,
@@ -142,8 +148,8 @@ export const ratingsService = {
    */
   async getUserPosition(userId: string): Promise<UserPosition> {
     try {
-      // Get user data
-      const user = await db.query.users.findFirst({
+      // Get user data (используем dbRead)
+      const user = await dbRead.query.users.findFirst({
         where: eq(users.id, userId),
       });
 
@@ -151,8 +157,8 @@ export const ratingsService = {
         throw new Error('User not found');
       }
 
-      // Get global rank
-      const higherRankedUsers = await db
+      // Get global rank (используем dbRead)
+      const higherRankedUsers = await dbRead
         .select({ count: sql<number>`COUNT(*)` })
         .from(users)
         .where(
@@ -167,7 +173,7 @@ export const ratingsService = {
       // Get city rank
       let cityRank: number | null = null;
       if (user.city) {
-        const higherInCity = await db
+        const higherInCity = await dbRead
           .select({ count: sql<number>`COUNT(*)` })
           .from(users)
           .where(
@@ -185,7 +191,7 @@ export const ratingsService = {
       let teamRank: number | null = null;
       let teamId: string | null = null;
 
-      const userTeam = await db.query.teamMembers.findFirst({
+      const userTeam = await dbRead.query.teamMembers.findFirst({
         where: eq(teamMembers.userId, userId),
         with: {
           team: true,

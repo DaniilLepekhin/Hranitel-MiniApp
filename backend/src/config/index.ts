@@ -4,6 +4,12 @@ const envSchema = v.object({
   // Database
   DATABASE_URL: v.pipe(v.string(), v.minLength(1)),
 
+  // Old database for city_chats migration (optional)
+  OLD_DATABASE_URL: v.optional(v.string(), ''),
+
+  // Read replica for SELECT queries (optional - falls back to primary)
+  READ_REPLICA_URL: v.optional(v.string(), ''),
+
   // Redis (optional - will work without it)
   REDIS_URL: v.optional(v.string(), ''),
 

@@ -59,7 +59,7 @@ export class TeamsService {
           lastName: users.lastName,
           photoUrl: users.photoUrl,
           level: users.level,
-          energyPoints: users.energyPoints,
+          energies: users.energies, // Исправлено: было energyPoints
         })
         .from(teamMembers)
         .leftJoin(users, eq(teamMembers.userId, users.id))
