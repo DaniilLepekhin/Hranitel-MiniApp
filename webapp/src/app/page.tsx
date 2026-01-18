@@ -142,13 +142,13 @@ function HomeContent() {
       )}
 
       {/* Content */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="popLayout">
         <motion.div
           key={activeTab}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: 0.15, ease: 'easeOut' }}
           className="relative z-10"
         >
           {tabComponents[activeTab]}

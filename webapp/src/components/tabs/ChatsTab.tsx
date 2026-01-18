@@ -24,31 +24,35 @@ export function ChatsTab() {
   const [selectedCity, setSelectedCity] = useState<string>('');
   const [showCitySelector, setShowCitySelector] = useState(false);
 
-  // Fetch user team
+  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch user team
   const { data: teamData } = useQuery({
     queryKey: ['teams', 'my', user?.id],
     queryFn: () => teamsApi.getUserTeam(user!.id),
     enabled: !!user,
+    placeholderData: { team: null },
   });
 
-  // Fetch countries
+  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch countries
   const { data: countriesData, isLoading: isLoadingCountries } = useQuery({
     queryKey: ['city-chats', 'countries'],
     queryFn: () => cityChatsApi.getCountries(),
+    placeholderData: { countries: [] },
   });
 
-  // Fetch cities when country is selected
+  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch cities when country is selected
   const { data: citiesData, isLoading: isLoadingCities } = useQuery({
     queryKey: ['city-chats', 'cities', selectedCountry],
     queryFn: () => cityChatsApi.getCities(selectedCountry),
     enabled: !!selectedCountry,
+    placeholderData: { cities: [] },
   });
 
-  // Fetch chat link when city is selected
+  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch chat link when city is selected
   const { data: chatLinkData } = useQuery({
     queryKey: ['city-chats', 'link', selectedCity],
     queryFn: () => cityChatsApi.getChatLink(selectedCity),
     enabled: !!selectedCity,
+    placeholderData: { link: '' },
   });
 
   const team = teamData?.team;

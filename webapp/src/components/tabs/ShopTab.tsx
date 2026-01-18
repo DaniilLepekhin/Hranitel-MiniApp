@@ -73,31 +73,34 @@ export function ShopTab() {
   const { user, token } = useAuthStore();
   const queryClient = useQueryClient();
 
-  // Fetch shop items by category
+  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch shop items by category
   const { data: shopData, isLoading: itemsLoading } = useQuery({
     queryKey: ['shop', 'items-by-category'],
     queryFn: shopApi.getItemsByCategory,
     enabled: !!user && !!token,
     retry: false,
     staleTime: 60 * 1000,
+    placeholderData: { categories: [] },
   });
 
-  // Fetch user balance
+  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch user balance
   const { data: balanceData } = useQuery({
     queryKey: ['ep', 'balance', user?.id],
     queryFn: () => shopApi.getUserBalance(user!.id),
     enabled: !!user && !!token,
     refetchInterval: 10000,
     retry: false,
+    placeholderData: { balance: 0 },
   });
 
-  // Fetch user purchases
+  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch user purchases
   const { data: purchasesData } = useQuery({
     queryKey: ['shop', 'purchases', user?.id],
     queryFn: () => shopApi.getUserPurchases(user!.id),
     enabled: !!user && !!token,
     retry: false,
     staleTime: 60 * 1000,
+    placeholderData: { purchases: [] },
   });
 
   // Purchase mutation
