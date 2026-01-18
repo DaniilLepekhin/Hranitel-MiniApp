@@ -130,17 +130,17 @@ export function ProfileTab() {
       {/* ===== КОНТЕНТ ===== */}
       <div className="relative z-10 pt-[23px] pb-28">
         {/* Иконка профиля - бордовый цвет */}
-        <div className="flex justify-center mb-4">
+        <div className="flex justify-center mb-[17px]">
           <div
             style={{
               width: '37.326px',
               height: '37.326px',
               backgroundColor: '#9c1723',
-              WebkitMaskImage: 'url(/assets/profile-icon.png)',
+              WebkitMaskImage: 'url(/assets/profile-icon.svg)',
               WebkitMaskSize: 'contain',
               WebkitMaskRepeat: 'no-repeat',
               WebkitMaskPosition: 'center',
-              maskImage: 'url(/assets/profile-icon.png)',
+              maskImage: 'url(/assets/profile-icon.svg)',
               maskSize: 'contain',
               maskRepeat: 'no-repeat',
               maskPosition: 'center',
