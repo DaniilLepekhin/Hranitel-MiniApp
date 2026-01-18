@@ -150,20 +150,20 @@ export function ShopTab() {
       </div>
 
       {/* Balance Card */}
-      <Card className="p-4 mb-6 bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10">
+      <Card className="p-4 mb-6 bg-gradient-to-br from-[#d93547]/10 to-[#9c1723]/10">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[#6b5a4a] text-sm mb-1">Твой баланс</p>
             <div className="flex items-center gap-2">
-              <Zap className="w-6 h-6 text-[#8b0000]" />
+              <Zap className="w-6 h-6 text-[#d93547]" />
               <p className="text-3xl font-bold text-[#3d2f1f]">{balance.toLocaleString()}</p>
-              <span className="text-[#8b0000] font-semibold">Энергии</span>
+              <span className="text-[#d93547] font-semibold">Энергии</span>
             </div>
           </div>
           {purchases.length > 0 && (
             <div className="text-right">
               <p className="text-[#6b5a4a] text-xs">Куплено</p>
-              <p className="text-2xl font-bold text-[#8b4513]">{purchases.length}</p>
+              <p className="text-2xl font-bold text-[#9c1723]">{purchases.length}</p>
             </div>
           )}
         </div>
@@ -184,8 +184,8 @@ export function ShopTab() {
               className={`
                 flex-1 min-w-[100px] p-3 rounded-xl transition-all duration-300 border
                 ${isActive
-                  ? 'bg-[#8b0000] text-white shadow-lg scale-105 border-[#8b0000]'
-                  : 'bg-white/60 text-[#6b5a4a] hover:bg-white/80 border-[#8b4513]/30'
+                  ? 'bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white shadow-lg scale-105 border-[#d93547] shadow-[#d93547]/30'
+                  : 'bg-white/60 text-[#6b5a4a] hover:bg-white/80 border-[#9c1723]/20'
                 }
               `}
             >
@@ -197,7 +197,7 @@ export function ShopTab() {
       </div>
 
       {/* Category Description */}
-      <div className="mb-4 p-3 bg-white/50 rounded-lg border border-[#8b4513]/20">
+      <div className="mb-4 p-3 bg-white/50 rounded-lg border border-[#9c1723]/20">
         <p className="text-[#6b5a4a] text-sm">
           {categories.find(c => c.id === selectedCategory)?.description}
         </p>
@@ -206,12 +206,12 @@ export function ShopTab() {
       {/* Items Grid */}
       {itemsLoading ? (
         <div className="text-center py-12">
-          <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-[#8b0000] to-[#8b4513] animate-pulse" />
+          <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-[#d93547] to-[#9c1723] animate-pulse" />
           <p className="text-[#6b5a4a]">Загрузка товаров...</p>
         </div>
       ) : items.length === 0 ? (
         <div className="text-center py-12">
-          <ShoppingBag className="w-16 h-16 mx-auto mb-3 text-[#8b4513]/50" />
+          <ShoppingBag className="w-16 h-16 mx-auto mb-3 text-[#9c1723]/50" />
           <p className="text-[#6b5a4a]">Товары скоро появятся</p>
         </div>
       ) : (
@@ -235,13 +235,13 @@ export function ShopTab() {
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        <Zap className="w-4 h-4 text-[#8b0000]" />
-                        <span className="text-lg font-bold text-[#8b0000]">{item.price.toLocaleString()}</span>
+                        <Zap className="w-4 h-4 text-[#d93547]" />
+                        <span className="text-lg font-bold text-[#d93547]">{item.price.toLocaleString()}</span>
                         <span className="text-xs text-[#6b5a4a]">Энергии</span>
                       </div>
 
                       {isPurchased ? (
-                        <div className="flex items-center gap-1 text-[#8b4513] text-xs">
+                        <div className="flex items-center gap-1 text-[#9c1723] text-xs">
                           <Check className="w-4 h-4" />
                           <span>Куплено</span>
                         </div>
@@ -252,8 +252,8 @@ export function ShopTab() {
                           className={`
                             px-4 py-2 rounded-lg font-semibold text-sm transition-all border
                             ${canAfford
-                              ? 'bg-[#8b0000] text-white border-[#8b0000] hover:shadow-lg active:scale-95'
-                              : 'bg-[#e8dcc6] text-[#6b5a4a] border-[#8b4513]/20 cursor-not-allowed'
+                              ? 'bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white border-[#d93547] hover:shadow-lg hover:shadow-[#d93547]/30 active:scale-95'
+                              : 'bg-[#e8dcc6] text-[#6b5a4a] border-[#9c1723]/20 cursor-not-allowed'
                             }
                           `}
                         >
@@ -284,17 +284,17 @@ export function ShopTab() {
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-[#f8f6f0] rounded-2xl p-6 max-w-sm w-full border-2 border-[#8b4513]"
+              className="bg-[#f8f6f0] rounded-2xl p-6 max-w-sm w-full border-2 border-[#9c1723]"
             >
               <h3 className="text-xl font-bold text-[#3d2f1f] mb-2">Подтверди покупку</h3>
               <p className="text-[#6b5a4a] mb-4">{selectedItem.title}</p>
 
-              <div className="bg-white/80 rounded-lg p-3 mb-4 border border-[#8b4513]/20">
+              <div className="bg-white/80 rounded-lg p-3 mb-4 border border-[#9c1723]/20">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-[#6b5a4a] text-sm">Цена:</span>
                   <div className="flex items-center gap-1">
-                    <Zap className="w-4 h-4 text-[#8b0000]" />
-                    <span className="text-[#8b0000] font-bold">{selectedItem.price.toLocaleString()}</span>
+                    <Zap className="w-4 h-4 text-[#d93547]" />
+                    <span className="text-[#d93547] font-bold">{selectedItem.price.toLocaleString()}</span>
                     <span className="text-xs text-[#6b5a4a]">Энергии</span>
                   </div>
                 </div>
@@ -308,14 +308,14 @@ export function ShopTab() {
                 <button
                   onClick={() => setShowPurchaseModal(false)}
                   disabled={purchaseMutation.isPending}
-                  className="flex-1 px-4 py-3 rounded-lg bg-white text-[#3d2f1f] font-semibold border border-[#8b4513]/30 hover:bg-[#e8dcc6] transition-all active:scale-95"
+                  className="flex-1 px-4 py-3 rounded-lg bg-white text-[#3d2f1f] font-semibold border border-[#9c1723]/30 hover:bg-[#e8dcc6] transition-all active:scale-95"
                 >
                   Отмена
                 </button>
                 <button
                   onClick={confirmPurchase}
                   disabled={purchaseMutation.isPending}
-                  className="flex-1 px-4 py-3 rounded-lg bg-[#8b0000] text-white font-semibold border border-[#8b0000] hover:shadow-lg transition-all active:scale-95 disabled:opacity-50"
+                  className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white font-semibold border border-[#d93547] hover:shadow-lg hover:shadow-[#d93547]/30 transition-all active:scale-95 disabled:opacity-50"
                 >
                   {purchaseMutation.isPending ? 'Покупка...' : 'Купить'}
                 </button>
