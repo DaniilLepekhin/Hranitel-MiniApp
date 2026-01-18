@@ -78,6 +78,7 @@ function HomeContent() {
               username: tgUser.username,
               level: 1,
               experience: 0,
+              energies: 0, // Energy Points
               streak: 0,
               isPro: false,
               createdAt: new Date().toISOString(),
