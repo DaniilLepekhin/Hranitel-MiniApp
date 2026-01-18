@@ -27,7 +27,7 @@ export function CoursesTab() {
     queryKey: ['courses', selectedCategory],
     queryFn: () =>
       coursesApi.list(selectedCategory === 'all' ? undefined : selectedCategory),
-    placeholderData: { courses: [] },
+    placeholderData: { success: true, courses: [] },
   });
 
   const courses = coursesData?.courses || [];
