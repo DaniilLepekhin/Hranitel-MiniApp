@@ -33,7 +33,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Баланс энергий берём напрямую из user объекта (приходит при авторизации)
-  const epBalance = user?.experience || 0;
+  const epBalance = user?.energies || 0;
   const referralLink = user ? `https://t.me/hranitelkodbot?start=ref_${user.id}` : 'https://t.me/hranitelkodbot?start=ref_...';
   const userName = user?.firstName || '{Имя}';
 
