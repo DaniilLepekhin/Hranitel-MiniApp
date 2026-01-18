@@ -477,7 +477,7 @@ bot.callbackQuery('not_ready', async (ctx) => {
       .text('🌍 окружение')
       .resized();
 
-    // Send photo with question
+    // Send photo with question and keyboard attached
     await telegramService.sendPhoto(
       ctx.chat!.id,
       'https://t.me/mate_bot_open/9277',
@@ -486,15 +486,9 @@ bot.callbackQuery('not_ready', async (ctx) => {
           `<b>Что горит прямо сейчас? 🔥</b>\n\n` +
           `Только честно.\n` +
           `Чтобы не грузить лишним — выбери, что сейчас важнее всего 👇`,
-        parse_mode: 'HTML'
+        parse_mode: 'HTML',
+        reply_markup: keyboard
       }
-    );
-
-    // Send keyboard separately
-    await telegramService.sendMessage(
-      ctx.chat!.id,
-      'Выбери тему:',
-      { reply_markup: keyboard }
     );
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in not_ready callback');
