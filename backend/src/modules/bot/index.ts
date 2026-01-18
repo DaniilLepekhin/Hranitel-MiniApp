@@ -471,9 +471,11 @@ bot.callbackQuery('not_ready', async (ctx) => {
 
     const keyboard = new InlineKeyboard()
       .text('🔮 где мои деньги в 2026 году', 'topic_money_2026')
+      .row()
       .text('💰 почему доход не растет', 'topic_income')
       .row()
       .text('🧠 состояние vs деньги', 'topic_state')
+      .row()
       .text('🌍 окружение', 'topic_environment');
 
     // Send photo with question and inline keyboard attached
