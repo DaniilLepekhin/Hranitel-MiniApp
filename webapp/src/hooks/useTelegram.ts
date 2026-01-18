@@ -122,15 +122,38 @@ export function useTelegram() {
     webApp?.close();
   }, [webApp]);
 
+  // 🚀 КРИТИЧЕСКАЯ ОПТИМИЗАЦИЯ: Throttling для haptic feedback (предотвращает блокировку UI)
+  const lastHapticTime = { current: 0 };
+  const HAPTIC_THROTTLE_MS = 50; // Минимальный интервал между вызовами
+
   const haptic = {
     impact: (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft' = 'medium') => {
-      webApp?.HapticFeedback?.impactOccurred(style);
+      const now = Date.now();
+      if (now - lastHapticTime.current < HAPTIC_THROTTLE_MS) return;
+      lastHapticTime.current = now;
+
+      // Асинхронный вызов для не блокирования UI
+      requestAnimationFrame(() => {
+        webApp?.HapticFeedback?.impactOccurred(style);
+      });
     },
     notification: (type: 'error' | 'success' | 'warning') => {
-      webApp?.HapticFeedback?.notificationOccurred(type);
+      const now = Date.now();
+      if (now - lastHapticTime.current < HAPTIC_THROTTLE_MS) return;
+      lastHapticTime.current = now;
+
+      requestAnimationFrame(() => {
+        webApp?.HapticFeedback?.notificationOccurred(type);
+      });
     },
     selection: () => {
-      webApp?.HapticFeedback?.selectionChanged();
+      const now = Date.now();
+      if (now - lastHapticTime.current < HAPTIC_THROTTLE_MS) return;
+      lastHapticTime.current = now;
+
+      requestAnimationFrame(() => {
+        webApp?.HapticFeedback?.selectionChanged();
+      });
     },
   };
 
