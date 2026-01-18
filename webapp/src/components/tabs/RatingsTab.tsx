@@ -40,7 +40,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     enabled: !!user && !!token,
     retry: false,
     staleTime: getStaleTimeUntilMidnight(),
-    placeholderData: { balance: 0 }, // Показываем 0 сразу
+    placeholderData: { success: true, balance: 0 }, // Показываем 0 сразу
   });
 
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем общий рейтинг

@@ -17,7 +17,7 @@ export function ProfileTab() {
     queryFn: () => energiesApi.getBalance(user!.id),
     enabled: !!user && !!token,
     retry: false,
-    placeholderData: { balance: 0 }, // Показываем 0 сразу для мгновенного рендера
+    placeholderData: { success: true, balance: 0 }, // Показываем 0 сразу для мгновенного рендера
   });
 
   // 🚀 МЕМОИЗАЦИЯ: Вычисляем только когда данные меняются
