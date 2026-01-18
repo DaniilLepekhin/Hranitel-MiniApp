@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { Navigation, TabType } from '@/components/ui/Navigation';
 import { MiniPlayer } from '@/components/ui/MiniPlayer';
+import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { usePlayerStore } from '@/store/player';
@@ -95,18 +96,9 @@ function HomeContent() {
     authenticate();
   }, [isReady, initData, tgUser, webApp, setUser, setLoading]);
 
-  // Loading state
+  // Loading state - ✨ НОВЫЙ ДИЗАЙН С "KOD"
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center animate-pulse">
-            <span className="text-3xl">🎯</span>
-          </div>
-          <p className="text-gray-600">Загрузка...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   const tabComponents: Record<TabType, React.ReactNode> = {
@@ -167,16 +159,7 @@ function HomeContent() {
 
 export default function Home() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center animate-pulse">
-            <span className="text-3xl">🎯</span>
-          </div>
-          <p className="text-gray-600">Загрузка...</p>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<LoadingScreen />}>
       <HomeContent />
     </Suspense>
   );

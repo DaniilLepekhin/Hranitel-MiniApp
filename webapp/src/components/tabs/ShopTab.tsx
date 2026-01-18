@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, Sparkles, Lock, Gift, Zap, Check } from 'lucide-react';
@@ -121,18 +121,19 @@ export function ShopTab() {
     },
   });
 
-  const handlePurchase = (item: any) => {
+  // 🚀 ОПТИМИЗАЦИЯ: Мемоизация обработчиков для предотвращения лишних re-renders
+  const handlePurchase = useCallback((item: any) => {
     setSelectedItem(item);
     setShowPurchaseModal(true);
     haptic.impact('light');
-  };
+  }, [haptic]);
 
-  const confirmPurchase = () => {
+  const confirmPurchase = useCallback(() => {
     if (selectedItem) {
       haptic.impact('medium');
       purchaseMutation.mutate(selectedItem.id);
     }
-  };
+  }, [selectedItem, haptic, purchaseMutation]);
 
   const balance = balanceData?.balance || 0;
   const items = shopData?.categories?.[selectedCategory] || [];
