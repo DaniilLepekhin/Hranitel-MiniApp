@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { memo } from 'react';
 
 interface BackgroundProps {
@@ -8,8 +7,9 @@ interface BackgroundProps {
 }
 
 /**
- * Оптимизированный фоновый компонент с использованием Next.js Image
- * Использует мемоизацию для предотвращения перерендеров
+ * 🚀 МАКСИМАЛЬНО БЫСТРЫЙ фоновый компонент
+ * Использует обычные <img> вместо Next.js Image для мгновенного рендера
+ * Мемоизация предотвращает перерендеры
  */
 export const OptimizedBackground = memo(function OptimizedBackground({
   variant = 'home'
@@ -29,7 +29,7 @@ export const OptimizedBackground = memo(function OptimizedBackground({
         backgroundColor: bgColor,
       }}
     >
-      {/* Газетная текстура - оптимизирована */}
+      {/* Газетная текстура */}
       <div
         className="absolute"
         style={{
@@ -42,20 +42,15 @@ export const OptimizedBackground = memo(function OptimizedBackground({
           mixBlendMode: 'overlay',
         }}
       >
-        <Image
+        <img
           src="/assets/newspaper-texture.jpg"
           alt=""
-          fill
-          quality={60} // Снижена качество для фона - незаметно, но быстрее
-          priority={false} // Не приоритет - грузится после контента
-          sizes="250vw"
-          style={{
-            objectFit: 'cover',
-          }}
+          loading="lazy"
+          className="w-full h-full object-cover"
         />
       </div>
 
-      {/* Монеты/молоток слева - оптимизирована */}
+      {/* Монеты/молоток слева */}
       <div
         className="absolute"
         style={{
@@ -67,17 +62,11 @@ export const OptimizedBackground = memo(function OptimizedBackground({
           opacity: 0.4,
         }}
       >
-        <Image
+        <img
           src="/assets/bg-coins.jpg"
           alt=""
-          fill
-          quality={50} // Еще ниже качество - будет размыта
-          priority={false}
-          sizes="160vw"
-          style={{
-            objectFit: 'cover',
-            objectPosition: 'left top',
-          }}
+          loading="lazy"
+          className="w-full h-full object-cover object-left-top"
         />
       </div>
 
@@ -95,16 +84,11 @@ export const OptimizedBackground = memo(function OptimizedBackground({
           opacity: 0.5,
         }}
       >
-        <Image
+        <img
           src="/assets/bg-blur.jpg"
           alt=""
-          fill
-          quality={30} // Очень низкое качество - все равно размыто
-          priority={false}
-          sizes="150vw"
-          style={{
-            objectFit: 'cover',
-          }}
+          loading="lazy"
+          className="w-full h-full object-cover"
         />
       </div>
 
@@ -122,16 +106,11 @@ export const OptimizedBackground = memo(function OptimizedBackground({
           opacity: 0.5,
         }}
       >
-        <Image
+        <img
           src="/assets/bg-blur.jpg"
           alt=""
-          fill
-          quality={30}
-          priority={false}
-          sizes="150vw"
-          style={{
-            objectFit: 'cover',
-          }}
+          loading="lazy"
+          className="w-full h-full object-cover"
         />
       </div>
     </div>
