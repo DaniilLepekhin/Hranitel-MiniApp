@@ -80,7 +80,7 @@ export function ShopTab() {
     enabled: !!user && !!token,
     retry: false,
     staleTime: 60 * 1000,
-    placeholderData: { categories: [] },
+    placeholderData: { success: true, categories: [] },
   });
 
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch user balance
@@ -90,7 +90,7 @@ export function ShopTab() {
     enabled: !!user && !!token,
     refetchInterval: 10000,
     retry: false,
-    placeholderData: { balance: 0 },
+    placeholderData: { success: true, balance: 0 },
   });
 
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch user purchases
@@ -100,7 +100,7 @@ export function ShopTab() {
     enabled: !!user && !!token,
     retry: false,
     staleTime: 60 * 1000,
-    placeholderData: { purchases: [] },
+    placeholderData: { success: true, purchases: [] },
   });
 
   // Purchase mutation

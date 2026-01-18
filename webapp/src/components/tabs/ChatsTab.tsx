@@ -29,14 +29,14 @@ export function ChatsTab() {
     queryKey: ['teams', 'my', user?.id],
     queryFn: () => teamsApi.getUserTeam(user!.id),
     enabled: !!user,
-    placeholderData: { team: null },
+    placeholderData: { success: true, team: null },
   });
 
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch countries
   const { data: countriesData, isLoading: isLoadingCountries } = useQuery({
     queryKey: ['city-chats', 'countries'],
     queryFn: () => cityChatsApi.getCountries(),
-    placeholderData: { countries: [] },
+    placeholderData: { success: true, countries: [] },
   });
 
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch cities when country is selected
@@ -44,7 +44,7 @@ export function ChatsTab() {
     queryKey: ['city-chats', 'cities', selectedCountry],
     queryFn: () => cityChatsApi.getCities(selectedCountry),
     enabled: !!selectedCountry,
-    placeholderData: { cities: [] },
+    placeholderData: { success: true, cities: [] },
   });
 
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch chat link when city is selected
@@ -52,7 +52,7 @@ export function ChatsTab() {
     queryKey: ['city-chats', 'link', selectedCity],
     queryFn: () => cityChatsApi.getChatLink(selectedCity),
     enabled: !!selectedCity,
-    placeholderData: { link: '' },
+    placeholderData: { success: true, link: '' },
   });
 
   const team = teamData?.team;
