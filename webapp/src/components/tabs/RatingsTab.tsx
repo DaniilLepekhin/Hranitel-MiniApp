@@ -80,7 +80,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     enabled: !!user && !!token,
     retry: false,
     staleTime: getStaleTimeUntilMidnight(),
-    placeholderData: { success: true, position: null }, // Показываем null сразу
+    placeholderData: { success: true, position: undefined as any }, // Показываем undefined сразу
   });
 
   const userBalance = balanceData?.balance || 0;
