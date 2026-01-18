@@ -98,7 +98,7 @@ export default function LessonPage({
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d93547]"></div>
       </div>
     );
   }
@@ -110,7 +110,7 @@ export default function LessonPage({
           <h2 className="text-2xl font-bold text-white mb-2">Урок не найден</h2>
           <button
             onClick={() => router.back()}
-            className="text-purple-600 hover:underline"
+            className="text-[#d93547] hover:underline"
           >
             Вернуться назад
           </button>
@@ -168,7 +168,7 @@ export default function LessonPage({
               <div className="flex items-center gap-4 mb-4">
                 <button
                   onClick={togglePlayPause}
-                  className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center active:scale-95 transition-transform shadow-lg"
+                  className="w-14 h-14 rounded-full bg-gradient-to-br from-[#d93547] to-[#9c1723] flex items-center justify-center active:scale-95 transition-transform shadow-lg"
                 >
                   {isPlaying ? (
                     <Pause className="w-6 h-6 text-white" />
@@ -188,7 +188,7 @@ export default function LessonPage({
                     max={duration || 0}
                     value={currentTime}
                     onChange={(e) => handleSeek(parseFloat(e.target.value))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#d93547]"
                   />
                 </div>
 
@@ -223,7 +223,7 @@ export default function LessonPage({
 
         {/* Welcome Content */}
         {lesson.welcomeContent && (
-          <div className="card rounded-3xl p-6 mb-4 bg-gradient-to-br from-purple-50 to-indigo-50">
+          <div className="card rounded-3xl p-6 mb-4 bg-gradient-to-br from-[#d93547]/10 to-[#9c1723]/10">
             <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
               <span className="text-xl">👋</span>
               Добро пожаловать
@@ -238,7 +238,7 @@ export default function LessonPage({
         {lesson.courseInfo && (
           <div className="card rounded-3xl p-6 mb-4">
             <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-purple-500" />
+              <FileText className="w-5 h-5 text-[#d93547]" />
               О курсе
             </h3>
             <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
@@ -249,7 +249,7 @@ export default function LessonPage({
 
         {/* Meditation Guide */}
         {lesson.meditationGuide && (
-          <div className="card rounded-3xl p-6 mb-4 bg-gradient-to-br from-indigo-50 to-purple-50">
+          <div className="card rounded-3xl p-6 mb-4 bg-gradient-to-br from-[#d93547]/10 to-[#9c1723]/10">
             <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
               <span className="text-xl">🧘</span>
               Гид по медитации
@@ -275,7 +275,7 @@ export default function LessonPage({
 
         {/* Gift Content */}
         {lesson.giftContent && (
-          <div className="card rounded-3xl p-6 mb-4 bg-gradient-to-br from-pink-50 to-purple-50">
+          <div className="card rounded-3xl p-6 mb-4 bg-gradient-to-br from-pink-50/50 to-[#d93547]/10">
             <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
               <span className="text-xl">🎁</span>
               Подарок
@@ -290,14 +290,14 @@ export default function LessonPage({
         {lesson.streamLink && (
           <div className="card rounded-3xl p-6 mb-4">
             <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-              <Video className="w-5 h-5 text-purple-500" />
+              <Video className="w-5 h-5 text-[#d93547]" />
               Трансляция
             </h3>
             <a
               href={lesson.streamLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl font-semibold active:scale-95 transition-transform"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white rounded-xl font-semibold active:scale-95 transition-transform"
             >
               <Play className="w-4 h-4" />
               Открыть трансляцию
@@ -309,14 +309,14 @@ export default function LessonPage({
         {lesson.pdfUrl && (
           <div className="card rounded-3xl p-6 mb-4">
             <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-purple-500" />
+              <FileText className="w-5 h-5 text-[#d93547]" />
               Материалы
             </h3>
             <a
               href={lesson.pdfUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-white border-2 border-purple-500 text-purple-600 rounded-xl font-semibold active:scale-95 transition-transform"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-white border-2 border-[#d93547] text-[#d93547] rounded-xl font-semibold active:scale-95 transition-transform"
             >
               <FileText className="w-4 h-4" />
               Скачать PDF
@@ -331,7 +331,7 @@ export default function LessonPage({
           <button
             onClick={handleComplete}
             disabled={updateProgressMutation.isPending}
-            className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-2xl font-bold active:scale-[0.98] transition-transform disabled:opacity-50"
+            className="w-full py-4 bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white rounded-2xl font-bold active:scale-[0.98] transition-transform disabled:opacity-50"
           >
             {updateProgressMutation.isPending ? 'Сохранение...' : 'Завершить урок'}
           </button>

@@ -22,20 +22,20 @@ export default function CoursePage({ params }: { params: Promise<{ id: string }>
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      <div className="min-h-screen bg-[#f0ece8] flex items-center justify-center">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#d93547] to-[#9c1723] animate-pulse" />
       </div>
     );
   }
 
   if (!course) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-[#f0ece8] flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-white mb-2">Курс не найден</h2>
+          <h2 className="text-2xl font-bold text-[#2b2520] mb-2">Курс не найден</h2>
           <button
             onClick={() => router.back()}
-            className="text-purple-600 hover:underline"
+            className="text-[#d93547] hover:underline"
           >
             Вернуться назад
           </button>
@@ -45,17 +45,17 @@ export default function CoursePage({ params }: { params: Promise<{ id: string }>
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#f0ece8]">
       {/* Header */}
-      <div className="sticky top-0 z-50 glass">
+      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-[#9c1723]/10">
         <div className="px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => router.back()}
             className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center active:scale-95 transition-transform"
           >
-            <ArrowLeft className="w-5 h-5 text-gray-700" />
+            <ArrowLeft className="w-5 h-5 text-[#2b2520]" />
           </button>
-          <h1 className="text-lg font-bold text-white truncate">{course.title}</h1>
+          <h1 className="text-lg font-bold text-[#2b2520] truncate">{course.title}</h1>
         </div>
       </div>
 
@@ -63,29 +63,29 @@ export default function CoursePage({ params }: { params: Promise<{ id: string }>
       <div className="px-4 pt-6 pb-4">
         {course.coverUrl ? (
           <div
-            className="h-48 rounded-3xl bg-cover bg-center mb-4"
+            className="h-48 rounded-3xl bg-cover bg-center mb-4 shadow-lg"
             style={{ backgroundImage: `url(${course.coverUrl})` }}
           />
         ) : (
-          <div className="h-48 rounded-3xl bg-gradient-to-br from-purple-500 to-indigo-600 mb-4 flex items-center justify-center">
+          <div className="h-48 rounded-3xl bg-gradient-to-br from-[#d93547] to-[#9c1723] mb-4 flex items-center justify-center shadow-lg shadow-[#d93547]/30">
             <span className="text-6xl">📚</span>
           </div>
         )}
 
-        <h2 className="text-2xl font-bold text-white mb-2">{course.title}</h2>
+        <h2 className="text-2xl font-bold text-[#2b2520] mb-2">{course.title}</h2>
         {course.description && (
-          <p className="text-gray-300 mb-4">{course.description}</p>
+          <p className="text-[#6b5a4a] mb-4">{course.description}</p>
         )}
 
         {course.isLocked && (
-          <div className="glass rounded-2xl p-4 bg-gradient-to-r from-purple-500/10 to-indigo-500/10 mb-4">
+          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 border border-[#9c1723]/20 mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#d93547] to-[#9c1723] flex items-center justify-center shadow-lg shadow-[#d93547]/30">
                 <Lock className="w-5 h-5 text-white" />
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-white">Премиум контент</h3>
-                <p className="text-sm text-gray-300">Этот курс доступен только для PRO пользователей</p>
+                <h3 className="font-bold text-[#2b2520]">Премиум контент</h3>
+                <p className="text-sm text-[#6b5a4a]">Этот курс доступен только для PRO пользователей</p>
               </div>
             </div>
           </div>
@@ -93,8 +93,8 @@ export default function CoursePage({ params }: { params: Promise<{ id: string }>
       </div>
 
       {/* Lessons List */}
-      <div className="px-4 pb-6">
-        <h3 className="text-lg font-bold text-white mb-3">
+      <div className="px-4 pb-24">
+        <h3 className="text-lg font-bold text-[#2b2520] mb-3">
           Уроки ({course.days?.length || 0})
         </h3>
         <div className="space-y-3">
@@ -112,7 +112,7 @@ export default function CoursePage({ params }: { params: Promise<{ id: string }>
                   }
                 }}
                 disabled={isLocked}
-                className={`w-full glass rounded-2xl p-4 text-left transition-all ${
+                className={`w-full bg-white/70 backdrop-blur-sm rounded-2xl p-4 text-left transition-all border border-[#9c1723]/10 ${
                   isLocked
                     ? 'opacity-50 cursor-not-allowed'
                     : 'hover:shadow-lg active:scale-[0.98] cursor-pointer'
@@ -123,14 +123,14 @@ export default function CoursePage({ params }: { params: Promise<{ id: string }>
                   <div
                     className={`w-12 h-12 rounded-full flex items-center justify-center ${
                       isCompleted
-                        ? 'bg-green-500'
+                        ? 'bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/30'
                         : isCurrent
-                        ? 'bg-gradient-to-br from-purple-400 to-indigo-500'
-                        : 'bg-gray-200'
+                        ? 'bg-gradient-to-br from-[#d93547] to-[#9c1723] shadow-lg shadow-[#d93547]/30'
+                        : 'bg-[#e8dcc6]'
                     }`}
                   >
                     {isLocked ? (
-                      <Lock className="w-5 h-5 text-gray-500" />
+                      <Lock className="w-5 h-5 text-[#6b5a4a]" />
                     ) : isCompleted ? (
                       <CheckCircle className="w-5 h-5 text-white" />
                     ) : (
@@ -140,9 +140,9 @@ export default function CoursePage({ params }: { params: Promise<{ id: string }>
 
                   {/* Lesson Info */}
                   <div className="flex-1">
-                    <h4 className="font-semibold text-white">{day.title}</h4>
+                    <h4 className="font-semibold text-[#2b2520]">{day.title}</h4>
                     {day.content && (
-                      <p className="text-sm text-gray-400 line-clamp-1 mt-0.5">
+                      <p className="text-sm text-[#6b5a4a] line-clamp-1 mt-0.5">
                         {replaceContentPlaceholders(day.content, user || undefined).substring(0, 50)}...
                       </p>
                     )}
@@ -150,8 +150,8 @@ export default function CoursePage({ params }: { params: Promise<{ id: string }>
 
                   {/* Play Button */}
                   {!isLocked && (
-                    <div className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center">
-                      <Play className="w-4 h-4 text-gray-700 ml-0.5" />
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#d93547] to-[#9c1723] shadow-lg shadow-[#d93547]/30 flex items-center justify-center">
+                      <Play className="w-4 h-4 text-white ml-0.5" />
                     </div>
                   )}
                 </div>
