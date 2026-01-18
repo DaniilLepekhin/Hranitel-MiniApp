@@ -11,12 +11,13 @@ export function ProfileTab() {
   const { haptic, webApp } = useTelegram();
   const { user, token } = useAuthStore();
 
-  // Получаем баланс энергий пользователя
+  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем баланс энергий пользователя
   const { data: balanceData } = useQuery({
     queryKey: ['energies-balance', user?.id],
     queryFn: () => energiesApi.getBalance(user!.id),
     enabled: !!user && !!token,
     retry: false,
+    placeholderData: { balance: 0 }, // Показываем 0 сразу для мгновенного рендера
   });
 
   // 🚀 МЕМОИЗАЦИЯ: Вычисляем только когда данные меняются

@@ -33,49 +33,54 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     return midnight.getTime() - now.getTime();
   };
 
-  // Получаем баланс энергий пользователя
+  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем баланс энергий пользователя
   const { data: balanceData } = useQuery({
     queryKey: ['energies-balance', user?.id],
     queryFn: () => energiesApi.getBalance(user!.id),
     enabled: !!user && !!token,
     retry: false,
     staleTime: getStaleTimeUntilMidnight(),
+    placeholderData: { balance: 0 }, // Показываем 0 сразу
   });
 
-  // Получаем общий рейтинг (только пользователи с активной подпиской)
+  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем общий рейтинг
   const { data: leaderboardData } = useQuery({
     queryKey: ['leaderboard', showFullLeaderboard ? 50 : 10],
     queryFn: () => gamificationApi.leaderboard(showFullLeaderboard ? 50 : 10),
     enabled: !!user && !!token,
     retry: false,
     staleTime: getStaleTimeUntilMidnight(),
+    placeholderData: { leaderboard: [] }, // Показываем пустой массив сразу
   });
 
-  // Получаем рейтинг городов
+  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем рейтинг городов
   const { data: cityRatingsData } = useQuery({
     queryKey: ['city-ratings', showFullCityRatings ? 50 : 5],
     queryFn: () => ratingsApi.getCityRatings(showFullCityRatings ? 50 : 5),
     enabled: !!user && !!token,
     retry: false,
     staleTime: getStaleTimeUntilMidnight(),
+    placeholderData: { ratings: [] }, // Показываем пустой массив сразу
   });
 
-  // Получаем рейтинг команд
+  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем рейтинг команд
   const { data: teamRatingsData } = useQuery({
     queryKey: ['team-ratings', showFullTeamRatings ? 50 : 5],
     queryFn: () => ratingsApi.getTeamRatings(showFullTeamRatings ? 50 : 5),
     enabled: !!user && !!token,
     retry: false,
     staleTime: getStaleTimeUntilMidnight(),
+    placeholderData: { ratings: [] }, // Показываем пустой массив сразу
   });
 
-  // Получаем позицию пользователя
+  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем позицию пользователя
   const { data: userPositionData } = useQuery({
     queryKey: ['user-position', user?.id],
     queryFn: () => ratingsApi.getUserPosition(user!.id),
     enabled: !!user && !!token,
     retry: false,
     staleTime: getStaleTimeUntilMidnight(),
+    placeholderData: { position: null }, // Показываем null сразу
   });
 
   const userBalance = balanceData?.balance || 0;
