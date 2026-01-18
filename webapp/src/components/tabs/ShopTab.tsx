@@ -80,7 +80,7 @@ export function ShopTab() {
     enabled: !!user && !!token,
     retry: false,
     staleTime: 60 * 1000,
-    placeholderData: { success: true, categories: [] },
+    placeholderData: { success: true, categories: { elite: [], secret: [], savings: [] } },
   });
 
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch user balance
