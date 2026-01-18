@@ -15,7 +15,7 @@ export function FavoritesTab() {
   const { data: favoritesData, isLoading } = useQuery({
     queryKey: ['favorites'],
     queryFn: () => coursesApi.favorites(),
-    placeholderData: { favorites: [] },
+    placeholderData: { success: true, favorites: [] },
   });
 
   const favorites = favoritesData?.favorites || [];
