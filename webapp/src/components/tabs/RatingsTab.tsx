@@ -50,7 +50,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     enabled: !!user && !!token,
     retry: false,
     staleTime: getStaleTimeUntilMidnight(),
-    placeholderData: { leaderboard: [] }, // Показываем пустой массив сразу
+    placeholderData: { success: true, leaderboard: [] }, // Показываем пустой массив сразу
   });
 
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем рейтинг городов
@@ -60,7 +60,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     enabled: !!user && !!token,
     retry: false,
     staleTime: getStaleTimeUntilMidnight(),
-    placeholderData: { ratings: [] }, // Показываем пустой массив сразу
+    placeholderData: { success: true, ratings: [] }, // Показываем пустой массив сразу
   });
 
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем рейтинг команд
@@ -70,7 +70,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     enabled: !!user && !!token,
     retry: false,
     staleTime: getStaleTimeUntilMidnight(),
-    placeholderData: { ratings: [] }, // Показываем пустой массив сразу
+    placeholderData: { success: true, ratings: [] }, // Показываем пустой массив сразу
   });
 
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем позицию пользователя
@@ -80,7 +80,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     enabled: !!user && !!token,
     retry: false,
     staleTime: getStaleTimeUntilMidnight(),
-    placeholderData: { position: null }, // Показываем null сразу
+    placeholderData: { success: true, position: null }, // Показываем null сразу
   });
 
   const userBalance = balanceData?.balance || 0;
