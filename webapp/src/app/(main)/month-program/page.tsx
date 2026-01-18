@@ -87,30 +87,30 @@ export default function MonthProgramPage() {
       <div className="flex items-center gap-4 mb-6">
         <button
           onClick={() => router.back()}
-          className="w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center hover:bg-white/80 transition-all border border-[#8b4513]/30"
+          className="w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center hover:bg-white/80 transition-all border border-[#d93547]/30"
         >
-          <ArrowLeft className="w-5 h-5 text-[#3d2f1f]" />
+          <ArrowLeft className="w-5 h-5 text-[#2b2520]" />
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <Calendar className="w-4 h-4 text-[#8b0000]" />
-            <span className="text-xs text-[#8b0000] font-semibold uppercase">Программа месяца</span>
+            <Calendar className="w-4 h-4 text-[#d93547]" />
+            <span className="text-xs text-[#d93547] font-semibold uppercase">Программа месяца</span>
           </div>
-          <h1 className="text-xl font-bold text-[#3d2f1f] capitalize">{currentMonth} {currentYear}</h1>
+          <h1 className="text-xl font-bold text-[#2b2520] capitalize">{currentMonth} {currentYear}</h1>
         </div>
       </div>
 
       {/* Hero Card with Calendar */}
-      <Card className="p-6 mb-6 bg-gradient-to-br from-[#8b0000]/20 to-[#8b4513]/20 border-2 border-[#8b0000]">
+      <Card className="p-6 mb-6 bg-gradient-to-br from-[#d93547]/20 to-[#9c1723]/20 border-2 border-[#d93547]">
         <div className="flex items-center gap-4 mb-4">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center shadow-lg">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#d93547] to-[#9c1723] flex items-center justify-center shadow-lg">
             <div className="text-center">
               <div className="text-white text-2xl font-bold leading-none">{selectedDay}</div>
               <div className="text-white/80 text-xs uppercase">{currentMonth.slice(0, 3)}</div>
             </div>
           </div>
           <div className="flex-1">
-            <h2 className="text-xl font-bold text-[#3d2f1f] mb-1">Программа месяца</h2>
+            <h2 className="text-xl font-bold text-[#2b2520] mb-1">Программа месяца</h2>
             <p className="text-[#6b5a4a] text-sm">{items.length} материалов на месяц</p>
           </div>
         </div>
@@ -122,8 +122,8 @@ export default function MonthProgramPage() {
       {/* Empty State */}
       {items.length === 0 ? (
         <Card className="p-8 text-center">
-          <Calendar className="w-16 h-16 mx-auto text-[#8b4513]/50 mb-4" />
-          <h3 className="text-lg font-semibold text-[#3d2f1f] mb-2">
+          <Calendar className="w-16 h-16 mx-auto text-[#d93547]/50 mb-4" />
+          <h3 className="text-lg font-semibold text-[#2b2520] mb-2">
             Программа месяца готовится
           </h3>
           <p className="text-[#6b5a4a]">
@@ -143,13 +143,13 @@ export default function MonthProgramPage() {
 
           {/* Selected Day Content */}
           {selectedDayItem ? (
-            <Card className="p-5 bg-gradient-to-br from-[#8b0000]/10 to-[#8b4513]/10 border-2 border-[#8b0000]">
+            <Card className="p-5 bg-gradient-to-br from-[#d93547]/10 to-[#9c1723]/10 border-2 border-[#d93547]">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#8b0000] to-[#8b4513] flex items-center justify-center flex-shrink-0">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#d93547] to-[#9c1723] flex items-center justify-center flex-shrink-0">
                   <span className="text-white text-sm font-bold">{selectedDay}</span>
                 </div>
                 <div>
-                  <p className="text-xs text-[#8b0000] font-semibold uppercase">{getTypeLabel(selectedDayItem.type)}</p>
+                  <p className="text-xs text-[#d93547] font-semibold uppercase">{getTypeLabel(selectedDayItem.type)}</p>
                   <p className="text-sm text-[#6b5a4a]">{selectedDay} {currentMonth}</p>
                 </div>
               </div>
@@ -159,16 +159,16 @@ export default function MonthProgramPage() {
                 onClick={() => handleItemClick(selectedDayItem.id)}
               >
                 {/* Icon */}
-                <div className="w-12 h-12 rounded-lg bg-[#8b4513]/20 flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 rounded-lg bg-[#d93547]/20 flex items-center justify-center flex-shrink-0">
                   {(() => {
                     const IconComponent = getIcon(selectedDayItem.type);
-                    return <IconComponent className="w-6 h-6 text-[#8b0000]" />;
+                    return <IconComponent className="w-6 h-6 text-[#d93547]" />;
                   })()}
                 </div>
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-[#3d2f1f] mb-1 line-clamp-2">
+                  <h4 className="font-bold text-[#2b2520] mb-1 line-clamp-2">
                     {selectedDayItem.title}
                   </h4>
                   {selectedDayItem.description && (
@@ -179,13 +179,13 @@ export default function MonthProgramPage() {
                 </div>
 
                 {/* Arrow */}
-                <ChevronRight className="w-5 h-5 text-[#8b4513] flex-shrink-0" />
+                <ChevronRight className="w-5 h-5 text-[#d93547] flex-shrink-0" />
               </div>
             </Card>
           ) : (
             <Card className="p-8 text-center">
-              <Calendar className="w-16 h-16 mx-auto text-[#8b4513]/50 mb-4" />
-              <h3 className="text-lg font-semibold text-[#3d2f1f] mb-2">
+              <Calendar className="w-16 h-16 mx-auto text-[#d93547]/50 mb-4" />
+              <h3 className="text-lg font-semibold text-[#2b2520] mb-2">
                 Нет материала на {selectedDay} {currentMonth}
               </h3>
               <p className="text-[#6b5a4a]">
@@ -197,11 +197,11 @@ export default function MonthProgramPage() {
       )}
 
       {/* Info Card */}
-      <Card className="mt-6 p-4 bg-gradient-to-r from-[#8b0000]/10 to-[#8b4513]/10 border-[#8b4513]/30">
+      <Card className="mt-6 p-4 bg-gradient-to-r from-[#d93547]/10 to-[#9c1723]/10 border-[#d93547]/30">
         <div className="flex items-start gap-3">
-          <Sparkles className="w-5 h-5 text-[#8b0000] flex-shrink-0 mt-0.5" />
+          <Sparkles className="w-5 h-5 text-[#d93547] flex-shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-[#3d2f1f] mb-1">💎 Системный подход к развитию</p>
+            <p className="font-semibold text-[#2b2520] mb-1">💎 Системный подход к развитию</p>
             <p className="text-[#6b5a4a] text-sm leading-relaxed">
               Следуйте программе последовательно, неделя за неделей. Каждый материал подобран для максимального эффекта и синергии с другими элементами программы.
             </p>
