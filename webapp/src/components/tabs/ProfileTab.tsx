@@ -1,9 +1,11 @@
 'use client';
 
+import { useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { energiesApi } from '@/lib/api';
+import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
 
 export function ProfileTab() {
   const { haptic, webApp } = useTelegram();
@@ -17,115 +19,29 @@ export function ProfileTab() {
     retry: false,
   });
 
-  const userBalance = balanceData?.balance || 0;
-  const displayName = user?.firstName && user?.lastName
-    ? `${user.firstName} ${user.lastName}`
-    : user?.firstName || user?.username || 'Пользователь';
+  // 🚀 МЕМОИЗАЦИЯ: Вычисляем только когда данные меняются
+  const userBalance = useMemo(() => balanceData?.balance || 0, [balanceData?.balance]);
+  const displayName = useMemo(() => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName} ${user.lastName}`;
+    }
+    return user?.firstName || user?.username || 'Пользователь';
+  }, [user?.firstName, user?.lastName, user?.username]);
 
-  const openLink = (url: string) => {
+  // 🚀 МЕМОИЗАЦИЯ: Функция не пересоздается при каждом рендере
+  const openLink = useCallback((url: string) => {
     haptic.impact('light');
     if (webApp?.openLink) {
       webApp.openLink(url);
     } else {
       window.open(url, '_blank');
     }
-  };
+  }, [haptic, webApp]);
 
   return (
     <div className="min-h-screen w-full bg-[#f7f1e8] relative">
-      {/* ===== ФОН ===== */}
-      <div
-        className="fixed pointer-events-none overflow-hidden bg-[#f7f1e8]"
-        style={{
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          width: '100%',
-          height: '100%',
-        }}
-      >
-        {/* Газетная текстура */}
-        <div
-          className="absolute"
-          style={{
-            width: '250%',
-            height: '250%',
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%) rotate(-60.8deg)',
-            opacity: 0.18,
-            mixBlendMode: 'overlay',
-          }}
-        >
-          <img
-            src="/assets/newspaper-texture.jpg"
-            alt=""
-            className="w-full h-full object-cover"
-          />
-        </div>
-
-        {/* Монеты/молоток слева */}
-        <div
-          className="absolute"
-          style={{
-            width: '160%',
-            height: '120%',
-            left: '-50%',
-            top: '-10%',
-            mixBlendMode: 'multiply',
-            opacity: 0.4,
-          }}
-        >
-          <img
-            src="/assets/bg-coins.jpg"
-            alt=""
-            className="w-full h-full object-cover object-left-top"
-          />
-        </div>
-
-        {/* Размытое цветное пятно - слева внизу */}
-        <div
-          className="absolute"
-          style={{
-            width: '150%',
-            height: '130%',
-            left: '-80%',
-            bottom: '-30%',
-            mixBlendMode: 'color-dodge',
-            filter: 'blur(200px)',
-            transform: 'rotate(-22.76deg)',
-            opacity: 0.5,
-          }}
-        >
-          <img
-            src="/assets/bg-blur.jpg"
-            alt=""
-            className="w-full h-full object-cover"
-          />
-        </div>
-
-        {/* Размытое цветное пятно - справа вверху */}
-        <div
-          className="absolute"
-          style={{
-            width: '150%',
-            height: '130%',
-            right: '-80%',
-            top: '-70%',
-            mixBlendMode: 'color-dodge',
-            filter: 'blur(200px)',
-            transform: 'rotate(77.63deg) scaleY(-1)',
-            opacity: 0.5,
-          }}
-        >
-          <img
-            src="/assets/bg-blur.jpg"
-            alt=""
-            className="w-full h-full object-cover"
-          />
-        </div>
-      </div>
+      {/* 🚀 ОПТИМИЗИРОВАННЫЙ ФОН */}
+      <OptimizedBackground variant="profile" />
 
       {/* ===== КОНТЕНТ ===== */}
       <div className="relative z-10 pt-[23px] pb-28">

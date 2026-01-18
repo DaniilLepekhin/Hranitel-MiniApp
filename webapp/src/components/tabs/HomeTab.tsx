@@ -1,27 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Copy, Megaphone } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
-
-// Предзагрузка изображений фона для моментального отображения
-const preloadImages = () => {
-  const images = [
-    '/assets/newspaper-texture.jpg',
-    '/assets/bg-coins.jpg',
-    '/assets/bg-blur.jpg',
-  ];
-  images.forEach((src) => {
-    const img = new Image();
-    img.src = src;
-  });
-};
-
-// Вызываем предзагрузку сразу при импорте модуля
-if (typeof window !== 'undefined') {
-  preloadImages();
-}
+import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
 
 interface HomeTabProps {
   onProfileClick?: () => void;
@@ -32,122 +15,32 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Баланс энергий берём напрямую из user объекта (приходит при авторизации)
-  const epBalance = user?.energies || 0;
-  const referralLink = user ? `https://t.me/hranitelkodbot?start=ref_${user.id}` : 'https://t.me/hranitelkodbot?start=ref_...';
-  const userName = user?.firstName || '{Имя}';
+  // 🚀 МЕМОИЗАЦИЯ: Вычисляем только когда user меняется
+  const epBalance = useMemo(() => user?.energies || 0, [user?.energies]);
+  const referralLink = useMemo(
+    () => user ? `https://t.me/hranitelkodbot?start=ref_${user.id}` : 'https://t.me/hranitelkodbot?start=ref_...',
+    [user?.id]
+  );
+  const userName = useMemo(() => user?.firstName || '{Имя}', [user?.firstName]);
 
-  const handleCopyReferralLink = () => {
+  // 🚀 МЕМОИЗАЦИЯ: Функции не пересоздаются при каждом рендере
+  const handleCopyReferralLink = useCallback(() => {
     if (referralLink) {
       navigator.clipboard.writeText(referralLink);
     }
-  };
+  }, [referralLink]);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
     }
-  };
+  }, [searchQuery, router]);
 
   return (
     <div className="min-h-screen w-full bg-[#f0ece8] relative">
-      {/* ===== ФОН - адаптивный на все устройства ===== */}
-      <div
-        className="fixed pointer-events-none overflow-hidden bg-[#f0ece8]"
-        style={{
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          width: '100%',
-          height: '100%',
-        }}
-      >
-        {/*
-          Газетная текстура - покрывает весь экран
-          Используем большой размер с центрированием для покрытия при любом соотношении сторон
-        */}
-        <div
-          className="absolute"
-          style={{
-            width: '250%',
-            height: '250%',
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%) rotate(-60.8deg)',
-            opacity: 0.25,
-            mixBlendMode: 'overlay',
-          }}
-        >
-          <img
-            src="/assets/newspaper-texture.jpg"
-            alt=""
-            className="w-full h-full object-cover"
-          />
-        </div>
-
-        {/* Монеты/молоток слева */}
-        <div
-          className="absolute"
-          style={{
-            width: '160%',
-            height: '120%',
-            left: '-50%',
-            top: '-10%',
-            mixBlendMode: 'multiply',
-            opacity: 0.4,
-          }}
-        >
-          <img
-            src="/assets/bg-coins.jpg"
-            alt=""
-            className="w-full h-full object-cover object-left-top"
-          />
-        </div>
-
-        {/* Размытое цветное пятно 1 - слева внизу */}
-        <div
-          className="absolute"
-          style={{
-            width: '150%',
-            height: '130%',
-            left: '-80%',
-            bottom: '-30%',
-            mixBlendMode: 'color-dodge',
-            filter: 'blur(200px)',
-            transform: 'rotate(-22.76deg)',
-            opacity: 0.5,
-          }}
-        >
-          <img
-            src="/assets/bg-blur.jpg"
-            alt=""
-            className="w-full h-full object-cover"
-          />
-        </div>
-
-        {/* Размытое цветное пятно 2 - справа вверху */}
-        <div
-          className="absolute"
-          style={{
-            width: '150%',
-            height: '130%',
-            right: '-80%',
-            top: '-70%',
-            mixBlendMode: 'color-dodge',
-            filter: 'blur(200px)',
-            transform: 'rotate(77.63deg) scaleY(-1)',
-            opacity: 0.5,
-          }}
-        >
-          <img
-            src="/assets/bg-blur.jpg"
-            alt=""
-            className="w-full h-full object-cover"
-          />
-        </div>
-      </div>
+      {/* 🚀 ОПТИМИЗИРОВАННЫЙ ФОН - используем мемоизированный компонент */}
+      <OptimizedBackground variant="home" />
 
       {/* ===== КОНТЕНТ - адаптивный ===== */}
       <div className="relative z-10 px-4 sm:px-6 lg:px-8 pt-4 pb-24 max-w-2xl mx-auto">

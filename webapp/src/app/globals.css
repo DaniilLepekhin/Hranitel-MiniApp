@@ -374,3 +374,93 @@ body {
 .notification-animate {
   animation: notificationSlide 0.3s ease-out;
 }
+
+/* 🚀 PERFORMANCE: Utility classes for common inline styles */
+
+/* Font families */
+.font-nooks {
+  font-family: "TT Nooks", Georgia, serif;
+}
+
+.font-gilroy {
+  font-family: Gilroy, sans-serif;
+}
+
+/* Club-specific colors */
+.color-kod-dark {
+  color: #2d2620;
+}
+
+.color-kod-cream {
+  color: #f7f1e8;
+}
+
+.color-kod-red {
+  color: #9c1723;
+}
+
+/* Background colors */
+.bg-kod-cream {
+  background-color: #f7f1e8;
+}
+
+.bg-kod-light-cream {
+  background-color: #f0ece8;
+}
+
+/* Club gradient button/badge */
+.bg-kod-gradient {
+  background: linear-gradient(242.804deg, rgb(174, 30, 43) 15.721%, rgb(156, 23, 35) 99.389%);
+}
+
+.bg-kod-gradient-alt {
+  background: linear-gradient(243.413deg, rgb(174, 30, 43) 15.721%, rgb(156, 23, 35) 99.389%);
+}
+
+/* Common text styles */
+.title-large {
+  font-family: "TT Nooks", Georgia, serif;
+  font-weight: 300;
+  font-size: clamp(40px, 10vw, 54px);
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+}
+
+.title-medium {
+  font-family: "TT Nooks", Georgia, serif;
+  font-weight: 300;
+  font-size: clamp(20px, 5vw, 24px);
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+}
+
+.text-body {
+  font-family: Gilroy, sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.text-body-bold {
+  font-family: Gilroy, sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* Badge styles */
+.badge-status {
+  border: 0.955px solid #d93547;
+  border-radius: 5.731px;
+  padding: 0 16px;
+  height: 33px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Gilroy, sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.45;
+  letter-spacing: -0.28px;
+  color: white;
+}
