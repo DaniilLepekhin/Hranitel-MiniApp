@@ -14,6 +14,7 @@ import {
 import { useAuthStore } from '@/store/auth';
 import { energiesApi, gamificationApi, teamsApi } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
+import { FullscreenButton } from '@/components/ui/FullscreenButton';
 
 export default function RatingsPage() {
   const router = useRouter();
@@ -53,7 +54,9 @@ export default function RatingsPage() {
   };
 
   return (
-    <div className="px-4 pt-6 pb-24 min-h-screen">
+    <>
+      <FullscreenButton />
+      <div className="px-4 pt-6 pb-24 min-h-screen">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <button
@@ -184,7 +187,8 @@ export default function RatingsPage() {
           </button>
         </div>
       </Card>
-    </div>
+      </div>
+    </>
   );
 }
 

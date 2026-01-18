@@ -8,6 +8,7 @@ import { contentApi, type ContentItem } from '@/lib/api';
 import { useTelegram } from '@/hooks/useTelegram';
 import { Card } from '@/components/ui/Card';
 import { MonthCalendar } from '@/components/MonthCalendar';
+import { FullscreenButton } from '@/components/ui/FullscreenButton';
 
 export default function MonthProgramPage() {
   const router = useRouter();
@@ -82,7 +83,9 @@ export default function MonthProgramPage() {
   }
 
   return (
-    <div className="px-4 pt-6 pb-24">
+    <>
+      <FullscreenButton />
+      <div className="px-4 pt-6 pb-24">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <button
@@ -208,6 +211,7 @@ export default function MonthProgramPage() {
           </div>
         </div>
       </Card>
-    </div>
+      </div>
+    </>
   );
 }

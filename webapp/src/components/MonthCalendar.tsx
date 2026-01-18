@@ -101,7 +101,7 @@ export function MonthCalendar({ items, onDayClick }: MonthCalendarProps) {
   };
 
   return (
-    <Card className="p-5 mb-6">
+    <Card className="p-5 mb-6 max-w-md mx-auto">
       {/* Calendar Header */}
       <div className="flex items-center justify-between mb-4">
         <button
