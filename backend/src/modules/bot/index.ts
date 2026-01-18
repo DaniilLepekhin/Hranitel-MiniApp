@@ -258,8 +258,8 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
 
-      // Schedule day 4 reminder at 11:00 Moscow time
-      const delayToDay4 = getDelayUntilMoscowTime(11, 0);
+      // Schedule day 4 reminder 24 hours after day3 (same time next day)
+      const delayToDay4 = 24 * 60 * 60 * 1000; // 24 hours
       await schedulerService.schedule(
         {
           type: 'day4_reminder',
@@ -291,8 +291,8 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
 
-      // Schedule day 5 final reminder at 11:00 Moscow time (4 hours before closing)
-      const delayToDay5 = getDelayUntilMoscowTime(11, 0);
+      // Schedule day 5 final reminder 24 hours after day4 (same time next day, 4 hours before closing)
+      const delayToDay5 = 24 * 60 * 60 * 1000; // 24 hours
       await schedulerService.schedule(
         {
           type: 'day5_final',
