@@ -469,15 +469,14 @@ bot.callbackQuery('not_ready', async (ctx) => {
   try {
     await ctx.answerCallbackQuery();
 
-    const keyboard = new Keyboard()
-      .text('🔮 где мои деньги в 2026 году')
-      .text('💰 почему доход не растет')
+    const keyboard = new InlineKeyboard()
+      .text('🔮 где мои деньги в 2026 году', 'topic_money_2026')
+      .text('💰 почему доход не растет', 'topic_income')
       .row()
-      .text('🧠 состояние vs деньги')
-      .text('🌍 окружение')
-      .resized();
+      .text('🧠 состояние vs деньги', 'topic_state')
+      .text('🌍 окружение', 'topic_environment');
 
-    // Send photo with question and keyboard attached
+    // Send photo with question and inline keyboard attached
     await telegramService.sendPhoto(
       ctx.chat!.id,
       'https://t.me/mate_bot_open/9277',
@@ -495,7 +494,152 @@ bot.callbackQuery('not_ready', async (ctx) => {
   }
 });
 
-// Handle topic selection buttons
+// Handle inline keyboard callbacks for topics
+bot.callbackQuery('topic_money_2026', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const chatId = ctx.chat!.id;
+    const keyboard = new InlineKeyboard()
+      .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
+
+    await telegramService.sendMessage(
+      chatId,
+      `В 2026 деньги не живут отдельно от жизни.\n` +
+      `Состояние, энергия, здоровье и отношения\n` +
+      `напрямую влияют на рост дохода.\n\n` +
+      `Если хочешь <b>финансово вырасти в 2026,</b>\n` +
+      `важно знать:\n` +
+      `— в какой энергии проходит твой год\n` +
+      `— где точка роста, а где утечки\n` +
+      `— на чём деньги реально умножаются\n\n` +
+      `Я подготовила <b>индивидуальный гайд</b>\n` +
+      `с расшифровкой по дате рождения: финансы, отношения, энергия, здоровье, ключевые периоды года.`,
+      { parse_mode: 'HTML' }
+    );
+
+    await telegramService.sendDocument(chatId, 'https://t.me/mate_bot_open/9257');
+
+    await telegramService.sendMessage(
+      chatId,
+      `Если хочешь не просто понять прогноз, а <b>реально прожить 2026 в росте</b>, это делается через среду и этапы.\n\n` +
+      `В клубе <b>«Код Денег»</b> мы переводим прогноз в действия, состояние — в доход, а потенциал — в результат.\n\n` +
+      `Забирай гайд и заходи в поле ☝️`,
+      { reply_markup: keyboard, parse_mode: 'HTML' }
+    );
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in topic_money_2026 callback');
+  }
+});
+
+bot.callbackQuery('topic_income', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const chatId = ctx.chat!.id;
+    const keyboard = new InlineKeyboard()
+      .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
+
+    await telegramService.sendMessage(
+      chatId,
+      `Если деньги не растут —\n` +
+      `причина чаще не в знаниях, а в состоянии и сценариях.\n\n` +
+      `В гайде ты увидишь:\n` +
+      `— где именно ты застряла\n` +
+      `— какие установки тормозят доход\n` +
+      `— какой шаг сейчас даст рост`
+    );
+
+    await telegramService.sendDocument(chatId, 'https://t.me/mate_bot_open/9258');
+
+    await telegramService.sendMessage(
+      chatId,
+      `А если хочешь не просто понять причину, а <b>реально выйти из финансового тупика</b>, это делается через этапы и среду.\n\n` +
+      `В клубе <b>«Код Денег»</b> мы переводим осознание\nв действия, действия — в результат, а результат — в стабильный доход.\n\n` +
+      `Забирай гайд и заходи в поле ☝️`,
+      { reply_markup: keyboard, parse_mode: 'HTML' }
+    );
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in topic_income callback');
+  }
+});
+
+bot.callbackQuery('topic_state', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const chatId = ctx.chat!.id;
+    const keyboard = new InlineKeyboard()
+      .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
+
+    await telegramService.sendMessage(
+      chatId,
+      `Если состояние не держит — деньги не удерживаются.\n\n` +
+      `В гайде ты увидишь:\n` +
+      `— где у тебя утекает энергия\n` +
+      `— через что к тебе приходят деньги\n` +
+      `— персональную расшифровку <b>по дате рождения</b>\n\n` +
+      `А если хочешь не просто понять,\n` +
+      `а <b>реально выстроить доход</b> —\n` +
+      `дальше это делается через среду и этапы.`,
+      { parse_mode: 'HTML' }
+    );
+
+    await telegramService.sendDocument(chatId, 'https://t.me/mate_bot_open/9259');
+
+    await telegramService.sendMessage(
+      chatId,
+      `В клубе <b>«Код Денег»</b> мы переводим состояние в действия,\nа действия — в деньги.\n\n` +
+      `Забирай гайд и заходи в поле ☝️`,
+      { reply_markup: keyboard, parse_mode: 'HTML' }
+    );
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in topic_state callback');
+  }
+});
+
+bot.callbackQuery('topic_environment', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const chatId = ctx.chat!.id;
+    const keyboard = new InlineKeyboard()
+      .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
+
+    // Send all images as media group
+    await telegramService.sendMediaGroup(chatId, [
+      { type: 'photo', media: 'https://t.me/mate_bot_open/9251' },
+      { type: 'photo', media: 'https://t.me/mate_bot_open/9252' },
+      { type: 'photo', media: 'https://t.me/mate_bot_open/9253' },
+      { type: 'photo', media: 'https://t.me/mate_bot_open/9254' },
+      { type: 'photo', media: 'https://t.me/mate_bot_open/9255' },
+      { type: 'photo', media: 'https://t.me/mate_bot_open/9256' }
+    ]);
+
+    await telegramService.sendMessage(
+      chatId,
+      `<b>🌍 Твоё окружение — твоя точка роста.</b>\n\n` +
+      `Когда ты оказываешься в правильной среде,\n` +
+      `рост перестаёт быть борьбой.\n\n` +
+      `💡 Появляется ясность, энергия и движение.\n` +
+      `👥 Рядом — люди, которые понимают твой путь,\n` +
+      `поддерживают и идут к своим целям, а не обсуждают чужие.\n\n` +
+      `«Я сделала то, что откладывала месяцами».\n` +
+      `«Доход сдвинулся, потому что я перестала быть в одиночке».\n\n` +
+      `✨ Это не магия.\n` +
+      `Это <b>сила среды</b>, которая работает всегда.\n` +
+      `Недаром говорят: <i>ты — среднее из тех, кто рядом с тобой.</i>\n\n` +
+      `В клубе <b>«Код Денег»</b> — тысячи участников по всей стране.\n` +
+      `🌍 Сообщество в <b>60+ городах</b>, живые встречи, десятки.\n` +
+      `🤝 Поддержка, обмен опытом и рост через поле.\n\n` +
+      `Ты попадаешь в среду, где: действуют, растут, фиксируют результат\n\n` +
+      `👉 Подключайся.\n` +
+      `Когда ты не один —\n` +
+      `двигаться к деньгам и целям становится проще.`,
+      { reply_markup: keyboard, parse_mode: 'HTML' }
+    );
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in topic_environment callback');
+  }
+});
+
+// Handle topic selection buttons (old reply keyboard - keep for backward compatibility)
 bot.hears('🔮 где мои деньги в 2026 году', async (ctx) => {
   try {
     const chatId = ctx.chat.id;
