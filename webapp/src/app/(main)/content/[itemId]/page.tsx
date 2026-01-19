@@ -196,6 +196,24 @@ export default function ContentDetailPage() {
         </div>
       )}
 
+      {/* Podcasts/Streams - Play button (compact version) */}
+      {(item.type === 'podcast' || item.type === 'stream_record') && videos.length > 0 && (
+        <button
+          onClick={handlePlayMedia}
+          className="w-full mb-4 px-4 py-3 rounded-xl bg-gradient-to-r from-[#d93547] to-[#9c1723] hover:shadow-lg transition-all flex items-center justify-center gap-3"
+        >
+          <Play className="w-5 h-5 text-white" fill="white" />
+          <span className="text-white font-semibold">
+            {item.type === 'podcast' ? 'Слушать подкаст' : 'Смотреть запись'}
+          </span>
+          {videos[0]?.durationSeconds && (
+            <span className="text-white/80 text-sm">
+              • {Math.floor(videos[0].durationSeconds / 60)} мин
+            </span>
+          )}
+        </button>
+      )}
+
       {/* Description */}
       {item.description && (
         <Card className="p-4 mb-6 bg-gradient-to-br from-[#d93547]/5 to-[#9c1723]/5">
@@ -215,31 +233,6 @@ export default function ContentDetailPage() {
             </div>
           )}
         </div>
-      )}
-
-      {/* Podcasts/Streams - Play button */}
-      {(item.type === 'podcast' || item.type === 'stream_record') && videos.length > 0 && (
-        <Card
-          className="p-6 hover:scale-[1.02] transition-all cursor-pointer bg-gradient-to-br from-[#d93547]/10 to-[#9c1723]/10 border-2 border-[#d93547]"
-          onClick={handlePlayMedia}
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#d93547] to-[#9c1723] flex items-center justify-center shadow-lg flex-shrink-0">
-              <Play className="w-10 h-10 text-white ml-1" fill="white" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-bold text-[#2b2520] text-lg mb-1">
-                {item.type === 'podcast' ? 'Слушать подкаст' : 'Смотреть запись эфира'}
-              </h3>
-              <p className="text-[#6b5a4a] text-sm">
-                {videos[0]?.durationSeconds
-                  ? `${Math.floor(videos[0].durationSeconds / 60)} мин • С таймкодами`
-                  : 'С таймкодами для навигации'}
-              </p>
-            </div>
-            <ChevronRight className="w-6 h-6 text-[#d93547]" />
-          </div>
-        </Card>
       )}
 
       {/* Course Sections */}
