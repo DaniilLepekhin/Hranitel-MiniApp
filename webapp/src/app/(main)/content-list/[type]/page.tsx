@@ -90,7 +90,12 @@ export default function ContentListPage() {
 
   const handleItemClick = (itemId: string) => {
     haptic.impact('light');
-    router.push(`/content/${itemId}`);
+    // For practices, go directly to practice page, skip intermediate screen
+    if (type === 'practice') {
+      router.push(`/practices/${itemId}`);
+    } else {
+      router.push(`/content/${itemId}`);
+    }
   };
 
   const handleKeyFilter = (key: number | null) => {
