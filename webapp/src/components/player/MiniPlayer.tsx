@@ -1,14 +1,12 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
 import { Play, Pause, X, Headphones, Radio } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useMediaPlayerStore } from '@/store/media-player';
 
 export function MiniPlayer() {
   const { haptic } = useTelegram();
-  const pathname = usePathname();
   const audioRef = useRef<HTMLAudioElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -166,15 +164,12 @@ export function MiniPlayer() {
     return null;
   }
 
-
-  // 🚫 НЕ показываем на loading screen (главная страница с анимацией загрузки)
-  const isLoadingScreen = pathname === '/';
   return (
     <>
       {mediaElements}
 
       {/* Mini Player UI - only show when full player is hidden */}
-      {!showFullPlayer && _hasHydrated && !isLoadingScreen && (
+      {!showFullPlayer && _hasHydrated && (
         <div
           onClick={handleOpen}
           className="fixed bottom-20 left-4 right-4 z-50 bg-gradient-to-r from-[#d93547] to-[#9c1723] rounded-2xl shadow-2xl cursor-pointer hover:shadow-[#d93547]/30 transition-all active:scale-[0.98] backdrop-blur-md"
