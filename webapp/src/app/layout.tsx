@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Providers } from './providers';
-import { MiniPlayer } from '@/components/player/MiniPlayer';
-import { FullMediaPlayer } from '@/components/player/FullMediaPlayer';
+import { GlobalMediaPlayers } from '@/components/GlobalMediaPlayers';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -85,8 +84,7 @@ export default function RootLayout({
       <body className="antialiased">
         <Providers>
           {/* Global Media Players - рендерятся на уровне layout чтобы быть на всех страницах */}
-          <MiniPlayer />
-          <FullMediaPlayer />
+          <GlobalMediaPlayers />
           {children}
         </Providers>
       </body>
