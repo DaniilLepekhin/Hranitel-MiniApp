@@ -91,7 +91,6 @@ export function parseTelegramUser(initData: string): {
 // ✅ ПРОСТАЯ HELPER-ФУНКЦИЯ - работает всегда
 export async function getUserFromToken(authHeader: string | undefined): Promise<User | null> {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    logger.warn('getUserFromToken: No Bearer token provided');
     return null;
   }
 
@@ -109,7 +108,6 @@ export async function getUserFromToken(authHeader: string | undefined): Promise<
     const payload = await jwtInstance.decorator.jwt.verify(token) as { userId?: string };
 
     if (!payload || typeof payload.userId !== 'string') {
-      logger.warn('getUserFromToken: Invalid token payload');
       return null;
     }
 
@@ -121,14 +119,13 @@ export async function getUserFromToken(authHeader: string | undefined): Promise<
       .limit(1);
 
     if (!user) {
-      logger.warn({ userId: payload.userId }, 'getUserFromToken: User not found in DB');
+      logger.warn({ userId: payload.userId }, 'User not found in DB');
       return null;
     }
 
-    logger.info({ userId: user.id }, 'getUserFromToken: User authenticated successfully');
     return user;
   } catch (error) {
-    logger.error({ error }, 'getUserFromToken: JWT verification error');
+    logger.error({ error }, 'JWT verification error');
     return null;
   }
 }
@@ -142,9 +139,7 @@ export const authMiddleware = new Elysia({ name: 'auth' })
       exp: '30d',
     })
   )
-  .derive(async ({ headers, jwt, cookie, path }) => {
-    logger.info({ path, hasAuthHeader: !!headers.authorization }, 'authMiddleware.derive called');
-
+  .derive(async ({ headers, jwt, cookie }) => {
     // Try to get token from httpOnly cookie first
     let token: string | undefined = cookie?.auth_token?.value;
 
@@ -157,7 +152,6 @@ export const authMiddleware = new Elysia({ name: 'auth' })
     }
 
     if (!token) {
-      logger.warn({ path }, 'authMiddleware: No token provided');
       return { user: null as User | null, authError: 'No token provided' };
     }
 
@@ -186,10 +180,8 @@ export const authMiddleware = new Elysia({ name: 'auth' })
     }
   })
   .onBeforeHandle(({ user, authError, set }) => {
-    logger.info({ user: user ? 'present' : 'missing', authError }, 'Auth middleware check');
     if (!user) {
       set.status = 401;
-      logger.warn({ authError }, 'Unauthorized access attempt');
       return {
         success: false,
         error: 'Unauthorized',

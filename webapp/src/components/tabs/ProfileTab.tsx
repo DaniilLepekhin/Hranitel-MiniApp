@@ -94,9 +94,20 @@ export function ProfileTab() {
     setLoadingLink(linkType);
     haptic.impact('medium');
 
+    // 📱 Внутренние ссылки (документы) - открываются в приложении
+    if (url.startsWith('/')) {
+      const fullUrl = `${window.location.origin}${url}`;
+      if (webApp?.openLink) {
+        webApp.openLink(fullUrl);
+      } else {
+        window.location.href = url;
+      }
+      setTimeout(() => setLoadingLink(null), 300);
+      return;
+    }
+
     // ⚡️ МГНОВЕННОЕ открытие Telegram ссылок
     if (url.startsWith('https://t.me/')) {
-      // Telegram ссылки открываются НАПРЯМУЮ через webApp.openTelegramLink
       if (webApp?.openTelegramLink) {
         webApp.openTelegramLink(url);
       } else {
@@ -106,18 +117,7 @@ export function ProfileTab() {
       return;
     }
 
-    // 📄 PDF файлы открываем через webApp.openLink (откроется в Telegram)
-    if (url.endsWith('.pdf') || url.includes('.pdf')) {
-      if (webApp?.openLink) {
-        webApp.openLink(url);
-      } else {
-        window.open(url, '_blank');
-      }
-      setTimeout(() => setLoadingLink(null), 500);
-      return;
-    }
-
-    // 🌐 Обычные ссылки
+    // 🌐 Внешние ссылки
     if (webApp?.openLink) {
       webApp.openLink(url);
     } else {
@@ -373,7 +373,7 @@ export function ProfileTab() {
         {/* ===== ССЫЛКИ ===== */}
         <div className="space-y-[20px] px-[30px]">
           <button
-            onClick={() => openLink('https://storage.daniillepekhin.com/IK%2Fclub_miniapp%2F%D0%9F%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0%20%D0%BA%D0%BB%D1%83%D0%B1%D0%B0.pdf', 'rules')}
+            onClick={() => openLink('/docs/rules', 'rules')}
             disabled={loadingLink === 'rules'}
             className="w-full text-center transition-all active:scale-95 disabled:opacity-50"
             style={{
@@ -391,7 +391,7 @@ export function ProfileTab() {
           </button>
 
           <button
-            onClick={() => openLink('https://ishodnyi-kod.com/clubofert', 'offer')}
+            onClick={() => openLink('/docs/offer', 'offer')}
             disabled={loadingLink === 'offer'}
             className="w-full text-center transition-all active:scale-95 disabled:opacity-50"
             style={{

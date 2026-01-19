@@ -42,18 +42,13 @@ export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
   .patch(
     '/me',
     async ({ body, headers, set }) => {
-      logger.info({ body, authHeader: headers.authorization }, 'PATCH /users/me received');
-
       // ✅ ПРЯМАЯ ПРОВЕРКА - работает всегда
       const user = await getUserFromToken(headers.authorization);
 
       if (!user) {
-        logger.error('PATCH /users/me: authentication failed');
         set.status = 401;
         return { success: false, error: 'Unauthorized' };
       }
-
-      logger.info({ userId: user.id }, 'PATCH /users/me: user authenticated');
 
       const { settings, languageCode, firstName, lastName, city } = body;
 
