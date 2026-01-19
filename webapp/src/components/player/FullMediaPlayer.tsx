@@ -21,6 +21,7 @@ import { useMediaPlayerStore } from '@/store/media-player';
 export function FullMediaPlayer() {
   const { haptic } = useTelegram();
   const [isVideoFullscreen, setIsVideoFullscreen] = useState(false);
+  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
 
   const {
     currentMedia,
@@ -121,6 +122,21 @@ export function FullMediaPlayer() {
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
     };
   }, []);
+
+  // Close speed menu when clicking outside
+  useEffect(() => {
+    if (!showSpeedMenu) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.speed-menu-container')) {
+        setShowSpeedMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showSpeedMenu]);
 
   if (!showFullPlayer || !currentMedia) return null;
 
@@ -316,18 +332,45 @@ export function FullMediaPlayer() {
               )}
             </button>
           ) : (
-            <button
-              onClick={() => {
-                const rates = [0.5, 0.75, 1, 1.25, 1.5, 2];
-                const currentIndex = rates.indexOf(playbackRate);
-                const nextRate = rates[(currentIndex + 1) % rates.length];
-                setPlaybackRate(nextRate);
-                haptic.impact('light');
-              }}
-              className="w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium text-sm transition-all"
-            >
-              {playbackRate}x
-            </button>
+            <div className="relative speed-menu-container">
+              {/* Speed Menu Popup */}
+              {showSpeedMenu && (
+                <div className="absolute bottom-full right-0 mb-2 bg-[#2b2520]/95 backdrop-blur-xl rounded-2xl p-2 shadow-2xl border border-white/10 min-w-[100px]">
+                  {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => (
+                    <button
+                      key={rate}
+                      onClick={() => {
+                        setPlaybackRate(rate);
+                        setShowSpeedMenu(false);
+                        haptic.impact('light');
+                      }}
+                      className={`w-full px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                        playbackRate === rate
+                          ? 'bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white'
+                          : 'text-white/70 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      {rate}x
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Speed Button */}
+              <button
+                onClick={() => {
+                  setShowSpeedMenu(!showSpeedMenu);
+                  haptic.impact('light');
+                }}
+                className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-medium text-sm transition-all ${
+                  showSpeedMenu
+                    ? 'bg-white/30'
+                    : 'bg-white/10 hover:bg-white/20'
+                }`}
+              >
+                {playbackRate}x
+              </button>
+            </div>
           )}
         </div>
       </div>
