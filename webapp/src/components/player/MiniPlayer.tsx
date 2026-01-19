@@ -33,7 +33,7 @@ export function MiniPlayer() {
   // 🔧 Setup direct event handlers on audio/video element (performance optimization)
   useEffect(() => {
     const media = mediaRef.current;
-    if (!media) return;
+    if (!media || !currentMedia) return;
 
     // Direct event handlers to avoid React re-render overhead
     const handleTimeUpdate = () => {
@@ -48,16 +48,22 @@ export function MiniPlayer() {
       setIsPlaying(false);
     };
 
+    // Attach listeners
     media.addEventListener('timeupdate', handleTimeUpdate);
     media.addEventListener('loadedmetadata', handleLoadedMetadata);
     media.addEventListener('ended', handleEnded);
+
+    // If metadata is already loaded, set duration immediately
+    if (media.duration && !isNaN(media.duration)) {
+      setDuration(Math.floor(media.duration));
+    }
 
     return () => {
       media.removeEventListener('timeupdate', handleTimeUpdate);
       media.removeEventListener('loadedmetadata', handleLoadedMetadata);
       media.removeEventListener('ended', handleEnded);
     };
-  }, [mediaRef, setCurrentTime, setDuration, setIsPlaying]);
+  }, [currentMedia, mediaRef, setCurrentTime, setDuration, setIsPlaying]);
 
   // Handle play/pause
   useEffect(() => {
