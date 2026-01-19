@@ -39,6 +39,7 @@ export function ProfileTab() {
   const updateProfileMutation = useMutation({
     mutationFn: usersApi.updateProfile,
     onSuccess: (data) => {
+      console.log('Profile updated successfully:', data);
       haptic.notification('success');
       // Обновляем пользователя в store
       if (user && data.user) {
@@ -46,7 +47,9 @@ export function ProfileTab() {
       }
       setIsEditingName(false);
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('Profile update error:', error);
+      console.error('Error response:', error.response?.data);
       haptic.notification('error');
     },
   });
@@ -70,11 +73,14 @@ export function ProfileTab() {
       return;
     }
 
-    haptic.impact('medium');
-    updateProfileMutation.mutate({
+    const updateData = {
       firstName: editFirstName.trim(),
       lastName: editLastName.trim() || undefined,
-    });
+    };
+
+    console.log('Updating profile with:', updateData);
+    haptic.impact('medium');
+    updateProfileMutation.mutate(updateData);
   }, [editFirstName, editLastName, updateProfileMutation, haptic]);
 
   // 🚀 ОПТИМИЗИРОВАННАЯ функция открытия ссылок с визуальной обратной связью
