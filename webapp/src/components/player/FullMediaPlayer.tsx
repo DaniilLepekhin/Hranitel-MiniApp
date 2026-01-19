@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Play,
   Pause,
@@ -20,8 +20,6 @@ import { useMediaPlayerStore } from '@/store/media-player';
 
 export function FullMediaPlayer() {
   const { haptic } = useTelegram();
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
   const [isVideoFullscreen, setIsVideoFullscreen] = useState(false);
 
   const {
@@ -32,79 +30,14 @@ export function FullMediaPlayer() {
     duration,
     isMuted,
     showFullPlayer,
-    seekTime,
     playbackRate,
     setIsPlaying,
-    setCurrentTime,
-    setDuration,
     setIsMuted,
     setPlaybackRate,
     seekTo,
-    clearSeek,
     minimizePlayer,
     closePlayer,
   } = useMediaPlayerStore();
-
-  const mediaRef = currentMedia?.type === 'video' ? videoRef : audioRef;
-
-  // Handle play/pause
-  useEffect(() => {
-    const media = mediaRef.current;
-    if (!media) return;
-
-    if (isPlaying) {
-      const playPromise = media.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((err) => {
-          // Auto-play was prevented - user needs to interact first
-          console.warn('Playback prevented - user interaction required:', err.message);
-          setIsPlaying(false);
-        });
-      }
-    } else {
-      media.pause();
-    }
-  }, [isPlaying, mediaRef, setIsPlaying]);
-
-  // Handle seek
-  useEffect(() => {
-    const media = mediaRef.current;
-    if (!media || seekTime === null) return;
-
-    media.currentTime = seekTime;
-    clearSeek();
-  }, [seekTime, mediaRef, clearSeek]);
-
-  // Handle mute
-  useEffect(() => {
-    const media = mediaRef.current;
-    if (!media) return;
-
-    media.muted = isMuted;
-  }, [isMuted, mediaRef]);
-
-  // Handle playback rate
-  useEffect(() => {
-    const media = mediaRef.current;
-    if (!media) return;
-
-    media.playbackRate = playbackRate;
-  }, [playbackRate, mediaRef]);
-
-  // Update time
-  const handleTimeUpdate = () => {
-    const media = mediaRef.current;
-    if (!media) return;
-
-    setCurrentTime(Math.floor(media.currentTime));
-  };
-
-  const handleLoadedMetadata = () => {
-    const media = mediaRef.current;
-    if (!media) return;
-
-    setDuration(Math.floor(media.duration));
-  };
 
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
@@ -149,7 +82,8 @@ export function FullMediaPlayer() {
   };
 
   const toggleVideoFullscreen = () => {
-    const video = videoRef.current;
+    // Get video element from MiniPlayer (managed globally now)
+    const video = document.querySelector('video');
     if (!video) return;
 
     if (!isVideoFullscreen) {
@@ -204,31 +138,6 @@ export function FullMediaPlayer() {
           />
         )}
       </div>
-
-      {/* Audio Element */}
-      {(currentMedia.type === 'audio' || currentMedia.type === 'meditation') && (
-        <audio
-          ref={audioRef}
-          src={currentMedia.url}
-          onTimeUpdate={handleTimeUpdate}
-          onLoadedMetadata={handleLoadedMetadata}
-          onEnded={() => setIsPlaying(false)}
-        />
-      )}
-
-      {/* Video Element */}
-      {currentMedia.type === 'video' && (
-        <video
-          ref={videoRef}
-          src={currentMedia.url}
-          onTimeUpdate={handleTimeUpdate}
-          onLoadedMetadata={handleLoadedMetadata}
-          onEnded={() => setIsPlaying(false)}
-          className="absolute inset-0 w-full h-full object-contain bg-black"
-          controls={false}
-          playsInline
-        />
-      )}
 
       {/* Header */}
       <div className="relative z-10 flex items-center justify-between p-4">

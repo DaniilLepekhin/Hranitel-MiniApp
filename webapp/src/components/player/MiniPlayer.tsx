@@ -1,24 +1,93 @@
 'use client';
 
+import { useRef, useEffect } from 'react';
 import { Play, Pause, X, Headphones, Radio } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useMediaPlayerStore } from '@/store/media-player';
 
 export function MiniPlayer() {
   const { haptic } = useTelegram();
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const {
     currentMedia,
     isPlaying,
     currentTime,
     duration,
+    isMuted,
     showFullPlayer,
+    seekTime,
+    playbackRate,
     setIsPlaying,
+    setCurrentTime,
+    setDuration,
     setShowFullPlayer,
+    clearSeek,
     closePlayer,
   } = useMediaPlayerStore();
 
-  if (!currentMedia || showFullPlayer) return null;
+  const mediaRef = currentMedia?.type === 'video' ? videoRef : audioRef;
+
+  // Handle play/pause
+  useEffect(() => {
+    const media = mediaRef.current;
+    if (!media) return;
+
+    if (isPlaying) {
+      const playPromise = media.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          console.warn('Playback prevented:', err.message);
+          setIsPlaying(false);
+        });
+      }
+    } else {
+      media.pause();
+    }
+  }, [isPlaying, mediaRef, setIsPlaying]);
+
+  // Handle seek
+  useEffect(() => {
+    const media = mediaRef.current;
+    if (!media || seekTime === null) return;
+
+    media.currentTime = seekTime;
+    clearSeek();
+  }, [seekTime, mediaRef, clearSeek]);
+
+  // Handle mute
+  useEffect(() => {
+    const media = mediaRef.current;
+    if (!media) return;
+
+    media.muted = isMuted;
+  }, [isMuted, mediaRef]);
+
+  // Handle playback rate
+  useEffect(() => {
+    const media = mediaRef.current;
+    if (!media) return;
+
+    media.playbackRate = playbackRate;
+  }, [playbackRate, mediaRef]);
+
+  // Update time
+  const handleTimeUpdate = () => {
+    const media = mediaRef.current;
+    if (!media) return;
+
+    setCurrentTime(Math.floor(media.currentTime));
+  };
+
+  const handleLoadedMetadata = () => {
+    const media = mediaRef.current;
+    if (!media) return;
+
+    setDuration(Math.floor(media.duration));
+  };
+
+  if (!currentMedia) return null;
 
   const togglePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -46,10 +115,40 @@ export function MiniPlayer() {
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div
-      onClick={handleOpen}
-      className="fixed bottom-20 left-4 right-4 z-50 bg-gradient-to-r from-[#d93547] to-[#9c1723] rounded-2xl shadow-2xl cursor-pointer hover:shadow-[#d93547]/30 transition-all active:scale-[0.98] backdrop-blur-md"
-    >
+    <>
+      {/* Audio Element - always in DOM */}
+      {(currentMedia.type === 'audio' || currentMedia.type === 'meditation') && (
+        <audio
+          ref={audioRef}
+          src={currentMedia.url}
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onEnded={() => setIsPlaying(false)}
+          style={{ display: 'none' }}
+        />
+      )}
+
+      {/* Video Element - always in DOM but hidden when mini player shown */}
+      {currentMedia.type === 'video' && (
+        <video
+          ref={videoRef}
+          src={currentMedia.url}
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onEnded={() => setIsPlaying(false)}
+          style={{ display: showFullPlayer ? 'block' : 'none' }}
+          className="fixed inset-0 w-full h-full object-contain bg-black z-[95]"
+          playsInline
+          controls={false}
+        />
+      )}
+
+      {/* Mini Player UI - only show when full player is hidden */}
+      {!showFullPlayer && (
+        <div
+          onClick={handleOpen}
+          className="fixed bottom-20 left-4 right-4 z-50 bg-gradient-to-r from-[#d93547] to-[#9c1723] rounded-2xl shadow-2xl cursor-pointer hover:shadow-[#d93547]/30 transition-all active:scale-[0.98] backdrop-blur-md"
+        >
       {/* Progress bar */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-white/20 rounded-t-2xl overflow-hidden">
         <div
@@ -108,6 +207,8 @@ export function MiniPlayer() {
           </button>
         </div>
       </div>
-    </div>
+        </div>
+      )}
+    </>
   );
 }
