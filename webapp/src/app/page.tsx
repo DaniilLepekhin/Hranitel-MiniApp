@@ -4,8 +4,6 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { Navigation, TabType } from '@/components/ui/Navigation';
-import { MiniPlayer } from '@/components/ui/MiniPlayer';
-import { FullMediaPlayer } from '@/components/player/FullMediaPlayer';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
@@ -138,12 +136,6 @@ function HomeContent() {
       <div className="relative z-10">
         {tabComponents[activeTab]}
       </div>
-
-      {/* Mini Player - Global, persists across tabs */}
-      <MiniPlayer />
-
-      {/* Full Media Player - Global overlay */}
-      <FullMediaPlayer />
 
       {/* Navigation */}
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />

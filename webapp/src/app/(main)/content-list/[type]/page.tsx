@@ -8,8 +8,6 @@ import { contentApi, type ContentItem } from '@/lib/api';
 import { useTelegram } from '@/hooks/useTelegram';
 import { Card } from '@/components/ui/Card';
 import { FullscreenButton } from '@/components/ui/FullscreenButton';
-import { MiniPlayer } from '@/components/ui/MiniPlayer';
-import { FullMediaPlayer } from '@/components/player/FullMediaPlayer';
 
 type ContentType = 'course' | 'podcast' | 'stream_record' | 'practice';
 
@@ -117,10 +115,6 @@ export default function ContentListPage() {
 
   return (
     <>
-      {/* Global Media Players */}
-      <MiniPlayer />
-      <FullMediaPlayer />
-
       <FullscreenButton />
       <div className="px-4 pt-6 pb-24">
       {/* Header */}

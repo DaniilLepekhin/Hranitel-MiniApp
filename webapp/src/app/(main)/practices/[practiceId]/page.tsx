@@ -8,8 +8,6 @@ import { contentApi } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { useMediaPlayerStore, type MediaItem } from '@/store/media-player';
 import { useTelegram } from '@/hooks/useTelegram';
-import { MiniPlayer } from '@/components/ui/MiniPlayer';
-import { FullMediaPlayer } from '@/components/player/FullMediaPlayer';
 
 // 🚀 ОПТИМИЗАЦИЯ: Dynamic import для ReactMarkdown (экономия ~150KB gzipped)
 const ReactMarkdown = dynamic(() => import('react-markdown'), {
@@ -132,12 +130,7 @@ export default function PracticePage() {
   };
 
   return (
-    <>
-      {/* Global Media Players */}
-      <MiniPlayer />
-      <FullMediaPlayer />
-
-      <div className="px-4 safe-top pb-24">
+    <div className="px-4 safe-top pb-24">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <button
@@ -279,7 +272,6 @@ export default function PracticePage() {
           </div>
         </div>
       </Card>
-      </div>
-    </>
+    </div>
   );
 }
