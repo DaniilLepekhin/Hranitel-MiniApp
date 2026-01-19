@@ -100,7 +100,8 @@ jobs:
             # Restart frontend service (port 3003)
             echo "🔄 Restarting frontend..."
             pm2 delete hranitel-frontend 2>/dev/null || true
-            PORT=3003 pm2 start --name hranitel-frontend node -- .next/standalone/server.js
+            cd .next/standalone
+            PORT=3003 pm2 start --name hranitel-frontend --cwd /var/www/hranitel/webapp/.next/standalone node -- server.js
             pm2 save
 
             # Setup Nginx for hranitel.daniillepekhin.com
