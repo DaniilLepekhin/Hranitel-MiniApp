@@ -5,8 +5,8 @@ import { authMiddleware } from '@/middlewares/auth';
 import { logger } from '@/utils/logger';
 
 export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
-  .use(authMiddleware)
   // Get current user profile
+  .use(authMiddleware)
   .get(
     '/me',
     async ({ user }) => {
@@ -39,6 +39,7 @@ export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
     }
   )
   // Update user profile
+  .use(authMiddleware)
   .patch(
     '/me',
     async ({ user, body, headers }) => {
