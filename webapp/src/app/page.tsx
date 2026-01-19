@@ -53,6 +53,8 @@ function HomeContent() {
     const authenticate = async () => {
       if (!isReady) return;
 
+      const startTime = Date.now(); // Засекаем время начала загрузки
+
       try {
         if (initData) {
           // Telegram WebApp auth
@@ -86,13 +88,20 @@ function HomeContent() {
       } catch (error) {
         console.error('Auth error:', error);
       } finally {
-        setLoading(false);
-        setHasInitialized(true);
+        // Минимальная задержка 1.5 секунды для LoadingScreen
+        const elapsed = Date.now() - startTime;
+        const minLoadingTime = 1500; // 1.5 секунды
+        const remainingTime = Math.max(0, minLoadingTime - elapsed);
+
+        setTimeout(() => {
+          setLoading(false);
+          setHasInitialized(true);
+        }, remainingTime);
       }
     };
 
     authenticate();
-  }, [isReady, initData, tgUser, webApp, setUser, setLoading]);
+  }, [isReady, initData, tgUser, webApp, setUser, setLoading, setHasInitialized]);
 
   // Loading state - ✨ НОВЫЙ ДИЗАЙН С "KOD"
   // Show loading screen during initial app load (not on navigation)
