@@ -78,7 +78,7 @@ export function ProfileTab() {
       lastName: editLastName.trim() || undefined,
     };
 
-    console.log('Updating profile with:', updateData);
+    console.log('Updating profile with:', JSON.stringify(updateData, null, 2));
     haptic.impact('medium');
     updateProfileMutation.mutate(updateData);
   }, [editFirstName, editLastName, updateProfileMutation, haptic]);
