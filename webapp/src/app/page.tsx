@@ -22,7 +22,6 @@ import { ShopTab } from '@/components/tabs/ShopTab';
 
 function HomeContent() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
-  const [hasInitialized, setHasInitialized] = useState(false);
   const searchParams = useSearchParams();
 
   // Handle tab query parameter
@@ -33,7 +32,7 @@ function HomeContent() {
     }
   }, [searchParams]);
   const { user: tgUser, isReady, initData, webApp, requestFullscreen, exitFullscreen, isFullscreen, haptic } = useTelegram();
-  const { user, token, setUser, isLoading, setLoading } = useAuthStore();
+  const { user, token, hasInitialized, setUser, isLoading, setLoading, setHasInitialized } = useAuthStore();
 
   const toggleFullscreen = () => {
     haptic.impact('medium');
