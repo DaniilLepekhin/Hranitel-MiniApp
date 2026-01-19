@@ -117,7 +117,7 @@ export default function ContentListPage() {
         <button
           onClick={() => {
             haptic.impact('light');
-            router.push('/?tab=path');
+            router.replace('/?tab=path');
           }}
           className="w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center hover:bg-white/80 transition-all border border-[#d93547]/30"
         >

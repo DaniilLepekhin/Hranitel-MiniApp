@@ -45,6 +45,7 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         token: state.token,
         isAuthenticated: state.isAuthenticated,
+        isLoading: state.isLoading, // Persist loading state to avoid showing LoadingScreen on navigation
       }),
     }
   )
