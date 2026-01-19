@@ -96,7 +96,9 @@ export const authMiddleware = new Elysia({ name: 'auth' })
       exp: '30d',
     })
   )
-  .derive(async ({ headers, jwt, cookie }) => {
+  .derive(async ({ headers, jwt, cookie, path }) => {
+    logger.info({ path, hasAuthHeader: !!headers.authorization }, 'authMiddleware.derive called');
+
     // Try to get token from httpOnly cookie first
     let token: string | undefined = cookie?.auth_token?.value;
 
@@ -109,6 +111,7 @@ export const authMiddleware = new Elysia({ name: 'auth' })
     }
 
     if (!token) {
+      logger.warn({ path }, 'authMiddleware: No token provided');
       return { user: null as User | null, authError: 'No token provided' };
     }
 
