@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { db, users, type User } from '@/db';
 import { config } from '@/config';
 import { logger } from '@/utils/logger';
+import type { JWTPayloadSpec } from '@elysiajs/jwt';
 
 // Validate Telegram WebApp initData
 export function validateTelegramInitData(initData: string): boolean {
@@ -83,6 +84,51 @@ export function parseTelegramUser(initData: string): {
 
     return JSON.parse(userJson);
   } catch {
+    return null;
+  }
+}
+
+// ✅ ПРОСТАЯ HELPER-ФУНКЦИЯ - работает всегда
+export async function getUserFromToken(authHeader: string | undefined): Promise<User | null> {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    logger.warn('getUserFromToken: No Bearer token provided');
+    return null;
+  }
+
+  const token = authHeader.substring(7);
+
+  try {
+    // Create JWT instance
+    const jwtInstance = jwt({
+      name: 'jwt',
+      secret: config.JWT_SECRET,
+      exp: '30d',
+    });
+
+    // Verify token manually
+    const payload = await jwtInstance.decorator.jwt.verify(token) as { userId?: string };
+
+    if (!payload || typeof payload.userId !== 'string') {
+      logger.warn('getUserFromToken: Invalid token payload');
+      return null;
+    }
+
+    // Load user from database
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, payload.userId))
+      .limit(1);
+
+    if (!user) {
+      logger.warn({ userId: payload.userId }, 'getUserFromToken: User not found in DB');
+      return null;
+    }
+
+    logger.info({ userId: user.id }, 'getUserFromToken: User authenticated successfully');
+    return user;
+  } catch (error) {
+    logger.error({ error }, 'getUserFromToken: JWT verification error');
     return null;
   }
 }

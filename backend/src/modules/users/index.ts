@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { eq } from 'drizzle-orm';
 import { db, users } from '@/db';
-import { authMiddleware } from '@/middlewares/auth';
+import { authMiddleware, getUserFromToken } from '@/middlewares/auth';
 import { logger } from '@/utils/logger';
 
 export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
@@ -41,14 +41,19 @@ export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
   // Update user profile
   .patch(
     '/me',
-    async ({ user, body, headers, set }) => {
-      logger.info({ userId: user?.id, body, hasUser: !!user, authHeader: headers.authorization }, 'PATCH /users/me received');
+    async ({ body, headers, set }) => {
+      logger.info({ body, authHeader: headers.authorization }, 'PATCH /users/me received');
+
+      // ✅ ПРЯМАЯ ПРОВЕРКА - работает всегда
+      const user = await getUserFromToken(headers.authorization);
 
       if (!user) {
-        logger.error('PATCH /users/me: user is null despite authMiddleware');
+        logger.error('PATCH /users/me: authentication failed');
         set.status = 401;
         return { success: false, error: 'Unauthorized' };
       }
+
+      logger.info({ userId: user.id }, 'PATCH /users/me: user authenticated');
 
       const { settings, languageCode, firstName, lastName, city } = body;
 
@@ -82,10 +87,10 @@ export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
       const [updatedUser] = await db
         .update(users)
         .set(updateData)
-        .where(eq(users.id, user!.id))
+        .where(eq(users.id, user.id))
         .returning();
 
-      logger.info({ userId: user!.id, updates: Object.keys(updateData) }, 'User profile updated');
+      logger.info({ userId: user.id, updates: Object.keys(updateData) }, 'User profile updated');
 
       return {
         success: true,
