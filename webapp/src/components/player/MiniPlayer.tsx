@@ -19,6 +19,7 @@ export function MiniPlayer() {
     showFullPlayer,
     seekTime,
     playbackRate,
+    _hasHydrated,
     setIsPlaying,
     setCurrentTime,
     setDuration,
@@ -28,6 +29,12 @@ export function MiniPlayer() {
   } = useMediaPlayerStore();
 
   const mediaRef = currentMedia?.type === 'video' ? videoRef : audioRef;
+
+  // 🔧 FIX: Don't render until hydration is complete
+  // This prevents the "flash of no content" during restore from sessionStorage
+  if (!_hasHydrated) {
+    return null;
+  }
 
   // Handle play/pause
   useEffect(() => {

@@ -27,6 +27,9 @@ interface MediaPlayerState {
   seekTime: number | null;
   playbackRate: number;
 
+  // 🔧 FIX: Flag to track if hydration from storage is complete
+  _hasHydrated: boolean;
+
   // Actions
   setMedia: (media: MediaItem | null, timecodes?: VideoTimecode[]) => void;
   setIsPlaying: (isPlaying: boolean) => void;
@@ -39,6 +42,7 @@ interface MediaPlayerState {
   clearSeek: () => void;
   closePlayer: () => void;
   minimizePlayer: () => void;
+  setHasHydrated: (hasHydrated: boolean) => void;
 }
 
 export const useMediaPlayerStore = create<MediaPlayerState>()(
@@ -53,6 +57,7 @@ export const useMediaPlayerStore = create<MediaPlayerState>()(
       showFullPlayer: false,
       seekTime: null,
       playbackRate: 1,
+      _hasHydrated: false,
 
       setMedia: (media, timecodes = []) =>
         set({
@@ -85,6 +90,7 @@ export const useMediaPlayerStore = create<MediaPlayerState>()(
         }),
 
       minimizePlayer: () => set({ showFullPlayer: false }),
+      setHasHydrated: (hasHydrated) => set({ _hasHydrated: hasHydrated }),
     }),
     {
       name: 'media-player-storage',
@@ -100,6 +106,12 @@ export const useMediaPlayerStore = create<MediaPlayerState>()(
         showFullPlayer: state.showFullPlayer,
         playbackRate: state.playbackRate,
       }),
+      // 🔧 FIX: Set hydration flag when restore completes
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state._hasHydrated = true;
+        }
+      },
     }
   )
 );
