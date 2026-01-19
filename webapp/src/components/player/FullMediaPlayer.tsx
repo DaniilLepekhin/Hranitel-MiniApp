@@ -316,21 +316,18 @@ export function FullMediaPlayer() {
               )}
             </button>
           ) : (
-            <div className="flex items-center gap-2">
-              <span className="text-white/60 text-sm">Скорость:</span>
-              <button
-                onClick={() => {
-                  const rates = [0.5, 0.75, 1, 1.25, 1.5, 2];
-                  const currentIndex = rates.indexOf(playbackRate);
-                  const nextRate = rates[(currentIndex + 1) % rates.length];
-                  setPlaybackRate(nextRate);
-                  haptic.impact('light');
-                }}
-                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium text-sm transition-all"
-              >
-                {playbackRate}x
-              </button>
-            </div>
+            <button
+              onClick={() => {
+                const rates = [0.5, 0.75, 1, 1.25, 1.5, 2];
+                const currentIndex = rates.indexOf(playbackRate);
+                const nextRate = rates[(currentIndex + 1) % rates.length];
+                setPlaybackRate(nextRate);
+                haptic.impact('light');
+              }}
+              className="w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium text-sm transition-all"
+            >
+              {playbackRate}x
+            </button>
           )}
         </div>
       </div>
