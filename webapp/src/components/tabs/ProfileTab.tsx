@@ -73,10 +73,15 @@ export function ProfileTab() {
       return;
     }
 
-    const updateData = {
+    const updateData: { firstName: string; lastName?: string } = {
       firstName: editFirstName.trim(),
-      lastName: editLastName.trim() || undefined,
     };
+
+    // Только добавляем lastName если он не пустой
+    const trimmedLastName = editLastName.trim();
+    if (trimmedLastName) {
+      updateData.lastName = trimmedLastName;
+    }
 
     console.log('Updating profile with:', JSON.stringify(updateData, null, 2));
     haptic.impact('medium');
