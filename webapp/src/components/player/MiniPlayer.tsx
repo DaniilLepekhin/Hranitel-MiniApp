@@ -159,12 +159,7 @@ export function MiniPlayer() {
     </>
   );
 
-  // 🔧 FIX: Check hydration AFTER all hooks (Rules of Hooks compliance)
-  // Return media elements even during hydration to keep them mounted
-  if (!_hasHydrated) {
-    return mediaElements;
-  }
-
+  // Не показываем ничего если нет медиа
   if (!currentMedia) {
     return null;
   }
@@ -174,7 +169,7 @@ export function MiniPlayer() {
       {mediaElements}
 
       {/* Mini Player UI - only show when full player is hidden */}
-      {!showFullPlayer && (
+      {!showFullPlayer && _hasHydrated && (
         <div
           onClick={handleOpen}
           className="fixed bottom-20 left-4 right-4 z-50 bg-gradient-to-r from-[#d93547] to-[#9c1723] rounded-2xl shadow-2xl cursor-pointer hover:shadow-[#d93547]/30 transition-all active:scale-[0.98] backdrop-blur-md"
