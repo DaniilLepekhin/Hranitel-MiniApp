@@ -33,11 +33,11 @@ export default function ContentDetailPage() {
     enabled: !!itemId && (itemData?.item.type === 'course' || itemData?.item.type === 'podcast'),
   });
 
-  // Fetch videos (for stream recordings)
+  // Fetch videos (for stream recordings and podcasts)
   const { data: videosData } = useQuery({
     queryKey: ['content', 'videos', itemId],
     queryFn: () => contentApi.getItemVideos(itemId),
-    enabled: !!itemId && itemData?.item.type === 'stream_record',
+    enabled: !!itemId && (itemData?.item.type === 'stream_record' || itemData?.item.type === 'podcast'),
   });
 
   // Fetch user progress
