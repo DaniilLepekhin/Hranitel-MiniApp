@@ -5,13 +5,6 @@ import { authMiddleware } from '@/middlewares/auth';
 import { logger } from '@/utils/logger';
 
 export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
-  .onBeforeHandle(({ request, headers }) => {
-    logger.info({
-      method: request.method,
-      path: request.url,
-      hasAuth: !!headers.authorization
-    }, 'usersModule.onBeforeHandle - BEFORE authMiddleware');
-  })
   .use(authMiddleware)
   // Get current user profile
   .get(
