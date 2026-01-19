@@ -3,8 +3,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { useTelegram } from '@/hooks/useTelegram';
-import { FullMediaPlayer } from '@/components/player/FullMediaPlayer';
-import { MiniPlayer } from '@/components/player/MiniPlayer';
 import { useAuthStore } from '@/store/auth';
 import { setAuthToken } from '@/lib/api';
 
@@ -65,9 +63,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <TelegramInit />
       <AuthTokenInit />
-      {/* Global Media Players - must be before children to prevent unmounting */}
-      <MiniPlayer />
-      <FullMediaPlayer />
       {children}
     </QueryClientProvider>
   );
