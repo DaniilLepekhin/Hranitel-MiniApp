@@ -30,6 +30,35 @@ export function MiniPlayer() {
 
   const mediaRef = currentMedia?.type === 'video' ? videoRef : audioRef;
 
+  // 🔧 Setup direct event handlers on audio/video element (performance optimization)
+  useEffect(() => {
+    const media = mediaRef.current;
+    if (!media) return;
+
+    // Direct event handlers to avoid React re-render overhead
+    const handleTimeUpdate = () => {
+      setCurrentTime(Math.floor(media.currentTime));
+    };
+
+    const handleLoadedMetadata = () => {
+      setDuration(Math.floor(media.duration));
+    };
+
+    const handleEnded = () => {
+      setIsPlaying(false);
+    };
+
+    media.addEventListener('timeupdate', handleTimeUpdate);
+    media.addEventListener('loadedmetadata', handleLoadedMetadata);
+    media.addEventListener('ended', handleEnded);
+
+    return () => {
+      media.removeEventListener('timeupdate', handleTimeUpdate);
+      media.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      media.removeEventListener('ended', handleEnded);
+    };
+  }, [mediaRef, setCurrentTime, setDuration, setIsPlaying]);
+
   // Handle play/pause
   useEffect(() => {
     const media = mediaRef.current;
@@ -73,28 +102,6 @@ export function MiniPlayer() {
     media.playbackRate = playbackRate;
   }, [playbackRate, mediaRef]);
 
-  // Update time
-  const handleTimeUpdate = () => {
-    const media = mediaRef.current;
-    if (!media) return;
-
-    setCurrentTime(Math.floor(media.currentTime));
-  };
-
-  const handleLoadedMetadata = () => {
-    const media = mediaRef.current;
-    if (!media) return;
-
-    setDuration(Math.floor(media.duration));
-  };
-
-  // 🔧 FIX: Check hydration AFTER all hooks (Rules of Hooks compliance)
-  if (!_hasHydrated) {
-    return null;
-  }
-
-  if (!currentMedia) return null;
-
   const togglePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsPlaying(!isPlaying);
@@ -120,34 +127,45 @@ export function MiniPlayer() {
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-  return (
+  // 🔧 FIX: Always render media elements to prevent re-creation and restart
+  const mediaElements = (
     <>
-      {/* Audio Element - always in DOM */}
-      {(currentMedia.type === 'audio' || currentMedia.type === 'meditation') && (
+      {/* Audio Element - always in DOM, event handlers attached via useEffect */}
+      {currentMedia && (currentMedia.type === 'audio' || currentMedia.type === 'meditation') && (
         <audio
           ref={audioRef}
           src={currentMedia.url}
-          onTimeUpdate={handleTimeUpdate}
-          onLoadedMetadata={handleLoadedMetadata}
-          onEnded={() => setIsPlaying(false)}
           style={{ display: 'none' }}
         />
       )}
 
       {/* Video Element - always in DOM but hidden when mini player shown */}
-      {currentMedia.type === 'video' && (
+      {currentMedia && currentMedia.type === 'video' && (
         <video
           ref={videoRef}
           src={currentMedia.url}
-          onTimeUpdate={handleTimeUpdate}
-          onLoadedMetadata={handleLoadedMetadata}
-          onEnded={() => setIsPlaying(false)}
           style={{ display: showFullPlayer ? 'block' : 'none' }}
           className="fixed inset-0 w-full h-full object-contain bg-black z-[95]"
           playsInline
           controls={false}
         />
       )}
+    </>
+  );
+
+  // 🔧 FIX: Check hydration AFTER all hooks (Rules of Hooks compliance)
+  // Return media elements even during hydration to keep them mounted
+  if (!_hasHydrated) {
+    return mediaElements;
+  }
+
+  if (!currentMedia) {
+    return null;
+  }
+
+  return (
+    <>
+      {mediaElements}
 
       {/* Mini Player UI - only show when full player is hidden */}
       {!showFullPlayer && (
