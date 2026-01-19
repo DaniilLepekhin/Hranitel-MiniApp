@@ -92,6 +92,11 @@ jobs:
             echo "🏗️ Building frontend..."
             npm run build
 
+            # Copy static files for standalone mode (required by Next.js)
+            echo "📦 Copying static files..."
+            cp -r .next/static .next/standalone/.next/static
+            cp -r public .next/standalone/public
+
             # Restart frontend service (port 3003)
             echo "🔄 Restarting frontend..."
             pm2 delete hranitel-frontend 2>/dev/null || true
