@@ -41,8 +41,8 @@ export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
   // Update user profile
   .patch(
     '/me',
-    async ({ user, body }) => {
-      logger.info({ userId: user?.id, body }, 'PATCH /users/me received');
+    async ({ user, body, headers }) => {
+      logger.info({ userId: user?.id, body, hasUser: !!user, authHeader: headers.authorization }, 'PATCH /users/me received');
       const { settings, languageCode, firstName, lastName, city } = body;
 
       const updateData: Partial<typeof users.$inferInsert> = {
