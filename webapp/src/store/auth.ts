@@ -52,8 +52,7 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         token: state.token,
         isAuthenticated: state.isAuthenticated,
-        isLoading: state.isLoading, // Persist loading state to avoid showing LoadingScreen on navigation
-        hasInitialized: state.hasInitialized, // Persist initialization state
+        // НЕ персистим isLoading и hasInitialized - LoadingScreen должен показываться при каждом открытии
       }),
     }
   )
