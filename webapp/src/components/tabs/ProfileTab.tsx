@@ -70,6 +70,7 @@ export function ProfileTab() {
   const saveEditedName = useCallback(() => {
     if (!editFirstName.trim()) {
       haptic.notification('warning');
+      webApp?.showAlert('Пожалуйста, введите имя. Это обязательное поле.');
       return;
     }
 
@@ -86,7 +87,7 @@ export function ProfileTab() {
     console.log('Updating profile with:', JSON.stringify(updateData, null, 2));
     haptic.impact('medium');
     updateProfileMutation.mutate(updateData);
-  }, [editFirstName, editLastName, updateProfileMutation, haptic]);
+  }, [editFirstName, editLastName, updateProfileMutation, haptic, webApp]);
 
   // 🚀 ОПТИМИЗИРОВАННАЯ функция открытия ссылок с визуальной обратной связью
   const openLink = useCallback((url: string, linkType: string) => {
