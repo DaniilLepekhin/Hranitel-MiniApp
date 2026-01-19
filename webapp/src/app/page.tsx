@@ -95,7 +95,8 @@ function HomeContent() {
   }, [isReady, initData, tgUser, webApp, setUser, setLoading]);
 
   // Loading state - ✨ НОВЫЙ ДИЗАЙН С "KOD"
-  if (isLoading) {
+  // Only show loading screen if user is not in store (initial load)
+  if (isLoading && !user) {
     return <LoadingScreen />;
   }
 
