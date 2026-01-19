@@ -21,8 +21,9 @@ import { ShopTab } from '@/components/tabs/ShopTab';
 
 function HomeContent() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
+  const [hasInitialized, setHasInitialized] = useState(false);
   const searchParams = useSearchParams();
-  
+
   // Handle tab query parameter
   useEffect(() => {
     const tab = searchParams.get('tab') as TabType;
@@ -88,6 +89,7 @@ function HomeContent() {
         console.error('Auth error:', error);
       } finally {
         setLoading(false);
+        setHasInitialized(true);
       }
     };
 
@@ -95,8 +97,8 @@ function HomeContent() {
   }, [isReady, initData, tgUser, webApp, setUser, setLoading]);
 
   // Loading state - ✨ НОВЫЙ ДИЗАЙН С "KOD"
-  // Only show loading screen if user is not in store (initial load)
-  if (isLoading && !user) {
+  // Show loading screen during initial app load (not on navigation)
+  if (!hasInitialized) {
     return <LoadingScreen />;
   }
 
