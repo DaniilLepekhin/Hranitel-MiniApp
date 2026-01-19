@@ -101,7 +101,7 @@ export default function ContentDetailPage() {
 
   const handlePracticeClick = () => {
     haptic.impact('light');
-    router.push(`/practices/${itemId}`);
+    router.push(`/practice/${itemId}`);
   };
 
   // Play podcast/stream with timecodes

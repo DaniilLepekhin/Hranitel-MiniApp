@@ -115,7 +115,10 @@ export default function ContentListPage() {
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <button
-          onClick={() => router.back()}
+          onClick={() => {
+            haptic.impact('light');
+            router.push('/?tab=path');
+          }}
           className="w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center hover:bg-white/80 transition-all border border-[#d93547]/30"
         >
           <ArrowLeft className="w-5 h-5 text-[#2b2520]" />
