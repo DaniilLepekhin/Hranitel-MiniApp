@@ -30,12 +30,6 @@ export function MiniPlayer() {
 
   const mediaRef = currentMedia?.type === 'video' ? videoRef : audioRef;
 
-  // 🔧 FIX: Don't render until hydration is complete
-  // This prevents the "flash of no content" during restore from sessionStorage
-  if (!_hasHydrated) {
-    return null;
-  }
-
   // Handle play/pause
   useEffect(() => {
     const media = mediaRef.current;
@@ -93,6 +87,11 @@ export function MiniPlayer() {
 
     setDuration(Math.floor(media.duration));
   };
+
+  // 🔧 FIX: Check hydration AFTER all hooks (Rules of Hooks compliance)
+  if (!_hasHydrated) {
+    return null;
+  }
 
   if (!currentMedia) return null;
 
