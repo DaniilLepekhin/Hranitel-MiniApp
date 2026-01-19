@@ -138,13 +138,12 @@ export const authModule = new Elysia({ prefix: '/auth', tags: ['Auth'] })
           .limit(1);
 
         if (user) {
-          // Update existing user
+          // Update existing user - НЕ обновляем firstName/lastName (пользователь мог их изменить)
           [user] = await db
             .update(users)
             .set({
               username: telegramUser.username || user.username,
-              firstName: telegramUser.first_name || user.firstName,
-              lastName: telegramUser.last_name || user.lastName,
+              // firstName и lastName НЕ обновляем - пользователь мог их изменить в профиле
               photoUrl: photoUrl || user.photoUrl,
               languageCode: telegramUser.language_code || user.languageCode,
               updatedAt: new Date(),
@@ -152,7 +151,7 @@ export const authModule = new Elysia({ prefix: '/auth', tags: ['Auth'] })
             .where(eq(users.id, user.id))
             .returning();
 
-          logger.info({ userId: user.id, photoUrl: user.photoUrl?.substring(0, 50) }, 'User updated');
+          logger.info({ userId: user.id, photoUrl: user.photoUrl?.substring(0, 50) }, 'User updated (firstName/lastName preserved)');
         } else {
           // Create new user
           [user] = await db
