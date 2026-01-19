@@ -65,9 +65,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <TelegramInit />
       <AuthTokenInit />
-      {children}
-      <FullMediaPlayer />
+      {/* Global Media Players - must be before children to prevent unmounting */}
       <MiniPlayer />
+      <FullMediaPlayer />
+      {children}
     </QueryClientProvider>
   );
 }
