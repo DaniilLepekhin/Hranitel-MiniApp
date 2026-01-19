@@ -82,8 +82,8 @@ jobs:
             echo "🎨 Deploying Frontend..."
             cd ../webapp
 
-            # Create .env for production (API on same domain via /api/)
-            echo "NEXT_PUBLIC_API_URL=" > .env.local
+            # Remove .env.local to use .env.production from repo
+            rm -f .env.local
 
             # Install dependencies
             npm install
