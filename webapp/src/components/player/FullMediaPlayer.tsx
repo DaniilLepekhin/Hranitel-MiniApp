@@ -197,31 +197,6 @@ export function FullMediaPlayer() {
           )}
         </div>
 
-        {/* Playback Speed Control - Only for audio */}
-        {!isVideo && (
-          <div className="flex-shrink-0 mb-6">
-            <h3 className="text-white font-semibold mb-3 text-sm">Скорость воспроизведения</h3>
-            <div className="flex gap-2 flex-wrap">
-              {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => (
-                <button
-                  key={rate}
-                  onClick={() => {
-                    setPlaybackRate(rate);
-                    haptic.impact('light');
-                  }}
-                  className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                    playbackRate === rate
-                      ? 'bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white shadow-lg'
-                      : 'bg-white/10 text-white/80 hover:bg-white/20'
-                  }`}
-                >
-                  {rate}x
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Timecodes */}
         {timecodes.length > 0 && (
           <div className="flex-1 mb-6">
@@ -302,7 +277,8 @@ export function FullMediaPlayer() {
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-center gap-4">
+        <div className="flex items-center justify-between gap-4">
+          {/* Left: Mute button */}
           <button
             onClick={toggleMute}
             className="w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"
@@ -314,13 +290,7 @@ export function FullMediaPlayer() {
             )}
           </button>
 
-          <button
-            onClick={() => skip(-15)}
-            className="w-14 h-14 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"
-          >
-            <SkipBack className="w-6 h-6 text-white" />
-          </button>
-
+          {/* Center: Play button */}
           <button
             onClick={togglePlay}
             className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#d93547] to-[#9c1723] hover:shadow-xl hover:shadow-[#d93547]/30 flex items-center justify-center transition-all shadow-lg"
@@ -332,14 +302,7 @@ export function FullMediaPlayer() {
             )}
           </button>
 
-          <button
-            onClick={() => skip(15)}
-            className="w-14 h-14 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"
-          >
-            <SkipForward className="w-6 h-6 text-white" />
-          </button>
-
-          {/* Fullscreen button for video */}
+          {/* Right: Speed/Fullscreen */}
           {isVideo ? (
             <button
               onClick={toggleVideoFullscreen}
@@ -353,12 +316,21 @@ export function FullMediaPlayer() {
               )}
             </button>
           ) : (
-            <button
-              className="w-12 h-12 rounded-xl bg-white/10 opacity-0"
-              disabled
-            >
-              <Volume2 className="w-5 h-5 text-white" />
-            </button>
+            <div className="flex items-center gap-2">
+              <span className="text-white/60 text-sm">Скорость:</span>
+              <button
+                onClick={() => {
+                  const rates = [0.5, 0.75, 1, 1.25, 1.5, 2];
+                  const currentIndex = rates.indexOf(playbackRate);
+                  const nextRate = rates[(currentIndex + 1) % rates.length];
+                  setPlaybackRate(nextRate);
+                  haptic.impact('light');
+                }}
+                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium text-sm transition-all"
+              >
+                {playbackRate}x
+              </button>
+            </div>
           )}
         </div>
       </div>

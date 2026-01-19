@@ -10,6 +10,8 @@ import { useAuthStore } from '@/store/auth';
 import { Card } from '@/components/ui/Card';
 import { useMediaPlayerStore, type MediaItem } from '@/store/media-player';
 import { FullscreenButton } from '@/components/ui/FullscreenButton';
+import { MiniPlayer } from '@/components/ui/MiniPlayer';
+import { FullMediaPlayer } from '@/components/player/FullMediaPlayer';
 
 export default function ContentDetailPage() {
   const router = useRouter();
@@ -101,7 +103,7 @@ export default function ContentDetailPage() {
 
   const handlePracticeClick = () => {
     haptic.impact('light');
-    router.push(`/practice/${itemId}`);
+    router.push(`/practices/${itemId}`);
   };
 
   // Play podcast/stream with timecodes
@@ -166,6 +168,10 @@ export default function ContentDetailPage() {
 
   return (
     <>
+      {/* Global Media Players */}
+      <MiniPlayer />
+      <FullMediaPlayer />
+
       <FullscreenButton />
       <div className="px-4 pt-6 pb-24">
       {/* Header */}
