@@ -149,13 +149,16 @@ def migrate(csv_path: str):
             stats[section] = stats.get(section, 0) + 1
 
             # Создаем video/audio запись если есть ссылка
-            if row['storage_url']:
-                is_video = row['format'] == 'Видео' or '.mp4' in row['storage_url']
-                is_audio = row['format'] == 'Аудио' or any(ext in row['storage_url'] for ext in ['.mp3', '.ogg'])
+            # Используем storage_url если есть, иначе source_link (для подкастов)
+            media_url = row['storage_url'] if row['storage_url'] else row['source_link']
+
+            if media_url:
+                is_video = row['format'] == 'Видео' or '.mp4' in media_url
+                is_audio = row['format'] == 'Аудио' or any(ext in media_url for ext in ['.mp3', '.ogg'])
 
                 if is_video or is_audio:
                     video_id = str(uuid.uuid4())
-                    duration = estimate_duration(row['storage_url'], row['format'])
+                    duration = estimate_duration(media_url, row['format'])
 
                     cur.execute("""
                         INSERT INTO videos
@@ -166,7 +169,7 @@ def migrate(csv_path: str):
                         content_item_id,
                         row['title'],
                         row['additional_info'] or row['description'],
-                        row['storage_url'],
+                        media_url,
                         duration,
                         0,
                         now
@@ -174,7 +177,7 @@ def migrate(csv_path: str):
 
                     video_count += 1
                     media_type = 'видео' if is_video else 'аудио'
-                    print(f"  📹 Добавлено {media_type}: {row['storage_url'][:80]}...")
+                    print(f"  📹 Добавлено {media_type}: {media_url[:80]}...")
 
             # Для практик добавляем текстовый контент
             if content_type == 'practice' and row['description']:
