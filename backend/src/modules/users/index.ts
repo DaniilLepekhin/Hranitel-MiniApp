@@ -42,8 +42,15 @@ export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
   .use(authMiddleware)
   .patch(
     '/me',
-    async ({ user, body, headers }) => {
+    async ({ user, body, headers, set }) => {
       logger.info({ userId: user?.id, body, hasUser: !!user, authHeader: headers.authorization }, 'PATCH /users/me received');
+
+      if (!user) {
+        logger.error('PATCH /users/me: user is null despite authMiddleware');
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
       const { settings, languageCode, firstName, lastName, city } = body;
 
       const updateData: Partial<typeof users.$inferInsert> = {
