@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
@@ -9,6 +10,7 @@ import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
 import { Edit2, X, Check } from 'lucide-react';
 
 export function ProfileTab() {
+  const router = useRouter();
   const { haptic, webApp } = useTelegram();
   const { user, token, setUser } = useAuthStore();
   const queryClient = useQueryClient();
@@ -94,14 +96,9 @@ export function ProfileTab() {
     setLoadingLink(linkType);
     haptic.impact('medium');
 
-    // 📱 Внутренние ссылки (документы) - открываются в приложении
+    // 📱 Внутренние ссылки (документы) - используем Next.js роутинг
     if (url.startsWith('/')) {
-      const fullUrl = `${window.location.origin}${url}`;
-      if (webApp?.openLink) {
-        webApp.openLink(fullUrl);
-      } else {
-        window.location.href = url;
-      }
+      router.push(url);
       setTimeout(() => setLoadingLink(null), 300);
       return;
     }
@@ -124,7 +121,7 @@ export function ProfileTab() {
       window.open(url, '_blank');
     }
     setTimeout(() => setLoadingLink(null), 500);
-  }, [haptic, webApp]);
+  }, [haptic, webApp, router]);
 
   return (
     <div className="min-h-screen w-full bg-[#f7f1e8] relative">
