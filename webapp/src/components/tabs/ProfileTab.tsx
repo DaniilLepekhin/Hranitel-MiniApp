@@ -93,34 +93,37 @@ export function ProfileTab() {
 
   // 🚀 ОПТИМИЗИРОВАННАЯ функция открытия ссылок с визуальной обратной связью
   const openLink = useCallback((url: string, linkType: string) => {
+    // Лёгкий haptic для быстрого отклика
+    haptic.impact('light');
     setLoadingLink(linkType);
-    haptic.impact('medium');
 
     // 📱 Внутренние ссылки (документы) - используем Next.js роутинг
     if (url.startsWith('/')) {
       router.push(url);
-      setTimeout(() => setLoadingLink(null), 300);
+      setTimeout(() => setLoadingLink(null), 200);
       return;
     }
 
-    // ⚡️ МГНОВЕННОЕ открытие Telegram ссылок
+    // ⚡️ Telegram ссылки - открываются мгновенно
     if (url.startsWith('https://t.me/')) {
       if (webApp?.openTelegramLink) {
         webApp.openTelegramLink(url);
       } else {
         window.open(url, '_blank');
       }
-      setTimeout(() => setLoadingLink(null), 300);
+      // Сбрасываем состояние сразу - не ждём открытия
+      setLoadingLink(null);
       return;
     }
 
-    // 🌐 Внешние ссылки
+    // 🌐 Внешние ссылки - открываем и сразу сбрасываем состояние
     if (webApp?.openLink) {
       webApp.openLink(url);
     } else {
       window.open(url, '_blank');
     }
-    setTimeout(() => setLoadingLink(null), 500);
+    // Сбрасываем сразу чтобы не блокировать UI
+    setLoadingLink(null);
   }, [haptic, webApp, router]);
 
   return (
