@@ -42,23 +42,24 @@ SECTION_TO_TYPE = {
 
 
 def parse_csv(filepath: str) -> List[Dict[str, str]]:
-    """Парсит CSV файл с контентом"""
+    """Парсит CSV файл с контентом (semicolon-delimited)"""
     rows = []
 
     with open(filepath, 'r', encoding='utf-8') as f:
-        reader = csv.reader(f)
+        reader = csv.reader(f, delimiter=';')
         next(reader)  # Пропускаем заголовок
 
         for row in reader:
-            if len(row) >= 7 and row[0].strip():  # Проверяем что строка не пустая
+            if len(row) >= 6 and row[0].strip():  # Проверяем что строка не пустая
+                # Новая структура CSV:
+                # Раздел;Формат;Название;Описание;Комментарий/дополнение;Ссылка на файл
                 rows.append({
                     'section': row[0].strip(),
                     'format': row[1].strip(),
                     'title': row[2].strip(),
-                    'source_link': row[3].strip(),
-                    'description': row[4].strip(),
-                    'additional_info': row[5].strip(),
-                    'storage_url': row[6].strip() if len(row) > 6 else ''
+                    'description': row[3].strip(),
+                    'additional_info': row[4].strip() if len(row) > 4 else '',
+                    'file_url': row[5].strip() if len(row) > 5 else ''
                 })
 
     return rows
@@ -149,8 +150,7 @@ def migrate(csv_path: str):
             stats[section] = stats.get(section, 0) + 1
 
             # Создаем video/audio запись если есть ссылка
-            # Используем storage_url если есть, иначе source_link (для подкастов)
-            media_url = row['storage_url'] if row['storage_url'] else row['source_link']
+            media_url = row['file_url']
 
             if media_url:
                 is_video = row['format'] == 'Видео' or '.mp4' in media_url
