@@ -45,7 +45,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
         webApp?.showPopup({
           title: '✅ Готово!',
           message: 'Ссылка скопирована в буфер обмена',
-          buttons: [{ type: 'ok' }]
+          buttons: [{ type: 'ok', text: 'OK' }]
         });
       } catch (error) {
         console.error('Failed to copy:', error);
@@ -53,7 +53,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
         webApp?.showPopup({
           title: '⚠️ Ошибка',
           message: 'Не удалось скопировать ссылку',
-          buttons: [{ type: 'ok' }]
+          buttons: [{ type: 'ok', text: 'OK' }]
         });
       }
     }
