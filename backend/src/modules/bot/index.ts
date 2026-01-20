@@ -152,14 +152,47 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
 
-      // Schedule 60-minute reminder
+      // Schedule 20-minute "Что горит" reminder
+      await schedulerService.schedule(
+        {
+          type: 'burning_question_reminder',
+          userId,
+          chatId,
+        },
+        20 * 60 * 1000 // 20 minutes
+      );
+    } else if (type === 'burning_question_reminder') {
+      // Send "Что горит прямо сейчас?" reminder after 20 minutes
+      const burningKeyboard = new InlineKeyboard()
+        .text('🔮 где мои деньги в 2026 году', 'topic_money_2026')
+        .row()
+        .text('💰 почему доход не растет', 'topic_income')
+        .row()
+        .text('🧠 состояние vs деньги', 'topic_state')
+        .row()
+        .text('🌍 окружение', 'topic_environment');
+
+      await telegramService.sendPhoto(
+        chatId,
+        'https://t.me/mate_bot_open/9277',
+        {
+          caption:
+            `<b>Что горит прямо сейчас? 🔥</b>\n\n` +
+            `Только честно.\n` +
+            `Чтобы не грузить лишним — выбери, что сейчас важнее всего 👇`,
+          parse_mode: 'HTML',
+          reply_markup: burningKeyboard
+        }
+      );
+
+      // Schedule 60-minute "Это не просто клуб" reminder
       await schedulerService.schedule(
         {
           type: 'payment_reminder',
           userId,
           chatId,
         },
-        55 * 60 * 1000 // 55 minutes (5 + 55 = 60 total from get_access)
+        60 * 60 * 1000 // 60 minutes (total: 5 min + 20 min + 60 min = 85 min from get_access)
       );
     } else if (type === 'payment_reminder') {
       // Send 60-minute reminder - video first (without caption to avoid length limit)
@@ -506,9 +539,13 @@ bot.callbackQuery('not_ready', async (ctx) => {
 bot.callbackQuery('topic_money_2026', async (ctx) => {
   try {
     await ctx.answerCallbackQuery();
+    const userId = ctx.from!.id;
     const chatId = ctx.chat!.id;
     const keyboard = new InlineKeyboard()
       .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
+
+    // Cancel the 60-minute payment_reminder since user engaged
+    await schedulerService.cancelUserTasksByType(userId, 'payment_reminder');
 
     await telegramService.sendMessage(
       chatId,
@@ -542,9 +579,13 @@ bot.callbackQuery('topic_money_2026', async (ctx) => {
 bot.callbackQuery('topic_income', async (ctx) => {
   try {
     await ctx.answerCallbackQuery();
+    const userId = ctx.from!.id;
     const chatId = ctx.chat!.id;
     const keyboard = new InlineKeyboard()
       .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
+
+    // Cancel the 60-minute payment_reminder since user engaged
+    await schedulerService.cancelUserTasksByType(userId, 'payment_reminder');
 
     await telegramService.sendMessage(
       chatId,
@@ -573,9 +614,13 @@ bot.callbackQuery('topic_income', async (ctx) => {
 bot.callbackQuery('topic_state', async (ctx) => {
   try {
     await ctx.answerCallbackQuery();
+    const userId = ctx.from!.id;
     const chatId = ctx.chat!.id;
     const keyboard = new InlineKeyboard()
       .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
+
+    // Cancel the 60-minute payment_reminder since user engaged
+    await schedulerService.cancelUserTasksByType(userId, 'payment_reminder');
 
     await telegramService.sendMessage(
       chatId,
@@ -606,9 +651,13 @@ bot.callbackQuery('topic_state', async (ctx) => {
 bot.callbackQuery('topic_environment', async (ctx) => {
   try {
     await ctx.answerCallbackQuery();
+    const userId = ctx.from!.id;
     const chatId = ctx.chat!.id;
     const keyboard = new InlineKeyboard()
       .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
+
+    // Cancel the 60-minute payment_reminder since user engaged
+    await schedulerService.cancelUserTasksByType(userId, 'payment_reminder');
 
     // Send all images as media group
     await telegramService.sendMediaGroup(chatId, [

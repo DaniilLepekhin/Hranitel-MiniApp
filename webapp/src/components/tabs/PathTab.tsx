@@ -2,6 +2,10 @@
 
 import { useRouter } from 'next/navigation';
 import { useTelegram } from '@/hooks/useTelegram';
+import { Lock } from 'lucide-react';
+
+// 🔒 ФЛАГ БЛОКИРОВКИ КУРСОВ
+const COURSES_LOCKED = true;
 
 // Категории контента с изображениями
 const contentCategories = [
@@ -10,30 +14,35 @@ const contentCategories = [
     title: 'Программа месяца',
     path: '/month-program',
     image: '/assets/path-month-program.jpg',
+    isLocked: false,
   },
   {
     id: 'course',
     title: 'Курсы',
     path: '/content-list/course',
     image: '/assets/path-courses.jpg',
+    isLocked: COURSES_LOCKED, // 🔒 Курсы заблокированы
   },
   {
     id: 'podcast',
     title: 'Подкасты',
     path: '/content-list/podcast',
     image: '/assets/path-podcasts.jpg',
+    isLocked: false,
   },
   {
     id: 'stream_record',
     title: 'Эфиры (записи)',
     path: '/content-list/stream_record',
     image: '/assets/path-streams.jpg',
+    isLocked: false,
   },
   {
     id: 'practice',
     title: 'Практики',
     path: '/content-list/practice',
     image: '/assets/path-practices.jpg',
+    isLocked: false,
   },
 ];
 
@@ -41,7 +50,12 @@ export function PathTab() {
   const router = useRouter();
   const { haptic } = useTelegram();
 
-  const handleNavigate = (path: string) => {
+  const handleNavigate = (path: string, isLocked: boolean = false) => {
+    if (isLocked) {
+      // 🔒 Заблокировано - показываем haptic feedback
+      haptic.notification('error');
+      return;
+    }
     haptic.impact('light');
     router.push(path);
   };
@@ -208,7 +222,8 @@ export function PathTab() {
               key={category.id}
               title={category.title}
               image={category.image}
-              onClick={() => handleNavigate(category.path)}
+              isLocked={category.isLocked}
+              onClick={() => handleNavigate(category.path, category.isLocked)}
             />
           ))}
         </div>
@@ -219,7 +234,8 @@ export function PathTab() {
             <CategoryCard
               title={contentCategories[4].title}
               image={contentCategories[4].image}
-              onClick={() => handleNavigate(contentCategories[4].path)}
+              isLocked={contentCategories[4].isLocked}
+              onClick={() => handleNavigate(contentCategories[4].path, contentCategories[4].isLocked)}
             />
           </div>
         </div>
@@ -232,10 +248,11 @@ export function PathTab() {
 interface CategoryCardProps {
   title: string;
   image: string;
+  isLocked?: boolean;
   onClick: () => void;
 }
 
-function CategoryCard({ title, image, onClick }: CategoryCardProps) {
+function CategoryCard({ title, image, isLocked = false, onClick }: CategoryCardProps) {
   return (
     <div
       onClick={onClick}
@@ -244,6 +261,7 @@ function CategoryCard({ title, image, onClick }: CategoryCardProps) {
         borderRadius: '5.73px',
         border: '0.955px solid #d93547',
         aspectRatio: '165.456 / 160.471',
+        opacity: isLocked ? 0.6 : 1,
       }}
     >
       {/* Верхняя часть - изображение (примерно 55% высоты) */}
@@ -260,6 +278,15 @@ function CategoryCard({ title, image, onClick }: CategoryCardProps) {
           alt={title}
           className="w-full h-full object-cover"
         />
+
+        {/* 🔒 Overlay замка если заблокировано */}
+        {isLocked && (
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
+            <div className="bg-white/90 rounded-full p-2.5 shadow-lg">
+              <Lock className="w-5 h-5 text-[#d93547]" strokeWidth={2.5} />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Нижняя часть - красный блок с текстом (45% высоты) */}
