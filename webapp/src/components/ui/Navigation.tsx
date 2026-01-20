@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Home, TrendingUp, MessageCircle, Trophy, User } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { clsx } from 'clsx';
@@ -39,13 +40,17 @@ const tabs = [
   },
 ];
 
-export function Navigation({ activeTab, onTabChange }: NavigationProps) {
+export const Navigation = memo(function Navigation({ activeTab, onTabChange }: NavigationProps) {
   const { haptic } = useTelegram();
 
   const handleTabClick = (tab: TabType) => {
     if (tab !== activeTab) {
-      haptic.selection();
+      // 🚀 ОПТИМИЗАЦИЯ: Переключаем таб сразу, haptic в фоне
       onTabChange(tab);
+      // Haptic feedback не блокирует UI
+      requestAnimationFrame(() => {
+        haptic.selection();
+      });
     }
   };
 
@@ -114,4 +119,4 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
       </div>
     </nav>
   );
-}
+});

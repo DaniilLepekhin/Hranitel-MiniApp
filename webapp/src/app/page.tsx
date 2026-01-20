@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { Navigation, TabType } from '@/components/ui/Navigation';
@@ -109,14 +109,30 @@ function HomeContent() {
     return <LoadingScreen />;
   }
 
-  const tabComponents: Record<TabType, React.ReactNode> = {
-    home: <HomeTab onProfileClick={() => setActiveTab('profile')} />,
-    path: <PathTab />,
-    chats: <ChatsTab />,
-    ratings: <RatingsTab onShopClick={() => setActiveTab('shop')} />,
-    profile: <ProfileTab />,
-    shop: <ShopTab />,
-  };
+  // 🚀 ОПТИМИЗАЦИЯ: Мемоизация обработчиков переключения табов
+  const handleProfileClick = useCallback(() => setActiveTab('profile'), []);
+  const handleShopClick = useCallback(() => setActiveTab('shop'), []);
+  const handleTabChange = useCallback((tab: TabType) => setActiveTab(tab), []);
+
+  // 🚀 ОПТИМИЗАЦИЯ: Мемоизация компонента активного таба
+  const activeTabComponent = useMemo(() => {
+    switch (activeTab) {
+      case 'home':
+        return <HomeTab onProfileClick={handleProfileClick} />;
+      case 'path':
+        return <PathTab />;
+      case 'chats':
+        return <ChatsTab />;
+      case 'ratings':
+        return <RatingsTab onShopClick={handleShopClick} />;
+      case 'profile':
+        return <ProfileTab />;
+      case 'shop':
+        return <ShopTab />;
+      default:
+        return <HomeTab onProfileClick={handleProfileClick} />;
+    }
+  }, [activeTab, handleProfileClick, handleShopClick]);
 
   return (
     <main className="page-container">
@@ -143,11 +159,11 @@ function HomeContent() {
 
       {/* Content - 🚀 БЕЗ АНИМАЦИИ для мгновенного переключения */}
       <div className="relative z-10">
-        {tabComponents[activeTab]}
+        {activeTabComponent}
       </div>
 
       {/* Navigation */}
-      <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <Navigation activeTab={activeTab} onTabChange={handleTabChange} />
     </main>
   );
 }
