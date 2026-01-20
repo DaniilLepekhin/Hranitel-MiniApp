@@ -5,8 +5,9 @@ import { cookie } from '@elysiajs/cookie';
 
 import { config, isDevelopment } from '@/config';
 import { logger, logRequest } from '@/utils/logger';
-import { closeRedisConnection } from '@/utils/redis';
-import { closeDatabaseConnection } from '@/db';
+import { redis, closeRedisConnection } from '@/utils/redis';
+import { db, closeDatabaseConnection } from '@/db';
+import { users } from '@/db/schema';
 import { errorHandler } from '@/middlewares/errorHandler';
 import { apiRateLimit } from '@/middlewares/rateLimit';
 
@@ -55,7 +56,7 @@ const app = new Elysia()
       credentials: true,
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset', 'X-Request-ID'],
+      exposeHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset', 'X-Request-ID'],
     })
   )
   // Swagger docs (only in development)

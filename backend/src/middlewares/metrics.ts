@@ -212,7 +212,7 @@ class MetricsCollector {
   /**
    * Get metrics as JSON (for debugging)
    */
-  getMetricsJSON(): MetricSnapshot {
+  getMetricsJSON(): any {
     return {
       requestCount: Object.fromEntries(this.requestCount),
       requestDuration: Object.fromEntries(
