@@ -40,7 +40,14 @@ export function ProfileTab() {
   // 📅 Подписка: расчет статуса и дат
   const subscriptionInfo = useMemo(() => {
     if (!user?.subscriptionExpires) {
-      return { isActive: false, expiresDate: null, daysRemaining: 0, isExpiredRecently: false };
+      // Если нет даты окончания, но isPro=true, значит бессрочная подписка
+      return {
+        isActive: user?.isPro || false,
+        expiresDate: null,
+        daysRemaining: 999999,
+        isExpiredRecently: false,
+        formattedDate: 'Бессрочно',
+      };
     }
 
     const expiresDate = new Date(user.subscriptionExpires);
@@ -398,7 +405,7 @@ export function ProfileTab() {
         </div>
 
         {/* ===== ИНФОРМАЦИЯ О ПОДПИСКЕ ===== */}
-        {user?.subscriptionExpires && (
+        {user?.isPro && (
           <div
             className="relative mx-[30px] mb-6"
             style={{
