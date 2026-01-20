@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Lock } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { cityChatsApi } from '@/lib/api';
@@ -605,15 +606,9 @@ export function ChatsTab() {
             )}
           </div>
 
-          {/* 4. Десятка */}
+          {/* 4. Десятка (🔒 ЗАБЛОКИРОВАНО) */}
           <div
-            className="relative overflow-hidden cursor-pointer active:scale-[0.99] transition-transform"
-            onClick={() => {
-              haptic.impact('light');
-              if (team?.cityChat) {
-                openLink(team.cityChat);
-              }
-            }}
+            className="relative overflow-hidden opacity-60"
             style={{
               borderRadius: '5.73px',
               border: '0.955px solid #d93547',
@@ -621,6 +616,26 @@ export function ChatsTab() {
               minHeight: '200px',
             }}
           >
+            {/* 🔒 Замочек поверх */}
+            <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/20 backdrop-blur-[2px]">
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
+                  <Lock className="w-6 h-6 text-[#9c1723]" />
+                </div>
+                <p
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontWeight: 600,
+                    fontSize: '12px',
+                    color: 'white',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                  }}
+                >
+                  Скоро откроется
+                </p>
+              </div>
+            </div>
+
             {/* Изображение справа */}
             <div
               className="absolute overflow-hidden"
@@ -680,7 +695,8 @@ export function ChatsTab() {
               </p>
 
               <button
-                className="px-4 py-3 rounded-[5.73px] active:scale-[0.98] transition-transform"
+                disabled
+                className="px-4 py-3 rounded-[5.73px] opacity-40 cursor-not-allowed"
                 style={{
                   background: '#f7f1e8',
                   fontFamily: 'Gilroy, sans-serif',
