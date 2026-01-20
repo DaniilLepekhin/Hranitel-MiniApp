@@ -488,7 +488,7 @@ export function ProfileTab() {
             </div>
 
             {/* Количество дней до окончания */}
-            {subscriptionInfo.isActive && subscriptionInfo.daysRemaining > 0 && (
+            {subscriptionInfo.isActive && subscriptionInfo.daysRemaining > 0 && subscriptionInfo.daysRemaining < 999999 && (
               <p
                 className="mb-4"
                 style={{
@@ -507,8 +507,8 @@ export function ProfileTab() {
               </p>
             )}
 
-            {/* Кнопки управления подпиской (скрыты если истекла сегодня/вчера) */}
-            {!subscriptionInfo.isExpiredRecently && (
+            {/* Кнопки управления подпиской - показываем только если есть дата окончания и не истекла недавно */}
+            {user?.subscriptionExpires && !subscriptionInfo.isExpiredRecently && (
               <div className="space-y-2">
                 {subscriptionInfo.isActive ? (
                   <button
