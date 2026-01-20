@@ -7,6 +7,7 @@ import { Navigation, TabType } from '@/components/ui/Navigation';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
+import { useMediaPlayerStore } from '@/store/media-player';
 import { authApi, setAuthToken } from '@/lib/api';
 
 // 🚀 КРИТИЧЕСКАЯ ОПТИМИЗАЦИЯ: Обычные импорты для мгновенного переключения
@@ -31,6 +32,7 @@ function HomeContent() {
   }, [searchParams]);
   const { user: tgUser, isReady, initData, webApp, requestFullscreen, exitFullscreen, isFullscreen, haptic } = useTelegram();
   const { user, token, hasInitialized, setUser, isLoading, setLoading, setHasInitialized } = useAuthStore();
+  const closePlayer = useMediaPlayerStore((state) => state.closePlayer);
 
   const toggleFullscreen = () => {
     haptic.impact('medium');
@@ -47,6 +49,13 @@ function HomeContent() {
       setAuthToken(token);
     }
   }, [token]);
+
+  // Reset media player on full app reload (when loading screen shows)
+  useEffect(() => {
+    if (!hasInitialized) {
+      closePlayer();
+    }
+  }, [hasInitialized, closePlayer]);
 
   // Auth
   useEffect(() => {
