@@ -10,8 +10,12 @@ import type { JWTPayloadSpec } from '@elysiajs/jwt';
 // Validate Telegram WebApp initData
 export function validateTelegramInitData(initData: string): boolean {
   try {
-    // TEMPORARY DEV MODE: Skip validation if no bot token
+    // 🔒 SECURITY: In production, BOT_TOKEN is REQUIRED
     if (!config.TELEGRAM_BOT_TOKEN) {
+      if (config.NODE_ENV === 'production') {
+        logger.error('🔴 CRITICAL: TELEGRAM_BOT_TOKEN not set in production!');
+        throw new Error('TELEGRAM_BOT_TOKEN required in production');
+      }
       logger.warn('⚠️ DEVELOPMENT MODE: Skipping initData validation (NO BOT TOKEN)');
       logger.warn('⚠️ THIS IS INSECURE - Anyone can impersonate any user!');
       return true;

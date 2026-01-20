@@ -1174,7 +1174,8 @@ bot.callbackQuery('meditations', async (ctx) => {
 bot.on('message:text', async (ctx) => {
   try {
     const userId = ctx.from.id;
-    const text = ctx.message.text.trim().toUpperCase();
+    // Normalize text for keyword validation (trim whitespace, uppercase)
+    const text = ctx.message.text?.trim().toUpperCase();
     const user = await funnels.getUserByTgId(userId);
 
     if (user?.onboardingStep === 'awaiting_keyword' && text === 'УСПЕХ') {
@@ -1230,7 +1231,13 @@ export const botModule = new Elysia({ prefix: '/bot', tags: ['Bot'] })
   .post(
     '/webhook',
     async ({ body, headers, set }) => {
-      // Verify webhook secret
+      // 🔒 SECURITY: Verify webhook secret (REQUIRED in production)
+      if (config.NODE_ENV === 'production' && !config.TELEGRAM_WEBHOOK_SECRET) {
+        logger.error('🔴 CRITICAL: TELEGRAM_WEBHOOK_SECRET not set in production!');
+        set.status = 500;
+        return { ok: false, error: 'Server configuration error' };
+      }
+
       if (config.TELEGRAM_WEBHOOK_SECRET) {
         const secretToken = headers['x-telegram-bot-api-secret-token'];
         if (secretToken !== config.TELEGRAM_WEBHOOK_SECRET) {

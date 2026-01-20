@@ -85,12 +85,62 @@ const app = new Elysia()
 
     logRequest(request.method, path, status, duration);
   })
-  // Health check
+  // Basic health check (liveness probe)
   .get('/health', () => ({
     status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
   }))
+  // Comprehensive readiness check (readiness probe)
+  .get('/health/ready', async ({ set }) => {
+    const checks: Record<string, string | number | boolean> = {};
+    let overallStatus: 'ready' | 'not_ready' = 'ready';
+
+    try {
+      // Check Database connection
+      try {
+        await db.select().from(users).limit(1);
+        checks.database = 'ok';
+      } catch (error) {
+        checks.database = 'failed';
+        checks.database_error = error instanceof Error ? error.message : 'Unknown error';
+        overallStatus = 'not_ready';
+      }
+
+      // Check Redis connection
+      try {
+        await redis.ping();
+        checks.redis = 'ok';
+
+        // Check scheduler queue size
+        const queueSize = await redis.zcard('scheduler:queue');
+        checks.scheduler_queue_size = queueSize;
+      } catch (error) {
+        checks.redis = 'failed';
+        checks.redis_error = error instanceof Error ? error.message : 'Unknown error';
+        overallStatus = 'not_ready';
+      }
+
+      if (overallStatus === 'not_ready') {
+        set.status = 503; // Service Unavailable
+      }
+
+      return {
+        status: overallStatus,
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        checks
+      };
+    } catch (error) {
+      set.status = 503;
+      return {
+        status: 'not_ready',
+        timestamp: new Date().toISOString(),
+        error: error instanceof Error ? error.message : 'Health check failed',
+        checks
+      };
+    }
+  })
   // Root
   .get('/', () => ({
     name: 'КОД ДЕНЕГ 4.0 API',
