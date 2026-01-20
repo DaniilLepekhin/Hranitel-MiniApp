@@ -99,7 +99,7 @@ export const useMediaPlayerStore = create<MediaPlayerState>()(
         // Persist only essential state, not transient values like seekTime
         currentMedia: state.currentMedia,
         timecodes: state.timecodes,
-        isPlaying: false, // НЕ сохраняем isPlaying - всегда начинаем с паузы
+        isPlaying: state.isPlaying, // Сохраняем isPlaying для продолжения воспроизведения
         currentTime: state.currentTime,
         duration: state.duration,
         isMuted: state.isMuted,
@@ -110,9 +110,9 @@ export const useMediaPlayerStore = create<MediaPlayerState>()(
       onRehydrateStorage: () => (state) => {
         if (state) {
           state._hasHydrated = true;
-          // При гидратации всегда ставим паузу и мини-плеер
-          state.isPlaying = false;
+          // При гидратации всегда показываем мини-плеер (не full player)
           state.showFullPlayer = false;
+          // isPlaying остается как было сохранено - продолжаем воспроизведение
         }
       },
     }
