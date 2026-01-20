@@ -41,19 +41,33 @@ jobs:
             echo "🔧 Deploying Backend..."
             cd backend
 
-            # Create .env for backend (with bot support)
-            echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
-            echo "PORT=3002" >> .env
-            echo "NODE_ENV=production" >> .env
-            echo "WEBAPP_URL=https://hranitel.daniillepekhin.com" >> .env
-            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
-            echo "CORS_ORIGIN=https://hranitel.daniillepekhin.com" >> .env
-            echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" >> .env
-            echo "API_URL=https://hranitel.daniillepekhin.com" >> .env
-            echo "TELEGRAM_WEBHOOK_SECRET=${{ secrets.TELEGRAM_WEBHOOK_SECRET }}" >> .env
-            echo "TELEGRAM_BOT_USERNAME=${{ secrets.TELEGRAM_BOT_USERNAME }}" >> .env
-            echo "REDIS_URL=${{ secrets.REDIS_URL }}" >> .env
-            echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
+            # Export environment variables (for migrations and health checks)
+            export DATABASE_URL="${{ secrets.DATABASE_URL }}"
+            export JWT_SECRET="${{ secrets.JWT_SECRET }}"
+            export REDIS_URL="${{ secrets.REDIS_URL }}"
+            export PORT="3002"
+            export NODE_ENV="production"
+            export WEBAPP_URL="https://hranitel.daniillepekhin.com"
+            export CORS_ORIGIN="https://hranitel.daniillepekhin.com"
+            export TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}"
+            export API_URL="https://hranitel.daniillepekhin.com"
+            export TELEGRAM_WEBHOOK_SECRET="${{ secrets.TELEGRAM_WEBHOOK_SECRET }}"
+            export TELEGRAM_BOT_USERNAME="${{ secrets.TELEGRAM_BOT_USERNAME }}"
+            export OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}"
+
+            # Also create .env file for PM2 persistence (Bun auto-loads .env)
+            echo "DATABASE_URL=$DATABASE_URL" > .env
+            echo "PORT=$PORT" >> .env
+            echo "NODE_ENV=$NODE_ENV" >> .env
+            echo "WEBAPP_URL=$WEBAPP_URL" >> .env
+            echo "JWT_SECRET=$JWT_SECRET" >> .env
+            echo "CORS_ORIGIN=$CORS_ORIGIN" >> .env
+            echo "TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN" >> .env
+            echo "API_URL=$API_URL" >> .env
+            echo "TELEGRAM_WEBHOOK_SECRET=$TELEGRAM_WEBHOOK_SECRET" >> .env
+            echo "TELEGRAM_BOT_USERNAME=$TELEGRAM_BOT_USERNAME" >> .env
+            echo "REDIS_URL=$REDIS_URL" >> .env
+            echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> .env
 
             # Install Bun if not exists
             if ! command -v bun &> /dev/null; then
