@@ -138,7 +138,9 @@ jobs:
             echo "🔄 Restarting backend..."
             pm2 delete hranitel-backend 2>/dev/null || true
             cd /var/www/hranitel/backend
-            pm2 start --name hranitel-backend --cwd /var/www/hranitel/backend "$HOME/.bun/bin/bun run src/index.ts"
+
+            # Use ecosystem file for proper env loading
+            pm2 start ecosystem.config.cjs
             pm2 save
 
             # Wait for backend to start
