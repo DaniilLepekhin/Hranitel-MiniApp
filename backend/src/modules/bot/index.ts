@@ -388,6 +388,35 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
     else if (type === 'gift_expiry_3days') await funnels.sendGiftExpiry3Days(userId, chatId);
     else if (type === 'gift_expiry_2days') await funnels.sendGiftExpiry2Days(userId, chatId);
     else if (type === 'gift_expiry_1day') await funnels.sendGiftExpiry1Day(userId, chatId);
+    // 🔧 Payment check (scheduler-based, survives restarts)
+    else if (type === 'payment_check') {
+      const { checkNumber, maxChecks } = task.data || { checkNumber: 1, maxChecks: 10 };
+      const paid = await checkPaymentStatus(userId);
+
+      if (paid) {
+        // Cancel all scheduled tasks for this user (including remaining payment checks)
+        await schedulerService.cancelAllUserTasks(userId);
+
+        // Send congratulations
+        await telegramService.sendMessage(
+          chatId,
+          '🎉 <b>Поздравляю с покупкой!</b>\n\n' +
+          'Добро пожаловать в клуб «Код Денег»! Теперь у тебя есть полный доступ ко всем материалам.\n\n' +
+          'Нажми /app чтобы открыть приложение клуба.',
+          { parse_mode: 'HTML' }
+        );
+        await stateService.setState(userId, 'paid');
+        logger.info({ userId, checkNumber }, 'Payment detected, user welcomed');
+
+        // Start post-payment onboarding funnel
+        const user = await funnels.getUserByTgId(userId);
+        if (user) {
+          await funnels.startOnboardingAfterPayment(user.id, chatId);
+        }
+      } else {
+        logger.debug({ userId, checkNumber, maxChecks }, 'Payment not detected yet');
+      }
+    }
     else {
       logger.warn({ taskType: type }, 'Unknown task type');
     }
@@ -498,47 +527,20 @@ bot.callbackQuery('get_access', async (ctx) => {
       5 * 60 * 1000 // 5 minutes
     );
 
-    // Start periodic payment check (every 30 seconds for 5 minutes)
-    // This will detect payment and cancel all scheduled reminders
-    let checkCount = 0;
+    // 🔧 Start periodic payment check (every 30 seconds for 5 minutes)
+    // Uses scheduler instead of setInterval - survives restarts!
     const maxChecks = 10; // 10 checks * 30 seconds = 5 minutes
-
-    const paymentCheckInterval = setInterval(async () => {
-      checkCount++;
-      try {
-        const paid = await checkPaymentStatus(userId);
-        if (paid) {
-          // Clear interval
-          clearInterval(paymentCheckInterval);
-
-          // Cancel all scheduled tasks for this user
-          await schedulerService.cancelAllUserTasks(userId);
-
-          // Send congratulations
-          await telegramService.sendMessage(
-            chatId,
-            '🎉 <b>Поздравляю с покупкой!</b>\n\n' +
-            'Добро пожаловать в клуб «Код Денег»! Теперь у тебя есть полный доступ ко всем материалам.\n\n' +
-            'Нажми /app чтобы открыть приложение клуба.',
-            { parse_mode: 'HTML' }
-          );
-          await stateService.setState(userId, 'paid');
-          logger.info({ userId }, 'Payment detected, user welcomed');
-
-          // 🆕 Start post-payment onboarding funnel
-          const user = await funnels.getUserByTgId(userId);
-          if (user) {
-            await funnels.startOnboardingAfterPayment(user.id, chatId);
-          }
-        } else if (checkCount >= maxChecks) {
-          // Stop checking after 5 minutes
-          clearInterval(paymentCheckInterval);
-          logger.info({ userId }, 'Payment check period ended');
-        }
-      } catch (error) {
-        logger.error({ error, userId }, 'Error checking payment status');
-      }
-    }, 30000); // Check every 30 seconds
+    for (let i = 0; i < maxChecks; i++) {
+      await schedulerService.schedule(
+        {
+          type: 'payment_check',
+          userId,
+          chatId,
+          data: { checkNumber: i + 1, maxChecks }
+        },
+        (i + 1) * 30 * 1000 // Check at 30s, 60s, 90s, ... 300s
+      );
+    }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in get_access handler');
   }

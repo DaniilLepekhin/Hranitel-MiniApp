@@ -494,6 +494,25 @@ export const practiceContent = pgTable('practice_content', {
   uniqueIndex('practice_content_content_item_id_idx').on(table.contentItemId),
 ]);
 
+// 🆕 Payments (платежи)
+export const payments = pgTable('payments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  amount: numeric('amount', { precision: 10, scale: 2 }).notNull(),
+  currency: varchar('currency', { length: 3 }).notNull().default('RUB'),
+  status: varchar('status', { length: 20 }).notNull().default('pending'), // pending, completed, failed, refunded
+  paymentProvider: varchar('payment_provider', { length: 50 }),
+  externalPaymentId: varchar('external_payment_id', { length: 255 }),
+  metadata: jsonb('metadata').default('{}'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  completedAt: timestamp('completed_at'),
+}, (table) => [
+  index('payments_user_id_idx').on(table.userId),
+  index('payments_status_idx').on(table.status),
+  index('payments_external_id_idx').on(table.externalPaymentId),
+  index('payments_created_at_idx').on(table.createdAt),
+]);
+
 // 🆕 Gift Subscriptions (подарочные подписки)
 export const giftSubscriptions = pgTable('gift_subscriptions', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -777,3 +796,7 @@ export type UserContentProgress = typeof userContentProgress.$inferSelect;
 export type NewUserContentProgress = typeof userContentProgress.$inferInsert;
 export type PracticeContent = typeof practiceContent.$inferSelect;
 export type NewPracticeContent = typeof practiceContent.$inferInsert;
+export type Payment = typeof payments.$inferSelect;
+export type NewPayment = typeof payments.$inferInsert;
+export type GiftSubscription = typeof giftSubscriptions.$inferSelect;
+export type NewGiftSubscription = typeof giftSubscriptions.$inferInsert;

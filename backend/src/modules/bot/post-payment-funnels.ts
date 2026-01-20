@@ -727,54 +727,60 @@ export async function handleGiftActivation(recipientTgId: number, token: string,
 
 /**
  * Активация подарка для пользователя (создание/обновление)
+ * 🔒 Uses transaction to ensure atomicity
  */
 export async function activateGiftForUser(recipientTgId: number, token: string, chatId: number, ctx: any) {
-  // Найти или создать пользователя
-  let user = await getUserByTgId(recipientTgId);
+  // 🔒 Wrap in transaction to prevent partial updates
+  await db.transaction(async (tx) => {
+    // Найти или создать пользователя
+    let user = await getUserByTgId(recipientTgId);
 
-  if (!user) {
-    // Создать нового пользователя
-    const newUsers = await db.insert(users).values({
-      telegramId: recipientTgId.toString(),
-      username: ctx.from.username,
-      firstName: ctx.from.first_name,
-      isPro: true,
-      gifted: true,
-      subscriptionExpires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 дней
-      firstPurchaseDate: new Date()
-    }).returning();
+    if (!user) {
+      // Создать нового пользователя
+      const newUsers = await tx.insert(users).values({
+        telegramId: recipientTgId.toString(),
+        username: ctx.from.username,
+        firstName: ctx.from.first_name,
+        isPro: true,
+        gifted: true,
+        subscriptionExpires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 дней
+        firstPurchaseDate: new Date()
+      }).returning();
 
-    user = newUsers[0];
-  } else {
-    // Обновить существующего пользователя
-    await db.update(users).set({
-      isPro: true,
-      gifted: true,
-      subscriptionExpires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      firstPurchaseDate: user.firstPurchaseDate || new Date()
-    }).where(eq(users.id, user.id));
-  }
+      user = newUsers[0];
+    } else {
+      // Обновить существующего пользователя
+      await tx.update(users).set({
+        isPro: true,
+        gifted: true,
+        subscriptionExpires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        firstPurchaseDate: user.firstPurchaseDate || new Date()
+      }).where(eq(users.id, user.id));
+    }
 
-  // Найти информацию о дарителе
-  const gift = await db
-    .select()
-    .from(giftSubscriptions)
-    .where(
-      and(
-        eq(giftSubscriptions.recipientTgId, recipientTgId),
-        eq(giftSubscriptions.activated, true)
+    // Найти информацию о дарителе
+    const gift = await tx
+      .select()
+      .from(giftSubscriptions)
+      .where(
+        and(
+          eq(giftSubscriptions.recipientTgId, recipientTgId),
+          eq(giftSubscriptions.activated, true)
+        )
       )
-    )
-    .limit(1);
+      .limit(1);
 
-  if (gift.length > 0) {
-    await db.update(users)
-      .set({ giftedBy: parseInt(gift[0].gifterUserId) })
-      .where(eq(users.id, user.id));
-  }
+    if (gift.length > 0) {
+      await tx.update(users)
+        .set({ giftedBy: parseInt(gift[0].gifterUserId) })
+        .where(eq(users.id, user.id));
+    }
 
-  // Начать онбординг
-  await startOnboardingAfterPayment(user.id, chatId);
+    // Начать онбординг (outside transaction, it's just scheduling)
+    if (user) {
+      await startOnboardingAfterPayment(user.id, chatId);
+    }
+  });
 }
 
 // ============================================================================

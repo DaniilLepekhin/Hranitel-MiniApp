@@ -22,6 +22,7 @@ export interface ScheduledTask {
     | 'day4_reminder'
     | 'day5_final'
     | 'custom'
+    | 'payment_check'  // 🆕 Periodic payment status check
 
     // 🆕 Post-payment onboarding - Keyword
     | 'keyword_reminder_20m'   // Догрев "введи код" через 20 мин
