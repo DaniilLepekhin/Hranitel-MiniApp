@@ -103,13 +103,8 @@ function HomeContent() {
     authenticate();
   }, [isReady, initData, tgUser, webApp, setUser, setLoading, setHasInitialized]);
 
-  // Loading state - ✨ НОВЫЙ ДИЗАЙН С "KOD"
-  // Show loading screen during initial app load (not on navigation)
-  if (!hasInitialized) {
-    return <LoadingScreen />;
-  }
-
   // 🚀 ОПТИМИЗАЦИЯ: Мемоизация обработчиков переключения табов
+  // ВАЖНО: Хуки должны быть ДО любого условного возврата!
   const handleProfileClick = useCallback(() => setActiveTab('profile'), []);
   const handleShopClick = useCallback(() => setActiveTab('shop'), []);
   const handleTabChange = useCallback((tab: TabType) => setActiveTab(tab), []);
@@ -133,6 +128,12 @@ function HomeContent() {
         return <HomeTab onProfileClick={handleProfileClick} />;
     }
   }, [activeTab, handleProfileClick, handleShopClick]);
+
+  // Loading state - ✨ НОВЫЙ ДИЗАЙН С "KOD"
+  // Show loading screen during initial app load (not on navigation)
+  if (!hasInitialized) {
+    return <LoadingScreen />;
+  }
 
   return (
     <main className="page-container">
