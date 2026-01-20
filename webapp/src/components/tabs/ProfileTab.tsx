@@ -391,7 +391,7 @@ export function ProfileTab() {
           </button>
 
           <button
-            onClick={() => openLink('https://ishodnyi-kod.com/clubofert', 'offer')}
+            onClick={() => openLink('/docs/offer', 'offer')}
             disabled={loadingLink === 'offer'}
             className="w-full text-center transition-all active:scale-95 disabled:opacity-50"
             style={{
