@@ -15,9 +15,10 @@ interface HomeTabProps {
 
 export function HomeTab({ onProfileClick }: HomeTabProps) {
   const { user, token } = useAuthStore();
-  const { webApp } = useTelegram();
+  const { webApp, haptic } = useTelegram();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [showCopyToast, setShowCopyToast] = useState(false);
 
   // 🚀 ПРАВИЛЬНЫЙ ИСТОЧНИК ДАННЫХ: Получаем баланс энергий из API (а не из устаревшего user.energies)
   const { data: balanceData } = useQuery({
@@ -41,23 +42,17 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
     if (referralLink) {
       try {
         await navigator.clipboard.writeText(referralLink);
-        // Показываем pop-up уведомление через Telegram WebApp API
-        webApp?.showPopup({
-          title: '✅ Готово!',
-          message: 'Ссылка скопирована в буфер обмена',
-          buttons: [{ type: 'ok', text: 'OK' }]
-        });
+        // Haptic feedback
+        haptic.notification('success');
+        // Показываем красивый toast
+        setShowCopyToast(true);
+        setTimeout(() => setShowCopyToast(false), 2000);
       } catch (error) {
         console.error('Failed to copy:', error);
-        // Фолбэк если копирование не сработало
-        webApp?.showPopup({
-          title: '⚠️ Ошибка',
-          message: 'Не удалось скопировать ссылку',
-          buttons: [{ type: 'ok', text: 'OK' }]
-        });
+        haptic.notification('error');
       }
     }
-  }, [referralLink, webApp]);
+  }, [referralLink, haptic]);
 
   const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -318,6 +313,31 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
         </div>
 
       </div>
+
+      {/* 🎨 Красивый Toast для копирования */}
+      {showCopyToast && (
+        <div
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl shadow-2xl animate-fade-in"
+          style={{
+            background: 'rgba(45, 38, 32, 0.95)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(247, 241, 232, 0.1)',
+          }}
+        >
+          <p
+            style={{
+              fontFamily: 'Gilroy, sans-serif',
+              fontWeight: 500,
+              fontSize: '14px',
+              color: '#f7f1e8',
+              textAlign: 'center',
+              letterSpacing: '-0.01em',
+            }}
+          >
+            Ссылка скопирована
+          </p>
+        </div>
+      )}
     </div>
   );
 }
