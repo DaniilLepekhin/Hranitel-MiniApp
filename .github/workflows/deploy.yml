@@ -189,8 +189,8 @@ jobs:
             rm -rf node_modules .next
             npm cache clean --force
 
-            # Install dependencies
-            npm install
+            # Install dependencies (including devDependencies for TypeScript)
+            npm install --include=dev
 
             # Build frontend
             echo "🏗️ Building frontend..."
