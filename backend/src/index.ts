@@ -15,6 +15,8 @@ import { authRateLimiter, publicRateLimiter, webhookRateLimiter } from '@/middle
 import { securityHeaders, apiSecurityHeaders } from '@/middlewares/security-headers';
 import { auditLogger } from '@/middlewares/audit-logger';
 import { hotCache, userCache, publicCache, invalidateCacheByPrefix } from '@/middlewares/cache';
+import { metricsMiddleware, metricsEndpoint } from '@/middlewares/metrics';
+import { strictReplayProtection, relaxedReplayProtection } from '@/middlewares/replay-protection';
 
 // Modules
 import { authModule } from '@/modules/auth';
@@ -41,6 +43,8 @@ const app = new Elysia()
   // 🔒 Security middlewares (first - before anything else)
   .use(securityHeaders)
   .use(auditLogger)
+  // 📊 Metrics collection (track all requests)
+  .use(metricsMiddleware)
 
   // Global plugins
   .use(errorHandler)
@@ -159,6 +163,8 @@ const app = new Elysia()
     docs: '/docs',
     description: 'API for КОД ДЕНЕГ Club - Telegram WebApp',
   }))
+  // 📊 Prometheus metrics endpoint
+  .use(metricsEndpoint)
   // API routes with rate limiting and caching
   .group('/api/v1', (app) =>
     app

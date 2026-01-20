@@ -1,6 +1,7 @@
 import { Elysia } from 'elysia';
 import { redis } from '@/utils/redis';
 import { logger } from '@/utils/logger';
+import { recordCacheMetric } from '@/middlewares/metrics';
 
 /**
  * 🚀 Redis-Based API Response Caching Middleware
@@ -172,6 +173,7 @@ export function apiCache(config: CacheConfig) {
             };
 
             logger.debug({ cacheKey, age: set.headers['X-Cache-Age'] }, 'Cache HIT');
+            recordCacheMetric(true); // Track cache hit
             return { cacheKey, cacheHit: true, cachedResponse: cached.body };
           } catch (error) {
             logger.error({ error, cacheKey }, 'Failed to parse cached data');
@@ -181,6 +183,7 @@ export function apiCache(config: CacheConfig) {
         }
 
         logger.debug({ cacheKey }, 'Cache MISS');
+        recordCacheMetric(false); // Track cache miss
         return { cacheKey, cacheHit: false };
       } catch (error) {
         logger.error({ error }, 'Cache check failed');
