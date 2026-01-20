@@ -194,7 +194,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
           style={{
             borderRadius: '5.73px',
             background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
-            height: '93px',
+            minHeight: '115px',
           }}
         >
           <div className="flex items-center justify-between h-full px-4">
@@ -628,7 +628,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
             borderRadius: '5.73px',
             border: '0.955px solid #d93547',
             background: 'linear-gradient(242.61deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
-            height: '155px',
+            minHeight: '180px',
           }}
         >
           {/* Фоновое изображение справа */}
