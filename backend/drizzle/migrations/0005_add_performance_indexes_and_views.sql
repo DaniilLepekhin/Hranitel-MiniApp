@@ -6,35 +6,37 @@
 -- PART 1: Composite Indexes for User Queries
 -- ============================================================================
 
--- City + energies composite index for fast city ratings
+-- City + energies composite index for fast city ratings (already exists, skip if exists)
 CREATE INDEX IF NOT EXISTS idx_users_city_energies ON users(city, energies DESC)
 WHERE city IS NOT NULL AND is_pro = true;
-
--- City + team composite index for fast team queries
-CREATE INDEX IF NOT EXISTS idx_users_city_team ON users(city, team_id)
-WHERE city IS NOT NULL;
-
--- Team + energies composite index for fast team rankings
-CREATE INDEX IF NOT EXISTS idx_users_team_energies ON users(team_id, energies DESC)
-WHERE team_id IS NOT NULL AND is_pro = true;
 
 -- ============================================================================
 -- PART 2: Materialized Views for Fast Ratings
 -- ============================================================================
 
 -- City Ratings Materialized View
+-- Note: Using subquery instead of ARRAY_AGG with LIMIT for PostgreSQL compatibility
 CREATE MATERIALIZED VIEW IF NOT EXISTS city_ratings_cache AS
 SELECT
   city,
   SUM(energies) as total_energies,
   COUNT(*) as user_count,
-  ARRAY_AGG(username ORDER BY energies DESC LIMIT 10) as top_users
-FROM users
+  (
+    SELECT ARRAY_AGG(username ORDER BY energies DESC)
+    FROM (
+      SELECT username, energies
+      FROM users u2
+      WHERE u2.city = u1.city AND u2.is_pro = true
+      ORDER BY energies DESC
+      LIMIT 10
+    ) top_users_subquery
+  ) as top_users
+FROM users u1
 WHERE city IS NOT NULL AND is_pro = true
 GROUP BY city
 ORDER BY total_energies DESC;
 
--- Create index on materialized view for fast lookups
+-- Create indexes on materialized view for fast lookups
 CREATE UNIQUE INDEX IF NOT EXISTS idx_city_ratings_cache_city ON city_ratings_cache(city);
 CREATE INDEX IF NOT EXISTS idx_city_ratings_cache_total ON city_ratings_cache(total_energies DESC);
 
@@ -43,16 +45,27 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS team_ratings_cache AS
 SELECT
   t.id as team_id,
   t.name as team_name,
-  t.city as team_city,
-  SUM(u.energies) as total_energies,
-  COUNT(u.id) as member_count,
-  ARRAY_AGG(u.username ORDER BY u.energies DESC LIMIT 10) as top_members
+  t.city_chat as team_city,
+  COALESCE(SUM(u.energies), 0) as total_energies,
+  COUNT(tm.user_id) as member_count,
+  (
+    SELECT ARRAY_AGG(username ORDER BY energies DESC)
+    FROM (
+      SELECT u3.username, u3.energies
+      FROM team_members tm2
+      JOIN users u3 ON u3.id = tm2.user_id
+      WHERE tm2.team_id = t.id AND u3.is_pro = true
+      ORDER BY u3.energies DESC
+      LIMIT 10
+    ) top_members_subquery
+  ) as top_members
 FROM teams t
-LEFT JOIN users u ON u.team_id = t.id AND u.is_pro = true
-GROUP BY t.id, t.name, t.city
+LEFT JOIN team_members tm ON tm.team_id = t.id
+LEFT JOIN users u ON u.id = tm.user_id AND u.is_pro = true
+GROUP BY t.id, t.name, t.city_chat
 ORDER BY total_energies DESC;
 
--- Create index on materialized view for fast lookups
+-- Create indexes on team materialized view for fast lookups
 CREATE UNIQUE INDEX IF NOT EXISTS idx_team_ratings_cache_team_id ON team_ratings_cache(team_id);
 CREATE INDEX IF NOT EXISTS idx_team_ratings_cache_total ON team_ratings_cache(total_energies DESC);
 CREATE INDEX IF NOT EXISTS idx_team_ratings_cache_city ON team_ratings_cache(team_city);
@@ -70,6 +83,9 @@ CREATE INDEX IF NOT EXISTS idx_meditation_history_user_date ON meditation_histor
 -- Energy transactions for balance calculations
 CREATE INDEX IF NOT EXISTS idx_energy_transactions_user_created ON energy_transactions(user_id, created_at DESC);
 
+-- Team members compound index for team queries
+CREATE INDEX IF NOT EXISTS idx_team_members_team_user ON team_members(team_id, user_id);
+
 -- ============================================================================
 -- PART 4: Refresh Function for Cron Job
 -- ============================================================================
@@ -83,7 +99,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Add comment for documentation
+-- Add comments for documentation
 COMMENT ON FUNCTION refresh_ratings_cache() IS 'Refreshes city and team rating caches. Should be called hourly via cron job.';
 COMMENT ON MATERIALIZED VIEW city_ratings_cache IS 'Cached city ratings. Refresh hourly.';
-COMMENT ON MATERIALIZED VIEW team_ratings_cache IS 'Cached team ratings. Refresh hourly.';
+COMMENT ON MATERIALIZED VIEW team_ratings_cache IS 'Cached team (десятка) ratings. Refresh hourly.';
