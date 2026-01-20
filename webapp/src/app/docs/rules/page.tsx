@@ -2,9 +2,18 @@
 
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 export default function RulesPage() {
   const router = useRouter();
+  const [showIframe, setShowIframe] = useState(false);
+
+  // ⚡️ OPTIMIZATION: Delay iframe render to show UI instantly
+  useEffect(() => {
+    // Show UI immediately, load PDF after paint
+    const timer = setTimeout(() => setShowIframe(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div className="h-screen w-full flex flex-col bg-[#f7f1e8]">
@@ -39,12 +48,25 @@ export default function RulesPage() {
       </div>
 
       {/* PDF iframe */}
-      <div className="flex-1">
-        <iframe
-          src="https://storage.daniillepekhin.com/IK%2Fclub_miniapp%2F%D0%9F%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0%20%D0%BA%D0%BB%D1%83%D0%B1%D0%B0.pdf"
-          className="w-full h-full border-0"
-          title="Правила клуба"
-        />
+      <div className="flex-1 relative">
+        {!showIframe && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center">
+              <div className="w-12 h-12 border-4 border-[#d93547] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p style={{ fontFamily: 'Gilroy, sans-serif', color: '#2d2620' }}>
+                Загрузка правил...
+              </p>
+            </div>
+          </div>
+        )}
+        {showIframe && (
+          <iframe
+            src="https://storage.daniillepekhin.com/IK%2Fclub_miniapp%2F%D0%9F%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0%20%D0%BA%D0%BB%D1%83%D0%B1%D0%B0.pdf"
+            className="w-full h-full border-0"
+            title="Правила клуба"
+            loading="eager"
+          />
+        )}
       </div>
     </div>
   );
