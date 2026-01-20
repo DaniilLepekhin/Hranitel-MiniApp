@@ -317,7 +317,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
       {/* 🎨 Красивый Toast для копирования */}
       {showCopyToast && (
         <div
-          className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl shadow-2xl animate-fade-in"
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl shadow-2xl animate-fade-in"
           style={{
             background: 'rgba(45, 38, 32, 0.95)',
             backdropFilter: 'blur(12px)',
