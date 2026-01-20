@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth';
 import { energiesApi } from '@/lib/api';
 import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
+import { useTelegram } from '@/hooks/useTelegram';
 
 interface HomeTabProps {
   onProfileClick?: () => void;
@@ -14,6 +15,7 @@ interface HomeTabProps {
 
 export function HomeTab({ onProfileClick }: HomeTabProps) {
   const { user, token } = useAuthStore();
+  const { webApp } = useTelegram();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -29,17 +31,33 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
   // 🚀 МЕМОИЗАЦИЯ: Вычисляем только когда данные меняются
   const epBalance = useMemo(() => balanceData?.balance || 0, [balanceData?.balance]);
   const referralLink = useMemo(
-    () => user ? `https://t.me/hranitelkodbot?start=ref_${user.id}` : 'https://t.me/hranitelkodbot?start=ref_...',
-    [user?.id]
+    () => user ? `https://t.me/hranitelkodbot?start=ref_${user.telegramId}` : 'https://t.me/hranitelkodbot?start=ref_...',
+    [user?.telegramId]
   );
   const userName = useMemo(() => user?.firstName || '{Имя}', [user?.firstName]);
 
   // 🚀 МЕМОИЗАЦИЯ: Функции не пересоздаются при каждом рендере
-  const handleCopyReferralLink = useCallback(() => {
+  const handleCopyReferralLink = useCallback(async () => {
     if (referralLink) {
-      navigator.clipboard.writeText(referralLink);
+      try {
+        await navigator.clipboard.writeText(referralLink);
+        // Показываем pop-up уведомление через Telegram WebApp API
+        webApp?.showPopup({
+          title: '✅ Готово!',
+          message: 'Ссылка скопирована в буфер обмена',
+          buttons: [{ type: 'ok' }]
+        });
+      } catch (error) {
+        console.error('Failed to copy:', error);
+        // Фолбэк если копирование не сработало
+        webApp?.showPopup({
+          title: '⚠️ Ошибка',
+          message: 'Не удалось скопировать ссылку',
+          buttons: [{ type: 'ok' }]
+        });
+      }
     }
-  }, [referralLink]);
+  }, [referralLink, webApp]);
 
   const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
