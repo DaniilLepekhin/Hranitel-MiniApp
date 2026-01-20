@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Copy, Megaphone } from 'lucide-react';
+import { Search, Copy, Megaphone, Lock } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth';
 import { energiesApi } from '@/lib/api';
@@ -94,15 +94,35 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
           </div>
         </form>
 
-        {/* 2. Пригласи друга - адаптивная ширина */}
+        {/* 2. Пригласи друга - адаптивная ширина (🔒 ЗАБЛОКИРОВАНО) */}
         <div
-          className="w-full mb-6 relative overflow-hidden"
+          className="w-full mb-6 relative overflow-hidden opacity-60"
           style={{
             borderRadius: '8px',
             border: '1px solid #d93547',
             background: 'linear-gradient(243.413deg, rgb(174, 30, 43) 15.721%, rgb(156, 23, 35) 99.389%)',
           }}
         >
+          {/* 🔒 Замочек поверх */}
+          <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/20 backdrop-blur-[2px]">
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
+                <Lock className="w-6 h-6 text-[#9c1723]" />
+              </div>
+              <p
+                style={{
+                  fontFamily: 'Gilroy, sans-serif',
+                  fontWeight: 600,
+                  fontSize: '12px',
+                  color: 'white',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                }}
+              >
+                Скоро откроется
+              </p>
+            </div>
+          </div>
+
           <div className="p-4 sm:p-5">
             {/* Заголовок с логотипом КОД */}
             <div className="flex items-center gap-3 mb-3">
@@ -180,8 +200,8 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
                 </p>
               </div>
               <button
-                onClick={handleCopyReferralLink}
-                className="flex-shrink-0 flex items-center justify-center ml-3 p-2 hover:bg-black/5 rounded-lg transition-colors"
+                disabled
+                className="flex-shrink-0 flex items-center justify-center ml-3 p-2 rounded-lg opacity-40 cursor-not-allowed"
               >
                 <Copy style={{ width: '18px', height: '18px', color: '#2d2620' }} />
               </button>
