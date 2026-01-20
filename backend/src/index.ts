@@ -9,15 +9,13 @@ import { redis, closeRedisConnection } from '@/utils/redis';
 import { db, closeDatabaseConnection } from '@/db';
 import { users } from '@/db/schema';
 import { errorHandler } from '@/middlewares/errorHandler';
-import { apiRateLimit } from '@/middlewares/rateLimit';
 
 // 🆕 Professional middlewares (senior-level)
-import { authRateLimiter, publicRateLimiter, webhookRateLimiter } from '@/middlewares/rate-limiter';
+import { authRateLimiter } from '@/middlewares/rate-limiter';
 import { securityHeaders, apiSecurityHeaders } from '@/middlewares/security-headers';
 import { auditLogger } from '@/middlewares/audit-logger';
-import { hotCache, userCache, publicCache, invalidateCacheByPrefix } from '@/middlewares/cache';
+import { hotCache, userCache } from '@/middlewares/cache';
 import { metricsMiddleware, metricsEndpoint } from '@/middlewares/metrics';
-import { strictReplayProtection, relaxedReplayProtection } from '@/middlewares/replay-protection';
 
 // Modules
 import { authModule } from '@/modules/auth';
@@ -123,18 +121,23 @@ const app = new Elysia()
         overallStatus = 'not_ready';
       }
 
-      // Check Redis connection
-      try {
-        await redis.ping();
-        checks.redis = 'ok';
+      // Check Redis connection (optional)
+      if (redis) {
+        try {
+          await redis.ping();
+          checks.redis = 'ok';
 
-        // Check scheduler queue size
-        const queueSize = await redis.zcard('scheduler:queue');
-        checks.scheduler_queue_size = queueSize;
-      } catch (error) {
-        checks.redis = 'failed';
-        checks.redis_error = error instanceof Error ? error.message : 'Unknown error';
-        overallStatus = 'not_ready';
+          // Check scheduler queue size
+          const queueSize = await redis.zcard('scheduler:queue');
+          checks.scheduler_queue_size = queueSize;
+        } catch (error) {
+          checks.redis = 'failed';
+          checks.redis_error = error instanceof Error ? error.message : 'Unknown error';
+          // Redis is optional, don't mark as not_ready
+          logger.warn({ error }, 'Redis health check failed');
+        }
+      } else {
+        checks.redis = 'not_configured';
       }
 
       if (overallStatus === 'not_ready') {

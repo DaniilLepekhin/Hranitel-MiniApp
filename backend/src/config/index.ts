@@ -41,7 +41,23 @@ function loadConfig(): EnvConfig {
 
   if (!result.success) {
     console.error('❌ Invalid environment variables:');
-    console.error(v.flatten(result.issues));
+    console.error('');
+    console.error('Required variables:');
+    console.error('  - DATABASE_URL (PostgreSQL connection string)');
+    console.error('  - JWT_SECRET (minimum 32 characters)');
+    console.error('');
+    console.error('Optional variables (app will work without them):');
+    console.error('  - REDIS_URL (caching and rate limiting)');
+    console.error('  - TELEGRAM_BOT_TOKEN (bot functionality)');
+    console.error('  - OPENAI_API_KEY (AI features)');
+    console.error('');
+    console.error('Validation errors:');
+    const flattened = v.flatten(result.issues);
+    for (const [key, errors] of Object.entries(flattened.nested || {})) {
+      console.error(`  ${key}: ${errors?.[0]}`);
+    }
+    console.error('');
+    console.error('💡 Check your .env file or environment variables in deployment');
     process.exit(1);
   }
 
