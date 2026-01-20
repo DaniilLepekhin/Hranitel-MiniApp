@@ -282,7 +282,7 @@ export function ChatsTab() {
               borderRadius: '5.73px',
               border: '0.955px solid #d93547',
               background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
-              height: '156px',
+              minHeight: '185px',
               marginTop: '40px', // Отступ для выступающей картинки
             }}
           >
@@ -360,7 +360,7 @@ export function ChatsTab() {
               borderRadius: '5.73px',
               border: '0.955px solid #d93547',
               background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
-              height: '198px',
+              minHeight: '230px',
             }}
           >
             {/* Изображение справа */}
