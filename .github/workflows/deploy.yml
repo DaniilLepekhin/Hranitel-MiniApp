@@ -244,9 +244,9 @@ jobs:
       - name: Setup Cron Job for Materialized Views
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.SSH_KEY }}
           script_stop: false
           command_timeout: 2m
           script: |
