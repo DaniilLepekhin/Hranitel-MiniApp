@@ -71,6 +71,10 @@ jobs:
 
             bun install
 
+            # Run database migrations
+            echo "📊 Running database migrations..."
+            bun run db:migrate || echo "⚠️ Migration failed or no new migrations"
+
             # Restart backend service (port 3002)
             echo "🔄 Restarting backend..."
             pm2 delete hranitel-backend 2>/dev/null || true
