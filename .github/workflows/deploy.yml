@@ -184,6 +184,11 @@ jobs:
             # Remove .env.local to use .env.production from repo
             rm -f .env.local
 
+            # Clean npm cache and node_modules
+            echo "🧹 Cleaning npm cache..."
+            rm -rf node_modules .next
+            npm cache clean --force
+
             # Install dependencies
             npm install
 
