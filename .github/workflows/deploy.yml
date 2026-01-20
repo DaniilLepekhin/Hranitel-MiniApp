@@ -71,9 +71,11 @@ jobs:
 
             bun install
 
-            # Run database migrations
+            # Run database migrations manually (skip drizzle-kit due to missing historical migrations)
             echo "📊 Running database migrations..."
-            bun run db:migrate || echo "⚠️ Migration failed or no new migrations"
+            cd /var/www/hranitel/backend
+            chmod +x run-migration-manual.sh
+            bash run-migration-manual.sh || echo "⚠️ Migration failed or already applied"
 
             # Restart backend service (port 3002)
             echo "🔄 Restarting backend..."
