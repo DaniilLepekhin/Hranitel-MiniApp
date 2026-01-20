@@ -10,10 +10,10 @@ ALTER TABLE users
 
 -- 2. Create gift_subscriptions table
 CREATE TABLE IF NOT EXISTS gift_subscriptions (
-  id SERIAL PRIMARY KEY,
-  gifter_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  gifter_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   recipient_tg_id BIGINT NOT NULL,
-  payment_id INTEGER REFERENCES payments(id) ON DELETE SET NULL,
+  payment_id UUID,
   activated BOOLEAN DEFAULT FALSE NOT NULL,
   activation_token TEXT NOT NULL UNIQUE,
   created_at TIMESTAMP DEFAULT NOW() NOT NULL,
@@ -36,21 +36,11 @@ CREATE INDEX IF NOT EXISTS idx_users_onboarding_step
 CREATE INDEX IF NOT EXISTS idx_users_first_purchase_date
   ON users(first_purchase_date) WHERE first_purchase_date IS NOT NULL;
 
--- 4. Backfill first_purchase_date for existing users with successful payments
+-- 4. Backfill first_purchase_date for existing Pro users (set to now as we don't have payment history)
 UPDATE users
-SET first_purchase_date = (
-  SELECT MIN(created_at)
-  FROM payments
-  WHERE payments.user_id = users.id
-    AND payments.status = 'succeeded'
-)
+SET first_purchase_date = NOW()
 WHERE is_pro = TRUE
-  AND first_purchase_date IS NULL
-  AND EXISTS (
-    SELECT 1 FROM payments
-    WHERE payments.user_id = users.id
-      AND payments.status = 'succeeded'
-  );
+  AND first_purchase_date IS NULL;
 
 -- 5. Add comment for documentation
 COMMENT ON TABLE gift_subscriptions IS 'Stores gift subscription information for the referral gift program';
