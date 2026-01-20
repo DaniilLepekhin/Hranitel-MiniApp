@@ -37,10 +37,22 @@ const envSchema = v.object({
 type EnvConfig = v.InferOutput<typeof envSchema>;
 
 function loadConfig(): EnvConfig {
+  // 🔍 Debug: Show environment loading
+  console.log('🔧 Loading configuration...');
+  console.log(`📁 Working directory: ${process.cwd()}`);
+  console.log(`📝 .env file exists: ${require('fs').existsSync('.env') ? 'YES' : 'NO'}`);
+
   const result = v.safeParse(envSchema, process.env);
 
   if (!result.success) {
     console.error('❌ Invalid environment variables:');
+    console.error('');
+    console.error('🔍 Debug Info:');
+    console.error(`  CWD: ${process.cwd()}`);
+    console.error(`  NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+    console.error(`  DATABASE_URL: ${process.env.DATABASE_URL ? 'SET (' + process.env.DATABASE_URL.substring(0, 20) + '...)' : 'NOT SET'}`);
+    console.error(`  JWT_SECRET: ${process.env.JWT_SECRET ? 'SET (length: ' + process.env.JWT_SECRET.length + ')' : 'NOT SET'}`);
+    console.error(`  REDIS_URL: ${process.env.REDIS_URL ? 'SET' : 'NOT SET'}`);
     console.error('');
     console.error('Required variables:');
     console.error('  - DATABASE_URL (PostgreSQL connection string)');
@@ -61,6 +73,7 @@ function loadConfig(): EnvConfig {
     process.exit(1);
   }
 
+  console.log('✅ Configuration loaded successfully');
   return result.output;
 }
 
