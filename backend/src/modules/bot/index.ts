@@ -3,7 +3,7 @@ import { Bot, InlineKeyboard, Keyboard } from 'grammy';
 import { config } from '@/config';
 import { logger } from '@/utils/logger';
 import { webhookRateLimit } from '@/middlewares/rateLimit';
-import { db, users, courses, courseProgress, meditations } from '@/db';
+import { db, users, courses, courseProgress, meditations, clubFunnelProgress } from '@/db';
 import { eq, desc } from 'drizzle-orm';
 import { gamificationService } from '@/modules/gamification/service';
 import { schedulerService, type ScheduledTask } from '@/services/scheduler.service';
@@ -11,6 +11,8 @@ import { TelegramService } from '@/services/telegram.service';
 import { stateService } from '@/services/state.service';
 // 🆕 Post-payment funnels
 import * as funnels from './post-payment-funnels';
+// 🆕 Club funnel (numerology-based pre-payment funnel)
+import * as clubFunnel from './club-funnel';
 
 // Initialize bot
 export const bot = new Bot(config.TELEGRAM_BOT_TOKEN);
@@ -23,6 +25,8 @@ const telegramService = new TelegramService(bot.api);
 
 // Initialize telegram service for funnels
 funnels.initTelegramService(bot.api);
+// Initialize telegram service for club funnel
+clubFunnel.initClubFunnelTelegramService(bot.api);
 
 // Helper to check payment status
 async function checkPaymentStatus(userId: number): Promise<boolean> {
@@ -391,6 +395,13 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
     else if (type === 'gift_expiry_3days') await funnels.sendGiftExpiry3Days(userId, chatId);
     else if (type === 'gift_expiry_2days') await funnels.sendGiftExpiry2Days(userId, chatId);
     else if (type === 'gift_expiry_1day') await funnels.sendGiftExpiry1Day(userId, chatId);
+    // 🆕 Club funnel auto-progress
+    else if (type === 'club_auto_progress') {
+      const { odUserId, step } = task.data || {};
+      if (odUserId && chatId && step) {
+        await clubFunnel.handleClubAutoProgress(odUserId, chatId, step);
+      }
+    }
     // 🔧 Payment check (scheduler-based, survives restarts)
     else if (type === 'payment_check') {
       const { checkNumber, maxChecks } = task.data || { checkNumber: 1, maxChecks: 10 };
@@ -446,6 +457,33 @@ bot.command('start', async (ctx) => {
     if (startPayload && startPayload.startsWith('gift_')) {
       const token = startPayload.substring(5); // Remove 'gift_' prefix
       await funnels.handleGiftActivation(userId, token, chatId);
+      return;
+    }
+
+    // 🆕 Check for club funnel link (start=club)
+    if (startPayload === 'club') {
+      // Get or create user in database
+      let [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.telegramId, String(userId)))
+        .limit(1);
+
+      if (!user) {
+        // Create new user
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            telegramId: String(userId),
+            username: ctx.from?.username || null,
+            firstName: ctx.from?.first_name || null,
+            lastName: ctx.from?.last_name || null,
+          })
+          .returning();
+        user = newUser;
+      }
+
+      await clubFunnel.startClubFunnel(user.id, chatId, String(userId));
       return;
     }
 
@@ -818,6 +856,129 @@ bot.callbackQuery('gift_continue', async (ctx) => {
   }
 });
 
+// ============================================================================
+// 🆕 CLUB FUNNEL CALLBACKS (Numerology-based pre-payment funnel)
+// ============================================================================
+
+// Club funnel - "Готов(а)" button
+bot.callbackQuery('club_ready', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const user = await funnels.getUserByTgId(ctx.from.id);
+    if (user) {
+      await clubFunnel.handleClubReady(user.id, ctx.chat.id);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in club_ready callback');
+  }
+});
+
+// Club funnel - Birthdate confirmation YES
+bot.callbackQuery(/^club_confirm_date_yes_/, async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const data = ctx.callbackQuery.data;
+    const birthDate = data.replace('club_confirm_date_yes_', '');
+    const user = await funnels.getUserByTgId(ctx.from.id);
+    if (user && birthDate) {
+      await clubFunnel.handleBirthDateConfirmed(user.id, ctx.chat.id, birthDate);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in club_confirm_date_yes callback');
+  }
+});
+
+// Club funnel - Birthdate confirmation NO
+bot.callbackQuery('club_confirm_date_no', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const user = await funnels.getUserByTgId(ctx.from.id);
+    if (user) {
+      await clubFunnel.handleBirthDateRejected(user.id, ctx.chat.id);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in club_confirm_date_no callback');
+  }
+});
+
+// Club funnel - "Активировать потенциал" button
+bot.callbackQuery('club_activate', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const user = await funnels.getUserByTgId(ctx.from.id);
+    if (user) {
+      await clubFunnel.handleClubActivate(user.id, ctx.chat.id);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in club_activate callback');
+  }
+});
+
+// Club funnel - "Получить расшифровку стиля" button
+bot.callbackQuery('club_get_style', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const user = await funnels.getUserByTgId(ctx.from.id);
+    if (user) {
+      await clubFunnel.handleClubGetStyle(user.id, ctx.chat.id);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in club_get_style callback');
+  }
+});
+
+// Club funnel - "Где мой масштаб" button
+bot.callbackQuery('club_get_scale', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const user = await funnels.getUserByTgId(ctx.from.id);
+    if (user) {
+      await clubFunnel.handleClubGetScale(user.id, ctx.chat.id, ctx.from.id);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in club_get_scale callback');
+  }
+});
+
+// Club funnel - "Я подписалась" button
+bot.callbackQuery('club_check_subscription', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const user = await funnels.getUserByTgId(ctx.from.id);
+    if (user) {
+      await clubFunnel.handleClubCheckSubscription(user.id, ctx.chat.id, ctx.from.id);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in club_check_subscription callback');
+  }
+});
+
+// Club funnel - "Узнать свою точку роста" button
+bot.callbackQuery('club_get_roadmap', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const user = await funnels.getUserByTgId(ctx.from.id);
+    if (user) {
+      await clubFunnel.handleClubGetRoadmap(user.id, ctx.chat.id);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in club_get_roadmap callback');
+  }
+});
+
+// Club funnel - "Начать маршрут" button
+bot.callbackQuery('club_start_route', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const user = await funnels.getUserByTgId(ctx.from.id);
+    if (user) {
+      await clubFunnel.handleClubStartRoute(user.id, ctx.chat.id, user);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in club_start_route callback');
+  }
+});
+
 // 🆕 Menu - back button
 bot.callbackQuery('menu_back', async (ctx) => {
   try {
@@ -1175,16 +1336,32 @@ bot.callbackQuery('meditations', async (ctx) => {
   }
 });
 
-// 🆕 Message handler - keyword "УСПЕХ" validation
+// 🆕 Message handler - keyword "УСПЕХ" validation + Club funnel birthdate input
 bot.on('message:text', async (ctx) => {
   try {
     const userId = ctx.from.id;
+    const rawText = ctx.message.text?.trim() || '';
     // Normalize text for keyword validation (trim whitespace, uppercase)
-    const text = ctx.message.text?.trim().toUpperCase();
+    const text = rawText.toUpperCase();
     const user = await funnels.getUserByTgId(userId);
 
     if (user?.onboardingStep === 'awaiting_keyword' && text === 'УСПЕХ') {
       await funnels.handleKeywordSuccess(user.id, ctx.chat.id);
+      return;
+    }
+
+    // 🆕 Check if user is in club funnel awaiting birthdate
+    if (user) {
+      const [progress] = await db
+        .select()
+        .from(clubFunnelProgress)
+        .where(eq(clubFunnelProgress.userId, user.id))
+        .limit(1);
+
+      if (progress?.currentStep === 'awaiting_birthdate') {
+        await clubFunnel.handleBirthDateInput(user.id, ctx.chat.id, rawText);
+        return;
+      }
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in message:text handler');

@@ -185,6 +185,44 @@ export class TelegramService {
   }
 
   /**
+   * Send an animation (GIF, video note, etc.) with retry logic
+   */
+  async sendAnimation(
+    chatId: number,
+    animation: string,
+    options?: SendVideoOptions,
+    retryOptions?: RetryOptions
+  ): Promise<boolean> {
+    return this.executeWithRetry(
+      async () => {
+        await this.api.sendAnimation(chatId, animation, options);
+        return true;
+      },
+      {
+        operation: 'sendAnimation',
+        chatId,
+        ...retryOptions,
+      }
+    );
+  }
+
+  /**
+   * Get chat member status (for subscription checks)
+   */
+  async getChatMember(
+    chatId: string | number,
+    userId: number
+  ): Promise<{ status: string } | null> {
+    try {
+      const member = await this.api.getChatMember(chatId, userId);
+      return member;
+    } catch (error) {
+      logger.error({ error, chatId, userId }, 'Error getting chat member');
+      return null;
+    }
+  }
+
+  /**
    * Execute an API call with exponential backoff retry
    */
   private async executeWithRetry<T>(

@@ -11,6 +11,23 @@ export const shopItemTypeEnum = pgEnum('shop_item_type', ['raffle_ticket', 'less
 export const streamStatusEnum = pgEnum('stream_status', ['scheduled', 'live', 'ended']);
 export const contentTypeEnum = pgEnum('content_type', ['course', 'podcast', 'stream_record', 'practice']);
 export const practiceContentTypeEnum = pgEnum('practice_content_type', ['markdown', 'html']);
+export const clubFunnelStepEnum = pgEnum('club_funnel_step', [
+  'start',
+  'awaiting_ready',
+  'awaiting_birthdate',
+  'birthdate_confirmed',
+  'showing_star',
+  'showing_archetype',
+  'awaiting_style_button',
+  'showing_style',
+  'awaiting_subscribe',
+  'subscribed',
+  'showing_scale',
+  'awaiting_roadmap',
+  'showing_roadmap',
+  'awaiting_purchase',
+  'completed'
+]);
 
 // Users
 export const users = pgTable('users', {
@@ -529,6 +546,34 @@ export const giftSubscriptions = pgTable('gift_subscriptions', {
   index('gift_subscriptions_activated_idx').on(table.activated),
 ]);
 
+// 🆕 Club Funnel Progress (воронка клуба - нумерология)
+export const clubFunnelProgress = pgTable('club_funnel_progress', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  telegramId: text('telegram_id').notNull(),
+
+  // Birthdate data
+  birthDate: text('birth_date'), // Format: DD.MM.YYYY
+  birthDayNumber: integer('birth_day_number'), // 1-31 (день рождения)
+  archetypeNumber: integer('archetype_number'), // 1-22 (номер архетипа богини)
+
+  // Progress tracking
+  currentStep: clubFunnelStepEnum('current_step').default('start').notNull(),
+  subscribedToChannel: boolean('subscribed_to_channel').default(false),
+
+  // Metadata
+  starImageUrl: text('star_image_url'), // URL изображения звезды от webhook
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  completedAt: timestamp('completed_at'),
+}, (table) => [
+  index('club_funnel_progress_user_id_idx').on(table.userId),
+  index('club_funnel_progress_telegram_id_idx').on(table.telegramId),
+  index('club_funnel_progress_current_step_idx').on(table.currentStep),
+]);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   courseProgress: many(courseProgress),
@@ -545,6 +590,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   weeklyReports: many(weeklyReports),
   userKeys: many(userKeys),
   userContentProgress: many(userContentProgress),
+  clubFunnelProgress: many(clubFunnelProgress),
 }));
 
 export const coursesRelations = relations(courses, ({ many }) => ({
@@ -751,6 +797,13 @@ export const practiceContentRelations = relations(practiceContent, ({ one }) => 
   }),
 }));
 
+export const clubFunnelProgressRelations = relations(clubFunnelProgress, ({ one }) => ({
+  user: one(users, {
+    fields: [clubFunnelProgress.userId],
+    references: [users.id],
+  }),
+}));
+
 // Types
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -800,3 +853,5 @@ export type Payment = typeof payments.$inferSelect;
 export type NewPayment = typeof payments.$inferInsert;
 export type GiftSubscription = typeof giftSubscriptions.$inferSelect;
 export type NewGiftSubscription = typeof giftSubscriptions.$inferInsert;
+export type ClubFunnelProgress = typeof clubFunnelProgress.$inferSelect;
+export type NewClubFunnelProgress = typeof clubFunnelProgress.$inferInsert;

@@ -50,7 +50,10 @@ export interface ScheduledTask {
     // 🆕 Gift subscription expiry reminders
     | 'gift_expiry_3days'      // За 3 дня до окончания в 9:00 МСК
     | 'gift_expiry_2days'      // За 2 дня до окончания в 9:00 МСК
-    | 'gift_expiry_1day';      // За 1 день до окончания в 9:00 МСК
+    | 'gift_expiry_1day'       // За 1 день до окончания в 9:00 МСК
+
+    // 🆕 Club funnel (numerology-based pre-payment)
+    | 'club_auto_progress';    // Авто-прокидывание шага воронки
 
   userId: number;
   chatId: number;
