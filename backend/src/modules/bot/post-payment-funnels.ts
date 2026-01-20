@@ -8,10 +8,25 @@ import { db } from '@/db';
 import { users, giftSubscriptions } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { schedulerService } from '@/services/scheduler.service';
-import { telegramService } from '@/services/telegram.service';
+import { TelegramService } from '@/services/telegram.service';
 import { logger } from '@/utils/logger';
 import { nanoid } from 'nanoid';
 import { getMoscowTimeInDays, getTomorrowMoscowTime } from '@/utils/moscow-time';
+
+// Create telegram service instance (needs bot API from Grammy)
+// This will be initialized when bot module loads
+let telegramService: TelegramService | null = null;
+
+export function initTelegramService(api: any) {
+  telegramService = new TelegramService(api);
+}
+
+function getTelegramService(): TelegramService {
+  if (!telegramService) {
+    throw new Error('TelegramService not initialized. Call initTelegramService() first.');
+  }
+  return telegramService;
+}
 
 // ============================================================================
 // HELPER: Get user by telegram ID
@@ -35,7 +50,7 @@ export async function startOnboardingAfterPayment(userId: string, chatId: number
     .where(eq(users.id, userId));
 
   // 2. Отправить сообщение (видеокружок будет добавлен позже)
-  await telegramService.sendMessage(
+  await getTelegramService().sendMessage(
     chatId,
     `«Ты начинаешь погружение в <b>КОД ДЕНЕГ</b> ✨\n\n` +
     `Чтобы двери нашей экосистемы открылись, тебе нужно принять её правила.\n\n` +
@@ -67,7 +82,7 @@ export async function sendKeywordReminder20m(userId: number, chatId: number) {
   const user = await getUserByTgId(userId);
   if (!user || user.onboardingStep !== 'awaiting_keyword') return;
 
-  await telegramService.sendPhoto(
+  await getTelegramService().sendPhoto(
     chatId,
     'https://t.me/mate_bot_open/9285',
     {
@@ -81,7 +96,7 @@ export async function sendKeywordReminder60m(userId: number, chatId: number) {
   const user = await getUserByTgId(userId);
   if (!user || user.onboardingStep !== 'awaiting_keyword') return;
 
-  await telegramService.sendPhoto(
+  await getTelegramService().sendPhoto(
     chatId,
     'https://t.me/mate_bot_open/9286',
     {
@@ -95,7 +110,7 @@ export async function sendKeywordReminder120m(userId: number, chatId: number) {
   const user = await getUserByTgId(userId);
   if (!user || user.onboardingStep !== 'awaiting_keyword') return;
 
-  await telegramService.sendPhoto(
+  await getTelegramService().sendPhoto(
     chatId,
     'https://t.me/mate_bot_open/9287',
     {
@@ -132,7 +147,7 @@ export async function handleKeywordSuccess(userId: string, chatId: number) {
     .row()
     .text('готово', 'onboarding_ready');
 
-  await telegramService.sendPhoto(
+  await getTelegramService().sendPhoto(
     chatId,
     'https://t.me/mate_bot_open/9288',
     {
@@ -178,7 +193,7 @@ export async function sendReadyReminder30m(userId: number, chatId: number) {
 
   const keyboard = new InlineKeyboard().text('готово', 'onboarding_ready');
 
-  await telegramService.sendPhoto(
+  await getTelegramService().sendPhoto(
     chatId,
     'https://t.me/mate_bot_open/9289',
     {
@@ -195,7 +210,7 @@ export async function sendReadyReminder60m(userId: number, chatId: number) {
 
   const keyboard = new InlineKeyboard().text('готово', 'onboarding_ready');
 
-  await telegramService.sendMessage(
+  await getTelegramService().sendMessage(
     chatId,
     `Уже в канале? Нажимай «Готово», чтобы мы с тобой продолжили 👇`,
     { reply_markup: keyboard }
@@ -226,7 +241,7 @@ export async function completeOnboarding(userId: string, chatId: number) {
   await schedulerService.cancelUserTasksByType(userInt, 'ready_final_120m');
 
   // 3. Отправить видео-инструкцию (позже будет добавлено видео)
-  await telegramService.sendMessage(
+  await getTelegramService().sendMessage(
     chatId,
     `<b>А теперь самое важное 👇</b>\n\n` +
     `Внимательно посмотри видео-инструкцию по экосистеме клуба, чтобы ты не потерялась и сразу во всём разобралась ✨\n\n` +
@@ -286,7 +301,7 @@ export async function sendDay1GiftPromo(userId: number, chatId: number) {
     .row()
     .text('вернуться в меню', 'menu_back');
 
-  await telegramService.sendVideo(
+  await getTelegramService().sendVideo(
     chatId,
     'https://t.me/mate_bot_open/9290',
     {
@@ -329,7 +344,7 @@ export async function sendDay7CheckIn(userId: number, chatId: number) {
     .row()
     .url('Служба заботы', 'https://t.me/Egiazarova_support_bot');
 
-  await telegramService.sendPhoto(
+  await getTelegramService().sendPhoto(
     chatId,
     'https://t.me/mate_bot_open/9305',
     {
@@ -353,7 +368,7 @@ export async function sendDay14CheckIn(userId: number, chatId: number) {
     .row()
     .url('Служба заботы', 'https://t.me/Egiazarova_support_bot');
 
-  await telegramService.sendPhoto(
+  await getTelegramService().sendPhoto(
     chatId,
     'https://t.me/mate_bot_open/9306',
     {
@@ -376,7 +391,7 @@ export async function sendDay21CheckIn(userId: number, chatId: number) {
     .row()
     .url('Служба заботы', 'https://t.me/Egiazarova_support_bot');
 
-  await telegramService.sendPhoto(
+  await getTelegramService().sendPhoto(
     chatId,
     'https://t.me/mate_bot_open/9307',
     {
@@ -397,7 +412,7 @@ export async function sendDay28Renewal(userId: number, chatId: number) {
     .row()
     .url('Служба заботы', 'https://t.me/Egiazarova_support_bot');
 
-  await telegramService.sendPhoto(
+  await getTelegramService().sendPhoto(
     chatId,
     'https://t.me/mate_bot_open/9308',
     {
@@ -425,7 +440,7 @@ export async function sendRenewal2Days(userId: number, chatId: number) {
     .row()
     .url('Служба заботы', 'https://t.me/Egiazarova_support_bot');
 
-  await telegramService.sendPhoto(
+  await getTelegramService().sendPhoto(
     chatId,
     'https://t.me/mate_bot_open/9309',
     {
@@ -453,7 +468,7 @@ export async function sendRenewal1Day(userId: number, chatId: number) {
     .row()
     .url('Служба заботы', 'https://t.me/Egiazarova_support_bot');
 
-  await telegramService.sendPhoto(
+  await getTelegramService().sendPhoto(
     chatId,
     'https://t.me/mate_bot_open/9310',
     {
@@ -479,7 +494,7 @@ export async function sendRenewalToday(userId: number, chatId: number) {
     .row()
     .url('Служба заботы', 'https://t.me/Egiazarova_support_bot');
 
-  await telegramService.sendPhoto(
+  await getTelegramService().sendPhoto(
     chatId,
     'https://t.me/mate_bot_open/9311',
     {
@@ -500,7 +515,7 @@ export async function sendRenewalToday(userId: number, chatId: number) {
 export async function sendGiftExpiry3Days(userId: number, chatId: number) {
   const keyboard = new InlineKeyboard().text('продолжить путь', 'gift_continue');
 
-  await telegramService.sendPhoto(
+  await getTelegramService().sendPhoto(
     chatId,
     'https://t.me/mate_bot_open/9312',
     {
@@ -520,7 +535,7 @@ export async function sendGiftExpiry3Days(userId: number, chatId: number) {
 export async function sendGiftExpiry2Days(userId: number, chatId: number) {
   const keyboard = new InlineKeyboard().text('пойти дальше', 'gift_continue');
 
-  await telegramService.sendPhoto(
+  await getTelegramService().sendPhoto(
     chatId,
     'https://t.me/mate_bot_open/9314',
     {
@@ -539,7 +554,7 @@ export async function sendGiftExpiry2Days(userId: number, chatId: number) {
 export async function sendGiftExpiry1Day(userId: number, chatId: number) {
   const keyboard = new InlineKeyboard().text('пойти дальше', 'gift_continue');
 
-  await telegramService.sendPhoto(
+  await getTelegramService().sendPhoto(
     chatId,
     'https://t.me/mate_bot_open/9315',
     {
@@ -575,7 +590,7 @@ export async function handleUserShared(gifterTgId: number, recipientTgId: number
   const existingRecipient = await getUserByTgId(recipientTgId);
 
   if (existingRecipient && existingRecipient.isPro) {
-    await telegramService.sendMessage(
+    await getTelegramService().sendMessage(
       chatId,
       '❌ Этот пользователь уже является участником клуба.\n\n' +
       'Пожалуйста, выберите другого друга для подарка.',
@@ -605,7 +620,7 @@ export async function handleUserShared(gifterTgId: number, recipientTgId: number
   const keyboard = new InlineKeyboard()
     .webApp('Оплатить', `https://ishodnyi-kod.com/webappclubik?gift=true&recipient_id=${recipientTgId}&token=${activationToken}`);
 
-  await telegramService.sendPhoto(
+  await getTelegramService().sendPhoto(
     chatId,
     'https://t.me/mate_bot_open/9317',
     {
@@ -641,7 +656,7 @@ export async function handleGiftPaymentSuccess(
 
   const giftLink = `https://t.me/hranitelkodbot?start=gift_${token}`;
 
-  await telegramService.sendMessage(
+  await getTelegramService().sendMessage(
     parseInt(gifter[0].telegramId),
     `<b>🎁 Отправь эту ссылку получателю и мы откроем доступ</b>\n\n${giftLink}`,
     { parse_mode: 'HTML' }
@@ -662,7 +677,7 @@ export async function handleGiftActivation(recipientTgId: number, token: string,
     .limit(1);
 
   if (gift.length === 0) {
-    await telegramService.sendMessage(
+    await getTelegramService().sendMessage(
       chatId,
       '❌ Подарочная ссылка не найдена или недействительна.'
     );
@@ -673,7 +688,7 @@ export async function handleGiftActivation(recipientTgId: number, token: string,
 
   // Проверка 1: Ссылка только для указанного получателя
   if (giftRecord.recipientTgId !== recipientTgId) {
-    await telegramService.sendMessage(
+    await getTelegramService().sendMessage(
       chatId,
       '❌ Этот подарок предназначен для другого пользователя.'
     );
@@ -682,7 +697,7 @@ export async function handleGiftActivation(recipientTgId: number, token: string,
 
   // Проверка 2: Ссылка работает только 1 раз
   if (giftRecord.activated) {
-    await telegramService.sendMessage(
+    await getTelegramService().sendMessage(
       chatId,
       '❌ Этот подарок уже был активирован ранее.'
     );
@@ -691,7 +706,7 @@ export async function handleGiftActivation(recipientTgId: number, token: string,
 
   // Проверка 3: Оплата должна быть произведена
   if (!giftRecord.paymentId) {
-    await telegramService.sendMessage(
+    await getTelegramService().sendMessage(
       chatId,
       '❌ Подарок еще не оплачен дарителем.'
     );
@@ -701,7 +716,7 @@ export async function handleGiftActivation(recipientTgId: number, token: string,
   // Отправить приветственное сообщение
   const keyboard = new InlineKeyboard().text('начать', 'gift_start');
 
-  await telegramService.sendPhoto(
+  await getTelegramService().sendPhoto(
     chatId,
     'https://t.me/mate_bot_open/9316',
     {
@@ -801,7 +816,7 @@ export async function sendMenuMessage(chatId: number) {
     .row()
     .url('политика', 'https://ishodnyi-kod.com/clubofert');
 
-  await telegramService.sendMessage(
+  await getTelegramService().sendMessage(
     chatId,
     `<b>Меню участника клуба КОД ДЕНЕГ ⬇️</b>`,
     { parse_mode: 'HTML', reply_markup: keyboard }

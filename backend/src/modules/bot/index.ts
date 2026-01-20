@@ -21,6 +21,9 @@ await bot.init();
 // Initialize Telegram service
 const telegramService = new TelegramService(bot.api);
 
+// Initialize telegram service for funnels
+funnels.initTelegramService(bot.api);
+
 // Helper to check payment status
 async function checkPaymentStatus(userId: number): Promise<boolean> {
   try {
