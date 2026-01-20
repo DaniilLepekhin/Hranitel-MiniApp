@@ -94,22 +94,25 @@ export const useMediaPlayerStore = create<MediaPlayerState>()(
     }),
     {
       name: 'media-player-storage',
-      storage: createJSONStorage(() => sessionStorage), // Use sessionStorage for media player
+      storage: createJSONStorage(() => localStorage), // Use localStorage для сохранения между табами
       partialize: (state) => ({
         // Persist only essential state, not transient values like seekTime
         currentMedia: state.currentMedia,
         timecodes: state.timecodes,
-        isPlaying: state.isPlaying,
+        isPlaying: false, // НЕ сохраняем isPlaying - всегда начинаем с паузы
         currentTime: state.currentTime,
         duration: state.duration,
         isMuted: state.isMuted,
-        showFullPlayer: state.showFullPlayer,
+        showFullPlayer: false, // НЕ сохраняем showFullPlayer - всегда начинаем с мини-плеера
         playbackRate: state.playbackRate,
       }),
       // 🔧 FIX: Set hydration flag when restore completes
       onRehydrateStorage: () => (state) => {
         if (state) {
           state._hasHydrated = true;
+          // При гидратации всегда ставим паузу и мини-плеер
+          state.isPlaying = false;
+          state.showFullPlayer = false;
         }
       },
     }
