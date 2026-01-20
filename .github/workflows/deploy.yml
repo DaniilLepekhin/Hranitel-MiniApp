@@ -71,11 +71,54 @@ jobs:
 
             bun install
 
-            # Run database migrations manually (skip drizzle-kit due to missing historical migrations)
+            # 🔧 Run ALL database migrations (including new ones 0004, 0005)
             echo "📊 Running database migrations..."
             cd /var/www/hranitel/backend
-            chmod +x run-migration-manual.sh
-            bash run-migration-manual.sh || echo "⚠️ Migration failed or already applied"
+
+            # Apply migration 0003 (if not already applied)
+            echo "📊 Checking migration 0003..."
+            psql "$DATABASE_URL" -c "SELECT 1 FROM gift_subscriptions LIMIT 1" 2>/dev/null || {
+              echo "📊 Applying migration 0003_add_onboarding_and_gift_fields.sql..."
+              psql "$DATABASE_URL" -f drizzle/migrations/0003_add_onboarding_and_gift_fields.sql
+            }
+
+            # Apply migration 0004 (payments table)
+            echo "📊 Checking migration 0004..."
+            psql "$DATABASE_URL" -c "SELECT 1 FROM payments LIMIT 1" 2>/dev/null || {
+              echo "📊 Applying migration 0004_create_payments_table.sql..."
+              psql "$DATABASE_URL" -f drizzle/migrations/0004_create_payments_table.sql
+              echo "✅ Payments table created"
+            }
+
+            # Apply migration 0005 (performance indexes + materialized views)
+            echo "📊 Checking migration 0005..."
+            psql "$DATABASE_URL" -c "SELECT 1 FROM city_ratings_cache LIMIT 1" 2>/dev/null || {
+              echo "📊 Applying migration 0005_add_performance_indexes_and_views.sql..."
+              psql "$DATABASE_URL" -f drizzle/migrations/0005_add_performance_indexes_and_views.sql
+              echo "✅ Performance indexes and materialized views created"
+
+              # Initial refresh of materialized views
+              echo "🔄 Initial refresh of materialized views..."
+              psql "$DATABASE_URL" -c "SELECT refresh_ratings_cache();"
+            }
+
+            echo "✅ All migrations applied successfully!"
+
+            # 🔍 Pre-deployment health check
+            echo "🔍 Running pre-deployment health checks..."
+
+            # Check database connection
+            psql "$DATABASE_URL" -c "SELECT 1" > /dev/null && echo "✅ Database connection OK" || {
+              echo "❌ Database connection FAILED"
+              exit 1
+            }
+
+            # Check Redis connection
+            redis-cli ping > /dev/null && echo "✅ Redis connection OK" || echo "⚠️ Redis not available (optional)"
+
+            # Backup current backend process (for rollback)
+            echo "💾 Creating backup of current backend..."
+            pm2 save --force
 
             # Restart backend service (port 3002)
             echo "🔄 Restarting backend..."
@@ -83,6 +126,40 @@ jobs:
             cd /var/www/hranitel/backend
             pm2 start --name hranitel-backend --cwd /var/www/hranitel/backend "$HOME/.bun/bin/bun run src/index.ts"
             pm2 save
+
+            # Wait for backend to start
+            echo "⏳ Waiting for backend to start..."
+            sleep 5
+
+            # 🏥 Post-deployment health check
+            echo "🏥 Running post-deployment health checks..."
+
+            # Check backend health endpoint
+            HEALTH_CHECK=$(curl -s http://localhost:3002/health || echo "FAILED")
+            if echo "$HEALTH_CHECK" | grep -q "ok"; then
+              echo "✅ Backend health check PASSED"
+            else
+              echo "❌ Backend health check FAILED"
+              echo "🔄 Rolling back to previous version..."
+              pm2 resurrect
+              exit 1
+            fi
+
+            # Check backend readiness (DB + Redis)
+            READY_CHECK=$(curl -s http://localhost:3002/health/ready || echo "FAILED")
+            if echo "$READY_CHECK" | grep -q "ready"; then
+              echo "✅ Backend readiness check PASSED"
+            else
+              echo "⚠️ Backend not fully ready (DB or Redis issue)"
+              echo "Response: $READY_CHECK"
+            fi
+
+            # Check scheduler queue size
+            QUEUE_SIZE=$(redis-cli ZCARD scheduler:queue 2>/dev/null || echo "0")
+            echo "📊 Scheduler queue size: $QUEUE_SIZE tasks"
+            if [ "$QUEUE_SIZE" -gt 1000 ]; then
+              echo "⚠️ WARNING: Large scheduler queue detected!"
+            fi
 
             # Frontend deployment
             echo "🎨 Deploying Frontend..."
@@ -121,12 +198,71 @@ jobs:
             echo "🔐 Setting up SSL..."
             certbot --nginx -d hranitel.daniillepekhin.com --non-interactive --agree-tos --email admin@daniillepekhin.com 2>/dev/null || echo "⚠️ SSL setup skipped (may need DNS first)"
 
+            # 🕐 Setup cron job for materialized views refresh
+            echo "🕐 Setting up cron job for materialized views..."
+
+            # Create cron script
+            cat > /usr/local/bin/refresh_ratings.sh << 'CRON_SCRIPT'
+            #!/bin/bash
+            # Refresh materialized views for city and team ratings
+            # Runs hourly at :05 past the hour
+
+            # Load DATABASE_URL from backend .env
+            if [ -f /var/www/hranitel/backend/.env ]; then
+              export $(grep DATABASE_URL /var/www/hranitel/backend/.env | xargs)
+            fi
+
+            # Refresh views
+            psql "$DATABASE_URL" -c "SELECT refresh_ratings_cache();" >> /var/log/ratings_refresh.log 2>&1
+
+            # Log result
+            if [ $? -eq 0 ]; then
+              echo "$(date '+%Y-%m-%d %H:%M:%S') - ✅ Materialized views refreshed successfully" >> /var/log/ratings_refresh.log
+            else
+              echo "$(date '+%Y-%m-%d %H:%M:%S') - ❌ Failed to refresh materialized views" >> /var/log/ratings_refresh.log
+            fi
+            CRON_SCRIPT
+
+            chmod +x /usr/local/bin/refresh_ratings.sh
+
+            # Add to crontab if not exists
+            CRON_JOB="5 * * * * /usr/local/bin/refresh_ratings.sh"
+            (crontab -l 2>/dev/null | grep -F "$CRON_JOB") || {
+              (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+              echo "✅ Cron job added for hourly materialized view refresh"
+            }
+
+            # Test cron script
+            echo "🧪 Testing materialized view refresh..."
+            bash /usr/local/bin/refresh_ratings.sh
+            echo "✅ Materialized views refresh script tested"
+
+            # 📊 Final deployment report
             echo ""
-            echo "✅ Deployment completed!"
+            echo "════════════════════════════════════════════════════════════"
+            echo "✅ DEPLOYMENT COMPLETED SUCCESSFULLY!"
+            echo "════════════════════════════════════════════════════════════"
+            echo ""
             echo "🌐 Frontend: https://hranitel.daniillepekhin.com"
             echo "🔌 Backend API: https://hranitel.daniillepekhin.com/api/"
+            echo "🏥 Health Check: https://hranitel.daniillepekhin.com/health"
+            echo "🏥 Readiness Check: https://hranitel.daniillepekhin.com/health/ready"
             echo ""
+            echo "📊 Database Status:"
+            psql "$DATABASE_URL" -c "SELECT
+              (SELECT COUNT(*) FROM users) as total_users,
+              (SELECT COUNT(*) FROM users WHERE is_pro = true) as pro_users,
+              (SELECT COUNT(*) FROM payments) as total_payments,
+              (SELECT COUNT(*) FROM city_ratings_cache) as cities_in_cache,
+              (SELECT COUNT(*) FROM team_ratings_cache) as teams_in_cache;"
+            echo ""
+            echo "📊 Scheduler Status:"
+            echo "Queue size: $(redis-cli ZCARD scheduler:queue 2>/dev/null || echo 'Redis not available')"
+            echo ""
+            echo "🔄 PM2 Processes:"
             pm2 status
+            echo ""
+            echo "════════════════════════════════════════════════════════════"
 
       - name: Notify Deployment Status
         if: always()
