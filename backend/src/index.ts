@@ -10,6 +10,11 @@ import { closeDatabaseConnection } from '@/db';
 import { errorHandler } from '@/middlewares/errorHandler';
 import { apiRateLimit } from '@/middlewares/rateLimit';
 
+// 🆕 Professional middlewares (senior-level)
+import { authRateLimiter, publicRateLimiter, webhookRateLimiter } from '@/middlewares/rate-limiter';
+import { securityHeaders, apiSecurityHeaders } from '@/middlewares/security-headers';
+import { auditLogger } from '@/middlewares/audit-logger';
+
 // Modules
 import { authModule } from '@/modules/auth';
 import { usersModule } from '@/modules/users';
@@ -32,6 +37,10 @@ import { contentModule } from '@/modules/content';
 import { ratingsRoutes } from '@/modules/ratings';
 
 const app = new Elysia()
+  // 🔒 Security middlewares (first - before anything else)
+  .use(securityHeaders)
+  .use(auditLogger)
+
   // Global plugins
   .use(errorHandler)
   .use(cookie())
@@ -39,8 +48,9 @@ const app = new Elysia()
     cors({
       origin: config.CORS_ORIGIN.split(','),
       credentials: true,
-      allowedHeaders: ['Content-Type', 'Authorization'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset', 'X-Request-ID'],
     })
   )
   // Swagger docs (only in development)
@@ -148,10 +158,12 @@ const app = new Elysia()
     docs: '/docs',
     description: 'API for КОД ДЕНЕГ Club - Telegram WebApp',
   }))
-  // API routes
+  // API routes with rate limiting
   .group('/api/v1', (app) =>
     app
-      .use(apiRateLimit)
+      // 🔒 Use new professional rate limiter (Redis-based, distributed)
+      .use(authRateLimiter)
+      .use(apiSecurityHeaders)
       .use(authModule)
       .use(usersModule)
       .use(coursesModule)
