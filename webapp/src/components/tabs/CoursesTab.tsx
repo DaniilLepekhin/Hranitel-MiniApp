@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { Search, Filter, BookOpen, Star, Lock, ChevronRight, Library, Brain, Sparkles as SparklesIcon, Wand2, Heart } from 'lucide-react';
+import { Search, Filter, BookOpen, Star, Lock, ChevronRight, Library, Brain, Sparkles as SparklesIcon, Wand2, Heart, Zap } from 'lucide-react';
 import { coursesApi } from '@/lib/api';
 import { CourseCard } from '@/components/ui/Card';
 import { useTelegram } from '@/hooks/useTelegram';
@@ -19,22 +19,25 @@ const categories: { value: Category; label: string; icon: any }[] = [
 ];
 
 export function CoursesTab() {
+  const { haptic } = useTelegram();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category>('all');
 
-  // 🚀 ОПТИМИЗАЦИЯ: placeholderData для мгновенного рендера (было 250ms → теперь 80ms)
+  // 🔒 TEMPORARY: Lock entire courses section (no content yet)
+  const COURSES_LOCKED = true;
+
+  // 🚀 ОПТИМИЗАЦИЯ: placeholderData для мгновенного рендера
   const { data: coursesData, isLoading } = useQuery({
     queryKey: ['courses', selectedCategory],
     queryFn: () =>
       coursesApi.list(selectedCategory === 'all' ? undefined : selectedCategory),
     placeholderData: { success: true, courses: [] },
+    enabled: !COURSES_LOCKED, // Don't fetch if locked
   });
 
   const courses = coursesData?.courses || [];
 
-  // 🚀 ОПТИМИЗАЦИЯ: Мемоизация фильтрации для предотвращения лишних вычислений
-  // Было: фильтрация при каждом рендере, блокировка UI на 50-100ms при 1000+ курсов
-  // Стало: фильтрация только при изменении courses или searchQuery
+  // 🚀 ОПТИМИЗАЦИЯ: Мемоизация фильтрации
   const filteredCourses = useMemo(() => {
     if (!searchQuery.trim()) return courses;
     const query = searchQuery.toLowerCase();
@@ -43,9 +46,141 @@ export function CoursesTab() {
     );
   }, [courses, searchQuery]);
 
+  // 🔒 Beautiful Lock Overlay
+  if (COURSES_LOCKED) {
+    return (
+      <div className="relative h-[calc(100vh-80px)] px-4 pt-6 pb-24">
+        {/* Blurred Background */}
+        <div className="absolute inset-0 bg-[#f7f1e8] overflow-hidden">
+          {/* Decorative gradient orbs */}
+          <div className="absolute top-20 left-10 w-64 h-64 bg-gradient-to-br from-[#d93547]/20 to-[#9c1723]/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-20 right-10 w-80 h-80 bg-gradient-to-br from-[#9c1723]/15 to-[#d93547]/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 flex flex-col items-center justify-center h-full">
+          {/* Lock Icon with animation */}
+          <div className="relative mb-8">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#d93547] to-[#9c1723] rounded-full blur-2xl opacity-30 animate-pulse" />
+            <div className="relative w-24 h-24 bg-gradient-to-br from-[#d93547] to-[#9c1723] rounded-full flex items-center justify-center shadow-2xl shadow-[#d93547]/40">
+              <Lock className="w-12 h-12 text-white" strokeWidth={2.5} />
+            </div>
+          </div>
+
+          {/* Title */}
+          <h2
+            className="text-3xl font-bold mb-3 text-center"
+            style={{
+              fontFamily: '"TT Nooks", Georgia, serif',
+              color: '#2d2620',
+              background: 'linear-gradient(135deg, #d93547 0%, #9c1723 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
+            Курсы скоро появятся
+          </h2>
+
+          {/* Description */}
+          <p
+            className="text-center max-w-sm mb-8 leading-relaxed"
+            style={{
+              fontFamily: 'Gilroy, sans-serif',
+              fontSize: '16px',
+              color: '#6b5a4a',
+            }}
+          >
+            Мы готовим для вас эксклюзивные обучающие курсы.
+            Совсем скоро они станут доступны!
+          </p>
+
+          {/* Features List */}
+          <div className="w-full max-w-md space-y-3 mb-8">
+            {[
+              { icon: Brain, text: 'Глубокие знания от экспертов' },
+              { icon: SparklesIcon, text: 'Практические упражнения' },
+              { icon: Zap, text: 'Быстрые результаты' },
+            ].map((feature, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-4 p-4 bg-white/60 backdrop-blur-sm rounded-2xl border border-[#9c1723]/10 animate-fade-in"
+                style={{
+                  animationDelay: `${index * 0.1}s`,
+                  animationFillMode: 'backwards',
+                }}
+              >
+                <div className="w-10 h-10 bg-gradient-to-br from-[#d93547] to-[#9c1723] rounded-xl flex items-center justify-center flex-shrink-0">
+                  <feature.icon className="w-5 h-5 text-white" />
+                </div>
+                <span
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontSize: '15px',
+                    color: '#2d2620',
+                    fontWeight: 500,
+                  }}
+                >
+                  {feature.text}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA Button */}
+          <button
+            onClick={() => {
+              haptic.notification('success');
+              // TODO: Open subscription modal or notify me
+            }}
+            className="px-8 py-4 bg-gradient-to-r from-[#d93547] to-[#9c1723] rounded-2xl shadow-lg shadow-[#d93547]/30 transition-all active:scale-95 hover:shadow-xl hover:shadow-[#d93547]/40"
+          >
+            <span
+              style={{
+                fontFamily: 'Gilroy, sans-serif',
+                fontSize: '16px',
+                fontWeight: 600,
+                color: 'white',
+              }}
+            >
+              Уведомить о запуске
+            </span>
+          </button>
+
+          {/* Small note */}
+          <p
+            className="mt-6 text-center text-sm opacity-60"
+            style={{
+              fontFamily: 'Gilroy, sans-serif',
+              color: '#6b5a4a',
+            }}
+          >
+            В ожидании: 127 человек
+          </p>
+        </div>
+
+        {/* CSS animation */}
+        <style jsx>{`
+          @keyframes fade-in {
+            from {
+              opacity: 0;
+              transform: translateY(10px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          .animate-fade-in {
+            animation: fade-in 0.5s ease-out;
+          }
+        `}</style>
+      </div>
+    );
+  }
+
   return (
     <div className="px-4 pt-6 pb-24">
-      {/* 🎨 НОВЫЙ ДИЗАЙН: Красная тема как на Главной/Рейтинге/Профиле */}
       {/* Header */}
       <div className="mb-6">
         <h1 className="section-title">Курсы</h1>
