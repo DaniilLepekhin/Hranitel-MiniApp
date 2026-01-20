@@ -14,6 +14,7 @@ import { apiRateLimit } from '@/middlewares/rateLimit';
 import { authRateLimiter, publicRateLimiter, webhookRateLimiter } from '@/middlewares/rate-limiter';
 import { securityHeaders, apiSecurityHeaders } from '@/middlewares/security-headers';
 import { auditLogger } from '@/middlewares/audit-logger';
+import { hotCache, userCache, publicCache, invalidateCacheByPrefix } from '@/middlewares/cache';
 
 // Modules
 import { authModule } from '@/modules/auth';
@@ -158,12 +159,14 @@ const app = new Elysia()
     docs: '/docs',
     description: 'API for КОД ДЕНЕГ Club - Telegram WebApp',
   }))
-  // API routes with rate limiting
+  // API routes with rate limiting and caching
   .group('/api/v1', (app) =>
     app
       // 🔒 Use new professional rate limiter (Redis-based, distributed)
       .use(authRateLimiter)
       .use(apiSecurityHeaders)
+      // 🚀 Cache layer (user-specific cache for authenticated routes)
+      .use(userCache)
       .use(authModule)
       .use(usersModule)
       .use(coursesModule)
@@ -181,7 +184,8 @@ const app = new Elysia()
   .use(teamsRoutes)
   .use(streamsRoutes)
   .use(reportsRoutes)
-  .group('/api/v1', (app) => app.use(ratingsRoutes))
+  // Ratings with hot cache (frequently accessed, changes rarely)
+  .group('/api/v1', (app) => app.use(hotCache).use(ratingsRoutes))
   // Start server
   .listen(Number(config.PORT));
 

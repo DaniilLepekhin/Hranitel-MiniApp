@@ -1,6 +1,7 @@
 import { redis } from '@/utils/redis';
 import { nanoid } from 'nanoid';
 import { logger } from '@/utils/logger';
+import { withLock } from '@/utils/distributed-lock';
 
 // Check Redis availability
 const isRedisAvailable = !!redis;
@@ -270,29 +271,45 @@ export class SchedulerService {
           try {
             const task = JSON.parse(taskJson) as ScheduledTask;
 
-            // Atomically move task to processing set to prevent duplicate execution
-            const moved = await redis
-              .multi()
-              .zrem(this.QUEUE_KEY, taskJson)
-              .sadd(this.PROCESSING_KEY, taskJson)
-              .exec();
+            // 🔐 Use distributed lock to prevent duplicate execution across instances
+            // Lock key includes task ID to ensure per-task locking
+            const lockKey = `scheduler:task:${task.id}`;
 
-            if (!moved || moved[0]?.[1] === 0) {
-              // Task was already removed by another process
-              return;
+            const result = await withLock(
+              lockKey,
+              async () => {
+                // Atomically move task to processing set to prevent duplicate execution
+                const moved = await redis
+                  .multi()
+                  .zrem(this.QUEUE_KEY, taskJson)
+                  .sadd(this.PROCESSING_KEY, taskJson)
+                  .exec();
+
+                if (!moved || moved[0]?.[1] === 0) {
+                  // Task was already removed by another process
+                  logger.debug({ taskId: task.id }, 'Task already processed by another instance');
+                  return null;
+                }
+
+                // Execute the task callback
+                await callback(task);
+
+                // Remove from processing set and user index after successful execution
+                await redis
+                  .multi()
+                  .srem(this.PROCESSING_KEY, taskJson)
+                  .hdel(this.USER_INDEX_KEY, task.id)
+                  .exec();
+
+                logger.info({ taskId: task.id, type: task.type }, 'Task completed');
+                return true;
+              },
+              { ttl: 60000, retryCount: 0 } // 60s lock, no retries (skip if locked)
+            );
+
+            if (result === null) {
+              logger.debug({ taskId: task.id }, 'Task skipped (locked by another instance)');
             }
-
-            // Execute the task callback
-            await callback(task);
-
-            // Remove from processing set and user index after successful execution
-            await redis
-              .multi()
-              .srem(this.PROCESSING_KEY, taskJson)
-              .hdel(this.USER_INDEX_KEY, task.id)
-              .exec();
-
-            logger.info({ taskId: task.id, type: task.type }, 'Task completed');
           } catch (error) {
             logger.error({ error, taskJson }, 'Task execution failed');
             // Remove from processing set and user index on error too
