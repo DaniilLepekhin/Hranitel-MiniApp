@@ -438,7 +438,7 @@ export function ChatsTab() {
                 borderRadius: '5.73px',
                 border: '0.955px solid #d93547',
                 background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
-                height: '161px',
+                minHeight: '190px',
               }}
             >
               {/* Изображение справа */}
@@ -618,7 +618,7 @@ export function ChatsTab() {
               borderRadius: '5.73px',
               border: '0.955px solid #d93547',
               background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
-              height: '169px',
+              minHeight: '200px',
             }}
           >
             {/* Изображение справа */}
@@ -708,7 +708,7 @@ export function ChatsTab() {
               borderRadius: '5.73px',
               border: '0.955px solid #d93547',
               background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
-              height: '161px',
+              minHeight: '190px',
             }}
           >
             {/* Изображение справа */}
