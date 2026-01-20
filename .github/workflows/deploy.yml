@@ -231,12 +231,7 @@ jobs:
             echo "🏥 Readiness Check: https://hranitel.daniillepekhin.com/health/ready"
             echo ""
             echo "📊 Database Status:"
-            psql "$DATABASE_URL" -c "SELECT
-              (SELECT COUNT(*) FROM users) as total_users,
-              (SELECT COUNT(*) FROM users WHERE is_pro = true) as pro_users,
-              (SELECT COUNT(*) FROM payments) as total_payments,
-              (SELECT COUNT(*) FROM city_ratings_cache) as cities_in_cache,
-              (SELECT COUNT(*) FROM team_ratings_cache) as teams_in_cache;"
+            psql "$DATABASE_URL" -c "SELECT COUNT(*) as total_users FROM users;" | head -3 | tail -1 | xargs echo "Total users:"
             echo ""
             echo "📊 Scheduler Status:"
             echo "Queue size: $(redis-cli ZCARD scheduler:queue 2>/dev/null || echo 'Redis not available')"
