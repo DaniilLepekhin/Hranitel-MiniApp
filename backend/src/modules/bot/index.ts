@@ -9,6 +9,8 @@ import { gamificationService } from '@/modules/gamification/service';
 import { schedulerService, type ScheduledTask } from '@/services/scheduler.service';
 import { TelegramService } from '@/services/telegram.service';
 import { stateService } from '@/services/state.service';
+// 🆕 Post-payment funnels
+import * as funnels from './post-payment-funnels';
 
 // Initialize bot
 export const bot = new Bot(config.TELEGRAM_BOT_TOKEN);
@@ -364,6 +366,31 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
     }
+    // 🆕 Post-payment onboarding - Keyword reminders
+    else if (type === 'keyword_reminder_20m') await funnels.sendKeywordReminder20m(userId, chatId);
+    else if (type === 'keyword_reminder_60m') await funnels.sendKeywordReminder60m(userId, chatId);
+    else if (type === 'keyword_reminder_120m') await funnels.sendKeywordReminder120m(userId, chatId);
+    // 🆕 Post-payment onboarding - Ready button reminders
+    else if (type === 'ready_reminder_30m') await funnels.sendReadyReminder30m(userId, chatId);
+    else if (type === 'ready_reminder_60m') await funnels.sendReadyReminder60m(userId, chatId);
+    else if (type === 'ready_final_120m') await funnels.sendReadyFinal120m(userId, chatId);
+    // 🆕 Engagement funnel
+    else if (type === 'day1_gift_promo') await funnels.sendDay1GiftPromo(userId, chatId);
+    else if (type === 'day7_check_in') await funnels.sendDay7CheckIn(userId, chatId);
+    else if (type === 'day14_check_in') await funnels.sendDay14CheckIn(userId, chatId);
+    else if (type === 'day21_check_in') await funnels.sendDay21CheckIn(userId, chatId);
+    else if (type === 'day28_renewal') await funnels.sendDay28Renewal(userId, chatId);
+    // 🆕 Renewal reminders
+    else if (type === 'renewal_2days') await funnels.sendRenewal2Days(userId, chatId);
+    else if (type === 'renewal_1day') await funnels.sendRenewal1Day(userId, chatId);
+    else if (type === 'renewal_today') await funnels.sendRenewalToday(userId, chatId);
+    // 🆕 Gift subscription expiry reminders
+    else if (type === 'gift_expiry_3days') await funnels.sendGiftExpiry3Days(userId, chatId);
+    else if (type === 'gift_expiry_2days') await funnels.sendGiftExpiry2Days(userId, chatId);
+    else if (type === 'gift_expiry_1day') await funnels.sendGiftExpiry1Day(userId, chatId);
+    else {
+      logger.warn({ taskType: type }, 'Unknown task type');
+    }
   } catch (error) {
     logger.error({ error, task }, 'Failed to process scheduled task');
     throw error;
@@ -381,6 +408,14 @@ bot.command('start', async (ctx) => {
   try {
     const userId = ctx.from!.id;
     const chatId = ctx.chat.id;
+
+    // 🆕 Check for gift activation link (start=gift_{token})
+    const startPayload = ctx.match;
+    if (startPayload && startPayload.startsWith('gift_')) {
+      const token = startPayload.substring(5); // Remove 'gift_' prefix
+      await funnels.handleGiftActivation(userId, token, chatId);
+      return;
+    }
 
     const keyboard = new InlineKeyboard()
       .text('Получить доступ', 'get_access')
@@ -489,6 +524,12 @@ bot.callbackQuery('get_access', async (ctx) => {
           );
           await stateService.setState(userId, 'paid');
           logger.info({ userId }, 'Payment detected, user welcomed');
+
+          // 🆕 Start post-payment onboarding funnel
+          const user = await funnels.getUserByTgId(userId);
+          if (user) {
+            await funnels.startOnboardingAfterPayment(user.id, chatId);
+          }
         } else if (checkCount >= maxChecks) {
           // Stop checking after 5 minutes
           clearInterval(paymentCheckInterval);
@@ -696,6 +737,110 @@ bot.callbackQuery('topic_environment', async (ctx) => {
   }
 });
 
+// 🆕 Post-payment onboarding - ГОТОВО button
+bot.callbackQuery('onboarding_ready', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const user = await funnels.getUserByTgId(ctx.from.id);
+    if (user) {
+      await funnels.completeOnboarding(user.id, ctx.chat.id);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in onboarding_ready callback');
+  }
+});
+
+// 🆕 Gift subscription - initiate flow
+bot.callbackQuery('gift_subscription', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const user = await funnels.getUserByTgId(ctx.from.id);
+    if (!user) return;
+
+    // Set user state to selecting gift user
+    await db.update(users).set({ onboardingStep: 'selecting_gift_user' }).where(eq(users.id, user.id));
+
+    // Send message with KeyboardButtonRequestUsers
+    await ctx.reply(
+      'Выберите друга из списка ниже, которому хотите подарить подписку 👇',
+      {
+        reply_markup: {
+          keyboard: [[{
+            text: '➡️ Нажмите, чтобы выбрать друга ⬅️',
+            request_users: {
+              request_id: 1,
+              user_is_bot: false,
+              max_quantity: 1
+            }
+          }]],
+          resize_keyboard: true,
+          one_time_keyboard: true
+        }
+      }
+    );
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in gift_subscription callback');
+  }
+});
+
+// 🆕 Gift activation - start
+bot.callbackQuery('gift_start', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const data = ctx.callbackQuery.data;
+    const token = data.split('_')[2]; // gift_start_{token}
+
+    if (token) {
+      await funnels.handleGiftActivation(ctx.from.id, token, ctx.chat.id);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in gift_start callback');
+  }
+});
+
+// 🆕 Gift activation - continue
+bot.callbackQuery('gift_continue', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const data = ctx.callbackQuery.data;
+    const token = data.split('_')[2]; // gift_continue_{token}
+
+    if (token) {
+      await funnels.handleGiftActivation(ctx.from.id, token, ctx.chat.id);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in gift_continue callback');
+  }
+});
+
+// 🆕 Menu - back button
+bot.callbackQuery('menu_back', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    await funnels.sendMenuMessage(ctx.chat.id);
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in menu_back callback');
+  }
+});
+
+// 🆕 Menu - instruction video
+bot.callbackQuery('menu_instruction', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+
+    const keyboard = new InlineKeyboard()
+      .text('⬅️ Назад', 'menu_back');
+
+    await telegramService.sendMessage(
+      ctx.chat.id,
+      '📹 <b>Видео-инструкция</b>\n\nФункция будет добавлена позже.\nПока воспользуйтесь кнопками меню для навигации.',
+      { reply_markup: keyboard, parse_mode: 'HTML' }
+    );
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in menu_instruction callback');
+  }
+});
+
 // Handle topic selection buttons (old reply keyboard - keep for backward compatibility)
 bot.hears('🔮 где мои деньги в 2026 году', async (ctx) => {
   try {
@@ -834,6 +979,15 @@ bot.hears('🌍 окружение', async (ctx) => {
     );
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in topic handler: окружение');
+  }
+});
+
+// 🆕 /menu command - show post-onboarding menu
+bot.command('menu', async (ctx) => {
+  try {
+    await funnels.sendMenuMessage(ctx.chat.id);
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in /menu command');
   }
 });
 
@@ -1016,6 +1170,43 @@ bot.callbackQuery('meditations', async (ctx) => {
   }
 });
 
+// 🆕 Message handler - keyword "УСПЕХ" validation
+bot.on('message:text', async (ctx) => {
+  try {
+    const userId = ctx.from.id;
+    const text = ctx.message.text.trim().toUpperCase();
+    const user = await funnels.getUserByTgId(userId);
+
+    if (user?.onboardingStep === 'awaiting_keyword' && text === 'УСПЕХ') {
+      await funnels.handleKeywordSuccess(user.id, ctx.chat.id);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in message:text handler');
+  }
+});
+
+// 🆕 Message handler - users_shared for gift selection
+bot.on('message:users_shared', async (ctx) => {
+  try {
+    const gifterTgId = ctx.from.id;
+    const sharedUsers = ctx.message.users_shared;
+
+    if (!sharedUsers || sharedUsers.users.length === 0) {
+      return;
+    }
+
+    const recipientTgId = sharedUsers.users[0].user_id;
+
+    // Check if user is in selecting_gift_user state
+    const gifter = await funnels.getUserByTgId(gifterTgId);
+    if (gifter?.onboardingStep === 'selecting_gift_user') {
+      await funnels.handleUserShared(gifterTgId, recipientTgId, ctx.chat.id);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in message:users_shared handler');
+  }
+});
+
 // Error handler
 bot.catch((err) => {
   const error = err.error;
@@ -1080,7 +1271,7 @@ export const botModule = new Elysia({ prefix: '/bot', tags: ['Bot'] })
       try {
         await bot.api.setWebhook(url, {
           secret_token: config.TELEGRAM_WEBHOOK_SECRET,
-          allowed_updates: ['message', 'callback_query', 'inline_query'],
+          allowed_updates: ['message', 'callback_query', 'inline_query', 'users_shared'],
         });
 
         logger.info({ url }, 'Webhook set');

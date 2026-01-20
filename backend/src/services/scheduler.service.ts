@@ -10,7 +10,46 @@ if (!isRedisAvailable) {
 
 export interface ScheduledTask {
   id: string;
-  type: 'start_reminder' | 'five_min_reminder' | 'burning_question_reminder' | 'payment_reminder' | 'final_reminder' | 'day2_reminder' | 'day3_reminder' | 'day4_reminder' | 'day5_final' | 'custom';
+  type:
+    // Existing types
+    | 'start_reminder'
+    | 'five_min_reminder'
+    | 'burning_question_reminder'
+    | 'payment_reminder'
+    | 'final_reminder'
+    | 'day2_reminder'
+    | 'day3_reminder'
+    | 'day4_reminder'
+    | 'day5_final'
+    | 'custom'
+
+    // 🆕 Post-payment onboarding - Keyword
+    | 'keyword_reminder_20m'   // Догрев "введи код" через 20 мин
+    | 'keyword_reminder_60m'   // Догрев "введи код" через 60 мин
+    | 'keyword_reminder_120m'  // Догрев "введи код" через 120 мин
+
+    // 🆕 Post-payment onboarding - Ready button
+    | 'ready_reminder_30m'     // Догрев "нажми ГОТОВО" через 30 мин
+    | 'ready_reminder_60m'     // Догрев "нажми ГОТОВО" через 60 мин
+    | 'ready_final_120m'       // Финальное видео-инструкция через 120 мин
+
+    // 🆕 Engagement funnel (by days)
+    | 'day1_gift_promo'        // День 1 в 10:00 МСК - "Подари подписку"
+    | 'day7_check_in'          // День 7 в 9:00 МСК - Проверка прогресса
+    | 'day14_check_in'         // День 14 в 9:00 МСК
+    | 'day21_check_in'         // День 21 в 9:00 МСК
+    | 'day28_renewal'          // День 28 в 9:00 МСК - Напоминание о продлении
+
+    // 🆕 Subscription renewal reminders
+    | 'renewal_2days'          // За 2 дня до окончания в 9:00 МСК
+    | 'renewal_1day'           // За 1 день до окончания в 9:00 МСК
+    | 'renewal_today'          // В день окончания в 9:00 МСК
+
+    // 🆕 Gift subscription expiry reminders
+    | 'gift_expiry_3days'      // За 3 дня до окончания в 9:00 МСК
+    | 'gift_expiry_2days'      // За 2 дня до окончания в 9:00 МСК
+    | 'gift_expiry_1day';      // За 1 день до окончания в 9:00 МСК
+
   userId: number;
   chatId: number;
   data?: Record<string, any>;

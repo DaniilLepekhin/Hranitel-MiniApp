@@ -36,6 +36,19 @@ export const users = pgTable('users', {
   isPro: boolean('is_pro').default(false).notNull(),
   subscriptionExpires: timestamp('subscription_expires'),
 
+  // 🆕 Onboarding & Gift subscription fields
+  firstPurchaseDate: timestamp('first_purchase_date'), // Дата первой успешной покупки
+  gifted: boolean('gifted').default(false).notNull(), // Подписка получена в подарок
+  giftedBy: integer('gifted_by'), // tg_id дарителя
+  onboardingStep: text('onboarding_step').$type<
+    | 'awaiting_keyword'      // Ждет ввод кодового слова "УСПЕХ"
+    | 'keyword_entered'       // Кодовое слово введено
+    | 'awaiting_ready'        // Ждет нажатия кнопки "ГОТОВО"
+    | 'onboarding_complete'   // Онбординг завершен
+    | 'selecting_gift_user'   // Выбирает друга для подарка
+    | null
+  >(),
+
   // Settings
   role: userRoleEnum('role').default('user').notNull(),
   settings: jsonb('settings').default({}),
@@ -479,6 +492,22 @@ export const practiceContent = pgTable('practice_content', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   uniqueIndex('practice_content_content_item_id_idx').on(table.contentItemId),
+]);
+
+// 🆕 Gift Subscriptions (подарочные подписки)
+export const giftSubscriptions = pgTable('gift_subscriptions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  gifterUserId: uuid('gifter_user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(), // Кто дарит
+  recipientTgId: integer('recipient_tg_id').notNull(), // Кому дарят (tg_id)
+  paymentId: uuid('payment_id').references(() => payments.id, { onDelete: 'set null' }), // Связь с оплатой
+  activated: boolean('activated').default(false).notNull(), // Активирован ли подарок
+  activationToken: text('activation_token').notNull().unique(), // Уникальный токен для ссылки
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  activatedAt: timestamp('activated_at'), // Когда активирован
+}, (table) => [
+  index('gift_subscriptions_recipient_tg_id_idx').on(table.recipientTgId),
+  index('gift_subscriptions_activation_token_idx').on(table.activationToken),
+  index('gift_subscriptions_activated_idx').on(table.activated),
 ]);
 
 // Relations
