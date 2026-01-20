@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, integer, boolean, timestamp, pgEnum, jsonb, index, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, integer, boolean, timestamp, pgEnum, jsonb, index, uniqueIndex, numeric, varchar } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // Enums
@@ -774,8 +774,8 @@ export type Team = typeof teams.$inferSelect;
 export type NewTeam = typeof teams.$inferInsert;
 export type TeamMember = typeof teamMembers.$inferSelect;
 export type NewTeamMember = typeof teamMembers.$inferInsert;
-export type LiveStream = typeof liveStreams.$inferSelect;
-export type NewLiveStream = typeof liveStreams.$inferInsert;
+export type LiveStream = typeof streamRecordings.$inferSelect;
+export type NewLiveStream = typeof streamRecordings.$inferInsert;
 export type StreamAttendance = typeof streamAttendance.$inferSelect;
 export type NewStreamAttendance = typeof streamAttendance.$inferInsert;
 export type WeeklyReport = typeof weeklyReports.$inferSelect;

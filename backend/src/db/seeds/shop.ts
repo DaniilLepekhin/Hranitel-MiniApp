@@ -247,7 +247,7 @@ export async function seedShopItems() {
 
     return items;
   } catch (error) {
-    logger.error('[Seed] Error seeding shop items:', error);
+    logger.error({ error }, '[Seed] Error seeding shop items');
     throw error;
   }
 }
@@ -260,7 +260,7 @@ if (import.meta.main) {
       process.exit(0);
     })
     .catch((error) => {
-      logger.error('[Seed] Shop seeding failed:', error);
+      logger.error({ error }, '[Seed] Shop seeding failed');
       process.exit(1);
     });
 }
