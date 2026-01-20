@@ -1,51 +1,66 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { Play, Pause, X, Headphones, Radio } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useMediaPlayerStore } from '@/store/media-player';
+import { useShallow } from 'zustand/react/shallow';
 
 export function MiniPlayer() {
   const { haptic } = useTelegram();
   const audioRef = useRef<HTMLAudioElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const {
-    currentMedia,
-    isPlaying,
-    currentTime,
-    duration,
-    isMuted,
-    showFullPlayer,
-    seekTime,
-    playbackRate,
-    _hasHydrated,
-    setIsPlaying,
-    setCurrentTime,
-    setDuration,
-    setShowFullPlayer,
-    clearSeek,
-    closePlayer,
-  } = useMediaPlayerStore();
+  // ⚡️ OPTIMIZATION 1: Selective subscriptions - only re-render when these specific values change
+  const currentMedia = useMediaPlayerStore((state) => state.currentMedia);
+  const isPlaying = useMediaPlayerStore((state) => state.isPlaying);
+  const currentTime = useMediaPlayerStore((state) => state.currentTime);
+  const duration = useMediaPlayerStore((state) => state.duration);
+  const isMuted = useMediaPlayerStore((state) => state.isMuted);
+  const showFullPlayer = useMediaPlayerStore((state) => state.showFullPlayer);
+  const seekTime = useMediaPlayerStore((state) => state.seekTime);
+  const playbackRate = useMediaPlayerStore((state) => state.playbackRate);
+  const _hasHydrated = useMediaPlayerStore((state) => state._hasHydrated);
+
+  // ⚡️ OPTIMIZATION 2: Get stable action references (don't cause re-renders)
+  const actions = useMediaPlayerStore(
+    useShallow((state) => ({
+      setIsPlaying: state.setIsPlaying,
+      setCurrentTime: state.setCurrentTime,
+      setDuration: state.setDuration,
+      setShowFullPlayer: state.setShowFullPlayer,
+      clearSeek: state.clearSeek,
+      closePlayer: state.closePlayer,
+    }))
+  );
 
   const mediaRef = currentMedia?.type === 'video' ? videoRef : audioRef;
 
-  // 🔧 Setup direct event handlers on audio/video element (performance optimization)
+  // ⚡️ OPTIMIZATION 3: Throttled timeupdate - max 1 update per second (not 60!)
   useEffect(() => {
     const media = mediaRef.current;
     if (!media || !currentMedia) return;
 
-    // Direct event handlers to avoid React re-render overhead
+    let lastUpdateTime = 0;
+    const THROTTLE_MS = 1000; // Update UI max once per second
+
     const handleTimeUpdate = () => {
-      setCurrentTime(Math.floor(media.currentTime));
+      const now = Date.now();
+      const newTime = Math.floor(media.currentTime);
+
+      // Only update if: 1) enough time passed OR 2) second changed
+      if (now - lastUpdateTime >= THROTTLE_MS || newTime !== Math.floor(lastUpdateTime / 1000)) {
+        lastUpdateTime = now;
+        actions.setCurrentTime(newTime);
+      }
     };
 
     const handleLoadedMetadata = () => {
-      setDuration(Math.floor(media.duration));
+      actions.setDuration(Math.floor(media.duration));
     };
 
     const handleEnded = () => {
-      setIsPlaying(false);
+      actions.setIsPlaying(false);
     };
 
     // Attach listeners
@@ -55,7 +70,7 @@ export function MiniPlayer() {
 
     // If metadata is already loaded, set duration immediately
     if (media.duration && !isNaN(media.duration)) {
-      setDuration(Math.floor(media.duration));
+      actions.setDuration(Math.floor(media.duration));
     }
 
     return () => {
@@ -63,7 +78,8 @@ export function MiniPlayer() {
       media.removeEventListener('loadedmetadata', handleLoadedMetadata);
       media.removeEventListener('ended', handleEnded);
     };
-  }, [currentMedia, mediaRef, setCurrentTime, setDuration, setIsPlaying]);
+    // ⚡️ OPTIMIZATION 4: Only re-run when media changes, NOT when actions change
+  }, [currentMedia]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle play/pause
   useEffect(() => {
@@ -75,13 +91,13 @@ export function MiniPlayer() {
       if (playPromise !== undefined) {
         playPromise.catch((err) => {
           console.warn('Playback prevented:', err.message);
-          setIsPlaying(false);
+          actions.setIsPlaying(false);
         });
       }
     } else {
       media.pause();
     }
-  }, [isPlaying, mediaRef, setIsPlaying]);
+  }, [isPlaying]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle seek
   useEffect(() => {
@@ -89,8 +105,8 @@ export function MiniPlayer() {
     if (!media || seekTime === null) return;
 
     media.currentTime = seekTime;
-    clearSeek();
-  }, [seekTime, mediaRef, clearSeek]);
+    actions.clearSeek();
+  }, [seekTime]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle mute
   useEffect(() => {
@@ -98,7 +114,7 @@ export function MiniPlayer() {
     if (!media) return;
 
     media.muted = isMuted;
-  }, [isMuted, mediaRef]);
+  }, [isMuted]);
 
   // Handle playback rate
   useEffect(() => {
@@ -106,22 +122,22 @@ export function MiniPlayer() {
     if (!media) return;
 
     media.playbackRate = playbackRate;
-  }, [playbackRate, mediaRef]);
+  }, [playbackRate]);
 
   const togglePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsPlaying(!isPlaying);
+    actions.setIsPlaying(!isPlaying);
     haptic.impact('light');
   };
 
   const handleClose = (e: React.MouseEvent) => {
     e.stopPropagation();
-    closePlayer();
+    actions.closePlayer();
     haptic.impact('medium');
   };
 
   const handleOpen = () => {
-    setShowFullPlayer(true);
+    actions.setShowFullPlayer(true);
     haptic.impact('light');
   };
 
@@ -131,10 +147,13 @@ export function MiniPlayer() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  // ⚡️ OPTIMIZATION 5: Memoize progress calculation
+  const progress = useMemo(() => {
+    return duration > 0 ? (currentTime / duration) * 100 : 0;
+  }, [currentTime, duration]);
 
-  // 🔧 FIX: Always render media elements to prevent re-creation and restart
-  const mediaElements = (
+  // ⚡️ OPTIMIZATION 6: Memoize media elements to prevent re-creation
+  const mediaElements = useMemo(() => (
     <>
       {/* Audio Element - always in DOM, event handlers attached via useEffect */}
       {currentMedia && (currentMedia.type === 'audio' || currentMedia.type === 'meditation') && (
@@ -157,7 +176,7 @@ export function MiniPlayer() {
         />
       )}
     </>
-  );
+  ), [currentMedia, showFullPlayer]);
 
   // Не показываем ничего если нет медиа
   if (!currentMedia) {
