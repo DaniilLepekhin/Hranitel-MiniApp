@@ -3,7 +3,9 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Copy, Megaphone } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth';
+import { energiesApi } from '@/lib/api';
 import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
 
 interface HomeTabProps {
@@ -11,12 +13,21 @@ interface HomeTabProps {
 }
 
 export function HomeTab({ onProfileClick }: HomeTabProps) {
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 🚀 МЕМОИЗАЦИЯ: Вычисляем только когда user меняется
-  const epBalance = useMemo(() => user?.energies || 0, [user?.energies]);
+  // 🚀 ПРАВИЛЬНЫЙ ИСТОЧНИК ДАННЫХ: Получаем баланс энергий из API (а не из устаревшего user.energies)
+  const { data: balanceData } = useQuery({
+    queryKey: ['energies-balance', user?.id],
+    queryFn: () => energiesApi.getBalance(user!.id),
+    enabled: !!user && !!token,
+    retry: false,
+    placeholderData: { success: true, balance: 0 }, // Показываем 0 сразу для мгновенного рендера
+  });
+
+  // 🚀 МЕМОИЗАЦИЯ: Вычисляем только когда данные меняются
+  const epBalance = useMemo(() => balanceData?.balance || 0, [balanceData?.balance]);
   const referralLink = useMemo(
     () => user ? `https://t.me/hranitelkodbot?start=ref_${user.id}` : 'https://t.me/hranitelkodbot?start=ref_...',
     [user?.id]

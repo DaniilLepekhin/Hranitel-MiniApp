@@ -37,6 +37,33 @@ export function ProfileTab() {
     return user?.firstName || user?.username || 'Пользователь';
   }, [user?.firstName, user?.lastName, user?.username]);
 
+  // 📅 Подписка: расчет статуса и дат
+  const subscriptionInfo = useMemo(() => {
+    if (!user?.subscriptionExpires) {
+      return { isActive: false, expiresDate: null, daysRemaining: 0, isExpiredRecently: false };
+    }
+
+    const expiresDate = new Date(user.subscriptionExpires);
+    const now = new Date();
+    const diffTime = expiresDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    // Проверяем, истекла ли подписка сегодня или вчера
+    const isExpiredRecently = diffDays >= -1 && diffDays <= 0;
+
+    return {
+      isActive: user.isPro && diffDays > 0,
+      expiresDate,
+      daysRemaining: diffDays,
+      isExpiredRecently,
+      formattedDate: expiresDate.toLocaleDateString('ru-RU', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }),
+    };
+  }, [user?.subscriptionExpires, user?.isPro]);
+
   // ✏️ Mutation для обновления профиля
   const updateProfileMutation = useMutation({
     mutationFn: usersApi.updateProfile,
@@ -369,6 +396,158 @@ export function ProfileTab() {
 
           </div>
         </div>
+
+        {/* ===== ИНФОРМАЦИЯ О ПОДПИСКЕ ===== */}
+        {user?.subscriptionExpires && (
+          <div
+            className="relative mx-[30px] mb-6"
+            style={{
+              border: '1px solid #2d2620',
+              borderRadius: '12px',
+              padding: '20px',
+            }}
+          >
+            <h2
+              className="mb-3"
+              style={{
+                fontFamily: '"TT Nooks", Georgia, serif',
+                fontWeight: 300,
+                fontSize: '20px',
+                color: '#2d2620',
+              }}
+            >
+              Подписка
+            </h2>
+
+            {/* Статус подписки */}
+            <div className="flex items-center justify-between mb-2">
+              <p
+                style={{
+                  fontFamily: 'Gilroy, sans-serif',
+                  fontWeight: 600,
+                  fontSize: '15px',
+                  color: '#2d2620',
+                }}
+              >
+                Статус:
+              </p>
+              <div
+                style={{
+                  paddingLeft: '12px',
+                  paddingRight: '12px',
+                  paddingTop: '4px',
+                  paddingBottom: '4px',
+                  borderRadius: '6px',
+                  background: subscriptionInfo.isActive
+                    ? 'linear-gradient(243.413deg, rgb(174, 30, 43) 15.721%, rgb(156, 23, 35) 99.389%)'
+                    : '#d9d9d9',
+                }}
+              >
+                <p
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontWeight: 700,
+                    fontSize: '13px',
+                    color: subscriptionInfo.isActive ? '#fff' : '#2d2620',
+                  }}
+                >
+                  {subscriptionInfo.isActive ? 'Активна' : 'Не активна'}
+                </p>
+              </div>
+            </div>
+
+            {/* Дата окончания */}
+            <div className="flex items-center justify-between mb-4">
+              <p
+                style={{
+                  fontFamily: 'Gilroy, sans-serif',
+                  fontWeight: 600,
+                  fontSize: '15px',
+                  color: '#2d2620',
+                }}
+              >
+                Действует до:
+              </p>
+              <p
+                style={{
+                  fontFamily: 'Gilroy, sans-serif',
+                  fontWeight: 400,
+                  fontSize: '15px',
+                  color: subscriptionInfo.isActive ? '#2d2620' : '#999',
+                }}
+              >
+                {subscriptionInfo.formattedDate}
+              </p>
+            </div>
+
+            {/* Количество дней до окончания */}
+            {subscriptionInfo.isActive && subscriptionInfo.daysRemaining > 0 && (
+              <p
+                className="mb-4"
+                style={{
+                  fontFamily: 'Gilroy, sans-serif',
+                  fontWeight: 400,
+                  fontSize: '13px',
+                  color: '#666',
+                  textAlign: 'center',
+                }}
+              >
+                {subscriptionInfo.daysRemaining === 1
+                  ? 'Остался 1 день'
+                  : subscriptionInfo.daysRemaining < 5
+                  ? `Осталось ${subscriptionInfo.daysRemaining} дня`
+                  : `Осталось ${subscriptionInfo.daysRemaining} дней`}
+              </p>
+            )}
+
+            {/* Кнопки управления подпиской (скрыты если истекла сегодня/вчера) */}
+            {!subscriptionInfo.isExpiredRecently && (
+              <div className="space-y-2">
+                {subscriptionInfo.isActive ? (
+                  <button
+                    onClick={() => {
+                      haptic.impact('medium');
+                      webApp?.showAlert(
+                        'Для отмены подписки обратитесь в службу заботы @Egiazarova_support_bot'
+                      );
+                    }}
+                    className="w-full py-3 rounded-lg transition-all active:scale-95"
+                    style={{
+                      fontFamily: 'Gilroy, sans-serif',
+                      fontWeight: 600,
+                      fontSize: '15px',
+                      color: '#fff',
+                      background: 'linear-gradient(243.413deg, rgb(174, 30, 43) 15.721%, rgb(156, 23, 35) 99.389%)',
+                      border: 'none',
+                    }}
+                  >
+                    Отменить подписку
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      haptic.impact('medium');
+                      webApp?.showAlert(
+                        'Для активации подписки обратитесь в службу заботы @Egiazarova_support_bot'
+                      );
+                    }}
+                    className="w-full py-3 rounded-lg transition-all active:scale-95"
+                    style={{
+                      fontFamily: 'Gilroy, sans-serif',
+                      fontWeight: 600,
+                      fontSize: '15px',
+                      color: '#fff',
+                      background: 'linear-gradient(243.413deg, rgb(174, 30, 43) 15.721%, rgb(156, 23, 35) 99.389%)',
+                      border: 'none',
+                    }}
+                  >
+                    Активировать подписку
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ===== ССЫЛКИ ===== */}
         <div className="space-y-[20px] px-[30px]">
