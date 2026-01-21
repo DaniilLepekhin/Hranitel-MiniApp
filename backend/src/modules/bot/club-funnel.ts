@@ -691,6 +691,64 @@ export async function handleClubStartRoute(userId: string, chatId: number, user:
   );
 
   await updateClubProgress(userId, { currentStep: 'awaiting_purchase' });
+
+  // Планируем переход в обычную воронку через 5 минут, если не оплатил
+  const telegramUserId = await getTelegramUserId(userId);
+  await schedulerService.schedule(
+    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'fallback_to_main' } },
+    5 * 60 * 1000 // 5 минут
+  );
+}
+
+// ============================================================================
+// ПЕРЕХОД В ОБЫЧНУЮ ВОРОНКУ
+// ============================================================================
+
+async function handleFallbackToMainFunnel(userId: string, chatId: number) {
+  // Получаем user для формирования WebApp URL
+  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (!user) return;
+
+  // Формируем URL с параметрами (как в handleClubStartRoute)
+  const purchaseUrl = new URL(WEBAPP_PURCHASE_URL);
+  const metadata = user.metadata as any || {};
+
+  if (metadata.metka) purchaseUrl.searchParams.set('metka', metadata.metka);
+  if (metadata.group_id) purchaseUrl.searchParams.set('group_id', metadata.group_id);
+  purchaseUrl.searchParams.set('client_id', user.telegramId);
+  purchaseUrl.searchParams.set('platform_id', user.username || '');
+
+  // UTM параметры
+  if (metadata.utm_campaign) purchaseUrl.searchParams.set('utm_campaign', metadata.utm_campaign);
+  if (metadata.utm_medium) purchaseUrl.searchParams.set('utm_medium', metadata.utm_medium);
+  if (metadata.utm_source) purchaseUrl.searchParams.set('utm_source', metadata.utm_source);
+  if (metadata.utm_content) purchaseUrl.searchParams.set('utm_content', metadata.utm_content);
+  if (metadata.utm_term) purchaseUrl.searchParams.set('utm_term', metadata.utm_term);
+
+  const keyboard = new InlineKeyboard()
+    .webApp('попасть на марафон ❤️', purchaseUrl.toString());
+
+  // СООБЩЕНИЕ 4 обычной воронки
+  await getTelegramService().sendMessage(
+    chatId,
+    `Оформи подписку — и получи доступ ко всей экосистеме клуба\nсразу после оплаты 👇`,
+    { parse_mode: 'HTML', reply_markup: keyboard }
+  );
+
+  // Отменяем все задачи club воронки
+  const telegramUserId = parseInt(user.telegramId, 10);
+  await schedulerService.cancelUserTasksByType(telegramUserId, 'club_auto_progress');
+
+  // Помечаем что club воронка завершена
+  await updateClubProgress(userId, { currentStep: 'completed' });
+
+  // Запускаем таймеры обычной воронки (СООБЩЕНИЕ 5 через 2 минуты согласно ТЗ)
+  await schedulerService.schedule(
+    { type: 'five_min_reminder', userId: telegramUserId, chatId: chatId },
+    2 * 60 * 1000 // 2 минуты (как в ТЗ строка 49)
+  );
+
+  logger.info({ userId, telegramId: user.telegramId }, 'Club funnel → Main funnel fallback (unpaid after 5 min)');
 }
 
 // ============================================================================
@@ -738,6 +796,12 @@ export async function handleClubAutoProgress(userId: string, chatId: number, ste
         if (user.length) {
           await handleClubStartRoute(userId, chatId, user[0]);
         }
+      }
+      break;
+    case 'fallback_to_main':
+      if (currentStep === 'awaiting_purchase') {
+        // Переход в обычную воронку - СООБЩЕНИЕ 4
+        await handleFallbackToMainFunnel(userId, chatId);
       }
       break;
   }
