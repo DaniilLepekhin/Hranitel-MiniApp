@@ -697,8 +697,12 @@ export async function handleClubStartRoute(userId: string, chatId: number, user:
   await updateClubProgress(userId, { currentStep: 'awaiting_purchase' });
   logger.info({ userId, currentStep: 'awaiting_purchase' }, 'handleClubStartRoute: Updated progress');
 
-  // Планируем переход в обычную воронку через 1 минуту, если не оплатил
+  // Отменяем все предыдущие задачи club_auto_progress перед планированием fallback
   const telegramUserId = await getTelegramUserId(userId);
+  await schedulerService.cancelUserTasksByType(telegramUserId, 'club_auto_progress');
+  logger.info({ telegramUserId }, 'handleClubStartRoute: Cancelled previous club_auto_progress tasks');
+
+  // Планируем переход в обычную воронку через 1 минуту, если не оплатил
   logger.info({ telegramUserId, odUserId: userId }, 'handleClubStartRoute: Scheduling fallback task');
 
   await schedulerService.schedule(
