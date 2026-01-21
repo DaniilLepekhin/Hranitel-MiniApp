@@ -124,15 +124,9 @@ jobs:
               echo "✅ Club funnel progress table created"
             }
 
-            # Apply migration 0007 (add chislo column)
-            echo "📊 Checking migration 0007..."
-            if ! psql "$DATABASE_URL" -tAc "SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='club_funnel_progress' AND column_name='chislo'" 2>/dev/null | grep -q .; then
-              echo "📊 Applying migration 0007_add_chislo_to_club_funnel.sql..."
-              psql "$DATABASE_URL" -f drizzle/migrations/0007_add_chislo_to_club_funnel.sql
-              echo "✅ Chislo column added to club_funnel_progress"
-            else
-              echo "✅ Migration 0007 already applied (chislo column exists)"
-            fi
+            # Apply migration 0007 (add chislo column - uses IF NOT EXISTS, safe to run multiple times)
+            echo "📊 Applying migration 0007_add_chislo_to_club_funnel.sql..."
+            psql "$DATABASE_URL" -f drizzle/migrations/0007_add_chislo_to_club_funnel.sql && echo "✅ Migration 0007 completed"
 
             echo "✅ All migrations applied successfully!"
 
