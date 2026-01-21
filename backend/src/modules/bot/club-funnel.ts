@@ -702,12 +702,12 @@ export async function handleClubStartRoute(userId: string, chatId: number, user:
   await schedulerService.cancelUserTasksByType(telegramUserId, 'club_auto_progress');
   logger.info({ telegramUserId }, 'handleClubStartRoute: Cancelled previous club_auto_progress tasks');
 
-  // Планируем переход в обычную воронку через 1 минуту, если не оплатил
+  // Планируем переход в обычную воронку через 5 минут, если не оплатил
   logger.info({ telegramUserId, odUserId: userId }, 'handleClubStartRoute: Scheduling fallback task');
 
   await schedulerService.schedule(
     { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'fallback_to_main' } },
-    1 * 60 * 1000 // 1 минута
+    5 * 60 * 1000 // 5 минут
   );
 
   logger.info({ userId, telegramUserId, chatId }, 'handleClubStartRoute: COMPLETE - fallback task scheduled');
