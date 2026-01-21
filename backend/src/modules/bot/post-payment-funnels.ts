@@ -139,7 +139,7 @@ export async function handleKeywordSuccess(userId: string, chatId: number) {
   const keyboard = new InlineKeyboard()
     .url('перейти в канал', 'https://t.me/+mwJ5e0d78GYzNDRi')
     .row()
-    .webApp('вступить в чат города', `${process.env.WEBAPP_URL}/chats`)
+    .webApp('вступить в чат города', `${process.env.WEBAPP_URL}?tab=chats`)
     .row()
     .webApp('открыть штаб', process.env.WEBAPP_URL!)
     .row()
