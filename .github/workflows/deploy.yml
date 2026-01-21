@@ -126,11 +126,13 @@ jobs:
 
             # Apply migration 0007 (add chislo column)
             echo "📊 Checking migration 0007..."
-            psql "$DATABASE_URL" -c "SELECT column_name FROM information_schema.columns WHERE table_name='club_funnel_progress' AND column_name='chislo'" | grep -q chislo || {
+            if ! psql "$DATABASE_URL" -tAc "SELECT column_name FROM information_schema.columns WHERE table_name='club_funnel_progress' AND column_name='chislo'" 2>/dev/null | grep -q .; then
               echo "📊 Applying migration 0007_add_chislo_to_club_funnel.sql..."
               psql "$DATABASE_URL" -f drizzle/migrations/0007_add_chislo_to_club_funnel.sql
               echo "✅ Chislo column added to club_funnel_progress"
-            }
+            else
+              echo "✅ Migration 0007 already applied (chislo column exists)"
+            fi
 
             echo "✅ All migrations applied successfully!"
 
