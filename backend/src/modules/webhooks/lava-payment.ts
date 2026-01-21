@@ -88,50 +88,8 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
             return { success: false, error: 'Gifter not found' };
           }
 
-          // Найти или создать получателя
-          let [recipient] = await db
-            .select()
-            .from(users)
-            .where(eq(users.telegramId, recipientTgId))
-            .limit(1);
-
-          if (!recipient) {
-            // Создаем пользователя для получателя (он еще не взаимодействовал с ботом)
-            const [newRecipient] = await db
-              .insert(users)
-              .values({
-                telegramId: recipientTgId,
-                isPro: true,
-                subscriptionExpires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-                firstPurchaseDate: new Date(),
-                metadata: {
-                  gifted_by: gifterTgId,
-                  gift_date: new Date().toISOString(),
-                },
-              })
-              .returning();
-            recipient = newRecipient;
-            logger.info({ recipientTgId, recipientId: recipient.id }, 'Created new user for gift recipient');
-          } else {
-            // Обновляем существующего получателя
-            const currentMetadata = (recipient.metadata as Record<string, any>) || {};
-            const [updatedRecipient] = await db
-              .update(users)
-              .set({
-                isPro: true,
-                subscriptionExpires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-                updatedAt: new Date(),
-                firstPurchaseDate: recipient.firstPurchaseDate || new Date(),
-                metadata: {
-                  ...currentMetadata,
-                  gifted_by: gifterTgId,
-                  gift_date: new Date().toISOString(),
-                },
-              })
-              .where(eq(users.id, recipient.id))
-              .returning();
-            recipient = updatedRecipient;
-          }
+          // НЕ активируем подписку получателю сразу!
+          // Подписка активируется когда получатель перейдет по ссылке /start=present_{tg_id}
 
           // Создаем запись платежа (привязан к дарителю)
           const [payment] = await db
@@ -145,14 +103,13 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
               metadata: {
                 tariff: 'club2000_gift',
                 gift_recipient_id: recipientTgId,
-                gift_recipient_user_id: recipient.id,
                 payment_method: payment_method || null,
               },
               completedAt: new Date(),
             })
             .returning();
 
-          // Track в аналитике
+          // Track в аналитике (activated: false - активируется когда получатель перейдет по ссылке)
           await db.insert(paymentAnalytics).values({
             telegramId: gifterTgId,
             eventType: 'gift_payment_success',
@@ -163,7 +120,8 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
             metadata: {
               tariff: 'club2000_gift',
               recipient_tg_id: recipientTgId,
-              recipient_user_id: recipient.id,
+              gifter_tg_id: gifterTgId,
+              activated: false,
             },
           });
 
@@ -171,7 +129,6 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
             {
               gifterId: gifter.id,
               gifterTgId,
-              recipientId: recipient.id,
               recipientTgId,
               paymentId: payment.id,
               amount,
@@ -195,7 +152,7 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
             success: true,
             message: 'Gift payment processed successfully',
             gifterId: gifter.id,
-            recipientId: recipient.id,
+            recipientTgId,
             paymentId: payment.id,
           };
         }

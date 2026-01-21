@@ -673,7 +673,7 @@ export async function handleUserShared(gifterTgId: number, recipientTgId: number
 }
 
 /**
- * После успешной оплаты подарка - отправить уведомления
+ * После успешной оплаты подарка - отправить ссылку дарителю
  */
 export async function handleGiftPaymentSuccess(
   gifterUserId: string,
@@ -681,30 +681,110 @@ export async function handleGiftPaymentSuccess(
   gifterTgId: number,
   paymentId: string
 ) {
-  // Отправить уведомление дарителю
+  // Ссылка для активации подарка
+  const giftLink = `https://t.me/hranitel_kod_bot?start=present_${recipientTgId}`;
+
+  // Отправить ссылку дарителю
   await getTelegramService().sendMessage(
     gifterTgId,
-    `<b>🎁 Подарок успешно оплачен!</b>\n\n` +
-    `Ваш друг получил доступ к клубу «Код Успеха» на 30 дней.\n\n` +
-    `Спасибо за щедрость! ❤️`,
+    `<b>🎁 Отправь эту ссылку получателю и мы откроем доступ</b>\n\n${giftLink}`,
     { parse_mode: 'HTML' }
   );
 
-  // Отправить уведомление получателю (если он уже взаимодействовал с ботом)
-  try {
+  logger.info({ gifterUserId, gifterTgId, recipientTgId, paymentId, giftLink }, 'Gift link sent to gifter');
+}
+
+/**
+ * Активация подарка когда получатель переходит по ссылке /start=present_{tg_id}
+ */
+export async function activateGiftSubscription(recipientTgId: number, chatId: number) {
+  // Найти неактивированный подарок для этого получателя в аналитике
+  const allGiftPayments = await db
+    .select()
+    .from(paymentAnalytics)
+    .where(eq(paymentAnalytics.eventType, 'gift_payment_success'))
+    .orderBy(desc(paymentAnalytics.createdAt))
+    .limit(100);
+
+  const giftPayment = allGiftPayments.find(payment => {
+    const metadata = payment.metadata as Record<string, any>;
+    return metadata?.recipient_tg_id === recipientTgId.toString() && !metadata?.activated;
+  });
+
+  if (!giftPayment) {
     await getTelegramService().sendMessage(
-      recipientTgId,
-      `<b>🎁 Вам подарили подписку!</b>\n\n` +
-      `Ваш друг оплатил вам доступ к клубу «Код Успеха» на 30 дней!\n\n` +
-      `Нажмите /start чтобы начать пользоваться клубом.`,
+      chatId,
+      '❌ Подарок не найден или уже был активирован.',
       { parse_mode: 'HTML' }
     );
-  } catch (error) {
-    // Получатель еще не начал диалог с ботом - это нормально
-    logger.info({ recipientTgId }, 'Could not send gift notification to recipient - they may not have started the bot yet');
+    return false;
   }
 
-  logger.info({ gifterUserId, gifterTgId, recipientTgId, paymentId }, 'Gift payment notifications sent');
+  // Пометить подарок как активированный
+  const currentMetadata = (giftPayment.metadata as Record<string, any>) || {};
+  await db
+    .update(paymentAnalytics)
+    .set({
+      metadata: {
+        ...currentMetadata,
+        activated: true,
+        activated_at: new Date().toISOString(),
+      },
+    })
+    .where(eq(paymentAnalytics.id, giftPayment.id));
+
+  // Найти или создать пользователя получателя
+  let [recipient] = await db
+    .select()
+    .from(users)
+    .where(eq(users.telegramId, recipientTgId.toString()))
+    .limit(1);
+
+  const gifterTgId = currentMetadata.gifter_tg_id || giftPayment.telegramId;
+
+  if (!recipient) {
+    // Создаем пользователя
+    const [newRecipient] = await db
+      .insert(users)
+      .values({
+        telegramId: recipientTgId.toString(),
+        isPro: true,
+        subscriptionExpires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        firstPurchaseDate: new Date(),
+        metadata: {
+          gifted_by: gifterTgId,
+          gift_date: new Date().toISOString(),
+        },
+      })
+      .returning();
+    recipient = newRecipient;
+  } else {
+    // Обновляем существующего
+    const recipientMetadata = (recipient.metadata as Record<string, any>) || {};
+    const [updatedRecipient] = await db
+      .update(users)
+      .set({
+        isPro: true,
+        subscriptionExpires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(),
+        firstPurchaseDate: recipient.firstPurchaseDate || new Date(),
+        metadata: {
+          ...recipientMetadata,
+          gifted_by: gifterTgId,
+          gift_date: new Date().toISOString(),
+        },
+      })
+      .where(eq(users.id, recipient.id))
+      .returning();
+    recipient = updatedRecipient;
+  }
+
+  logger.info({ recipientTgId, recipientId: recipient.id, giftPaymentId: giftPayment.id }, 'Gift subscription activated');
+
+  // Запустить воронку после оплаты
+  await startOnboardingAfterPayment(recipient.id, chatId);
+
+  return true;
 }
 
 /**

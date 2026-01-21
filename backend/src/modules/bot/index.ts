@@ -553,8 +553,21 @@ bot.command('start', async (ctx) => {
     const userId = ctx.from!.id;
     const chatId = ctx.chat.id;
 
-    // 🆕 Check for gift activation link (start=gift_{token})
+    // 🆕 Check for gift activation link (start=present_{recipient_tg_id})
     const startPayload = ctx.match;
+    if (startPayload && startPayload.startsWith('present_')) {
+      const recipientTgId = parseInt(startPayload.substring(8)); // Remove 'present_' prefix
+      if (recipientTgId === userId) {
+        // Получатель перешел по своей ссылке - активируем подарок
+        await funnels.activateGiftSubscription(userId, chatId);
+      } else {
+        // Кто-то другой перешел по ссылке
+        await ctx.reply('❌ Эта ссылка предназначена для другого пользователя.');
+      }
+      return;
+    }
+
+    // Legacy: Check for old gift activation link (start=gift_{token})
     if (startPayload && startPayload.startsWith('gift_')) {
       const token = startPayload.substring(5); // Remove 'gift_' prefix
       await funnels.handleGiftActivation(userId, token, chatId);
