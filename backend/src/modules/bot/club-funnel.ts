@@ -689,11 +689,11 @@ export async function handleClubStartRoute(userId: string, chatId: number, user:
 
   await updateClubProgress(userId, { currentStep: 'awaiting_purchase' });
 
-  // Планируем переход в обычную воронку через 5 минут, если не оплатил
+  // Планируем переход в обычную воронку через 1 минуту, если не оплатил
   const telegramUserId = await getTelegramUserId(userId);
   await schedulerService.schedule(
     { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'fallback_to_main' } },
-    5 * 60 * 1000 // 5 минут
+    1 * 60 * 1000 // 1 минута
   );
 }
 
@@ -702,9 +702,16 @@ export async function handleClubStartRoute(userId: string, chatId: number, user:
 // ============================================================================
 
 async function handleFallbackToMainFunnel(userId: string, chatId: number) {
+  logger.info({ userId, chatId }, 'handleFallbackToMainFunnel: START');
+
   // Получаем user для формирования WebApp URL
   const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-  if (!user) return;
+  if (!user) {
+    logger.error({ userId, chatId }, 'handleFallbackToMainFunnel: User not found');
+    return;
+  }
+
+  logger.info({ userId: user.id, telegramId: user.telegramId, chatId }, 'handleFallbackToMainFunnel: User found');
 
   // Формируем URL с параметрами (как в handleClubStartRoute)
   const purchaseUrl = new URL(WEBAPP_PURCHASE_URL);
@@ -809,9 +816,12 @@ export async function handleClubAutoProgress(userId: string, chatId: number, ste
       }
       break;
     case 'fallback_to_main':
+      logger.info({ userId, chatId, currentStep }, 'Club auto-progress: fallback_to_main triggered');
       if (currentStep === 'awaiting_purchase') {
-        // Переход в обычную воронку - СООБЩЕНИЕ 4
+        logger.info({ userId, chatId }, 'Club funnel: executing fallback to main funnel');
         await handleFallbackToMainFunnel(userId, chatId);
+      } else {
+        logger.warn({ userId, chatId, currentStep, expected: 'awaiting_purchase' }, 'Club funnel: fallback skipped - wrong step');
       }
       break;
   }
