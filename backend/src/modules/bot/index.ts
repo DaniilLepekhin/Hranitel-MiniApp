@@ -619,32 +619,52 @@ bot.callbackQuery('get_access', async (ctx) => {
   }
 });
 
-// Handle "Я не готов" callback
+// Handle "Я не готов" callback - immediately send СООБЩЕНИЕ 9
 bot.callbackQuery('not_ready', async (ctx) => {
   try {
     await ctx.answerCallbackQuery();
 
+    const userId = ctx.from!.id;
+    const chatId = ctx.chat!.id;
     const keyboard = new InlineKeyboard()
-      .text('🔮 где мои деньги в 2026 году', 'topic_money_2026')
-      .row()
-      .text('💰 почему доход не растет', 'topic_income')
-      .row()
-      .text('🧠 состояние vs деньги', 'topic_state')
-      .row()
-      .text('🌍 окружение', 'topic_environment');
+      .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
 
-    // Send photo with question and inline keyboard attached
-    await telegramService.sendPhoto(
-      ctx.chat!.id,
-      'https://t.me/mate_bot_open/9277',
+    // Cancel scheduled day2_reminder since user clicked "я не готов"
+    await schedulerService.cancelUserTasksByType(userId, 'day2_reminder');
+
+    // Send СООБЩЕНИЕ 9 immediately
+    await telegramService.sendVideo(
+      chatId,
+      'https://t.me/mate_bot_open/9349',
       {
         caption:
-          `<b>Что горит прямо сейчас? 🔥</b>\n\n` +
-          `Только честно.\n` +
-          `Чтобы не грузить лишним — выбери, что сейчас важнее всего 👇`,
+          `Не всем нужен шум.\n` +
+          `И не всем заходят громкие обещания.\n\n` +
+          `Зато почти всем знакомо ощущение, что деньги идут нестабильно, хотя ты стараешься и вроде всё делаешь правильно 🤷‍♀️\n` +
+          `Значит, дело не в усилиях — а в среде и настройке 👀\n\n` +
+          `<b>Наш фокус на 2026 год</b> —помочь расти в финансах через окружение, спринты и инструменты, которые реально используются, а не откладываются «на потом» 🚀\n\n` +
+          `<b>Клуб «Код Успеха» — это когда:</b>\n` +
+          `— <b>застрял и не понимаешь, куда дальше</b> → смотришь эфиры, разбираешь кейсы, начинаешь видеть картину 🧠\n` +
+          `— <b>нужен совет, партнёр или контакт</b> → спрашиваешь у людей, у которых уже работает 🤝\n` +
+          `— <b>хочется системности</b> → проходишь курсы и внедряешь шаг за шагом, без перегруза 📚\n` +
+          `— <b>нужен импульс и фокус</b> → идёшь в десятку и не буксуешь в одиночку ⏱️\n` +
+          `— <b>не хватает живого общения</b> → встречаешься офлайн с людьми на одной волне 🔥\n\n` +
+          `Вход в клуб открыт.\n` +
+          `Мы видим, что ты всё ещё не с нами 👀`,
         parse_mode: 'HTML',
         reply_markup: keyboard
       }
+    );
+
+    // Schedule day 3 reminder at 11:00 Moscow time next day (СООБЩЕНИЕ 10)
+    const delayToDay3 = getDelayUntilMoscowTime(11, 0);
+    await schedulerService.schedule(
+      {
+        type: 'day3_reminder',
+        userId,
+        chatId,
+      },
+      delayToDay3
     );
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in not_ready callback');
@@ -660,8 +680,15 @@ bot.callbackQuery('topic_money_2026', async (ctx) => {
     const keyboard = new InlineKeyboard()
       .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
 
-    // Cancel the 60-minute payment_reminder since user engaged
-    await schedulerService.cancelUserTasksByType(userId, 'payment_reminder');
+    // Schedule payment_reminder (MSG 8) in 60 minutes after topic
+    await schedulerService.schedule(
+      {
+        type: 'payment_reminder',
+        userId,
+        chatId,
+      },
+      60 * 60 * 1000 // 60 minutes
+    );
 
     // ТОПИК 1 - Сообщение 1 с картинкой 9354
     await telegramService.sendPhoto(
@@ -705,8 +732,15 @@ bot.callbackQuery('topic_income', async (ctx) => {
     const keyboard = new InlineKeyboard()
       .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
 
-    // Cancel the 60-minute payment_reminder since user engaged
-    await schedulerService.cancelUserTasksByType(userId, 'payment_reminder');
+    // Schedule payment_reminder (MSG 8) in 60 minutes after topic
+    await schedulerService.schedule(
+      {
+        type: 'payment_reminder',
+        userId,
+        chatId,
+      },
+      60 * 60 * 1000 // 60 minutes
+    );
 
     // ТОПИК 2 - Сообщение 1 с картинкой 9355
     await telegramService.sendPhoto(
@@ -746,8 +780,15 @@ bot.callbackQuery('topic_state', async (ctx) => {
     const keyboard = new InlineKeyboard()
       .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
 
-    // Cancel the 60-minute payment_reminder since user engaged
-    await schedulerService.cancelUserTasksByType(userId, 'payment_reminder');
+    // Schedule payment_reminder (MSG 8) in 60 minutes after topic
+    await schedulerService.schedule(
+      {
+        type: 'payment_reminder',
+        userId,
+        chatId,
+      },
+      60 * 60 * 1000 // 60 minutes
+    );
 
     // ТОПИК 3 - Сообщение 1 с картинкой 9353
     await telegramService.sendPhoto(
@@ -788,8 +829,15 @@ bot.callbackQuery('topic_environment', async (ctx) => {
     const keyboard = new InlineKeyboard()
       .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
 
-    // Cancel the 60-minute payment_reminder since user engaged
-    await schedulerService.cancelUserTasksByType(userId, 'payment_reminder');
+    // Schedule payment_reminder (MSG 8) in 60 minutes after topic
+    await schedulerService.schedule(
+      {
+        type: 'payment_reminder',
+        userId,
+        chatId,
+      },
+      60 * 60 * 1000 // 60 minutes
+    );
 
     // Send all images as media group
     await telegramService.sendMediaGroup(chatId, [
