@@ -138,7 +138,7 @@ async function checkChannelSubscription(userId: number): Promise<boolean> {
   }
 }
 
-async function generateStar(birthDate: string): Promise<string | null> {
+async function generateStar(birthDate: string): Promise<Buffer | string | null> {
   try {
     const response = await fetch(STAR_WEBHOOK_URL, {
       method: 'POST',
@@ -150,8 +150,22 @@ async function generateStar(birthDate: string): Promise<string | null> {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const data = await response.json() as { image_url?: string; url?: string };
-    return data.image_url || data.url || null;
+    const contentType = response.headers.get('content-type');
+
+    // Если вернулся JSON с URL
+    if (contentType?.includes('application/json')) {
+      const data = await response.json() as { image_url?: string; url?: string };
+      return data.image_url || data.url || null;
+    }
+
+    // Если вернулся binary файл (изображение) - возвращаем Buffer напрямую
+    if (contentType?.includes('image/')) {
+      const arrayBuffer = await response.arrayBuffer();
+      return Buffer.from(arrayBuffer);
+    }
+
+    logger.warn({ contentType, birthDate }, 'Unexpected content type from star webhook');
+    return null;
   } catch (error) {
     logger.error({ error, birthDate }, 'Error generating star');
     return null;
@@ -287,14 +301,15 @@ export async function handleBirthDateConfirmed(userId: string, chatId: number, b
   });
 
   // Сообщение 4: Генерация звезды и получение числа для условной логики
-  const [starImageUrl, chislo] = await Promise.all([
+  const [starImage, chislo] = await Promise.all([
     generateStar(birthDate),
     getChislo(birthDate)
   ]);
 
   const updateData: any = {};
-  if (starImageUrl) {
-    updateData.starImageUrl = starImageUrl;
+  // Сохраняем URL только если это строка (не Buffer)
+  if (starImage && typeof starImage === 'string') {
+    updateData.starImageUrl = starImage;
   }
   if (chislo !== null) {
     updateData.chislo = chislo;
@@ -321,8 +336,9 @@ export async function handleBirthDateConfirmed(userId: string, chatId: number, b
 
   const keyboard4 = new InlineKeyboard().text('хочу активировать свой потенциал', 'club_activate');
 
-  if (starImageUrl) {
-    await getTelegramService().sendPhoto(chatId, starImageUrl, {
+  if (starImage) {
+    // starImage может быть Buffer или string (URL)
+    await getTelegramService().sendPhoto(chatId, starImage, {
       caption: message4Text,
       parse_mode: 'HTML',
       reply_markup: keyboard4,

@@ -1,4 +1,4 @@
-import { Api } from 'grammy';
+import { Api, InputFile } from 'grammy';
 import { logger } from '@/utils/logger';
 
 interface RetryOptions {
@@ -113,18 +113,25 @@ export class TelegramService {
 
   /**
    * Send a photo with retry logic
+   * Supports URL string or Buffer
    */
   async sendPhoto(
     chatId: number,
-    photo: string,
+    photo: string | Buffer,
     options?: SendPhotoOptions,
     retryOptions?: RetryOptions
   ): Promise<boolean> {
-    logger.info({ chatId, photo, options }, 'Attempting to send photo');
+    const photoInfo = typeof photo === 'string' ? photo : `Buffer(${photo.length} bytes)`;
+    logger.info({ chatId, photo: photoInfo, options }, 'Attempting to send photo');
     return this.executeWithRetry(
       async () => {
-        const result = await this.api.sendPhoto(chatId, photo, options);
-        logger.info({ chatId, photo, messageId: result.message_id }, 'Photo sent successfully');
+        // Если это Buffer, оборачиваем в InputFile
+        const photoInput = Buffer.isBuffer(photo)
+          ? new InputFile(photo, 'star.png')
+          : photo;
+
+        const result = await this.api.sendPhoto(chatId, photoInput, options);
+        logger.info({ chatId, photo: photoInfo, messageId: result.message_id }, 'Photo sent successfully');
         return true;
       },
       {
