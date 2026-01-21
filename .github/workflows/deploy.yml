@@ -116,6 +116,22 @@ jobs:
               psql "$DATABASE_URL" -c "SELECT refresh_ratings_cache();"
             }
 
+            # Apply migration 0006 (club funnel progress table)
+            echo "📊 Checking migration 0006..."
+            psql "$DATABASE_URL" -c "SELECT 1 FROM club_funnel_progress LIMIT 1" 2>/dev/null || {
+              echo "📊 Applying migration 0006_add_club_funnel_progress.sql..."
+              psql "$DATABASE_URL" -f drizzle/migrations/0006_add_club_funnel_progress.sql
+              echo "✅ Club funnel progress table created"
+            }
+
+            # Apply migration 0007 (add chislo column)
+            echo "📊 Checking migration 0007..."
+            psql "$DATABASE_URL" -c "SELECT chislo FROM club_funnel_progress LIMIT 1" 2>/dev/null || {
+              echo "📊 Applying migration 0007_add_chislo_to_club_funnel.sql..."
+              psql "$DATABASE_URL" -f drizzle/migrations/0007_add_chislo_to_club_funnel.sql
+              echo "✅ Chislo column added to club_funnel_progress"
+            }
+
             echo "✅ All migrations applied successfully!"
 
             # 🔍 Pre-deployment health check

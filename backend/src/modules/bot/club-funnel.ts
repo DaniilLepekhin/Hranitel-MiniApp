@@ -32,6 +32,7 @@ function getTelegramService(): TelegramService {
 
 const CHANNEL_USERNAME = '@kristina_egiazarovaaa1407';
 const STAR_WEBHOOK_URL = 'https://n8n4.daniillepekhin.ru/webhook/zvezda_club_generated';
+const CHISLO_WEBHOOK_URL = 'https://n8n4.daniillepekhin.ru/webhook/zvezda_club_generated_chislo';
 const BIRTHDATE_REGEX = /^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[012])\.((19|20)\d\d)$/;
 const VIDEO_NOTE_EMOJI = 'https://t.me/mate_bot_open/9319';
 
@@ -157,6 +158,26 @@ async function generateStar(birthDate: string): Promise<string | null> {
   }
 }
 
+async function getChislo(birthDate: string): Promise<number | null> {
+  try {
+    const response = await fetch(CHISLO_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_date: birthDate }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json() as { chislo?: number };
+    return data.chislo ?? null;
+  } catch (error) {
+    logger.error({ error, birthDate }, 'Error getting chislo');
+    return null;
+  }
+}
+
 // ============================================================================
 // СООБЩЕНИЕ 1: СТАРТ ВОРОНКИ
 // ============================================================================
@@ -265,11 +286,22 @@ export async function handleBirthDateConfirmed(userId: string, chatId: number, b
     currentStep: 'birthdate_confirmed',
   });
 
-  // Сообщение 4: Генерация звезды
-  const starImageUrl = await generateStar(birthDate);
+  // Сообщение 4: Генерация звезды и получение числа для условной логики
+  const [starImageUrl, chislo] = await Promise.all([
+    generateStar(birthDate),
+    getChislo(birthDate)
+  ]);
 
+  const updateData: any = {};
   if (starImageUrl) {
-    await updateClubProgress(userId, { starImageUrl });
+    updateData.starImageUrl = starImageUrl;
+  }
+  if (chislo !== null) {
+    updateData.chislo = chislo;
+  }
+
+  if (Object.keys(updateData).length > 0) {
+    await updateClubProgress(userId, updateData);
   }
 
   const message4Text =

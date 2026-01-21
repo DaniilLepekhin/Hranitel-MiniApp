@@ -556,6 +556,7 @@ export const clubFunnelProgress = pgTable('club_funnel_progress', {
   birthDate: text('birth_date'), // Format: DD.MM.YYYY
   birthDayNumber: integer('birth_day_number'), // 1-31 (день рождения)
   archetypeNumber: integer('archetype_number'), // 1-22 (номер архетипа богини)
+  chislo: integer('chislo'), // Число от webhook для условной логики сообщений
 
   // Progress tracking
   currentStep: clubFunnelStepEnum('current_step').default('start').notNull(),
