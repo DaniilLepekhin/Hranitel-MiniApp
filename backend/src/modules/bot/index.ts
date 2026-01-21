@@ -492,6 +492,15 @@ bot.command('start', async (ctx) => {
     const userId = ctx.from!.id;
     const chatId = ctx.chat.id;
 
+    // 🧹 Очистка всех запланированных задач при перезапуске /start (обычная + club воронка)
+    await schedulerService.cancelUserTasksByType(userId, 'start_reminder');
+    await schedulerService.cancelUserTasksByType(userId, 'five_min_reminder');
+    await schedulerService.cancelUserTasksByType(userId, 'burning_question_reminder');
+    await schedulerService.cancelUserTasksByType(userId, 'payment_reminder');
+    await schedulerService.cancelUserTasksByType(userId, 'final_reminder');
+    await schedulerService.cancelUserTasksByType(userId, 'club_auto_progress');
+    logger.info({ userId }, 'Start command - cancelled all pending tasks from both funnels');
+
     // 🆕 Check for gift activation link (start=gift_{token})
     const startPayload = ctx.match;
     if (startPayload && startPayload.startsWith('gift_')) {

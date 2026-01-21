@@ -212,6 +212,16 @@ async function generateStar(birthDate: string): Promise<Buffer | string | null> 
 export async function startClubFunnel(userId: string, chatId: number, telegramId: string) {
   await getOrCreateClubProgress(userId, telegramId);
 
+  // 🧹 Очистка всех запланированных задач при перезапуске (club + обычная воронка)
+  const telegramUserId = parseInt(telegramId, 10);
+  await schedulerService.cancelUserTasksByType(telegramUserId, 'club_auto_progress');
+  await schedulerService.cancelUserTasksByType(telegramUserId, 'start_reminder');
+  await schedulerService.cancelUserTasksByType(telegramUserId, 'five_min_reminder');
+  await schedulerService.cancelUserTasksByType(telegramUserId, 'burning_question_reminder');
+  await schedulerService.cancelUserTasksByType(telegramUserId, 'payment_reminder');
+  await schedulerService.cancelUserTasksByType(telegramUserId, 'final_reminder');
+  logger.info({ userId, telegramId }, 'Club funnel started - cancelled all pending tasks from both funnels');
+
   const keyboard = new InlineKeyboard().text('Готов(а) 🚀', 'club_ready');
 
   // Сообщение 1 с картинкой
