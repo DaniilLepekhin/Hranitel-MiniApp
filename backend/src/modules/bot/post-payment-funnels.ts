@@ -616,7 +616,7 @@ export async function handleUserShared(gifterTgId: number, recipientTgId: number
 
   // Сбросить статус
   await db.update(users)
-    .set({ onboarding_step: 'onboarding_complete' })
+    .set({ onboardingStep: 'onboarding_complete' })
     .where(eq(users.id, gifter.id));
 
   // Проверить, не является ли получатель уже участником
