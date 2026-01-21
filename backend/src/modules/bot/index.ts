@@ -663,19 +663,24 @@ bot.callbackQuery('topic_money_2026', async (ctx) => {
     // Cancel the 60-minute payment_reminder since user engaged
     await schedulerService.cancelUserTasksByType(userId, 'payment_reminder');
 
-    await telegramService.sendMessage(
+    // ТОПИК 1 - Сообщение 1 с картинкой 9354
+    await telegramService.sendPhoto(
       chatId,
-      `В 2026 деньги не живут отдельно от жизни.\n` +
-      `Состояние, энергия, здоровье и отношения\n` +
-      `напрямую влияют на рост дохода.\n\n` +
-      `Если хочешь <b>финансово вырасти в 2026,</b>\n` +
-      `важно знать:\n` +
-      `— в какой энергии проходит твой год\n` +
-      `— где точка роста, а где утечки\n` +
-      `— на чём деньги реально умножаются\n\n` +
-      `Я подготовила <b>индивидуальный гайд</b>\n` +
-      `с расшифровкой по дате рождения: финансы, отношения, энергия, здоровье, ключевые периоды года.`,
-      { parse_mode: 'HTML' }
+      'https://t.me/mate_bot_open/9354',
+      {
+        caption:
+          `В 2026 деньги не живут отдельно от жизни.\n` +
+          `Состояние, энергия, здоровье и отношения\n` +
+          `напрямую влияют на рост дохода.\n\n` +
+          `Если хочешь <b>финансово вырасти в 2026,</b>\n` +
+          `важно знать:\n` +
+          `— в какой энергии проходит твой год\n` +
+          `— где точка роста, а где утечки\n` +
+          `— на чём деньги реально умножаются\n\n` +
+          `Я подготовила индивидуальный гайд\n` +
+          `с расшифровкой по дате рождения: финансы, отношения, энергия, здоровье, ключевые периоды года.`,
+        parse_mode: 'HTML'
+      }
     );
 
     await telegramService.sendDocument(chatId, 'https://t.me/mate_bot_open/9257');
@@ -703,14 +708,20 @@ bot.callbackQuery('topic_income', async (ctx) => {
     // Cancel the 60-minute payment_reminder since user engaged
     await schedulerService.cancelUserTasksByType(userId, 'payment_reminder');
 
-    await telegramService.sendMessage(
+    // ТОПИК 2 - Сообщение 1 с картинкой 9355
+    await telegramService.sendPhoto(
       chatId,
-      `Если деньги не растут —\n` +
-      `причина чаще не в знаниях, а в состоянии и сценариях.\n\n` +
-      `В гайде ты увидишь:\n` +
-      `— где именно ты застряла\n` +
-      `— какие установки тормозят доход\n` +
-      `— какой шаг сейчас даст рост`
+      'https://t.me/mate_bot_open/9355',
+      {
+        caption:
+          `Если деньги не растут —\n` +
+          `причина чаще не в знаниях, а в состоянии и сценариях.\n\n` +
+          `В гайде ты увидишь:\n` +
+          `— где именно ты застряла\n` +
+          `— какие установки тормозят доход\n` +
+          `— какой шаг сейчас даст рост`,
+        parse_mode: 'HTML'
+      }
     );
 
     await telegramService.sendDocument(chatId, 'https://t.me/mate_bot_open/9258');
@@ -738,17 +749,22 @@ bot.callbackQuery('topic_state', async (ctx) => {
     // Cancel the 60-minute payment_reminder since user engaged
     await schedulerService.cancelUserTasksByType(userId, 'payment_reminder');
 
-    await telegramService.sendMessage(
+    // ТОПИК 3 - Сообщение 1 с картинкой 9353
+    await telegramService.sendPhoto(
       chatId,
-      `Если состояние не держит — деньги не удерживаются.\n\n` +
-      `В гайде ты увидишь:\n` +
-      `— где у тебя утекает энергия\n` +
-      `— через что к тебе приходят деньги\n` +
-      `— персональную расшифровку <b>по дате рождения</b>\n\n` +
-      `А если хочешь не просто понять,\n` +
-      `а <b>реально выстроить доход</b> —\n` +
-      `дальше это делается через среду и этапы.`,
-      { parse_mode: 'HTML' }
+      'https://t.me/mate_bot_open/9353',
+      {
+        caption:
+          `Если состояние не держит — деньги не удерживаются.\n\n` +
+          `В гайде ты увидишь:\n` +
+          `— где у тебя утекает энергия\n` +
+          `— через что к тебе приходят деньги\n` +
+          `— персональную расшифровку по дате рождения\n\n` +
+          `А если хочешь не просто понять,\n` +
+          `а реально выстроить доход —\n` +
+          `дальше это делается через среду и этапы.`,
+        parse_mode: 'HTML'
+      }
     );
 
     await telegramService.sendDocument(chatId, 'https://t.me/mate_bot_open/9259');
