@@ -47,6 +47,19 @@ const WEBAPP_PURCHASE_URL = 'https://ishodnyi-kod.com/webappclubik';
 // ============================================================================
 
 /**
+ * Получить Telegram user ID (number) из UUID userId
+ */
+async function getTelegramUserId(userId: string): Promise<number> {
+  const progress = await getClubProgress(userId);
+  if (progress?.telegramId) {
+    return parseInt(progress.telegramId, 10);
+  }
+  // Fallback: получить из users таблицы
+  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  return user ? parseInt(user.telegramId, 10) : 0;
+}
+
+/**
  * Маппинг дня рождения на номер архетипа (1-22)
  * По ТЗ voronka_before_pay_2.txt
  */
@@ -246,7 +259,7 @@ export async function startClubFunnel(userId: string, chatId: number, telegramId
   await updateClubProgress(userId, { currentStep: 'awaiting_ready' });
 
   await schedulerService.schedule(
-    { type: 'club_auto_progress', userId: 0, chatId: chatId, data: { odUserId: userId, step: 'ready' } },
+    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'ready' } },
     BUTTON_TIMEOUT
   );
 }
@@ -373,8 +386,9 @@ export async function handleBirthDateConfirmed(userId: string, chatId: number, b
 
   await updateClubProgress(userId, { currentStep: 'showing_star' });
 
+  const telegramUserId = await getTelegramUserId(userId);
   await schedulerService.schedule(
-    { type: 'club_auto_progress', userId: 0, chatId: chatId, data: { odUserId: userId, step: 'activate' } },
+    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'activate' } },
     BUTTON_TIMEOUT
   );
 }
@@ -410,8 +424,9 @@ export async function handleClubActivate(userId: string, chatId: number) {
   await sendArchetypeMessage(chatId, progress.archetypeNumber);
   await updateClubProgress(userId, { currentStep: 'showing_archetype' });
 
+  const telegramUserId = await getTelegramUserId(userId);
   await schedulerService.schedule(
-    { type: 'club_auto_progress', userId: 0, chatId: chatId, data: { odUserId: userId, step: 'style' } },
+    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'style' } },
     BUTTON_TIMEOUT
   );
 }
@@ -464,8 +479,9 @@ export async function handleClubGetStyle(userId: string, chatId: number) {
 
   await updateClubProgress(userId, { currentStep: 'showing_style' });
 
+  const telegramUserId = await getTelegramUserId(userId);
   await schedulerService.schedule(
-    { type: 'club_auto_progress', userId: 0, chatId: chatId, data: { odUserId: userId, step: 'scale' } },
+    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'scale' } },
     BUTTON_TIMEOUT
   );
 }
@@ -569,8 +585,9 @@ async function sendScaleMessage(userId: string, chatId: number) {
 
   await updateClubProgress(userId, { currentStep: 'showing_scale' });
 
+  const telegramUserId = await getTelegramUserId(userId);
   await schedulerService.schedule(
-    { type: 'club_auto_progress', userId: 0, chatId: chatId, data: { odUserId: userId, step: 'roadmap' } },
+    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'roadmap' } },
     BUTTON_TIMEOUT
   );
 }
@@ -600,8 +617,9 @@ export async function handleClubGetRoadmap(userId: string, chatId: number) {
 
   await updateClubProgress(userId, { currentStep: 'showing_roadmap' });
 
+  const telegramUserId = await getTelegramUserId(userId);
   await schedulerService.schedule(
-    { type: 'club_auto_progress', userId: 0, chatId: chatId, data: { odUserId: userId, step: 'purchase' } },
+    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'purchase' } },
     FINAL_TIMEOUT
   );
 }
