@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Play, Lock, CheckCircle, ChevronRight, BookOpen, Headphones, Radio, Sparkles } from 'lucide-react';
+import { ArrowLeft, Play, Lock, CheckCircle, ChevronRight, BookOpen, Headphones, Radio, Sparkles, FileText, Download } from 'lucide-react';
 import { contentApi, type ContentItem, type ContentSection } from '@/lib/api';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { Card } from '@/components/ui/Card';
 import { useMediaPlayerStore, type MediaItem } from '@/store/media-player';
 import { FullscreenButton } from '@/components/ui/FullscreenButton';
+import { MaterialLinks, cleanTextFromMaterialLinks } from '@/components/ui/MaterialLinks';
 
 export default function ContentDetailPage() {
   const router = useRouter();
@@ -217,7 +218,10 @@ export default function ContentDetailPage() {
       {/* Description */}
       {item.description && (
         <Card className="p-4 mb-6 bg-gradient-to-br from-[#d93547]/5 to-[#9c1723]/5">
-          <p className="text-[#6b5a4a] leading-relaxed">{item.description}</p>
+          <p className="text-[#6b5a4a] leading-relaxed whitespace-pre-line">
+            {cleanTextFromMaterialLinks(item.description)}
+          </p>
+          <MaterialLinks text={item.description} className="mt-4" />
         </Card>
       )}
 

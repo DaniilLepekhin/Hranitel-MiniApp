@@ -2,10 +2,11 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Sparkles, Play } from 'lucide-react';
+import { ArrowLeft, Sparkles, Play, FileText, Download } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { contentApi } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
+import { MaterialLinks, cleanTextFromMaterialLinks } from '@/components/ui/MaterialLinks';
 import { useMediaPlayerStore, type MediaItem } from '@/store/media-player';
 import { useTelegram } from '@/hooks/useTelegram';
 
@@ -165,7 +166,12 @@ export default function PracticePage() {
             </div>
           </div>
           {item.description && (
-            <p className="text-[#6b5a4a] leading-relaxed">{item.description}</p>
+            <>
+              <p className="text-[#6b5a4a] leading-relaxed whitespace-pre-line">
+                {cleanTextFromMaterialLinks(item.description)}
+              </p>
+              <MaterialLinks text={item.description} className="mt-4" />
+            </>
           )}
         </Card>
       )}
@@ -244,6 +250,25 @@ export default function PracticePage() {
                     {children}
                   </pre>
                 ),
+                a: ({ href, children }) => {
+                  const isPdf = href?.toLowerCase().endsWith('.pdf');
+                  return (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all ${
+                        isPdf
+                          ? 'bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white hover:shadow-lg'
+                          : 'text-[#d93547] underline hover:text-[#9c1723]'
+                      }`}
+                    >
+                      {isPdf && <FileText className="w-4 h-4" />}
+                      {children}
+                      {isPdf && <Download className="w-4 h-4" />}
+                    </a>
+                  );
+                },
               }}
             >
               {practice.content}
@@ -254,6 +279,9 @@ export default function PracticePage() {
               dangerouslySetInnerHTML={{ __html: practice.content }}
             />
           )}
+
+          {/* Material Links extracted from content */}
+          <MaterialLinks text={practice.content} className="mt-6 pt-4 border-t border-[#e8dcc6]" />
         </div>
       </Card>
 
