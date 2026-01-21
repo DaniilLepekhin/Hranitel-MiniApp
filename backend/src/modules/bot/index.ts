@@ -92,18 +92,18 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
     }
 
     const keyboard = new InlineKeyboard()
-      .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`)
+      .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`)
       .row()
       .text('Я не готов 🤔', 'not_ready_1');
 
     const simpleKeyboard = new InlineKeyboard()
-      .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
+      .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
 
     if (type === 'start_reminder') {
       // СООБЩЕНИЕ 2 - 120-second reminder (same as get_access flow)
       // This is sent if user didn't click "Получить доступ" button
       const msg2Keyboard = new InlineKeyboard()
-        .webApp('Оплатить ❤️', `https://ishodnyi-kod.com/webappclubik`);
+        .webApp('Оплатить ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
 
       await telegramService.sendPhoto(
         chatId,
@@ -241,7 +241,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
     } else if (type === 'payment_reminder') {
       // СООБЩЕНИЕ 8 - Send 60-minute reminder with "я не готов" button
       const msg8Keyboard = new InlineKeyboard()
-        .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`)
+        .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`)
         .row()
         .text('я не готов 🤔', 'not_ready_3');
 
@@ -587,7 +587,7 @@ bot.callbackQuery('get_access', async (ctx) => {
 
     const userId = ctx.from!.id;
     const chatId = ctx.chat!.id;
-    const webAppUrl = `https://ishodnyi-kod.com/webappclubik`;
+    const webAppUrl = `https://hranitel.daniillepekhin.com/payment_form_club.html`;
 
     // Cancel the 120-second start reminder since user clicked the button
     await schedulerService.cancelUserTasksByType(userId, 'start_reminder');
@@ -698,7 +698,7 @@ bot.callbackQuery('not_ready_3', async (ctx) => {
     const userId = ctx.from!.id;
     const chatId = ctx.chat!.id;
     const keyboard = new InlineKeyboard()
-      .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
+      .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
 
     // Cancel scheduled day2_reminder since user clicked "я не готов"
     await schedulerService.cancelUserTasksByType(userId, 'day2_reminder');
@@ -750,7 +750,7 @@ bot.callbackQuery('topic_money_2026', async (ctx) => {
     const userId = ctx.from!.id;
     const chatId = ctx.chat!.id;
     const keyboard = new InlineKeyboard()
-      .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
+      .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
 
     // Schedule payment_reminder (MSG 8) in 60 minutes after topic
     await schedulerService.schedule(
@@ -802,7 +802,7 @@ bot.callbackQuery('topic_income', async (ctx) => {
     const userId = ctx.from!.id;
     const chatId = ctx.chat!.id;
     const keyboard = new InlineKeyboard()
-      .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
+      .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
 
     // Schedule payment_reminder (MSG 8) in 60 minutes after topic
     await schedulerService.schedule(
@@ -850,7 +850,7 @@ bot.callbackQuery('topic_state', async (ctx) => {
     const userId = ctx.from!.id;
     const chatId = ctx.chat!.id;
     const keyboard = new InlineKeyboard()
-      .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
+      .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
 
     // Schedule payment_reminder (MSG 8) in 60 minutes after topic
     await schedulerService.schedule(
@@ -899,7 +899,7 @@ bot.callbackQuery('topic_environment', async (ctx) => {
     const userId = ctx.from!.id;
     const chatId = ctx.chat!.id;
     const keyboard = new InlineKeyboard()
-      .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
+      .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
 
     // Schedule payment_reminder (MSG 8) in 60 minutes after topic
     await schedulerService.schedule(
@@ -1175,7 +1175,7 @@ bot.hears('🔮 где мои деньги в 2026 году', async (ctx) => {
   try {
     const chatId = ctx.chat.id;
     const keyboard = new InlineKeyboard()
-      .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
+      .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
 
     await telegramService.sendMessage(
       chatId,
@@ -1210,7 +1210,7 @@ bot.hears('💰 почему доход не растет', async (ctx) => {
   try {
     const chatId = ctx.chat.id;
     const keyboard = new InlineKeyboard()
-      .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
+      .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
 
     await telegramService.sendMessage(
       chatId,
@@ -1240,7 +1240,7 @@ bot.hears('🧠 состояние vs деньги', async (ctx) => {
   try {
     const chatId = ctx.chat.id;
     const keyboard = new InlineKeyboard()
-      .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
+      .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
 
     await telegramService.sendMessage(
       chatId,
@@ -1272,7 +1272,7 @@ bot.hears('🌍 окружение', async (ctx) => {
   try {
     const chatId = ctx.chat.id;
     const keyboard = new InlineKeyboard()
-      .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
+      .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
 
     // Send all images as media group
     await telegramService.sendMediaGroup(chatId, [

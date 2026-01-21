@@ -578,7 +578,7 @@ export async function showGiftContinuePayment(userId: number, chatId: number) {
   if (!user) return;
 
   const keyboard = new InlineKeyboard()
-    .webApp('Оплатить', `https://ishodnyi-kod.com/webappclubik`);
+    .webApp('Оплатить', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
 
   await getTelegramService().sendPhoto(
     chatId,
@@ -648,7 +648,7 @@ export async function handleUserShared(gifterTgId: number, recipientTgId: number
 
   // Отправить форму оплаты
   const keyboard = new InlineKeyboard()
-    .webApp('Оплатить', `https://ishodnyi-kod.com/webappclubik?gift=true&recipient_id=${recipientTgId}&token=${activationToken}`);
+    .webApp('Оплатить', `https://hranitel.daniillepekhin.com/payment_form_club.html?gift=true&recipient_id=${recipientTgId}&token=${activationToken}`);
 
   await getTelegramService().sendPhoto(
     chatId,
