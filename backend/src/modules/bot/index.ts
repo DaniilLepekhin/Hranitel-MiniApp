@@ -493,12 +493,21 @@ bot.command('start', async (ctx) => {
     const chatId = ctx.chat.id;
 
     // 🧹 Очистка всех запланированных задач при перезапуске /start (обычная + club воронка)
+
+    // Обычная воронка (все типы задач)
     await schedulerService.cancelUserTasksByType(userId, 'start_reminder');
     await schedulerService.cancelUserTasksByType(userId, 'five_min_reminder');
     await schedulerService.cancelUserTasksByType(userId, 'burning_question_reminder');
     await schedulerService.cancelUserTasksByType(userId, 'payment_reminder');
     await schedulerService.cancelUserTasksByType(userId, 'final_reminder');
+    await schedulerService.cancelUserTasksByType(userId, 'day2_reminder');
+    await schedulerService.cancelUserTasksByType(userId, 'day3_reminder');
+    await schedulerService.cancelUserTasksByType(userId, 'day4_reminder');
+    await schedulerService.cancelUserTasksByType(userId, 'day5_final');
+
+    // Club воронка
     await schedulerService.cancelUserTasksByType(userId, 'club_auto_progress');
+
     logger.info({ userId }, 'Start command - cancelled all pending tasks from both funnels');
 
     // 🆕 Check for gift activation link (start=gift_{token})
