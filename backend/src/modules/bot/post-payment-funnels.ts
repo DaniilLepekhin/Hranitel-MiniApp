@@ -240,12 +240,8 @@ export async function completeOnboarding(userId: string, chatId: number) {
   await schedulerService.cancelUserTasksByType(userInt, 'ready_reminder_60m');
   await schedulerService.cancelUserTasksByType(userInt, 'ready_final_120m');
 
-  // 3. Установить кнопку меню в левом нижнем углу
-  await getTelegramService().setChatMenuButton(chatId, {
-    type: 'web_app',
-    text: 'Меню',
-    web_app: { url: process.env.WEBAPP_URL! }
-  });
+  // 3. Установить кнопку меню в левом нижнем углу (показывает команды бота)
+  await getTelegramService().setChatMenuButton(chatId, { type: 'commands' });
 
   // 4. Отправить видео-инструкцию (позже будет добавлено видео)
   await getTelegramService().sendMessage(
@@ -840,12 +836,8 @@ export async function activateGiftForUser(recipientTgId: number, token: string, 
 // ============================================================================
 
 export async function sendMenuMessage(chatId: number) {
-  // Установить кнопку меню в левом нижнем углу
-  await getTelegramService().setChatMenuButton(chatId, {
-    type: 'web_app',
-    text: 'Меню',
-    web_app: { url: process.env.WEBAPP_URL! }
-  });
+  // Установить кнопку меню в левом нижнем углу (показывает команды бота)
+  await getTelegramService().setChatMenuButton(chatId, { type: 'commands' });
 
   const keyboard = new InlineKeyboard()
     .text('инструкция', 'menu_instruction')

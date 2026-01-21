@@ -234,11 +234,10 @@ export class TelegramService {
    */
   async setChatMenuButton(
     chatId: number,
-    menuButton: {
-      type: 'web_app';
-      text: string;
-      web_app: { url: string };
-    }
+    menuButton:
+      | { type: 'commands' }
+      | { type: 'web_app'; text: string; web_app: { url: string } }
+      | { type: 'default' }
   ): Promise<boolean> {
     try {
       await this.api.setChatMenuButton({ chat_id: chatId, menu_button: menuButton });
