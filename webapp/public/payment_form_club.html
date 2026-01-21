@@ -2,10 +2,18 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Оформление подписки на Клуб Хранителей</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Оформление подписки - Код успеха</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
+    :root {
+      --kod-bg: #f5f3f0;
+      --kod-text: #3d2f1f;
+      --kod-border: #8b4513;
+      --kod-accent: #8b0000;
+      --kod-white: #ffffff;
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -13,170 +21,313 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
+      background: linear-gradient(135deg, #f8f6f0 0%, #ede8d8 50%, #f5f3f0 100%);
+      color: var(--kod-text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
       padding: 20px;
-      color: #333;
+      min-height: 100vh;
     }
 
     .container {
-      max-width: 500px;
+      max-width: 480px;
       margin: 0 auto;
-      background: white;
-      border-radius: 20px;
-      padding: 30px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      background:
+        radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 70% 80%, rgba(139, 69, 19, 0.05) 0%, transparent 50%),
+        linear-gradient(135deg, #f8f6f0 0%, #ede8d8 25%, #f5f3f0 50%, #e8dcc6 75%, #f8f6f0 100%);
+      border: 2px solid var(--kod-border);
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(139, 69, 19, 0.1);
     }
 
-    h1 {
-      color: #667eea;
-      font-size: 24px;
-      margin-bottom: 10px;
+    .title {
+      font-size: 22px;
       text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid var(--kod-accent);
+      padding-bottom: 12px;
+      margin: 0 0 18px;
+      font-weight: 700;
     }
 
     .subtitle {
-      color: #666;
       font-size: 14px;
       text-align: center;
-      margin-bottom: 30px;
+      color: var(--kod-accent);
+      margin: -10px 0 15px;
+      font-weight: 600;
     }
 
-    .form-group {
-      margin-bottom: 20px;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 8px;
-      color: #333;
-      font-weight: 500;
-      font-size: 14px;
-    }
-
-    input[type="text"],
-    input[type="email"],
-    input[type="tel"] {
-      width: 100%;
-      padding: 12px 15px;
-      border: 2px solid #e0e0e0;
+    .feature-card {
+      font-size: 13px;
+      margin: 8px 0;
+      padding: 12px 14px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.5) 100%);
+      border: 1.5px solid rgba(139, 69, 19, 0.25);
       border-radius: 10px;
-      font-size: 16px;
-      transition: border-color 0.3s;
+      line-height: 1.4;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      transition: all 0.2s ease;
     }
 
-    input:focus {
+    .feature-card:hover {
+      transform: translateX(2px);
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .feature-icon {
+      font-size: 16px;
+      flex-shrink: 0;
+      line-height: 1;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--kod-accent);
+      color: var(--kod-white);
+      border-radius: 50%;
+      font-weight: bold;
+    }
+
+    .form-label {
+      font-size: 14px;
+      margin: 16px 0 5px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      display: block;
+    }
+
+    .form-label:first-of-type {
+      margin-top: 12px;
+    }
+
+    .input-wrapper {
+      position: relative;
+      margin-bottom: 8px;
+    }
+
+    input[type="email"],
+    input[type="text"],
+    input[type="tel"] {
+      font-size: 14px;
+      padding: 12px 15px 12px 40px;
+      width: 100%;
+      border: 1px solid var(--kod-border);
+      border-radius: 8px;
+      background: var(--kod-white);
+      color: var(--kod-text);
+      font-family: inherit;
+      transition: all 0.3s ease;
+    }
+
+    input[type="email"]::placeholder,
+    input[type="text"]::placeholder,
+    input[type="tel"]::placeholder {
+      color: var(--kod-text);
+      opacity: 0.5;
+    }
+
+    input[type="email"]:focus,
+    input[type="text"]:focus,
+    input[type="tel"]:focus {
       outline: none;
-      border-color: #667eea;
+      border-color: var(--kod-accent);
+      box-shadow: 0 0 0 2px rgba(139, 0, 0, 0.1);
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: bold;
+      color: #2e7d32;
+      opacity: 0;
+      transition: all 0.3s ease;
+      pointer-events: none;
+    }
+
+    .input-icon.show {
+      opacity: 1;
+      animation: checkPop 0.3s ease-out;
+    }
+
+    @keyframes checkPop {
+      0% { transform: translateY(-50%) scale(0); }
+      50% { transform: translateY(-50%) scale(1.2); }
+      100% { transform: translateY(-50%) scale(1); }
+    }
+
+    input.filled {
+      border-color: #2e7d32;
+    }
+
+    .payment-methods-label {
+      font-size: 14px;
+      margin: 20px 0 10px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      text-align: center;
+      color: var(--kod-accent);
     }
 
     .payment-methods {
-      margin: 30px 0;
+      margin: 8px 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
     }
 
     .payment-method {
-      background: #f5f5f5;
-      border: 2px solid #e0e0e0;
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 15px;
+      font-size: 13px;
+      padding: 14px 8px;
+      border: 1px solid var(--kod-border);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.6);
+      color: var(--kod-text);
       cursor: pointer;
-      transition: all 0.3s;
-      position: relative;
+      text-align: center;
+      transition: all 0.2s ease;
+      font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: center;
     }
 
     .payment-method:hover {
-      border-color: #667eea;
-      background: #f8f9ff;
+      background: rgba(139, 69, 19, 0.08);
+      transform: translateY(-1px);
     }
 
-    .payment-method.selected {
-      border-color: #667eea;
-      background: linear-gradient(135deg, #f8f9ff 0%, #e8ebff 100%);
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+    .payment-method.active {
+      background: var(--kod-accent) !important;
+      color: var(--kod-white) !important;
+      border-color: var(--kod-accent);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(139, 0, 0, 0.2);
     }
 
-    .payment-method input[type="radio"] {
-      position: absolute;
-      opacity: 0;
+    .payment-currency {
+      font-size: 11px;
+      opacity: 0.8;
     }
 
-    .payment-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
+    .payment-method.active .payment-currency {
+      opacity: 1;
     }
 
-    .payment-title {
+    .payment-amount {
       font-size: 18px;
-      font-weight: 600;
-      color: #333;
+      font-weight: 800;
+      letter-spacing: -0.5px;
     }
 
-    .payment-price {
-      font-size: 24px;
-      font-weight: 700;
-      color: #667eea;
-    }
-
-    .payment-description {
-      color: #666;
-      font-size: 14px;
-      line-height: 1.4;
-    }
-
-    .submit-button {
-      width: 100%;
-      padding: 16px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
+    .cost-container {
+      margin: 15px 0;
+      padding: 20px;
+      background: linear-gradient(135deg, rgba(139, 0, 0, 0.08) 0%, rgba(139, 69, 19, 0.05) 100%);
+      border: 2px solid var(--kod-accent);
       border-radius: 12px;
-      font-size: 18px;
-      font-weight: 600;
+      box-shadow:
+        0 4px 12px rgba(139, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+      display: none;
+    }
+
+    .cost-container.show {
+      display: block;
+    }
+
+    .cost-amount {
+      font-size: 48px;
+      font-weight: 800;
+      margin: 0;
+      color: var(--kod-accent);
+      text-align: center;
+      letter-spacing: -1px;
+      text-shadow: 0 2px 4px rgba(139, 0, 0, 0.1);
+      line-height: 1;
+    }
+
+    .submit-btn {
+      margin-top: 15px;
+      padding: 15px 30px;
+      width: 100%;
+      font-size: 16px;
+      background: var(--kod-accent);
+      color: var(--kod-white);
+      border: 1px solid var(--kod-border);
+      border-radius: 8px;
       cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.3s;
-      margin-top: 20px;
+      font-weight: 700;
+      font-family: inherit;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.3s ease;
     }
 
-    .submit-button:hover {
+    .submit-btn:hover {
+      background: #a00000;
       transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+      box-shadow: 0 6px 12px rgba(139, 0, 0, 0.3);
     }
 
-    .submit-button:active {
+    .submit-btn:active {
       transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(139, 0, 0, 0.2);
     }
 
-    .submit-button:disabled {
-      background: #ccc;
+    .submit-btn:disabled {
+      opacity: 0.6;
       cursor: not-allowed;
       transform: none;
     }
 
-    .error-message {
-      color: #e74c3c;
-      font-size: 14px;
-      margin-top: 5px;
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      color: #FFFFFF;
       display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 15px;
+      font-size: 18px;
+      z-index: 1000;
     }
 
-    .loader {
-      display: none;
-      text-align: center;
-      margin: 20px 0;
+    .loading-overlay.show {
+      display: flex !important;
     }
 
-    .loader-spinner {
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid #667eea;
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top: 4px solid #ffffff;
       border-radius: 50%;
-      width: 40px;
-      height: 40px;
       animation: spin 1s linear infinite;
-      margin: 0 auto;
     }
 
     @keyframes spin {
@@ -184,100 +335,128 @@
       100% { transform: rotate(360deg); }
     }
 
-    .success-message {
+    .loading-text {
+      font-size: 18px;
+      font-weight: 600;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .notification {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -70%);
+      padding: 15px 25px;
+      background: var(--kod-white);
+      color: var(--kod-text);
+      border: 1px solid var(--kod-border);
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      font-size: 15px;
+      font-weight: 600;
+      text-align: center;
+      z-index: 1001;
       display: none;
-      text-align: center;
-      padding: 20px;
     }
 
-    .success-icon {
-      font-size: 60px;
-      color: #27ae60;
-      margin-bottom: 15px;
+    .notification.show {
+      display: block !important;
+      animation: notificationSlide 0.3s ease-out;
     }
 
-    .footer-note {
-      text-align: center;
-      margin-top: 20px;
-      font-size: 12px;
-      color: #999;
+    @keyframes notificationSlide {
+      from { transform: translate(-50%, -100px); opacity: 0; }
+      to { transform: translate(-50%, -70%); opacity: 1; }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+      .container {
+        padding: 20px 15px;
+      }
+      .payment-method {
+        font-size: 12px;
+        padding: 12px 6px;
+      }
+      .payment-amount {
+        font-size: 16px;
+      }
+      .cost-container {
+        padding: 16px;
+      }
+      .cost-amount {
+        font-size: 42px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>✨ Оформление подписки</h1>
-    <p class="subtitle">Код успеха. Глава: Пробуждение</p>
+    <div class="title">Оформление подписки</div>
+    <div class="subtitle">Код успеха. Глава: Пробуждение</div>
+
+    <div class="feature-card">
+      <span class="feature-icon">✓</span>
+      <span>Доступ в закрытое сообщество «Хранители»</span>
+    </div>
+
+    <div class="feature-card">
+      <span class="feature-icon">↻</span>
+      <span>Подписка на 30 дней с автопродлением</span>
+    </div>
 
     <form id="paymentForm">
-      <div class="form-group">
-        <label for="name">Имя</label>
-        <input type="text" id="name" name="name" required placeholder="Введите ваше имя">
-        <div class="error-message" id="nameError">Пожалуйста, введите ваше имя</div>
+      <label class="form-label" for="name">Имя и фамилия</label>
+      <div class="input-wrapper">
+        <span class="input-icon">✓</span>
+        <input type="text" id="name" placeholder="Иван Иванов" required>
       </div>
 
-      <div class="form-group">
-        <label for="email">Email</label>
-        <input type="email" id="email" name="email" required placeholder="example@email.com">
-        <div class="error-message" id="emailError">Пожалуйста, введите корректный email</div>
+      <label class="form-label" for="phone">Телефон</label>
+      <div class="input-wrapper">
+        <span class="input-icon">✓</span>
+        <input type="tel" id="phone" placeholder="+7 999 123-45-67" required>
       </div>
 
-      <div class="form-group">
-        <label for="phone">Телефон</label>
-        <input type="tel" id="phone" name="phone" required placeholder="+7 (___) ___-__-__">
-        <div class="error-message" id="phoneError">Пожалуйста, введите корректный телефон</div>
+      <label class="form-label" for="email">Email</label>
+      <div class="input-wrapper">
+        <span class="input-icon">✓</span>
+        <input type="email" id="email" placeholder="example@email.com" required>
       </div>
 
+      <div class="payment-methods-label">Выберите способ оплаты:</div>
       <div class="payment-methods">
-        <label style="margin-bottom: 15px;">Выберите способ оплаты:</label>
-
-        <div class="payment-method" data-method="RUB">
-          <input type="radio" name="payment_method" value="RUB" id="rub" required>
-          <div class="payment-header">
-            <div class="payment-title">💳 Карта РФ</div>
-            <div class="payment-price">2.000₽</div>
-          </div>
-          <div class="payment-description">Оплата картой российского банка</div>
+        <div class="payment-method" data-method="RUB" data-amount="2.000₽">
+          <div class="payment-currency">💳 Карта РФ</div>
+          <div class="payment-amount">2.000₽</div>
         </div>
-
-        <div class="payment-method" data-method="USD">
-          <input type="radio" name="payment_method" value="USD" id="usd">
-          <div class="payment-header">
-            <div class="payment-title">💵 Foreign Bank USD</div>
-            <div class="payment-price">26$</div>
-          </div>
-          <div class="payment-description">Оплата зарубежной картой в долларах</div>
+        <div class="payment-method" data-method="USD" data-amount="26$">
+          <div class="payment-currency">💵 USD</div>
+          <div class="payment-amount">26$</div>
         </div>
-
-        <div class="payment-method" data-method="EUR">
-          <input type="radio" name="payment_method" value="EUR" id="eur">
-          <div class="payment-header">
-            <div class="payment-title">💶 Foreign Bank EUR</div>
-            <div class="payment-price">22€</div>
-          </div>
-          <div class="payment-description">Оплата зарубежной картой в евро</div>
+        <div class="payment-method" data-method="EUR" data-amount="22€">
+          <div class="payment-currency">💶 EUR</div>
+          <div class="payment-amount">22€</div>
         </div>
       </div>
 
-      <button type="submit" class="submit-button" id="submitButton">
-        Перейти к оплате
-      </button>
+      <div class="cost-container" id="costContainer">
+        <div class="cost-amount" id="costAmount">2.000₽</div>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submitBtn" disabled>Перейти к оплате</button>
     </form>
-
-    <div class="loader" id="loader">
-      <div class="loader-spinner"></div>
-      <p style="margin-top: 15px; color: #667eea;">Формируем ссылку для оплаты...</p>
-    </div>
-
-    <div class="success-message" id="successMessage">
-      <div class="success-icon">✅</div>
-      <h2>Перенаправляем на оплату...</h2>
-    </div>
-
-    <p class="footer-note">
-      Безопасная оплата через Lava. Ваши данные защищены.
-    </p>
   </div>
+
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Формируем ссылку для оплаты...</div>
+  </div>
+
+  <div class="notification" id="notification"></div>
 
   <script>
     // Initialize Telegram WebApp
@@ -300,7 +479,6 @@
         group_id: 'hranitel_kod_bot'
       };
 
-      // Parse startapp parameter: app_campaign_medium_source_content_clientid_groupid
       if (startParam) {
         const parts = startParam.split('_');
         if (parts.length >= 7 && parts[0] === 'app') {
@@ -309,8 +487,6 @@
           params.utm_source = parts[3] || '';
           params.utm_content = parts[4] || '';
           params.client_id = parts[5] || '';
-
-          // Create metka as combination of campaign and medium
           params.metka = [params.utm_campaign, params.utm_medium].filter(p => p).join('_');
         }
       }
@@ -347,50 +523,95 @@
     // Log form open on page load
     logFormOpen();
 
-    // Handle payment method selection
-    const paymentMethods = document.querySelectorAll('.payment-method');
-    paymentMethods.forEach(method => {
-      method.addEventListener('click', function() {
-        paymentMethods.forEach(m => m.classList.remove('selected'));
-        this.classList.add('selected');
-        const radio = this.querySelector('input[type="radio"]');
-        radio.checked = true;
+    // Input validation and checkmark animation
+    const inputs = document.querySelectorAll('input[required]');
+    inputs.forEach(input => {
+      const icon = input.previousElementSibling;
+
+      input.addEventListener('input', function() {
+        if (this.value.trim()) {
+          this.classList.add('filled');
+          icon.classList.add('show');
+        } else {
+          this.classList.remove('filled');
+          icon.classList.remove('show');
+        }
+        checkFormValidity();
       });
     });
 
-    // Form validation
-    function validateForm() {
-      let isValid = true;
+    // Payment method selection
+    let selectedMethod = null;
+    const paymentMethods = document.querySelectorAll('.payment-method');
+    const costContainer = document.getElementById('costContainer');
+    const costAmount = document.getElementById('costAmount');
 
+    paymentMethods.forEach(method => {
+      method.addEventListener('click', function() {
+        paymentMethods.forEach(m => m.classList.remove('active'));
+        this.classList.add('active');
+        selectedMethod = this.dataset.method;
+
+        const amount = this.dataset.amount;
+        costAmount.textContent = amount;
+        costContainer.classList.add('show');
+
+        checkFormValidity();
+      });
+    });
+
+    // Phone formatting
+    const phoneInput = document.getElementById('phone');
+    phoneInput.addEventListener('input', function(e) {
+      let value = e.target.value.replace(/\D/g, '');
+
+      if (value.length > 0) {
+        if (value[0] === '7' || value[0] === '8') {
+          value = '7' + value.substring(1);
+        } else if (value[0] !== '7') {
+          value = '7' + value;
+        }
+      }
+
+      let formatted = '+7';
+      if (value.length > 1) {
+        formatted += ' ' + value.substring(1, 4);
+      }
+      if (value.length >= 4) {
+        formatted += ' ' + value.substring(4, 7);
+      }
+      if (value.length >= 7) {
+        formatted += '-' + value.substring(7, 9);
+      }
+      if (value.length >= 9) {
+        formatted += '-' + value.substring(9, 11);
+      }
+
+      e.target.value = formatted;
+    });
+
+    // Check form validity
+    function checkFormValidity() {
       const name = document.getElementById('name').value.trim();
-      const email = document.getElementById('email').value.trim();
       const phone = document.getElementById('phone').value.trim();
-      const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
+      const email = document.getElementById('email').value.trim();
+      const submitBtn = document.getElementById('submitBtn');
 
-      // Reset error messages
-      document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
-
-      if (!name) {
-        document.getElementById('nameError').style.display = 'block';
-        isValid = false;
+      if (name && phone && email && email.includes('@') && selectedMethod) {
+        submitBtn.disabled = false;
+      } else {
+        submitBtn.disabled = true;
       }
+    }
 
-      if (!email || !email.includes('@')) {
-        document.getElementById('emailError').style.display = 'block';
-        isValid = false;
-      }
-
-      if (!phone) {
-        document.getElementById('phoneError').style.display = 'block';
-        isValid = false;
-      }
-
-      if (!paymentMethod) {
-        alert('Пожалуйста, выберите способ оплаты');
-        isValid = false;
-      }
-
-      return isValid;
+    // Show notification
+    function showNotification(message) {
+      const notification = document.getElementById('notification');
+      notification.textContent = message;
+      notification.classList.add('show');
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 3000);
     }
 
     // Generate payment link
@@ -438,8 +659,6 @@
       }
 
       const data = await response.json();
-
-      // Handle both array and object response formats
       let paymentUrl = Array.isArray(data) ? data[0].paymentUrl : data.paymentUrl;
 
       return paymentUrl;
@@ -449,73 +668,35 @@
     document.getElementById('paymentForm').addEventListener('submit', async function(e) {
       e.preventDefault();
 
-      if (!validateForm()) {
-        return;
-      }
-
       const formData = {
         name: document.getElementById('name').value.trim(),
         email: document.getElementById('email').value.trim(),
         phone: document.getElementById('phone').value.trim()
       };
 
-      const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
+      if (!selectedMethod) {
+        showNotification('Пожалуйста, выберите способ оплаты');
+        return;
+      }
 
       // Show loader
-      document.getElementById('paymentForm').style.display = 'none';
-      document.getElementById('loader').style.display = 'block';
-      document.getElementById('submitButton').disabled = true;
+      document.getElementById('loadingOverlay').classList.add('show');
+      document.getElementById('submitBtn').disabled = true;
 
       try {
-        const paymentUrl = await generatePaymentLink(formData, paymentMethod);
-
-        // Show success message
-        document.getElementById('loader').style.display = 'none';
-        document.getElementById('successMessage').style.display = 'block';
+        const paymentUrl = await generatePaymentLink(formData, selectedMethod);
 
         // Redirect to payment page
         setTimeout(() => {
           window.location.href = paymentUrl;
-        }, 1000);
+        }, 500);
 
       } catch (error) {
         console.error('Payment error:', error);
-        alert('Произошла ошибка при формировании ссылки на оплату. Пожалуйста, попробуйте еще раз.');
-
-        // Reset form
-        document.getElementById('loader').style.display = 'none';
-        document.getElementById('paymentForm').style.display = 'block';
-        document.getElementById('submitButton').disabled = false;
+        document.getElementById('loadingOverlay').classList.remove('show');
+        document.getElementById('submitBtn').disabled = false;
+        showNotification('Произошла ошибка. Попробуйте еще раз.');
       }
-    });
-
-    // Phone formatting
-    document.getElementById('phone').addEventListener('input', function(e) {
-      let value = e.target.value.replace(/\D/g, '');
-
-      if (value.length > 0) {
-        if (value[0] === '7' || value[0] === '8') {
-          value = '7' + value.substring(1);
-        } else if (value[0] !== '7') {
-          value = '7' + value;
-        }
-      }
-
-      let formatted = '+7';
-      if (value.length > 1) {
-        formatted += ' (' + value.substring(1, 4);
-      }
-      if (value.length >= 4) {
-        formatted += ') ' + value.substring(4, 7);
-      }
-      if (value.length >= 7) {
-        formatted += '-' + value.substring(7, 9);
-      }
-      if (value.length >= 9) {
-        formatted += '-' + value.substring(9, 11);
-      }
-
-      e.target.value = formatted;
     });
   </script>
 </body>
