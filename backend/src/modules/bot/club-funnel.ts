@@ -635,8 +635,11 @@ export async function handleClubGetRoadmap(userId: string, chatId: number) {
 // ============================================================================
 
 export async function handleClubStartRoute(userId: string, chatId: number, user: any) {
+  logger.info({ userId, chatId, telegramId: user?.telegramId }, 'handleClubStartRoute: START');
+
   // Формируем URL с параметрами
   const purchaseUrl = new URL(WEBAPP_PURCHASE_URL);
+  logger.info({ purchaseUrl: purchaseUrl.toString() }, 'handleClubStartRoute: URL created');
 
   // Добавляем UTM и другие параметры из метаданных пользователя
   const metadata = user.metadata as any || {};
@@ -655,6 +658,8 @@ export async function handleClubStartRoute(userId: string, chatId: number, user:
 
   const keyboard13 = new InlineKeyboard()
     .webApp('оформить подписку ❤️', purchaseUrl.toString());
+
+  logger.info({ chatId }, 'handleClubStartRoute: Sending final message...');
 
   await getTelegramService().sendMessage(
     chatId,
@@ -687,14 +692,21 @@ export async function handleClubStartRoute(userId: string, chatId: number, user:
     { parse_mode: 'HTML', reply_markup: keyboard13 }
   );
 
+  logger.info({ chatId }, 'handleClubStartRoute: Message sent successfully');
+
   await updateClubProgress(userId, { currentStep: 'awaiting_purchase' });
+  logger.info({ userId, currentStep: 'awaiting_purchase' }, 'handleClubStartRoute: Updated progress');
 
   // Планируем переход в обычную воронку через 1 минуту, если не оплатил
   const telegramUserId = await getTelegramUserId(userId);
+  logger.info({ telegramUserId, odUserId: userId }, 'handleClubStartRoute: Scheduling fallback task');
+
   await schedulerService.schedule(
     { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'fallback_to_main' } },
     1 * 60 * 1000 // 1 минута
   );
+
+  logger.info({ userId, telegramUserId, chatId }, 'handleClubStartRoute: COMPLETE - fallback task scheduled');
 }
 
 // ============================================================================
