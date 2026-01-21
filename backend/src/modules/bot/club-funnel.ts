@@ -552,10 +552,7 @@ export async function handleClubCheckSubscription(userId: string, chatId: number
     logger.warn({ error: e }, 'Failed to send video note');
   }
 
-  // Задержка 5 секунд как в ТЗ
-  await new Promise(resolve => setTimeout(resolve, 5000));
-
-  // Сообщение 11: Масштаб
+  // Сообщение 11: Масштаб (без задержки)
   await sendScaleMessage(userId, chatId);
 }
 
