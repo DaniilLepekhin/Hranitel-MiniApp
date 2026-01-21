@@ -147,9 +147,9 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         5 * 60 * 1000 // 5 minutes
       );
     } else if (type === 'two_min_reminder') {
-      // СООБЩЕНИЕ 4 - Simple reminder after 5 min from MSG2 (text only, image to be added later)
+      // СООБЩЕНИЕ 4 - Channel subscription reminder (text only, image to be added later)
       const msg4Keyboard = new InlineKeyboard()
-        .webApp('попасть на марафон ❤️', `https://ishodnyi-kod.com/webappclubik`);
+        .url('Подписаться на канал', 'https://t.me/kristina_egiazarovaaa1407');
 
       await telegramService.sendMessage(
         chatId,
@@ -160,53 +160,12 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
 
-      // Schedule СООБЩЕНИЕ 5 after 2 minutes
-      await schedulerService.schedule(
-        {
-          type: 'channel_reminder',
-          userId,
-          chatId,
-        },
-        2 * 60 * 1000 // 2 minutes
-      );
-    } else if (type === 'channel_reminder') {
-      // СООБЩЕНИЕ 5 - Channel subscription reminder (text only, image to be added later)
-      const msg5Keyboard = new InlineKeyboard()
-        .webApp('Оплатить', `https://ishodnyi-kod.com/webappclubik`);
-
-      await telegramService.sendMessage(
-        chatId,
-        `подпишись на канал, там тебя ждут:\n` +
-        `— практики и расшифровки\n` +
-        `— подкасты про деньги и реализацию\n` +
-        `— прогнозы и ориентиры на 2026\n\n` +
-        `После подписки  вернись в БОТ и расшифровка откроется. Без этого шага расшифровка «Где твой масштаб» не откроется 👇`,
-        {
-          reply_markup: msg5Keyboard,
-          parse_mode: 'HTML'
-        }
-      );
-
-      // Mark user as awaiting payment
-      await stateService.setState(userId, 'awaiting_payment');
-
       // Schedule СООБЩЕНИЕ 6 (3 ловушки) after 5 minutes
       await schedulerService.schedule(
         {
           type: 'five_min_reminder',
           userId,
           chatId,
-        },
-        5 * 60 * 1000 // 5 minutes
-      );
-
-      // 🔧 Single payment check after 5 minutes
-      await schedulerService.schedule(
-        {
-          type: 'payment_check',
-          userId,
-          chatId,
-          data: { checkNumber: 1, maxChecks: 1 }
         },
         5 * 60 * 1000 // 5 minutes
       );
