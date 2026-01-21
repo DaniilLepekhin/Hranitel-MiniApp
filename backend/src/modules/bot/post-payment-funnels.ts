@@ -673,33 +673,38 @@ export async function handleUserShared(gifterTgId: number, recipientTgId: number
 }
 
 /**
- * После успешной оплаты подарка
+ * После успешной оплаты подарка - отправить уведомления
  */
 export async function handleGiftPaymentSuccess(
   gifterUserId: string,
   recipientTgId: number,
-  token: string,
+  gifterTgId: number,
   paymentId: string
 ) {
-  // Обновить запись подарка
-  await db
-    .update(giftSubscriptions)
-    .set({ paymentId })
-    .where(eq(giftSubscriptions.activationToken, token));
-
-  // Отправить ссылку дарителю
-  const gifter = await db.select().from(users).where(eq(users.id, gifterUserId)).limit(1);
-  if (gifter.length === 0) return;
-
-  const giftLink = `https://t.me/hranitelkodbot?start=gift_${token}`;
-
+  // Отправить уведомление дарителю
   await getTelegramService().sendMessage(
-    parseInt(gifter[0].telegramId),
-    `<b>🎁 Отправь эту ссылку получателю и мы откроем доступ</b>\n\n${giftLink}`,
+    gifterTgId,
+    `<b>🎁 Подарок успешно оплачен!</b>\n\n` +
+    `Ваш друг получил доступ к клубу «Код Успеха» на 30 дней.\n\n` +
+    `Спасибо за щедрость! ❤️`,
     { parse_mode: 'HTML' }
   );
 
-  logger.info({ gifterUserId, recipientTgId, token }, 'Gift link sent to gifter');
+  // Отправить уведомление получателю (если он уже взаимодействовал с ботом)
+  try {
+    await getTelegramService().sendMessage(
+      recipientTgId,
+      `<b>🎁 Вам подарили подписку!</b>\n\n` +
+      `Ваш друг оплатил вам доступ к клубу «Код Успеха» на 30 дней!\n\n` +
+      `Нажмите /start чтобы начать пользоваться клубом.`,
+      { parse_mode: 'HTML' }
+    );
+  } catch (error) {
+    // Получатель еще не начал диалог с ботом - это нормально
+    logger.info({ recipientTgId }, 'Could not send gift notification to recipient - they may not have started the bot yet');
+  }
+
+  logger.info({ gifterUserId, gifterTgId, recipientTgId, paymentId }, 'Gift payment notifications sent');
 }
 
 /**

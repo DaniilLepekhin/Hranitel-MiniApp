@@ -3,7 +3,7 @@ import { db } from '@/db';
 import { users, payments, paymentAnalytics } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
-import { startOnboardingAfterPayment } from '@/modules/bot/post-payment-funnels';
+import { startOnboardingAfterPayment, handleGiftPaymentSuccess } from '@/modules/bot/post-payment-funnels';
 
 export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
   // Lava payment success webhook
@@ -29,6 +29,180 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
 
         // Normalize email
         const normalizedEmail = email.toLowerCase().trim();
+
+        // ==========================================
+        // GIFT PAYMENT HANDLING
+        // ==========================================
+        // Если email заканчивается на @gift.local - это подарочная подписка
+        if (normalizedEmail.endsWith('@gift.local')) {
+          // Парсим recipient_id из email (формат: {recipient_id}@gift.local)
+          const recipientTgId = normalizedEmail.replace('@gift.local', '');
+
+          if (!recipientTgId) {
+            logger.error({ email: normalizedEmail }, 'Missing recipient_id for gift payment');
+            set.status = 400;
+            return { success: false, error: 'Missing recipient_id' };
+          }
+
+          // Найти gift_attempt чтобы узнать кто даритель
+          const [giftAttempt] = await db
+            .select()
+            .from(paymentAnalytics)
+            .where(eq(paymentAnalytics.eventType, 'gift_attempt'))
+            .orderBy(desc(paymentAnalytics.createdAt))
+            .limit(100); // Берем последние 100 и ищем нужный
+
+          // Ищем gift_attempt с нужным recipient_id в metadata
+          const allGiftAttempts = await db
+            .select()
+            .from(paymentAnalytics)
+            .where(eq(paymentAnalytics.eventType, 'gift_attempt'))
+            .orderBy(desc(paymentAnalytics.createdAt))
+            .limit(100);
+
+          const matchingAttempt = allGiftAttempts.find(attempt => {
+            const metadata = attempt.metadata as Record<string, any>;
+            return metadata?.recipient_id === recipientTgId;
+          });
+
+          if (!matchingAttempt) {
+            logger.error({ recipientTgId }, 'No gift_attempt found for this recipient');
+            set.status = 400;
+            return { success: false, error: 'No gift attempt found for this recipient' };
+          }
+
+          const gifterTgId = (matchingAttempt.metadata as Record<string, any>)?.gifter_id;
+
+          logger.info({ recipientTgId, gifterTgId, amount }, 'Processing gift payment');
+
+          // Найти дарителя
+          const [gifter] = await db
+            .select()
+            .from(users)
+            .where(eq(users.telegramId, gifterTgId))
+            .limit(1);
+
+          if (!gifter) {
+            logger.error({ gifterTgId }, 'Gifter not found');
+            set.status = 400;
+            return { success: false, error: 'Gifter not found' };
+          }
+
+          // Найти или создать получателя
+          let [recipient] = await db
+            .select()
+            .from(users)
+            .where(eq(users.telegramId, recipientTgId))
+            .limit(1);
+
+          if (!recipient) {
+            // Создаем пользователя для получателя (он еще не взаимодействовал с ботом)
+            const [newRecipient] = await db
+              .insert(users)
+              .values({
+                telegramId: recipientTgId,
+                isPro: true,
+                subscriptionExpires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+                firstPurchaseDate: new Date(),
+                metadata: {
+                  gifted_by: gifterTgId,
+                  gift_date: new Date().toISOString(),
+                },
+              })
+              .returning();
+            recipient = newRecipient;
+            logger.info({ recipientTgId, recipientId: recipient.id }, 'Created new user for gift recipient');
+          } else {
+            // Обновляем существующего получателя
+            const currentMetadata = (recipient.metadata as Record<string, any>) || {};
+            const [updatedRecipient] = await db
+              .update(users)
+              .set({
+                isPro: true,
+                subscriptionExpires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                updatedAt: new Date(),
+                firstPurchaseDate: recipient.firstPurchaseDate || new Date(),
+                metadata: {
+                  ...currentMetadata,
+                  gifted_by: gifterTgId,
+                  gift_date: new Date().toISOString(),
+                },
+              })
+              .where(eq(users.id, recipient.id))
+              .returning();
+            recipient = updatedRecipient;
+          }
+
+          // Создаем запись платежа (привязан к дарителю)
+          const [payment] = await db
+            .insert(payments)
+            .values({
+              userId: gifter.id,
+              amount: amount ? amount.toString() : '2000',
+              currency: payment_method || 'RUB',
+              status: 'completed',
+              paymentProvider: 'lava',
+              metadata: {
+                tariff: 'club2000_gift',
+                gift_recipient_id: recipientTgId,
+                gift_recipient_user_id: recipient.id,
+                payment_method: payment_method || null,
+              },
+              completedAt: new Date(),
+            })
+            .returning();
+
+          // Track в аналитике
+          await db.insert(paymentAnalytics).values({
+            telegramId: gifterTgId,
+            eventType: 'gift_payment_success',
+            paymentId: payment.id,
+            paymentMethod: payment_method || 'RUB',
+            amount: amount ? amount.toString() : '2000',
+            currency: payment_method || 'RUB',
+            metadata: {
+              tariff: 'club2000_gift',
+              recipient_tg_id: recipientTgId,
+              recipient_user_id: recipient.id,
+            },
+          });
+
+          logger.info(
+            {
+              gifterId: gifter.id,
+              gifterTgId,
+              recipientId: recipient.id,
+              recipientTgId,
+              paymentId: payment.id,
+              amount,
+            },
+            'Gift payment processed successfully'
+          );
+
+          // Отправить уведомления (дарителю и получателю)
+          try {
+            await handleGiftPaymentSuccess(
+              gifter.id,
+              parseInt(recipientTgId),
+              parseInt(gifterTgId),
+              payment.id
+            );
+          } catch (error) {
+            logger.error({ error }, 'Failed to send gift notifications');
+          }
+
+          return {
+            success: true,
+            message: 'Gift payment processed successfully',
+            gifterId: gifter.id,
+            recipientId: recipient.id,
+            paymentId: payment.id,
+          };
+        }
+
+        // ==========================================
+        // REGULAR PAYMENT HANDLING (existing logic)
+        // ==========================================
 
         // Find the last payment_attempt by this email
         const [lastAttempt] = await db
@@ -242,14 +416,14 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
     },
     {
       body: t.Object({
-        email: t.String(), // Email пользователя (ключ для поиска payment_attempt)
+        email: t.String(), // Email пользователя (ключ для поиска payment_attempt) или {recipient_id}@gift.local для подарков
         payment_method: t.Optional(t.String()), // RUB, USD, EUR
         amount: t.Optional(t.Union([t.String(), t.Number()])), // Сумма платежа
         contact_id: t.Optional(t.String()), // Lava contact_id для управления подпиской
       }),
       detail: {
         summary: 'Lava payment success webhook',
-        description: 'Handles successful payment notifications from Lava payment provider. Uses email to find payment_attempt and get all user data.',
+        description: 'Handles successful payment notifications from Lava payment provider. Uses email to find payment_attempt and get all user data. For gift payments, email should be {recipient_id}@gift.local - gifter is found from gift_attempt analytics.',
       },
     }
   );

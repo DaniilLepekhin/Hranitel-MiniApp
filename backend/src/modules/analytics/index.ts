@@ -244,4 +244,53 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
         description: 'Logs when a payment is successfully completed',
       },
     }
+  )
+  // Track gift attempt event (links gifter to recipient for gift payments)
+  .post(
+    '/gift-attempt',
+    async ({ body, set }) => {
+      try {
+        const { gifter_id, recipient_id } = body;
+
+        await db.insert(paymentAnalytics).values({
+          telegramId: gifter_id,
+          eventType: 'gift_attempt',
+          metadata: {
+            recipient_id,
+            gifter_id,
+          },
+        });
+
+        logger.info(
+          {
+            gifter_id,
+            recipient_id,
+            event: 'gift_attempt',
+          },
+          'Gift attempt tracked'
+        );
+
+        return {
+          success: true,
+          message: 'Gift attempt tracked',
+        };
+      } catch (error) {
+        logger.error({ error, body }, 'Failed to track gift attempt');
+        set.status = 500;
+        return {
+          success: false,
+          error: 'Failed to track gift attempt',
+        };
+      }
+    },
+    {
+      body: t.Object({
+        gifter_id: t.String(),
+        recipient_id: t.String(),
+      }),
+      detail: {
+        summary: 'Track gift attempt event',
+        description: 'Logs when a user opens the gift payment form, linking gifter to recipient',
+      },
+    }
   );

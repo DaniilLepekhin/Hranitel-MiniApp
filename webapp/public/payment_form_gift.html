@@ -538,11 +538,32 @@
       }
     }
 
+    // Отправка gift_attempt при загрузке формы (чтобы связать gifter и recipient)
+    function sendGiftAttempt() {
+      const params = getUrlParams();
+      const gifterTgId = getTGId();
+
+      if (params.recipient_id && gifterTgId) {
+        fetch('https://hranitel.daniillepekhin.com/api/analytics/gift-attempt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gifter_id: gifterTgId.toString(),
+            recipient_id: params.recipient_id
+          })
+        }).catch(error => console.error('Ошибка при отправке gift-attempt:', error));
+      }
+    }
+
     // Инициализация
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initializeTelegramWebApp);
+      document.addEventListener('DOMContentLoaded', () => {
+        initializeTelegramWebApp();
+        sendGiftAttempt();
+      });
     } else {
       initializeTelegramWebApp();
+      sendGiftAttempt();
     }
   </script>
 </body>
