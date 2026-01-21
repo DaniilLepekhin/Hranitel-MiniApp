@@ -548,24 +548,6 @@ bot.command('start', async (ctx) => {
     const userId = ctx.from!.id;
     const chatId = ctx.chat.id;
 
-    // 🧹 Очистка всех запланированных задач при перезапуске /start (обычная + club воронка)
-
-    // Обычная воронка (все типы задач)
-    await schedulerService.cancelUserTasksByType(userId, 'start_reminder');
-    await schedulerService.cancelUserTasksByType(userId, 'five_min_reminder');
-    await schedulerService.cancelUserTasksByType(userId, 'burning_question_reminder');
-    await schedulerService.cancelUserTasksByType(userId, 'payment_reminder');
-    await schedulerService.cancelUserTasksByType(userId, 'final_reminder');
-    await schedulerService.cancelUserTasksByType(userId, 'day2_reminder');
-    await schedulerService.cancelUserTasksByType(userId, 'day3_reminder');
-    await schedulerService.cancelUserTasksByType(userId, 'day4_reminder');
-    await schedulerService.cancelUserTasksByType(userId, 'day5_final');
-
-    // Club воронка
-    await schedulerService.cancelUserTasksByType(userId, 'club_auto_progress');
-
-    logger.info({ userId }, 'Start command - cancelled all pending tasks from both funnels');
-
     // 🆕 Check for gift activation link (start=gift_{token})
     const startPayload = ctx.match;
     if (startPayload && startPayload.startsWith('gift_')) {
@@ -600,6 +582,85 @@ bot.command('start', async (ctx) => {
       await clubFunnel.startClubFunnel(user.id, chatId, String(userId));
       return;
     }
+
+    // 🔍 Check if user already exists and has paid
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.telegramId, String(userId)))
+      .limit(1);
+
+    // ✅ If user has PAID (isPro = true), return to current onboarding step
+    if (user && user.isPro) {
+      logger.info({ userId, onboardingStep: user.onboardingStep }, 'Paid user /start - returning to onboarding step');
+
+      // Этап 1: Ожидание кодового слова
+      if (user.onboardingStep === 'awaiting_keyword') {
+        await ctx.reply(
+          `<b>Введи кодовое слово из приветственного видео,\nчтобы продолжить 🗝</b>`,
+          { parse_mode: 'HTML' }
+        );
+        return;
+      }
+
+      // Этап 2: Ожидание кнопки ГОТОВО
+      if (user.onboardingStep === 'awaiting_ready') {
+        const keyboard = new InlineKeyboard()
+          .url('перейти в канал', 'https://t.me/+mwJ5e0d78GYzNDRi')
+          .row()
+          .webApp('вступить в чат города', `${process.env.WEBAPP_URL}/chats`)
+          .row()
+          .webApp('открыть штаб', process.env.WEBAPP_URL!)
+          .row()
+          .url('приложение', 'http://qr.numschool-web.ru/')
+          .row()
+          .text('готово', 'onboarding_ready');
+
+        await telegramService.sendPhoto(
+          chatId,
+          'https://t.me/mate_bot_open/9357',
+          {
+            caption:
+              `<b>🗝 Ключ принят. Добро пожаловать домой, родная!</b>\n\n` +
+              `<b>ТВОИ ПЕРВЫЕ ШАГИ (СДЕЛАЙ ПРЯМО СЕЙЧАС):</b>\n\n` +
+              `1️⃣ Канал клуба – это наше главное инфо-поле. 👉 Вступить и закрепить канал.\n\n` +
+              `2️⃣ Твой город – найди свой город в списке. 👉 Выбрать город.\n\n` +
+              `3️⃣ Твой штаб-приложение, где хранится вся информация. 👉 Открыть штаб.\n` +
+              `4️⃣ Доступ к приложению ментального здоровья  👉 приложение\n\n` +
+              `🛑 Не откладывай. Сделай эти действия сейчас.\n\n` +
+              `Как только вступишь во все чаты — жми кнопку ГОТОВО внизу.»`,
+            parse_mode: 'HTML',
+            reply_markup: keyboard
+          }
+        );
+        return;
+      }
+
+      // Этап 3: Онбординг завершён - показать меню
+      if (user.onboardingStep === 'onboarding_complete' || !user.onboardingStep) {
+        await funnels.sendMenuMessage(chatId);
+        return;
+      }
+    }
+
+    // ❌ Если пользователь НЕ оплатил - запустить продажную воронку
+    // 🧹 Очистка всех запланированных задач при перезапуске /start (обычная + club воронка)
+
+    // Обычная воронка (все типы задач)
+    await schedulerService.cancelUserTasksByType(userId, 'start_reminder');
+    await schedulerService.cancelUserTasksByType(userId, 'five_min_reminder');
+    await schedulerService.cancelUserTasksByType(userId, 'burning_question_reminder');
+    await schedulerService.cancelUserTasksByType(userId, 'payment_reminder');
+    await schedulerService.cancelUserTasksByType(userId, 'final_reminder');
+    await schedulerService.cancelUserTasksByType(userId, 'day2_reminder');
+    await schedulerService.cancelUserTasksByType(userId, 'day3_reminder');
+    await schedulerService.cancelUserTasksByType(userId, 'day4_reminder');
+    await schedulerService.cancelUserTasksByType(userId, 'day5_final');
+
+    // Club воронка
+    await schedulerService.cancelUserTasksByType(userId, 'club_auto_progress');
+
+    logger.info({ userId }, 'Start command - cancelled all pending tasks from both funnels');
 
     const keyboard = new InlineKeyboard()
       .text('Получить доступ', 'get_access')
