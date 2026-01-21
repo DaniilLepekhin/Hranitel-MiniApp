@@ -240,7 +240,14 @@ export async function completeOnboarding(userId: string, chatId: number) {
   await schedulerService.cancelUserTasksByType(userInt, 'ready_reminder_60m');
   await schedulerService.cancelUserTasksByType(userInt, 'ready_final_120m');
 
-  // 3. Отправить видео-инструкцию (позже будет добавлено видео)
+  // 3. Установить кнопку меню в левом нижнем углу
+  await getTelegramService().setChatMenuButton(chatId, {
+    type: 'web_app',
+    text: 'Меню',
+    web_app: { url: process.env.WEBAPP_URL! }
+  });
+
+  // 4. Отправить видео-инструкцию (позже будет добавлено видео)
   await getTelegramService().sendMessage(
     chatId,
     `<b>А теперь самое важное 👇</b>\n\n` +

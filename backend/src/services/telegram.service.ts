@@ -230,6 +230,27 @@ export class TelegramService {
   }
 
   /**
+   * Set chat menu button (синяя кнопка "Меню" в левом нижнем углу)
+   */
+  async setChatMenuButton(
+    chatId: number,
+    menuButton: {
+      type: 'web_app';
+      text: string;
+      web_app: { url: string };
+    }
+  ): Promise<boolean> {
+    try {
+      await this.api.setChatMenuButton({ chat_id: chatId, menu_button: menuButton });
+      logger.info({ chatId, menuButton }, 'Chat menu button set successfully');
+      return true;
+    } catch (error) {
+      logger.error({ error, chatId, menuButton }, 'Error setting chat menu button');
+      return false;
+    }
+  }
+
+  /**
    * Execute an API call with exponential backoff retry
    */
   private async executeWithRetry<T>(
