@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Подарить подписку - Код успеха</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --kod-bg: #f5f3f0;
+      --kod-text: #3d2f1f;
+      --kod-border: #8b4513;
+      --kod-accent: #8b0000;
+      --kod-white: #ffffff;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: linear-gradient(135deg, #f8f6f0 0%, #ede8d8 50%, #f5f3f0 100%);
+      color: var(--kod-text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 70% 80%, rgba(139, 69, 19, 0.05) 0%, transparent 50%),
+        linear-gradient(135deg, #f8f6f0 0%, #ede8d8 25%, #f5f3f0 50%, #e8dcc6 75%, #f8f6f0 100%);
+      border: 2px solid var(--kod-border);
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(139, 69, 19, 0.1);
+    }
+
+    .title {
+      font-size: 22px;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid var(--kod-accent);
+      padding-bottom: 12px;
+      margin: 0 0 18px;
+      font-weight: 700;
+    }
+
+    .feature-card {
+      font-size: 13px;
+      margin: 8px 0;
+      padding: 12px 14px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.5) 100%);
+      border: 1.5px solid rgba(139, 69, 19, 0.25);
+      border-radius: 10px;
+      line-height: 1.4;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .feature-icon {
+      font-size: 16px;
+      flex-shrink: 0;
+      line-height: 1;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--kod-accent);
+      color: var(--kod-white);
+      border-radius: 50%;
+      font-weight: bold;
+    }
+
+    .form-label {
+      font-size: 14px;
+      margin: 16px 0 5px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      display: block;
+    }
+
+    .payment-methods {
+      margin: 8px 0;
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 6px;
+    }
+
+    .currency-options {
+      margin: 8px 0;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .payment-method,
+    .currency-option {
+      font-size: 14px;
+      padding: 12px 16px;
+      border: 1px solid var(--kod-border);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.6);
+      color: var(--kod-text);
+      cursor: pointer;
+      text-align: center;
+      white-space: nowrap;
+      flex: 1;
+      transition: all 0.2s ease;
+      font-weight: 600;
+    }
+
+    .payment-method:hover,
+    .currency-option:hover {
+      background: rgba(139, 69, 19, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .payment-method.active,
+    .currency-option.active {
+      background: var(--kod-accent) !important;
+      color: var(--kod-white) !important;
+      border-color: var(--kod-accent);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(139, 0, 0, 0.2);
+    }
+
+    #currency-container {
+      display: none;
+    }
+
+    #currency-container.show {
+      display: block;
+    }
+
+    .cost-container {
+      margin: 10px 0;
+      padding: 20px;
+      background: linear-gradient(135deg, rgba(139, 0, 0, 0.08) 0%, rgba(139, 69, 19, 0.05) 100%);
+      border: 2px solid var(--kod-accent);
+      border-radius: 12px;
+      box-shadow:
+        0 4px 12px rgba(139, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+
+    .cost-amount {
+      font-size: 48px;
+      font-weight: 800;
+      margin: 0;
+      color: var(--kod-accent);
+      text-align: center;
+      letter-spacing: -1px;
+      text-shadow: 0 2px 4px rgba(139, 0, 0, 0.1);
+      line-height: 1;
+    }
+
+    .submit-btn {
+      margin-top: 15px;
+      padding: 15px 30px;
+      width: 100%;
+      font-size: 16px;
+      background: var(--kod-accent);
+      color: var(--kod-white);
+      border: 1px solid var(--kod-border);
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      font-family: inherit;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.3s ease;
+    }
+
+    .submit-btn:hover {
+      background: #a00000;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(139, 0, 0, 0.3);
+    }
+
+    .submit-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(139, 0, 0, 0.2);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      color: #FFFFFF;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 15px;
+      font-size: 18px;
+      z-index: 1000;
+    }
+
+    .loading-overlay.show {
+      display: flex !important;
+    }
+
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top: 4px solid #ffffff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-size: 18px;
+      font-weight: 600;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .notification {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -70%);
+      padding: 15px 25px;
+      background: var(--kod-white);
+      color: var(--kod-text);
+      border: 1px solid var(--kod-border);
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      font-size: 15px;
+      font-weight: 600;
+      text-align: center;
+      z-index: 1001;
+      display: none;
+    }
+
+    .notification.show {
+      display: block !important;
+      animation: notificationSlide 0.3s ease-out;
+    }
+
+    @keyframes notificationSlide {
+      from { transform: translate(-50%, -100px); opacity: 0; }
+      to { transform: translate(-50%, -70%); opacity: 1; }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+      .container {
+        padding: 20px 15px;
+      }
+      .payment-method,
+      .currency-option {
+        font-size: 12px;
+        padding: 10px 8px;
+      }
+      .cost-container {
+        padding: 16px;
+      }
+      .cost-amount {
+        font-size: 42px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="title">Подарить подписку</div>
+
+    <div class="feature-card">
+      <span class="feature-icon">🎁</span>
+      <span>Вы дарите доступ в клуб «Код Успеха» другу</span>
+    </div>
+
+    <div class="feature-card">
+      <span class="feature-icon">30</span>
+      <span>Подписка на 30 дней без автопродления</span>
+    </div>
+
+    <form id="paymentForm">
+      <label class="form-label">Способ оплаты</label>
+      <div class="payment-methods">
+        <div class="payment-method active" id="bank-rf">Банк РФ</div>
+        <div class="payment-method" id="foreign-bank">Иностранный банк</div>
+      </div>
+
+      <div id="currency-container">
+        <label class="form-label">Валюта</label>
+        <div class="currency-options">
+          <div class="currency-option active" id="usd">USD</div>
+          <div class="currency-option" id="eur">EUR</div>
+        </div>
+      </div>
+
+      <label class="form-label">Стоимость</label>
+      <div class="cost-container">
+        <div class="cost-amount" id="cost-amount">2 000₽</div>
+      </div>
+
+      <button type="submit" class="submit-btn">Перейти к оплате</button>
+    </form>
+  </div>
+
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loading-text">Генерируем ссылку на оплату...</div>
+  </div>
+  <div class="notification" id="notification"></div>
+
+  <script>
+    'use strict';
+
+    let selectedPaymentMethod = 'bank-rf';
+    let selectedCurrency = 'usd';
+
+    const prices = {
+      'bank-rf': '2 000₽',
+      'foreign-bank': {
+        'usd': '26$',
+        'eur': '22€'
+      }
+    };
+
+    // Получение параметров из URL
+    function getUrlParams() {
+      const urlParams = new URLSearchParams(window.location.search);
+      return {
+        recipient_id: urlParams.get('recipient_id') || '',
+        gifter_id: urlParams.get('gifter_id') || ''
+      };
+    }
+
+    function getTGId() {
+      const tg = window.Telegram?.WebApp;
+      if (tg?.initDataUnsafe?.user?.id) {
+        return tg.initDataUnsafe.user.id;
+      }
+      // Fallback to gifter_id from URL
+      const params = getUrlParams();
+      return params.gifter_id || '';
+    }
+
+    function updateCost() {
+      const costEl = document.getElementById('cost-amount');
+      if (selectedPaymentMethod === 'foreign-bank') {
+        costEl.textContent = prices['foreign-bank'][selectedCurrency];
+      } else {
+        costEl.textContent = prices['bank-rf'];
+      }
+    }
+
+    function updateCurrencyVisibility() {
+      const container = document.getElementById('currency-container');
+      if (selectedPaymentMethod === 'bank-rf') {
+        container.classList.remove('show');
+      } else {
+        container.classList.add('show');
+      }
+    }
+
+    function showNotification(message) {
+      const notification = document.getElementById('notification');
+      notification.textContent = message;
+      notification.classList.add('show');
+      setTimeout(() => notification.classList.remove('show'), 1500);
+    }
+
+    function showLoading(show, text) {
+      const loading = document.getElementById('loading-overlay');
+      const loadingText = document.getElementById('loading-text');
+
+      if (show) {
+        if (text && loadingText) {
+          loadingText.textContent = text;
+        }
+        loading.classList.add('show');
+      } else {
+        loading.classList.remove('show');
+        if (loadingText) {
+          loadingText.textContent = 'Генерируем ссылку на оплату...';
+        }
+      }
+    }
+
+    // Способ оплаты
+    document.querySelectorAll('.payment-method').forEach(method => {
+      method.addEventListener('click', function() {
+        document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('active'));
+        this.classList.add('active');
+        selectedPaymentMethod = this.id;
+        if (selectedPaymentMethod === 'foreign-bank') {
+          selectedCurrency = 'usd';
+          document.querySelectorAll('.currency-option').forEach(o => o.classList.remove('active'));
+          document.getElementById('usd').classList.add('active');
+        }
+        updateCurrencyVisibility();
+        updateCost();
+      });
+    });
+
+    // Валюта
+    document.querySelectorAll('.currency-option').forEach(option => {
+      option.addEventListener('click', function() {
+        document.querySelectorAll('.currency-option').forEach(o => o.classList.remove('active'));
+        this.classList.add('active');
+        selectedCurrency = this.id;
+        updateCost();
+      });
+    });
+
+    // Генерация ссылки на оплату
+    async function generatePaymentLink(paymentMethod, currency) {
+      const params = getUrlParams();
+      const gifterTgId = getTGId();
+
+      if (!params.recipient_id) {
+        throw new Error('Не указан получатель подарка');
+      }
+
+      // Email формируется как recipient_id@gift.local для идентификации в хуке
+      const email = `${params.recipient_id}@gift.local`;
+
+      // Определяем payment_method для API
+      let apiPaymentMethod;
+      if (paymentMethod === 'bank-rf') {
+        apiPaymentMethod = 'RUB';
+      } else {
+        apiPaymentMethod = currency === 'usd' ? 'USD' : 'EUR';
+      }
+
+      const payload = {
+        email: email,
+        name: `Gift from ${gifterTgId}`,
+        phone: '',
+        payment_method: apiPaymentMethod,
+        telegram_id: gifterTgId ? gifterTgId.toString() : null,
+        recipient_id: params.recipient_id,
+        gifter_id: gifterTgId ? gifterTgId.toString() : params.gifter_id,
+        source: 'telegram_webapp_gift',
+        tariff: 'club2000_gift',
+        group_id: 'hranitel_kod_bot'
+      };
+
+      // Generate payment link - используем webhook для друзей (разовый платеж)
+      const response = await fetch('https://n8n4.daniillepekhin.ru/webhook/lava_club2_for_friends', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error('Не удалось получить ссылку на оплату');
+      }
+
+      const data = await response.json();
+      let paymentUrl;
+      if (Array.isArray(data) && data.length > 0) {
+        paymentUrl = data[0].paymentUrl;
+      } else if (data && data.paymentUrl) {
+        paymentUrl = data.paymentUrl;
+      }
+
+      if (!paymentUrl) {
+        throw new Error('Не удалось получить ссылку на оплату');
+      }
+
+      return paymentUrl;
+    }
+
+    // Отправка формы
+    document.getElementById('paymentForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const params = getUrlParams();
+      if (!params.recipient_id) {
+        showNotification('Ошибка: не указан получатель подарка');
+        return;
+      }
+
+      const submitBtn = this.querySelector('.submit-btn');
+      submitBtn.disabled = true;
+
+      try {
+        showLoading(true, 'Генерируем ссылку на оплату...');
+
+        const redirectUrl = await generatePaymentLink(selectedPaymentMethod, selectedCurrency);
+
+        if (redirectUrl) {
+          showLoading(true, 'Переходим на страницу оплаты...');
+          setTimeout(() => {
+            window.location.href = redirectUrl;
+          }, 500);
+        }
+      } catch (error) {
+        console.error('Ошибка:', error);
+        showNotification(error.message || 'Произошла ошибка, попробуйте снова');
+        showLoading(false);
+        submitBtn.disabled = false;
+      }
+    });
+
+    // Инициализация Telegram WebApp
+    function initializeTelegramWebApp() {
+      if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+        console.log('Telegram WebApp инициализирован');
+      }
+    }
+
+    // Инициализация
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeTelegramWebApp);
+    } else {
+      initializeTelegramWebApp();
+    }
+  </script>
+</body>
+</html>

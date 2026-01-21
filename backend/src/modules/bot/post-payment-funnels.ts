@@ -619,7 +619,21 @@ export async function handleUserShared(gifterTgId: number, recipientTgId: number
     .set({ onboardingStep: 'onboarding_complete' })
     .where(eq(users.id, gifter.id));
 
-  // Проверить, не является ли получатель уже участником
+  // Проверка 1: Даритель ДОЛЖЕН быть участником клуба
+  if (!gifter.isPro) {
+    await getTelegramService().sendMessage(
+      chatId,
+      '❌ Дарить подписку могут только участники клуба.\n\n' +
+      'Оформите подписку для себя, чтобы получить возможность дарить доступ друзьям.',
+      {
+        reply_markup: new InlineKeyboard()
+          .text('вернуться в меню', 'menu_back')
+      }
+    );
+    return;
+  }
+
+  // Проверка 2: Получатель НЕ должен быть участником клуба
   const existingRecipient = await getUserByTgId(recipientTgId);
 
   if (existingRecipient && existingRecipient.isPro) {
@@ -629,7 +643,7 @@ export async function handleUserShared(gifterTgId: number, recipientTgId: number
       'Пожалуйста, выберите другого друга для подарка.',
       {
         reply_markup: new InlineKeyboard()
-          .text('выбрать другого друга', 'gift_subscription')
+          .text('выбрать другого друга', 'menu_gift_subscription')
           .row()
           .text('вернуться в меню', 'menu_back')
       }
@@ -637,21 +651,11 @@ export async function handleUserShared(gifterTgId: number, recipientTgId: number
     return;
   }
 
-  // Создать запись подарочной подписки
-  const activationToken = nanoid(16);
+  logger.info({ gifterTgId, recipientTgId }, 'Gift subscription - sending payment form');
 
-  await db.insert(giftSubscriptions).values({
-    gifterUserId: gifter.id,
-    recipientTgId: recipientTgId,
-    activationToken,
-    activated: false
-  });
-
-  logger.info({ gifterTgId, recipientTgId, activationToken }, 'Gift subscription created');
-
-  // Отправить форму оплаты
+  // Отправить форму оплаты (без полей - email формируется автоматически как recipientTgId@gift.local)
   const keyboard = new InlineKeyboard()
-    .webApp('Оплатить', `https://hranitel.daniillepekhin.com/payment_form_club.html?gift=true&recipient_id=${recipientTgId}&token=${activationToken}`);
+    .webApp('Оплатить', `https://hranitel.daniillepekhin.com/payment_form_gift.html?recipient_id=${recipientTgId}&gifter_id=${gifterTgId}`);
 
   await getTelegramService().sendPhoto(
     chatId,
