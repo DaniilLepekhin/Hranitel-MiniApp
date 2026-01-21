@@ -840,6 +840,13 @@ export async function activateGiftForUser(recipientTgId: number, token: string, 
 // ============================================================================
 
 export async function sendMenuMessage(chatId: number) {
+  // Установить кнопку меню в левом нижнем углу
+  await getTelegramService().setChatMenuButton(chatId, {
+    type: 'web_app',
+    text: 'Меню',
+    web_app: { url: process.env.WEBAPP_URL! }
+  });
+
   const keyboard = new InlineKeyboard()
     .text('инструкция', 'menu_instruction')
     .row()

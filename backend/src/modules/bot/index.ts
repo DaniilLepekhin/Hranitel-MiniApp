@@ -1811,4 +1811,58 @@ export const botModule = new Elysia({ prefix: '/bot', tags: ['Bot'] })
         summary: 'Get bot info',
       },
     }
+  )
+  // Reset onboarding step for testing
+  .post(
+    '/reset-onboarding',
+    async ({ body, set }) => {
+      try {
+        const { telegram_id } = body;
+
+        const [user] = await db
+          .select()
+          .from(users)
+          .where(eq(users.telegramId, telegram_id))
+          .limit(1);
+
+        if (!user) {
+          set.status = 404;
+          return {
+            success: false,
+            error: 'User not found',
+          };
+        }
+
+        // Reset onboarding step
+        await db
+          .update(users)
+          .set({ onboardingStep: 'awaiting_keyword' })
+          .where(eq(users.telegramId, telegram_id));
+
+        logger.info({ telegram_id, userId: user.id }, 'Onboarding step reset to awaiting_keyword');
+
+        return {
+          success: true,
+          message: 'Onboarding step reset successfully',
+          telegram_id,
+          new_step: 'awaiting_keyword',
+        };
+      } catch (error) {
+        logger.error({ error }, 'Failed to reset onboarding step');
+        set.status = 500;
+        return {
+          success: false,
+          error: 'Failed to reset onboarding step',
+        };
+      }
+    },
+    {
+      body: t.Object({
+        telegram_id: t.String(),
+      }),
+      detail: {
+        summary: 'Reset user onboarding step',
+        description: 'Resets user onboarding_step to awaiting_keyword for testing',
+      },
+    }
   );
