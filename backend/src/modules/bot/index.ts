@@ -556,34 +556,7 @@ bot.command('start', async (ctx) => {
       return;
     }
 
-    // 🆕 Check for club funnel link (start=club)
-    if (startPayload === 'club') {
-      // Get or create user in database
-      let [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.telegramId, String(userId)))
-        .limit(1);
-
-      if (!user) {
-        // Create new user
-        const [newUser] = await db
-          .insert(users)
-          .values({
-            telegramId: String(userId),
-            username: ctx.from?.username || null,
-            firstName: ctx.from?.first_name || null,
-            lastName: ctx.from?.last_name || null,
-          })
-          .returning();
-        user = newUser;
-      }
-
-      await clubFunnel.startClubFunnel(user.id, chatId, String(userId));
-      return;
-    }
-
-    // 🔍 Check if user already exists and has paid
+    // 🔍 Check if user already exists and has paid FIRST (before any funnels)
     const [user] = await db
       .select()
       .from(users)
@@ -591,6 +564,7 @@ bot.command('start', async (ctx) => {
       .limit(1);
 
     // ✅ If user has PAID (isPro = true), return to current onboarding step
+    // Don't redirect them to club funnel or sales funnel
     if (user && user.isPro) {
       logger.info({ userId, onboardingStep: user.onboardingStep }, 'Paid user /start - returning to onboarding step');
 
@@ -641,6 +615,28 @@ bot.command('start', async (ctx) => {
         await funnels.sendMenuMessage(chatId);
         return;
       }
+    }
+
+    // 🆕 Check for club funnel link (start=club) - only for non-paying users
+    if (startPayload === 'club') {
+      // Get or create user in database
+      let clubUser = user; // Reuse user from above query
+      if (!clubUser) {
+        // Create new user
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            telegramId: String(userId),
+            username: ctx.from?.username || null,
+            firstName: ctx.from?.first_name || null,
+            lastName: ctx.from?.last_name || null,
+          })
+          .returning();
+        clubUser = newUser;
+      }
+
+      await clubFunnel.startClubFunnel(clubUser.id, chatId, String(userId));
+      return;
     }
 
     // ❌ Если пользователь НЕ оплатил - запустить продажную воронку
