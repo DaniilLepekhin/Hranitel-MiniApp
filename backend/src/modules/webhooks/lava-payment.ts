@@ -16,6 +16,8 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
         const {
           telegram_id,
           email,
+          phone,
+          name,
           amount,
           currency,
           payment_method,
@@ -56,12 +58,13 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
             .insert(users)
             .values({
               telegramId: telegram_id.toString(),
+              email: email || null,
+              phone: phone || null,
               isPro: true,
               subscriptionExpires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
               lavaContactId: contact_id || null,
               firstPurchaseDate: new Date(),
               metadata: {
-                email: email || null,
                 utm_campaign: utm_campaign || null,
                 utm_medium: utm_medium || null,
                 utm_source: utm_source || null,
@@ -84,16 +87,23 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
             updateData.lavaContactId = contact_id;
           }
 
+          // Update email and phone if provided
+          if (email && !user.email) {
+            updateData.email = email;
+          }
+          if (phone && !user.phone) {
+            updateData.phone = phone;
+          }
+
           // Set firstPurchaseDate if this is the first purchase
           if (!user.firstPurchaseDate) {
             updateData.firstPurchaseDate = new Date();
           }
 
-          // Update metadata with email and UTM if not already set
+          // Update metadata with UTM if not already set
           const currentMetadata = (user.metadata as Record<string, any>) || {};
           updateData.metadata = {
             ...currentMetadata,
-            email: email || currentMetadata.email,
             utm_campaign: utm_campaign || currentMetadata.utm_campaign,
             utm_medium: utm_medium || currentMetadata.utm_medium,
             utm_source: utm_source || currentMetadata.utm_source,
@@ -120,9 +130,11 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
             paymentProvider: 'lava',
             externalPaymentId: external_payment_id || null,
             lavaContactId: contact_id || null,
+            name: name || null,
+            email: email || null,
+            phone: phone || null,
             metadata: {
               tariff: tariff || 'club2000',
-              email: email || null,
               payment_method: payment_method || null,
               utm_campaign: utm_campaign || null,
               utm_medium: utm_medium || null,
@@ -200,7 +212,9 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
     {
       body: t.Object({
         telegram_id: t.String(),
+        name: t.Optional(t.String()),
         email: t.Optional(t.String()),
+        phone: t.Optional(t.String()),
         amount: t.Optional(t.Union([t.String(), t.Number()])),
         currency: t.Optional(t.String()),
         payment_method: t.Optional(t.String()),

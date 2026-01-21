@@ -39,6 +39,10 @@ export const users = pgTable('users', {
   photoUrl: text('photo_url'),
   languageCode: text('language_code').default('ru'),
 
+  // Contact information
+  email: text('email'), // Email из формы оплаты
+  phone: text('phone'), // Телефон из формы оплаты
+
   // Geography
   city: text('city'), // Город пользователя для рейтингов и команд
 
@@ -522,6 +526,12 @@ export const payments = pgTable('payments', {
   paymentProvider: varchar('payment_provider', { length: 50 }),
   externalPaymentId: varchar('external_payment_id', { length: 255 }),
   lavaContactId: text('lava_contact_id'), // Lava contact_id for subscription management
+
+  // Contact information (из формы оплаты)
+  name: text('name'), // Имя из формы
+  email: text('email'), // Email из формы
+  phone: text('phone'), // Телефон из формы
+
   metadata: jsonb('metadata').default('{}'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   completedAt: timestamp('completed_at'),
