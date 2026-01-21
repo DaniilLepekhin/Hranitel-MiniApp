@@ -94,7 +94,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
     const keyboard = new InlineKeyboard()
       .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`)
       .row()
-      .text('Я не готов 🤔', 'not_ready');
+      .text('Я не готов 🤔', 'not_ready_1');
 
     const simpleKeyboard = new InlineKeyboard()
       .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
@@ -243,7 +243,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
       const msg8Keyboard = new InlineKeyboard()
         .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`)
         .row()
-        .text('я не готов 🤔', 'not_ready');
+        .text('я не готов 🤔', 'not_ready_3');
 
       // Send video first
       await telegramService.sendVideo(
@@ -642,18 +642,16 @@ bot.callbackQuery('get_access', async (ctx) => {
   }
 });
 
-// Handle "Я не готов" callback - immediately send СООБЩЕНИЕ 9
-bot.callbackQuery('not_ready', async (ctx) => {
+// Handle "Я не готов" from Message 1 ("3 ловушки") - send "Что горит?"
+bot.callbackQuery('not_ready_1', async (ctx) => {
   try {
     await ctx.answerCallbackQuery();
 
     const userId = ctx.from!.id;
     const chatId = ctx.chat!.id;
-    const keyboard = new InlineKeyboard()
-      .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
 
-    // Cancel scheduled day2_reminder since user clicked "я не готов"
-    await schedulerService.cancelUserTasksByType(userId, 'day2_reminder');
+    // Cancel scheduled burning_question_reminder since we're sending it now
+    await schedulerService.cancelUserTasksByType(userId, 'burning_question_reminder');
 
     // Send СООБЩЕНИЕ 7 "Что горит?" immediately
     const burningKeyboard = new InlineKeyboard()
@@ -688,7 +686,60 @@ bot.callbackQuery('not_ready', async (ctx) => {
       60 * 60 * 1000 // 60 minutes
     );
   } catch (error) {
-    logger.error({ error, userId: ctx.from?.id }, 'Error in not_ready callback');
+    logger.error({ error, userId: ctx.from?.id }, 'Error in not_ready_1 callback');
+  }
+});
+
+// Handle "я не готов" from Message 3 ("Это не просто клуб") - send "Не всем нужен шум"
+bot.callbackQuery('not_ready_3', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+
+    const userId = ctx.from!.id;
+    const chatId = ctx.chat!.id;
+    const keyboard = new InlineKeyboard()
+      .webApp('Оформить подписку ❤️', `https://ishodnyi-kod.com/webappclubik`);
+
+    // Cancel scheduled day2_reminder since user clicked "я не готов"
+    await schedulerService.cancelUserTasksByType(userId, 'day2_reminder');
+
+    // Send СООБЩЕНИЕ 9 "Не всем нужен шум" immediately
+    await telegramService.sendVideo(
+      chatId,
+      'https://t.me/mate_bot_open/9349',
+      {
+        caption:
+          `Не всем нужен шум.\n` +
+          `И не всем заходят громкие обещания.\n\n` +
+          `Зато почти всем знакомо ощущение, что деньги идут нестабильно, хотя ты стараешься и вроде всё делаешь правильно 🤷‍♀️\n` +
+          `Значит, дело не в усилиях — а в среде и настройке 👀\n\n` +
+          `<b>Наш фокус на 2026 год</b> —помочь расти в финансах через окружение, спринты и инструменты, которые реально используются, а не откладываются «на потом» 🚀\n\n` +
+          `<b>Клуб «Код Успеха» — это когда:</b>\n` +
+          `— <b>застрял и не понимаешь, куда дальше</b> → смотришь эфиры, разбираешь кейсы, начинаешь видеть картину 🧠\n` +
+          `— <b>нужен совет, партнёр или контакт</b> → спрашиваешь у людей, у которых уже работает 🤝\n` +
+          `— <b>хочется системности</b> → проходишь курсы и внедряешь шаг за шагом, без перегруза 📚\n` +
+          `— <b>нужен импульс и фокус</b> → идёшь в десятку и не буксуешь в одиночку ⏱️\n` +
+          `— <b>не хватает живого общения</b> → встречаешься офлайн с людьми на одной волне 🔥\n\n` +
+          `Вход в клуб открыт.\n` +
+          `Мы видим, что ты всё ещё не с нами 👀`,
+        parse_mode: 'HTML',
+        reply_markup: keyboard
+      }
+    );
+
+    // Schedule day 3 reminder at 11:00 Moscow time next day (25 hours from day2)
+    // Since day2 is sent at 10:00, we need 25 hours = 1 day + 1 hour
+    const delayToDay3 = 25 * 60 * 60 * 1000; // 25 hours
+    await schedulerService.schedule(
+      {
+        type: 'day3_reminder',
+        userId,
+        chatId,
+      },
+      delayToDay3
+    );
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in not_ready_3 callback');
   }
 });
 
