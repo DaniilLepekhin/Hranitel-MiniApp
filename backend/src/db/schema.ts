@@ -553,6 +553,11 @@ export const paymentAnalytics = pgTable('payment_analytics', {
   currency: varchar('currency', { length: 3 }),
   paymentId: uuid('payment_id').references(() => payments.id, { onDelete: 'set null' }),
 
+  // Contact data (из формы оплаты)
+  name: text('name'), // Имя из формы
+  email: text('email'), // Email из формы
+  phone: text('phone'), // Телефон из формы
+
   // Additional data
   metadata: jsonb('metadata').default('{}'),
   createdAt: timestamp('created_at').defaultNow().notNull(),

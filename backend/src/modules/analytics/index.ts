@@ -17,6 +17,9 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
           utm_content,
           client_id,
           metka,
+          name,
+          email,
+          phone,
         } = body;
 
         // Create metka if not provided
@@ -31,6 +34,9 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
           utmContent: utm_content || null,
           clientId: client_id || null,
           metka: finalMetka || null,
+          name: name || null,
+          email: email || null,
+          phone: phone || null,
         });
 
         logger.info(
@@ -60,6 +66,9 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
         utm_content: t.Optional(t.String()),
         client_id: t.Optional(t.String()),
         metka: t.Optional(t.String()),
+        name: t.Optional(t.String()),
+        email: t.Optional(t.String()),
+        phone: t.Optional(t.String()),
       }),
       detail: {
         summary: 'Track payment form open event',
@@ -83,6 +92,9 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
           utm_content,
           client_id,
           metka,
+          name,
+          email,
+          phone,
         } = body;
 
         // Create metka if not provided
@@ -100,6 +112,9 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
           utmContent: utm_content || null,
           clientId: client_id || null,
           metka: finalMetka || null,
+          name: name || null,
+          email: email || null,
+          phone: phone || null,
         });
 
         logger.info(
@@ -138,6 +153,9 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
         utm_content: t.Optional(t.String()),
         client_id: t.Optional(t.String()),
         metka: t.Optional(t.String()),
+        name: t.Optional(t.String()),
+        email: t.Optional(t.String()),
+        phone: t.Optional(t.String()),
       }),
       detail: {
         summary: 'Track payment attempt event',
