@@ -32,6 +32,7 @@ function getTelegramService(): TelegramService {
 
 const CHANNEL_USERNAME = '@kristina_egiazarovaaa1407';
 const STAR_WEBHOOK_URL = 'https://n8n4.daniillepekhin.ru/webhook/zvezda_club_generated';
+const ROADMAP_WEBHOOK_URL = 'https://n8n4.daniillepekhin.ru/webhook/zvezda_club_generated_roadmap';
 const BIRTHDATE_REGEX = /^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[012])\.((19|20)\d\d)$/;
 const VIDEO_NOTE_EMOJI = 'https://t.me/mate_bot_open/9319';
 
@@ -213,6 +214,40 @@ async function generateStar(birthDate: string): Promise<Buffer | string | null> 
     return null;
   } catch (error) {
     logger.error({ error, birthDate }, 'Error generating star');
+    return null;
+  }
+}
+
+async function generateRoadmap(birthDate: string): Promise<Buffer | string | null> {
+  try {
+    const response = await fetch(ROADMAP_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_date: birthDate }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const contentType = response.headers.get('content-type');
+
+    // Если вернулся JSON с URL
+    if (contentType?.includes('application/json')) {
+      const data = await response.json() as { image_url?: string; url?: string };
+      return data.image_url || data.url || null;
+    }
+
+    // Если вернулся binary файл (изображение) - возвращаем Buffer напрямую
+    if (contentType?.includes('image/')) {
+      const arrayBuffer = await response.arrayBuffer();
+      return Buffer.from(arrayBuffer);
+    }
+
+    logger.warn({ contentType, birthDate }, 'Unexpected content type from roadmap webhook');
+    return null;
+  } catch (error) {
+    logger.error({ error, birthDate }, 'Error generating roadmap');
     return null;
   }
 }
@@ -605,8 +640,11 @@ async function sendScaleMessage(userId: string, chatId: number) {
 export async function handleClubGetRoadmap(userId: string, chatId: number) {
   const keyboard12 = new InlineKeyboard().text('👉 Начать маршрут', 'club_start_route');
 
-  await getTelegramService().sendMessage(
-    chatId,
+  // Получаем дату рождения из прогресса для генерации картинки
+  const progress = await getClubProgress(userId);
+  const birthDate = progress?.birthDate;
+
+  const message12Text =
     `Это <b>твоя дорожная карта на год 😍</b>\n\n` +
     `Если идти по ней шаг за шагом,\n` +
     `ты переходишь <b>из точки А в точку Б:</b>\n\n` +
@@ -617,9 +655,23 @@ export async function handleClubGetRoadmap(userId: string, chatId: number) {
     `Эта карта показывает, <b>каким человеком ты становишься по ходу пути:</b>\n` +
     `с опорой, фокусом и пониманием, куда ты идёшь 🚀\n\n` +
     `Хочешь пройти этот маршрут и реализовать его в реальности?\n\n` +
-    `⬇️ Жми кнопку ниже и обменяй свои монеты на бонус`,
-    { parse_mode: 'HTML', reply_markup: keyboard12 }
-  );
+    `⬇️ Жми кнопку ниже и обменяй свои монеты на бонус`;
+
+  // Генерируем картинку дорожной карты
+  const roadmapImage = birthDate ? await generateRoadmap(birthDate) : null;
+
+  if (roadmapImage) {
+    await getTelegramService().sendPhoto(chatId, roadmapImage, {
+      caption: message12Text,
+      parse_mode: 'HTML',
+      reply_markup: keyboard12,
+    });
+  } else {
+    await getTelegramService().sendMessage(chatId, message12Text, {
+      parse_mode: 'HTML',
+      reply_markup: keyboard12,
+    });
+  }
 
   await updateClubProgress(userId, { currentStep: 'showing_roadmap' });
 
