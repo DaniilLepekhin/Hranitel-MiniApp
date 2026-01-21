@@ -958,16 +958,11 @@ bot.callbackQuery('gift_start', async (ctx) => {
   }
 });
 
-// 🆕 Gift activation - continue
+// 🆕 Gift activation - continue (показать форму оплаты продления)
 bot.callbackQuery('gift_continue', async (ctx) => {
   try {
     await ctx.answerCallbackQuery();
-    const data = ctx.callbackQuery.data;
-    const token = data.split('_')[2]; // gift_continue_{token}
-
-    if (token) {
-      await funnels.handleGiftActivation(ctx.from.id, token, ctx.chat.id);
-    }
+    await funnels.showGiftContinuePayment(ctx.from.id, ctx.chat.id);
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in gift_continue callback');
   }
