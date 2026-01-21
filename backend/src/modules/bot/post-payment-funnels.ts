@@ -848,6 +848,8 @@ export async function sendMenuMessage(chatId: number) {
     .row()
     .webApp('штаб клуба', process.env.WEBAPP_URL!)
     .row()
+    .text('подарить подписку', 'menu_gift_subscription')
+    .row()
     .url('оферта', 'https://ishodnyi-код.com/clubofert')
     .row()
     .url('политика', 'https://ishodnyi-kod.com/clubofert');

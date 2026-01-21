@@ -22,7 +22,6 @@ await bot.init();
 
 // Set bot commands for menu button
 await bot.api.setMyCommands([
-  { command: 'start', description: 'Начать / Перезапустить бота' },
   { command: 'menu', description: 'Главное меню' },
 ]);
 
@@ -1307,6 +1306,39 @@ bot.callbackQuery('menu_instruction', async (ctx) => {
     );
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in menu_instruction callback');
+  }
+});
+
+// 🆕 Menu - gift subscription
+bot.callbackQuery('menu_gift_subscription', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const user = await funnels.getUserByTgId(ctx.from.id);
+    if (!user) return;
+
+    // Set user state to selecting gift user
+    await db.update(users).set({ onboardingStep: 'selecting_gift_user' }).where(eq(users.id, user.id));
+
+    // Send message with KeyboardButtonRequestUsers
+    await ctx.reply(
+      'Выберите друга из списка ниже, чтобы подарить ему доступ к клубу 👇',
+      {
+        reply_markup: {
+          keyboard: [[{
+            text: '➡️ Нажмите, чтобы выбрать друга ⬅️',
+            request_users: {
+              request_id: 1,
+              user_is_bot: false,
+              max_quantity: 1
+            }
+          }]],
+          resize_keyboard: true,
+          one_time_keyboard: true
+        }
+      }
+    );
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in menu_gift_subscription callback');
   }
 });
 
