@@ -32,7 +32,6 @@ function getTelegramService(): TelegramService {
 
 const CHANNEL_USERNAME = '@kristina_egiazarovaaa1407';
 const STAR_WEBHOOK_URL = 'https://n8n4.daniillepekhin.ru/webhook/zvezda_club_generated';
-const CHISLO_WEBHOOK_URL = 'https://n8n4.daniillepekhin.ru/webhook/zvezda_club_generated_chislo';
 const BIRTHDATE_REGEX = /^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[012])\.((19|20)\d\d)$/;
 const VIDEO_NOTE_EMOJI = 'https://t.me/mate_bot_open/9319';
 
@@ -46,6 +45,39 @@ const WEBAPP_PURCHASE_URL = 'https://ishodnyi-kod.com/webappclubik';
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
+
+/**
+ * Маппинг дня рождения на номер архетипа (1-22)
+ * По ТЗ voronka_before_pay_2.txt
+ */
+function getBirthDayArchetype(day: number): number {
+  const mapping: Record<number, number> = {
+    1: 1,
+    2: 2,
+    3: 3, 30: 3,
+    4: 4, 31: 4,
+    5: 5, 23: 5,
+    6: 6, 24: 6,
+    7: 7, 25: 7,
+    8: 8, 26: 8,
+    9: 9, 27: 9,
+    10: 10, 28: 10,
+    11: 11, 29: 11,
+    12: 12,
+    13: 13,
+    14: 14,
+    15: 15,
+    16: 16,
+    17: 17,
+    18: 18,
+    19: 19,
+    20: 20,
+    21: 21,
+    22: 22,
+  };
+
+  return mapping[day] ?? 1; // default to 1 if not found
+}
 
 async function getOrCreateClubProgress(userId: string, telegramId: string) {
   const existing = await db
@@ -172,25 +204,6 @@ async function generateStar(birthDate: string): Promise<Buffer | string | null> 
   }
 }
 
-async function getChislo(birthDate: string): Promise<number | null> {
-  try {
-    const response = await fetch(CHISLO_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ client_date: birthDate }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json() as { chislo?: number };
-    return data.chislo ?? null;
-  } catch (error) {
-    logger.error({ error, birthDate }, 'Error getting chislo');
-    return null;
-  }
-}
 
 // ============================================================================
 // СООБЩЕНИЕ 1: СТАРТ ВОРОНКИ
@@ -300,24 +313,22 @@ export async function handleBirthDateConfirmed(userId: string, chatId: number, b
     currentStep: 'birthdate_confirmed',
   });
 
-  // Сообщение 4: Генерация звезды и получение числа для условной логики
-  const [starImage, chislo] = await Promise.all([
-    generateStar(birthDate),
-    getChislo(birthDate)
-  ]);
+  // Сообщение 4: Генерация звезды и вычисление архетипа
+  const starImage = await generateStar(birthDate);
 
-  const updateData: any = {};
+  // Вычисляем архетип по дню рождения (локально, без webhook)
+  const archetypeFromDay = getBirthDayArchetype(birthDay);
+
+  const updateData: any = {
+    chislo: archetypeFromDay, // Сохраняем архетип для условной логики
+  };
+
   // Сохраняем URL только если это строка (не Buffer)
   if (starImage && typeof starImage === 'string') {
     updateData.starImageUrl = starImage;
   }
-  if (chislo !== null) {
-    updateData.chislo = chislo;
-  }
 
-  if (Object.keys(updateData).length > 0) {
-    await updateClubProgress(userId, updateData);
-  }
+  await updateClubProgress(userId, updateData);
 
   const message4Text =
     `Перед тобой — <b>твоя личная карта ✨</b>\n\n` +
@@ -480,7 +491,8 @@ export async function handleClubGetScale(userId: string, chatId: number, telegra
 // ============================================================================
 
 export async function handleClubCheckSubscription(userId: string, chatId: number, telegramUserId: number) {
-  const isSubscribed = await checkChannelSubscription(telegramUserId);
+  // TODO: Временно отключена проверка подписки - нужно подключить бота к каналу
+  const isSubscribed = true; // await checkChannelSubscription(telegramUserId);
 
   if (!isSubscribed) {
     const keyboard = new InlineKeyboard()
