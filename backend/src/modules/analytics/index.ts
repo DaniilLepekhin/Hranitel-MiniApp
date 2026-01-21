@@ -35,7 +35,7 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
           clientId: client_id || null,
           metka: finalMetka || null,
           name: name || null,
-          email: email || null,
+          email: email ? email.toLowerCase().trim() : null,
           phone: phone || null,
         });
 
@@ -113,7 +113,7 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
           clientId: client_id || null,
           metka: finalMetka || null,
           name: name || null,
-          email: email || null,
+          email: email ? email.toLowerCase().trim() : null,
           phone: phone || null,
         });
 

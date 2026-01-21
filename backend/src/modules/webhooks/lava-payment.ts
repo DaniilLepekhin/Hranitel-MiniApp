@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { db } from '@/db';
 import { users, payments, paymentAnalytics } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { startOnboardingAfterPayment } from '@/modules/bot/post-payment-funnels';
 
@@ -14,32 +14,62 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
         logger.info({ body }, 'Received Lava payment webhook');
 
         const {
-          telegram_id,
           email,
-          phone,
-          name,
-          amount,
-          currency,
           payment_method,
+          amount,
           contact_id, // Lava contact_id for subscription management
-          external_payment_id,
-          status,
-          tariff,
-          // UTM parameters
-          utm_campaign,
-          utm_medium,
-          utm_source,
-          utm_content,
-          client_id,
-          metka,
         } = body;
 
         // Validate required fields
-        if (!telegram_id) {
-          logger.error({ body }, 'Missing telegram_id in webhook');
+        if (!email) {
+          logger.error({ body }, 'Missing email in webhook');
           set.status = 400;
-          return { success: false, error: 'Missing telegram_id' };
+          return { success: false, error: 'Missing email' };
         }
+
+        // Normalize email
+        const normalizedEmail = email.toLowerCase().trim();
+
+        // Find the last payment_attempt by this email
+        const [lastAttempt] = await db
+          .select()
+          .from(paymentAnalytics)
+          .where(
+            and(
+              eq(paymentAnalytics.email, normalizedEmail),
+              eq(paymentAnalytics.eventType, 'payment_attempt')
+            )
+          )
+          .orderBy(desc(paymentAnalytics.createdAt))
+          .limit(1);
+
+        if (!lastAttempt) {
+          logger.error({ email: normalizedEmail }, 'No payment_attempt found for this email');
+          set.status = 400;
+          return { success: false, error: 'No payment attempt found for this email' };
+        }
+
+        // Extract data from payment_attempt
+        const telegram_id = lastAttempt.telegramId;
+        const name = lastAttempt.name;
+        const phone = lastAttempt.phone;
+        const utm_campaign = lastAttempt.utmCampaign;
+        const utm_medium = lastAttempt.utmMedium;
+        const utm_source = lastAttempt.utmSource;
+        const utm_content = lastAttempt.utmContent;
+        const client_id = lastAttempt.clientId;
+        const metka = lastAttempt.metka;
+
+        logger.info(
+          {
+            email: normalizedEmail,
+            telegram_id,
+            name,
+            phone,
+            metka
+          },
+          'Found payment_attempt data'
+        );
 
         // Find or create user
         const existingUsers = await db
@@ -58,7 +88,7 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
             .insert(users)
             .values({
               telegramId: telegram_id.toString(),
-              email: email || null,
+              email: normalizedEmail || null,
               phone: phone || null,
               isPro: true,
               subscriptionExpires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
@@ -88,8 +118,8 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
           }
 
           // Update email and phone if provided
-          if (email && !user.email) {
-            updateData.email = email;
+          if (normalizedEmail && !user.email) {
+            updateData.email = normalizedEmail;
           }
           if (phone && !user.phone) {
             updateData.phone = phone;
@@ -125,16 +155,16 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
           .values({
             userId: user.id,
             amount: amount ? amount.toString() : '0',
-            currency: currency || payment_method || 'RUB',
-            status: status === 'success' ? 'completed' : 'pending',
+            currency: payment_method || 'RUB',
+            status: 'completed',
             paymentProvider: 'lava',
-            externalPaymentId: external_payment_id || null,
+            externalPaymentId: null,
             lavaContactId: contact_id || null,
             name: name || null,
-            email: email || null,
+            email: normalizedEmail || null,
             phone: phone || null,
             metadata: {
-              tariff: tariff || 'club2000',
+              tariff: 'club2000',
               payment_method: payment_method || null,
               utm_campaign: utm_campaign || null,
               utm_medium: utm_medium || null,
@@ -143,28 +173,29 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
               client_id: client_id || null,
               metka: metka || null,
             },
-            completedAt: status === 'success' ? new Date() : null,
+            completedAt: new Date(),
           })
           .returning();
 
         // Track payment success in analytics
-        const finalMetka = metka || [utm_campaign, utm_medium].filter(p => p).join('_');
-
         await db.insert(paymentAnalytics).values({
           telegramId: telegram_id.toString(),
           eventType: 'payment_success',
           paymentId: payment.id,
-          paymentMethod: payment_method || currency || 'RUB',
+          paymentMethod: payment_method || 'RUB',
           amount: amount ? amount.toString() : '0',
-          currency: currency || payment_method || 'RUB',
+          currency: payment_method || 'RUB',
+          name: name || null,
+          email: normalizedEmail || null,
+          phone: phone || null,
           utmCampaign: utm_campaign || null,
           utmMedium: utm_medium || null,
           utmSource: utm_source || null,
           utmContent: utm_content || null,
           clientId: client_id || null,
-          metka: finalMetka || null,
+          metka: metka || null,
           metadata: {
-            tariff: tariff || 'club2000',
+            tariff: 'club2000',
             contact_id: contact_id || null,
           },
         });
@@ -175,8 +206,8 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
             telegramId: telegram_id,
             paymentId: payment.id,
             amount,
-            currency,
-            metka: finalMetka,
+            email: normalizedEmail,
+            metka,
           },
           'Payment processed successfully'
         );
@@ -211,28 +242,14 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
     },
     {
       body: t.Object({
-        telegram_id: t.String(),
-        name: t.Optional(t.String()),
-        email: t.Optional(t.String()),
-        phone: t.Optional(t.String()),
-        amount: t.Optional(t.Union([t.String(), t.Number()])),
-        currency: t.Optional(t.String()),
-        payment_method: t.Optional(t.String()),
-        contact_id: t.Optional(t.String()), // Lava contact_id
-        external_payment_id: t.Optional(t.String()),
-        status: t.Optional(t.String()),
-        tariff: t.Optional(t.String()),
-        // UTM parameters
-        utm_campaign: t.Optional(t.String()),
-        utm_medium: t.Optional(t.String()),
-        utm_source: t.Optional(t.String()),
-        utm_content: t.Optional(t.String()),
-        client_id: t.Optional(t.String()),
-        metka: t.Optional(t.String()),
+        email: t.String(), // Email пользователя (ключ для поиска payment_attempt)
+        payment_method: t.Optional(t.String()), // RUB, USD, EUR
+        amount: t.Optional(t.Union([t.String(), t.Number()])), // Сумма платежа
+        contact_id: t.Optional(t.String()), // Lava contact_id для управления подпиской
       }),
       detail: {
         summary: 'Lava payment success webhook',
-        description: 'Handles successful payment notifications from Lava payment provider',
+        description: 'Handles successful payment notifications from Lava payment provider. Uses email to find payment_attempt and get all user data.',
       },
     }
   );
