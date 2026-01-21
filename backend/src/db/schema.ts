@@ -52,6 +52,7 @@ export const users = pgTable('users', {
   // Subscription
   isPro: boolean('is_pro').default(false).notNull(),
   subscriptionExpires: timestamp('subscription_expires'),
+  lavaContactId: text('lava_contact_id'), // Lava contact_id for subscription management
 
   // 🆕 Onboarding & Gift subscription fields
   firstPurchaseDate: timestamp('first_purchase_date'), // Дата первой успешной покупки
@@ -520,6 +521,7 @@ export const payments = pgTable('payments', {
   status: varchar('status', { length: 20 }).notNull().default('pending'), // pending, completed, failed, refunded
   paymentProvider: varchar('payment_provider', { length: 50 }),
   externalPaymentId: varchar('external_payment_id', { length: 255 }),
+  lavaContactId: text('lava_contact_id'), // Lava contact_id for subscription management
   metadata: jsonb('metadata').default('{}'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   completedAt: timestamp('completed_at'),
@@ -528,6 +530,40 @@ export const payments = pgTable('payments', {
   index('payments_status_idx').on(table.status),
   index('payments_external_id_idx').on(table.externalPaymentId),
   index('payments_created_at_idx').on(table.createdAt),
+  index('payments_lava_contact_id_idx').on(table.lavaContactId),
+]);
+
+// 🆕 Payment Analytics (аналитика платежей и форм)
+export const paymentAnalytics = pgTable('payment_analytics', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  telegramId: text('telegram_id').notNull(), // TG ID пользователя
+  eventType: varchar('event_type', { length: 50 }).notNull(), // form_open, payment_attempt, payment_success
+
+  // UTM метки
+  utmCampaign: text('utm_campaign'),
+  utmMedium: text('utm_medium'),
+  utmSource: text('utm_source'),
+  utmContent: text('utm_content'),
+  clientId: text('client_id'),
+  metka: text('metka'), // Уникальная комбинация utm_campaign_utm_medium
+
+  // Payment data (для payment_attempt и payment_success)
+  paymentMethod: varchar('payment_method', { length: 10 }), // RUB, USD, EUR
+  amount: numeric('amount', { precision: 10, scale: 2 }),
+  currency: varchar('currency', { length: 3 }),
+  paymentId: uuid('payment_id').references(() => payments.id, { onDelete: 'set null' }),
+
+  // Additional data
+  metadata: jsonb('metadata').default('{}'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('payment_analytics_telegram_id_idx').on(table.telegramId),
+  index('payment_analytics_event_type_idx').on(table.eventType),
+  index('payment_analytics_metka_idx').on(table.metka),
+  index('payment_analytics_utm_campaign_idx').on(table.utmCampaign),
+  index('payment_analytics_payment_method_idx').on(table.paymentMethod),
+  index('payment_analytics_created_at_idx').on(table.createdAt),
+  index('payment_analytics_metka_event_idx').on(table.metka, table.eventType),
 ]);
 
 // 🆕 Gift Subscriptions (подарочные подписки)
@@ -852,6 +888,8 @@ export type PracticeContent = typeof practiceContent.$inferSelect;
 export type NewPracticeContent = typeof practiceContent.$inferInsert;
 export type Payment = typeof payments.$inferSelect;
 export type NewPayment = typeof payments.$inferInsert;
+export type PaymentAnalytics = typeof paymentAnalytics.$inferSelect;
+export type NewPaymentAnalytics = typeof paymentAnalytics.$inferInsert;
 export type GiftSubscription = typeof giftSubscriptions.$inferSelect;
 export type NewGiftSubscription = typeof giftSubscriptions.$inferInsert;
 export type ClubFunnelProgress = typeof clubFunnelProgress.$inferSelect;
