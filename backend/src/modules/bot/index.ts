@@ -1312,10 +1312,14 @@ bot.callbackQuery('menu_instruction', async (ctx) => {
     const keyboard = new InlineKeyboard()
       .text('вернуться в меню', 'menu_back');
 
-    await telegramService.sendMessage(
+    await telegramService.sendVideo(
       ctx.chat.id,
-      'Внимательно посмотри видео-инструкцию по экосистеме клуба, чтобы ты не потерялась и во всём разобралась ✨',
-      { reply_markup: keyboard, parse_mode: 'HTML' }
+      'https://t.me/mate_bot_open/9641',
+      {
+        caption: 'Внимательно посмотри видео-инструкцию по экосистеме клуба, чтобы ты не потерялась и во всём разобралась ✨',
+        reply_markup: keyboard,
+        parse_mode: 'HTML',
+      }
     );
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in menu_instruction callback');
