@@ -336,11 +336,8 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
             className="w-full cursor-pointer active:scale-[0.99] transition-transform"
             onClick={() => {
               haptic.impact('light');
-              if (webApp?.openLink) {
-                webApp.openLink('https://forms.gle/fuDXeNMSj9sPUDr8A');
-              } else {
-                window.open('https://forms.gle/fuDXeNMSj9sPUDr8A', '_blank');
-              }
+              // Открываем Google Form напрямую в браузере для быстрого открытия
+              window.open('https://forms.gle/fuDXeNMSj9sPUDr8A', '_blank');
             }}
             style={{
               borderRadius: '8px',

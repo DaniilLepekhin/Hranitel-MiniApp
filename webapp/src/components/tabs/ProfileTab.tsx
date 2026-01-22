@@ -264,25 +264,29 @@ export function ProfileTab() {
               </div>
 
               {/* Текстовая часть справа от аватара */}
-              <div className="flex-1 flex flex-col items-center justify-start ml-4">
+              <div className="flex-1 flex flex-col items-center justify-start ml-4 min-w-0">
                 {/* Имя с кнопкой редактирования */}
-                <div className="flex items-center justify-center gap-2 mb-[8px]">
+                <div className="flex items-start justify-center gap-2 mb-[8px] w-full">
                   <p
-                    className="text-center"
+                    className="text-center break-words"
                     style={{
                       fontFamily: 'Gilroy, sans-serif',
                       fontWeight: 400,
-                      fontSize: '21.167px',
-                      lineHeight: 1.45,
-                      letterSpacing: '-0.4233px',
+                      fontSize: '18px',
+                      lineHeight: 1.3,
+                      letterSpacing: '-0.36px',
                       color: '#2d2620',
+                      wordBreak: 'break-word',
+                      maxWidth: '100%',
+                      flex: 1,
+                      minWidth: 0,
                     }}
                   >
                     {displayName}
                   </p>
                   <button
                     onClick={startEditingName}
-                    className="flex items-center justify-center p-1 hover:bg-black/5 rounded-full transition-colors active:scale-95"
+                    className="flex items-center justify-center p-1 hover:bg-black/5 rounded-full transition-colors active:scale-95 flex-shrink-0"
                     aria-label="Редактировать имя"
                   >
                     <Edit2 className="w-4 h-4" style={{ color: '#9c1723' }} />
