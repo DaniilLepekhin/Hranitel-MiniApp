@@ -659,7 +659,7 @@ bot.command('start', async (ctx) => {
     // Send video with message
     await telegramService.sendVideo(
       chatId,
-      'https://t.me/mate_bot_open/9275',
+      'https://t.me/mate_bot_open/9492',
       {
         caption:
           `<b>Код Успеха — здесь.</b>\n\n` +
