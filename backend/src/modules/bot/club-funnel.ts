@@ -495,11 +495,17 @@ export async function handleClubGetStyle(userId: string, chatId: number) {
 
   const styleGroup = getStyleGroup(progress.birthDayNumber);
 
-  // Сообщение 8: Картинка стиля (TODO: добавить картинки когда будут готовы)
-  // Пока отправляем текст
-  const styleImageUrl = getStyleImageUrl(styleGroup);
-  if (styleImageUrl) {
-    await getTelegramService().sendPhoto(chatId, styleImageUrl, { parse_mode: 'HTML' });
+  // Сообщение 8: Картинки стиля (media group)
+  const styleImages = getStyleImages(styleGroup);
+  if (styleImages.length > 0) {
+    try {
+      await getTelegramService().sendMediaGroup(
+        chatId,
+        styleImages.map((url) => ({ type: 'photo', media: url }))
+      );
+    } catch (e) {
+      logger.warn({ error: e, styleGroup }, 'Failed to send style media group');
+    }
   }
 
   const keyboard8 = new InlineKeyboard().text('👉 Где мой масштаб', 'club_get_scale');
@@ -923,9 +929,95 @@ async function sendArchetypeMessage(chatId: number, archetypeNumber: number) {
   }
 }
 
-function getStyleImageUrl(styleGroup: number): string | null {
-  // TODO: Добавить URL картинок стилей когда будут готовы
-  return null;
+function getStyleImages(styleGroup: number): string[] {
+  // Картинки стиля по группам (1-9)
+  const styleImages: { [key: number]: string[] } = {
+    // Группа 1: числа 1/10/19/28
+    1: [
+      'https://t.me/mate_bot_open/9382',
+      'https://t.me/mate_bot_open/9383',
+      'https://t.me/mate_bot_open/9384',
+      'https://t.me/mate_bot_open/9385',
+      'https://t.me/mate_bot_open/9386',
+      'https://t.me/mate_bot_open/9387',
+    ],
+    // Группа 2: числа 2/11/20/29
+    2: [
+      'https://t.me/mate_bot_open/9388',
+      'https://t.me/mate_bot_open/9389',
+      'https://t.me/mate_bot_open/9390',
+      'https://t.me/mate_bot_open/9391',
+      'https://t.me/mate_bot_open/9392',
+      'https://t.me/mate_bot_open/9393',
+    ],
+    // Группа 3: числа 3/12/21/30
+    3: [
+      'https://t.me/mate_bot_open/9394',
+      'https://t.me/mate_bot_open/9395',
+      'https://t.me/mate_bot_open/9396',
+      'https://t.me/mate_bot_open/9397',
+      'https://t.me/mate_bot_open/9398',
+      'https://t.me/mate_bot_open/9399',
+    ],
+    // Группа 4: числа 4/13/22/31
+    4: [
+      'https://t.me/mate_bot_open/9400',
+      'https://t.me/mate_bot_open/9401',
+      'https://t.me/mate_bot_open/9402',
+      'https://t.me/mate_bot_open/9403',
+      'https://t.me/mate_bot_open/9404',
+      'https://t.me/mate_bot_open/9405',
+    ],
+    // Группа 5: числа 5/14/23
+    5: [
+      'https://t.me/mate_bot_open/9406',
+      'https://t.me/mate_bot_open/9407',
+      'https://t.me/mate_bot_open/9408',
+      'https://t.me/mate_bot_open/9409',
+      'https://t.me/mate_bot_open/9410',
+      'https://t.me/mate_bot_open/9411',
+    ],
+    // Группа 6: числа 6/15/24
+    6: [
+      'https://t.me/mate_bot_open/9412',
+      'https://t.me/mate_bot_open/9413',
+      'https://t.me/mate_bot_open/9414',
+      'https://t.me/mate_bot_open/9415',
+      'https://t.me/mate_bot_open/9416',
+      'https://t.me/mate_bot_open/9417',
+    ],
+    // Группа 7: числа 7/16/25
+    7: [
+      'https://t.me/mate_bot_open/9418',
+      'https://t.me/mate_bot_open/9419',
+      'https://t.me/mate_bot_open/9420',
+      'https://t.me/mate_bot_open/9421',
+      'https://t.me/mate_bot_open/9422',
+      'https://t.me/mate_bot_open/9423',
+      'https://t.me/mate_bot_open/9424',
+    ],
+    // Группа 8: числа 8/17/26
+    8: [
+      'https://t.me/mate_bot_open/9425',
+      'https://t.me/mate_bot_open/9426',
+      'https://t.me/mate_bot_open/9427',
+      'https://t.me/mate_bot_open/9428',
+      'https://t.me/mate_bot_open/9429',
+      'https://t.me/mate_bot_open/9430',
+      'https://t.me/mate_bot_open/9431',
+    ],
+    // Группа 9: числа 9/18/27
+    9: [
+      'https://t.me/mate_bot_open/9432',
+      'https://t.me/mate_bot_open/9433',
+      'https://t.me/mate_bot_open/9434',
+      'https://t.me/mate_bot_open/9435',
+      'https://t.me/mate_bot_open/9436',
+      'https://t.me/mate_bot_open/9437',
+    ],
+  };
+
+  return styleImages[styleGroup] || [];
 }
 
 function getScaleImageUrl(styleGroup: number): string | null {
