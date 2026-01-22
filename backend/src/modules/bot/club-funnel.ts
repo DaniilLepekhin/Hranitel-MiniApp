@@ -607,10 +607,13 @@ async function sendScaleMessage(userId: string, chatId: number) {
 
   const styleGroup = getStyleGroup(progress.birthDayNumber);
 
-  // Картинка масштаба (TODO: добавить когда будут готовы)
-  const scaleImageUrl = getScaleImageUrl(styleGroup);
-  if (scaleImageUrl) {
-    await getTelegramService().sendPhoto(chatId, scaleImageUrl, { parse_mode: 'HTML' });
+  // Картинки масштаба - отправляем как media group
+  const scaleImages = getScaleImages(styleGroup);
+  if (scaleImages.length > 0) {
+    await getTelegramService().sendMediaGroup(
+      chatId,
+      scaleImages.map((url) => ({ type: 'photo', media: url }))
+    );
   }
 
   const keyboard11 = new InlineKeyboard().text('👉 Узнать свою точку роста', 'club_get_roadmap');
@@ -1020,9 +1023,92 @@ function getStyleImages(styleGroup: number): string[] {
   return styleImages[styleGroup] || [];
 }
 
-function getScaleImageUrl(styleGroup: number): string | null {
-  // TODO: Добавить URL картинок масштабов когда будут готовы
-  return null;
+function getScaleImages(styleGroup: number): string[] {
+  const scaleImages: { [key: number]: string[] } = {
+    // Группа 1: 1/10/19/28
+    1: [
+      'https://t.me/mate_bot_open/9438',
+      'https://t.me/mate_bot_open/9439',
+      'https://t.me/mate_bot_open/9440',
+      'https://t.me/mate_bot_open/9441',
+      'https://t.me/mate_bot_open/9442',
+      'https://t.me/mate_bot_open/9443',
+    ],
+    // Группа 2: 2/11/20/29
+    2: [
+      'https://t.me/mate_bot_open/9444',
+      'https://t.me/mate_bot_open/9445',
+      'https://t.me/mate_bot_open/9446',
+      'https://t.me/mate_bot_open/9447',
+      'https://t.me/mate_bot_open/9448',
+      'https://t.me/mate_bot_open/9449',
+    ],
+    // Группа 3: 3/12/21/30
+    3: [
+      'https://t.me/mate_bot_open/9450',
+      'https://t.me/mate_bot_open/9451',
+      'https://t.me/mate_bot_open/9452',
+      'https://t.me/mate_bot_open/9453',
+      'https://t.me/mate_bot_open/9454',
+      'https://t.me/mate_bot_open/9455',
+    ],
+    // Группа 4: 4/13/22/31
+    4: [
+      'https://t.me/mate_bot_open/9456',
+      'https://t.me/mate_bot_open/9457',
+      'https://t.me/mate_bot_open/9458',
+      'https://t.me/mate_bot_open/9459',
+      'https://t.me/mate_bot_open/9460',
+      'https://t.me/mate_bot_open/9461',
+    ],
+    // Группа 5: 5/14/23
+    5: [
+      'https://t.me/mate_bot_open/9462',
+      'https://t.me/mate_bot_open/9463',
+      'https://t.me/mate_bot_open/9464',
+      'https://t.me/mate_bot_open/9465',
+      'https://t.me/mate_bot_open/9466',
+      'https://t.me/mate_bot_open/9467',
+    ],
+    // Группа 6: 6/15/24
+    6: [
+      'https://t.me/mate_bot_open/9468',
+      'https://t.me/mate_bot_open/9469',
+      'https://t.me/mate_bot_open/9470',
+      'https://t.me/mate_bot_open/9471',
+      'https://t.me/mate_bot_open/9472',
+      'https://t.me/mate_bot_open/9473',
+    ],
+    // Группа 7: 7/16/25
+    7: [
+      'https://t.me/mate_bot_open/9474',
+      'https://t.me/mate_bot_open/9475',
+      'https://t.me/mate_bot_open/9476',
+      'https://t.me/mate_bot_open/9477',
+      'https://t.me/mate_bot_open/9478',
+      'https://t.me/mate_bot_open/9479',
+    ],
+    // Группа 8: 8/17/26
+    8: [
+      'https://t.me/mate_bot_open/9480',
+      'https://t.me/mate_bot_open/9481',
+      'https://t.me/mate_bot_open/9482',
+      'https://t.me/mate_bot_open/9483',
+      'https://t.me/mate_bot_open/9484',
+      'https://t.me/mate_bot_open/9485',
+    ],
+    // Группа 9: 9/18/27
+    9: [
+      'https://t.me/mate_bot_open/9486',
+      'https://t.me/mate_bot_open/9487',
+      'https://t.me/mate_bot_open/9488',
+      'https://t.me/mate_bot_open/9489',
+      'https://t.me/mate_bot_open/9490',
+      'https://t.me/mate_bot_open/9491',
+    ],
+  };
+
+  return scaleImages[styleGroup] || [];
 }
 
 const ARCHETYPES: { [key: number]: { name: string; imageUrl: string; text: string } } = {
