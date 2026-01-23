@@ -1030,7 +1030,7 @@ bot.command('start', async (ctx) => {
       // Отправляем видео без подписи (Telegram ограничивает caption до 1024 символов)
       await telegramService.sendVideo(
         chatId,
-        'https://t.me/mate_bot_open/9649',
+        'https://t.me/mate_bot_open/9650',
         {}
       );
 
@@ -1214,7 +1214,7 @@ bot.command('start', async (ctx) => {
     // Send video with message
     await telegramService.sendVideo(
       chatId,
-      'https://t.me/mate_bot_open/9649',
+      'https://t.me/mate_bot_open/9650',
       {
         caption:
           `<b>КЛУБ «КОД УСПЕХА». ГЛАВА — «ПРОБУЖДЕНИЕ»</b>\n\n` +
@@ -2389,7 +2389,7 @@ bot.command('test_start', async (ctx) => {
     // Send video with message (same as real /start)
     await telegramService.sendVideo(
       chatId,
-      'https://t.me/mate_bot_open/9649',
+      'https://t.me/mate_bot_open/9650',
       {
         caption:
           `<b>КЛУБ «КОД УСПЕХА». ГЛАВА — «ПРОБУЖДЕНИЕ»</b>\n\n` +
@@ -2515,7 +2515,7 @@ bot.command('test_start_full', async (ctx) => {
     // Send video with message
     await telegramService.sendVideo(
       chatId,
-      'https://t.me/mate_bot_open/9649',
+      'https://t.me/mate_bot_open/9650',
       {
         caption:
           `<b>КЛУБ «КОД УСПЕХА». ГЛАВА — «ПРОБУЖДЕНИЕ»</b>\n\n` +
