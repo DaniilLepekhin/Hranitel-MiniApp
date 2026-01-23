@@ -454,8 +454,9 @@ export async function handleBirthDateConfirmed(userId: string, chatId: number, b
   await updateClubProgress(userId, { currentStep: 'showing_star' });
 
   const telegramUserId = await getTelegramUserId(userId);
+  // После "личной карты" идёт подписка на канал
   await schedulerService.schedule(
-    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'activate', isTestMode: testModeEnabled } },
+    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'subscribe', isTestMode: testModeEnabled } },
     getButtonTimeout()
   );
 }
@@ -469,18 +470,54 @@ export async function handleBirthDateRejected(userId: string, chatId: number) {
 }
 
 // ============================================================================
-// СООБЩЕНИЯ 5-6: АКТИВАЦИЯ -> АРХЕТИП
+// СООБЩЕНИЕ 5: АКТИВАЦИЯ -> ПОДПИСКА НА КАНАЛ
 // ============================================================================
 
 export async function handleClubActivate(userId: string, chatId: number) {
-  // Сообщение 5: Эмодзи
+  // После нажатия "хочу активировать" → подписка на канал
+  const telegramUserId = await getTelegramUserId(userId);
+  await handleClubSubscribeRequest(userId, chatId, telegramUserId);
+}
+
+// ============================================================================
+// СООБЩЕНИЕ: ПОДПИСКА НА КАНАЛ (перенесено сюда - после "личной карты")
+// ============================================================================
+
+export async function handleClubSubscribeRequest(userId: string, chatId: number, telegramUserId: number) {
+  const keyboard = new InlineKeyboard()
+    .url('подписаться 😍', 'https://t.me/kristina_egiazarovaaa1407')
+    .row()
+    .text('Я подписалась ✅', 'club_check_subscription');
+
+  await getTelegramService().sendMessage(
+    chatId,
+    `Ты уже у цели! Остался последний шаг 🗻\n` +
+    `И на твоём счету <b>400 монет 🪙</b>\n\n` +
+    `Пока система готовит следующую расшифровку,\n` +
+    `подпишись на канал, там тебя ждут:\n` +
+    `— практики и расшифровки\n` +
+    `— подкасты про деньги и реализацию\n` +
+    `— прогнозы и ориентиры на 2026\n\n` +
+    `После подписки <b>вернись в БОТ и расшифровка откроется.</b> Без этого шага расшифровка <b>«Где твой масштаб»</b> не откроется 👇`,
+    { parse_mode: 'HTML', reply_markup: keyboard }
+  );
+
+  await updateClubProgress(userId, { currentStep: 'awaiting_subscribe' });
+}
+
+// ============================================================================
+// СООБЩЕНИЯ 6-7: АРХЕТИП (после подписки)
+// ============================================================================
+
+export async function handleClubShowArchetype(userId: string, chatId: number) {
+  // Сообщение: Эмодзи
   try {
     await getTelegramService().sendAnimation(chatId, VIDEO_NOTE_EMOJI);
   } catch (e) {
     logger.warn({ error: e }, 'Failed to send video note');
   }
 
-  // Сообщение 6: Архетип
+  // Сообщение: Архетип
   const progress = await getClubProgress(userId);
 
   if (!progress?.archetypeNumber) {
@@ -560,29 +597,19 @@ export async function handleClubGetStyle(userId: string, chatId: number) {
 }
 
 // ============================================================================
-// СООБЩЕНИЕ 9: ПОДПИСКА НА КАНАЛ
+// ПОКАЗАТЬ МАСШТАБ (по кнопке "👉 Где мой масштаб")
 // ============================================================================
 
 export async function handleClubGetScale(userId: string, chatId: number, telegramUserId: number) {
-  const keyboard9 = new InlineKeyboard()
-    .url('подписаться 😍', 'https://t.me/kristina_egiazarovaaa1407')
-    .row()
-    .text('Я подписалась ✅', 'club_check_subscription');
+  // Эмодзи
+  try {
+    await getTelegramService().sendAnimation(chatId, VIDEO_NOTE_EMOJI);
+  } catch (e) {
+    logger.warn({ error: e }, 'Failed to send video note');
+  }
 
-  await getTelegramService().sendMessage(
-    chatId,
-    `Ты уже у цели! Остался последний шаг 🗻\n` +
-    `И на твоём счету <b>600 монет 🪙</b>\n\n` +
-    `Пока система готовит следующую расшифровку,\n` +
-    `подпишись на канал, там тебя ждут:\n` +
-    `— практики и расшифровки\n` +
-    `— подкасты про деньги и реализацию\n` +
-    `— прогнозы и ориентиры на 2026\n\n` +
-    `После подписки<b> вернись в БОТ и расшифровка откроется.</b> Без этого шага расшифровка <b>«Где твой масштаб»</b> не откроется 👇`,
-    { parse_mode: 'HTML', reply_markup: keyboard9 }
-  );
-
-  await updateClubProgress(userId, { currentStep: 'awaiting_subscribe' });
+  // Показываем масштаб
+  await sendScaleMessage(userId, chatId);
 }
 
 // ============================================================================
@@ -609,15 +636,8 @@ export async function handleClubCheckSubscription(userId: string, chatId: number
 
   await updateClubProgress(userId, { subscribedToChannel: true, currentStep: 'subscribed' });
 
-  // Сообщение 10: Эмодзи
-  try {
-    await getTelegramService().sendAnimation(chatId, VIDEO_NOTE_EMOJI);
-  } catch (e) {
-    logger.warn({ error: e }, 'Failed to send video note');
-  }
-
-  // Сообщение 11: Масштаб (без задержки)
-  await sendScaleMessage(userId, chatId);
+  // После подписки показываем архетип (а не масштаб как раньше)
+  await handleClubShowArchetype(userId, chatId);
 }
 
 // ============================================================================
@@ -931,6 +951,15 @@ export async function handleClubAutoProgress(userId: string, chatId: number, ste
     case 'activate':
       if (currentStep === 'showing_star') {
         await handleClubActivate(userId, chatId);
+      }
+      break;
+    case 'subscribe':
+      // Автопрокидывание на подписку (после "личной карты")
+      if (currentStep === 'showing_star') {
+        const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+        if (user.length) {
+          await handleClubSubscribeRequest(userId, chatId, user[0].telegramId);
+        }
       }
       break;
     case 'style':
