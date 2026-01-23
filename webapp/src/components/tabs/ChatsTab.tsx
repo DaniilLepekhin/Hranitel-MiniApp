@@ -117,7 +117,7 @@ export function ChatsTab() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#f7f1e8] relative">
+    <div className="min-h-screen w-full bg-[#f7f1e8] relative" style={{ WebkitOverflowScrolling: 'touch' }}>
       {/* ===== ФОН ===== */}
       <div
         className="fixed pointer-events-none overflow-hidden bg-[#f7f1e8]"
@@ -128,6 +128,7 @@ export function ChatsTab() {
           bottom: 0,
           width: '100%',
           height: '100%',
+          zIndex: -1,
         }}
       >
         {/* Газетная текстура */}

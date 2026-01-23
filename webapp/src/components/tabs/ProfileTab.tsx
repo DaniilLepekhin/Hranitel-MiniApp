@@ -161,7 +161,7 @@ export function ProfileTab() {
   }, [haptic, webApp, router]);
 
   return (
-    <div className="min-h-screen w-full bg-[#f7f1e8] relative">
+    <div className="min-h-screen w-full bg-[#f7f1e8] relative" style={{ WebkitOverflowScrolling: 'touch' }}>
       {/* 🚀 ОПТИМИЗИРОВАННЫЙ ФОН */}
       <OptimizedBackground variant="profile" />
 

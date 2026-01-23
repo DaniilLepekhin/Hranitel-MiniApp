@@ -27,11 +27,13 @@
   box-sizing: border-box;
 }
 
-html, body {
+html {
   scroll-behavior: auto !important;
-  overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
   width: 100%;
+  /* Важно для корректного скролла в Telegram WebApp на Android */
+  height: 100%;
+  overflow-y: auto;
   overflow-x: hidden;
 }
 
@@ -47,6 +49,10 @@ body {
   color: var(--kod-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Явно разрешаем скролл для body */
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Disable text selection on mobile */

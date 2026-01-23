@@ -107,7 +107,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
   const displayedLeaderboard = leaderboard;
 
   return (
-    <div className="min-h-screen w-full bg-[#f7f1e8] relative">
+    <div className="min-h-screen w-full bg-[#f7f1e8] relative" style={{ WebkitOverflowScrolling: 'touch' }}>
       {/* 🚀 ОПТИМИЗИРОВАННЫЙ ФОН */}
       <OptimizedBackground variant="ratings" />
 

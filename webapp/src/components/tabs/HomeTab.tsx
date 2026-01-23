@@ -62,7 +62,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
   }, [searchQuery, router]);
 
   return (
-    <div className="min-h-screen w-full bg-[#f0ece8] relative">
+    <div className="min-h-screen w-full bg-[#f0ece8] relative" style={{ WebkitOverflowScrolling: 'touch' }}>
       {/* 🚀 ОПТИМИЗИРОВАННЫЙ ФОН - используем мемоизированный компонент */}
       <OptimizedBackground variant="home" />
 

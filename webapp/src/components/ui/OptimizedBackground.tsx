@@ -27,6 +27,7 @@ export const OptimizedBackground = memo(function OptimizedBackground({
         width: '100%',
         height: '100%',
         backgroundColor: bgColor,
+        zIndex: -1,
       }}
     >
       {/* Газетная текстура */}
