@@ -889,14 +889,22 @@ async function handleFallbackToMainFunnel(userId: string, chatId: number) {
   await updateClubProgress(userId, { currentStep: 'completed' });
 
   // Запускаем таймеры обычной воронки: сначала нумерологический гид, затем "3 ловушки"
-  // Гид через 20 мин (как в обычной воронке), "3 ловушки" запланируется из обработчика гида
-  const numerologyTimeout = testModeEnabled ? TEST_FINAL_TIMEOUT : 20 * 60 * 1000; // 20 минут или 10 сек в тесте
-  await schedulerService.schedule(
-    { type: 'numerology_guide_reminder', userId: telegramUserId, chatId: chatId },
-    numerologyTimeout
-  );
-
-  logger.info({ userId, telegramId: user.telegramId }, 'Club funnel → Main funnel fallback: scheduled numerology_guide_reminder');
+  // В тестовом режиме используем тестовые типы задач с ускоренными таймерами
+  if (testModeEnabled) {
+    // Тестовый режим: используем test_* типы задач с 15-секундными интервалами
+    await schedulerService.schedule(
+      { type: 'test_numerology_guide', userId: telegramUserId, chatId: chatId },
+      TEST_FINAL_TIMEOUT // 10 секунд
+    );
+    logger.info({ userId, telegramId: user.telegramId }, 'Club funnel → TEST funnel fallback: scheduled test_numerology_guide');
+  } else {
+    // Боевой режим: используем обычные типы задач с реальными таймерами
+    await schedulerService.schedule(
+      { type: 'numerology_guide_reminder', userId: telegramUserId, chatId: chatId },
+      20 * 60 * 1000 // 20 минут
+    );
+    logger.info({ userId, telegramId: user.telegramId }, 'Club funnel → Main funnel fallback: scheduled numerology_guide_reminder');
+  }
 }
 
 // ============================================================================
