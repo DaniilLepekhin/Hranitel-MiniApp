@@ -39,7 +39,7 @@ async function checkPaymentStatus(userId: number): Promise<boolean> {
     const [user] = await db
       .select()
       .from(users)
-      .where(eq(users.telegramId, String(userId)))
+      .where(eq(users.telegramId, userId))
       .limit(1);
 
     // Check if user has active subscription (isPro = true OR subscription hasn't expired)
@@ -692,7 +692,7 @@ bot.command('start', async (ctx) => {
     const [user] = await db
       .select()
       .from(users)
-      .where(eq(users.telegramId, String(userId)))
+      .where(eq(users.telegramId, userId))
       .limit(1);
 
     // ✅ If user has PAID (isPro = true), return to current onboarding step
@@ -737,7 +737,7 @@ bot.command('start', async (ctx) => {
         const [newUser] = await db
           .insert(users)
           .values({
-            telegramId: String(userId),
+            telegramId: userId,
             username: ctx.from?.username || null,
             firstName: ctx.from?.first_name || null,
             lastName: ctx.from?.last_name || null,
@@ -746,7 +746,7 @@ bot.command('start', async (ctx) => {
         clubUser = newUser;
       }
 
-      await clubFunnel.startClubFunnel(clubUser.id, chatId, String(userId));
+      await clubFunnel.startClubFunnel(clubUser.id, chatId, userId);
       return;
     }
 
@@ -1704,7 +1704,8 @@ bot.command('app', async (ctx) => {
 
 bot.command('today', async (ctx) => {
   try {
-    const telegramId = String(ctx.from?.id);
+    const telegramId = ctx.from?.id;
+    if (!telegramId) return;
 
     const [user] = await db
       .select()
@@ -1759,7 +1760,8 @@ bot.command('today', async (ctx) => {
 
 bot.command('progress', async (ctx) => {
   try {
-    const telegramId = String(ctx.from?.id);
+    const telegramId = ctx.from?.id;
+    if (!telegramId) return;
 
     const [user] = await db
       .select()
@@ -1915,14 +1917,14 @@ bot.command('test_club', async (ctx) => {
     let [user] = await db
       .select()
       .from(users)
-      .where(eq(users.telegramId, String(userId)))
+      .where(eq(users.telegramId, userId))
       .limit(1);
 
     if (!user) {
       const [newUser] = await db
         .insert(users)
         .values({
-          telegramId: String(userId),
+          telegramId: userId,
           username: ctx.from?.username || null,
           firstName: ctx.from?.first_name || null,
           lastName: ctx.from?.last_name || null,
@@ -2018,14 +2020,14 @@ bot.command('test_club_full', async (ctx) => {
     let [user] = await db
       .select()
       .from(users)
-      .where(eq(users.telegramId, String(userId)))
+      .where(eq(users.telegramId, userId))
       .limit(1);
 
     if (!user) {
       const [newUser] = await db
         .insert(users)
         .values({
-          telegramId: String(userId),
+          telegramId: userId,
           username: ctx.from?.username || null,
           firstName: ctx.from?.first_name || null,
           lastName: ctx.from?.last_name || null,

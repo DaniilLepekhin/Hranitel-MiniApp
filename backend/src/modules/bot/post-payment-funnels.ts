@@ -32,7 +32,7 @@ function getTelegramService(): TelegramService {
 // HELPER: Get user by telegram ID
 // ============================================================================
 export async function getUserByTgId(tgId: number) {
-  const result = await db.select().from(users).where(eq(users.telegramId, tgId.toString())).limit(1);
+  const result = await db.select().from(users).where(eq(users.telegramId, tgId)).limit(1);
   return result[0] || null;
 }
 
@@ -744,7 +744,7 @@ export async function activateGiftSubscription(recipientTgId: number, chatId: nu
   let [recipient] = await db
     .select()
     .from(users)
-    .where(eq(users.telegramId, recipientTgId.toString()))
+    .where(eq(users.telegramId, recipientTgId))
     .limit(1);
 
   const gifterTgId = currentMetadata.gifter_tg_id || giftPayment.telegramId;
@@ -754,7 +754,7 @@ export async function activateGiftSubscription(recipientTgId: number, chatId: nu
     const [newRecipient] = await db
       .insert(users)
       .values({
-        telegramId: recipientTgId.toString(),
+        telegramId: recipientTgId,
         isPro: true,
         subscriptionExpires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         firstPurchaseDate: new Date(),
@@ -882,7 +882,7 @@ export async function activateGiftForUser(recipientTgId: number, token: string, 
     if (!user) {
       // Создать нового пользователя
       const newUsers = await tx.insert(users).values({
-        telegramId: recipientTgId.toString(),
+        telegramId: recipientTgId,
         username: ctx.from.username,
         firstName: ctx.from.first_name,
         isPro: true,

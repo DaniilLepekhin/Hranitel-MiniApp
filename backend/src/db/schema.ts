@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, integer, boolean, timestamp, pgEnum, jsonb, index, uniqueIndex, numeric, varchar } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, integer, bigint, boolean, timestamp, pgEnum, jsonb, index, uniqueIndex, numeric, varchar } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // Enums
@@ -32,7 +32,7 @@ export const clubFunnelStepEnum = pgEnum('club_funnel_step', [
 // Users
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
-  telegramId: text('telegram_id').unique().notNull(),
+  telegramId: bigint('telegram_id', { mode: 'number' }).unique().notNull(),
   username: text('username'),
   firstName: text('first_name'),
   lastName: text('last_name'),
@@ -61,7 +61,7 @@ export const users = pgTable('users', {
   // 🆕 Onboarding & Gift subscription fields
   firstPurchaseDate: timestamp('first_purchase_date'), // Дата первой успешной покупки
   gifted: boolean('gifted').default(false).notNull(), // Подписка получена в подарок
-  giftedBy: integer('gifted_by'), // tg_id дарителя
+  giftedBy: bigint('gifted_by', { mode: 'number' }), // tg_id дарителя
   onboardingStep: text('onboarding_step').$type<
     | 'awaiting_keyword'      // Ждет ввод кодового слова "УСПЕХ"
     | 'keyword_entered'       // Кодовое слово введено
@@ -546,7 +546,7 @@ export const payments = pgTable('payments', {
 // 🆕 Payment Analytics (аналитика платежей и форм)
 export const paymentAnalytics = pgTable('payment_analytics', {
   id: uuid('id').primaryKey().defaultRandom(),
-  telegramId: text('telegram_id').notNull(), // TG ID пользователя
+  telegramId: bigint('telegram_id', { mode: 'number' }).notNull(), // TG ID пользователя
   eventType: varchar('event_type', { length: 50 }).notNull(), // form_open, payment_attempt, payment_success
 
   // UTM метки
@@ -601,7 +601,7 @@ export const giftSubscriptions = pgTable('gift_subscriptions', {
 export const clubFunnelProgress = pgTable('club_funnel_progress', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  telegramId: text('telegram_id').notNull(),
+  telegramId: bigint('telegram_id', { mode: 'number' }).notNull(),
 
   // Birthdate data
   birthDate: text('birth_date'), // Format: DD.MM.YYYY

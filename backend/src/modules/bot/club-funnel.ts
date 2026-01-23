@@ -53,11 +53,11 @@ const WEBAPP_PURCHASE_URL = 'https://hranitel.daniillepekhin.com/payment_form_cl
 async function getTelegramUserId(userId: string): Promise<number> {
   const progress = await getClubProgress(userId);
   if (progress?.telegramId) {
-    return parseInt(progress.telegramId, 10);
+    return progress.telegramId;
   }
   // Fallback: получить из users таблицы
   const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-  return user ? parseInt(user.telegramId, 10) : 0;
+  return user ? user.telegramId : 0;
 }
 
 /**
@@ -93,7 +93,7 @@ function getBirthDayArchetype(day: number): number {
   return mapping[day] ?? 1; // default to 1 if not found
 }
 
-async function getOrCreateClubProgress(userId: string, telegramId: string) {
+async function getOrCreateClubProgress(userId: string, telegramId: number) {
   const existing = await db
     .select()
     .from(clubFunnelProgress)
@@ -275,14 +275,14 @@ function getFinalTimeout(): number {
   return testModeEnabled ? TEST_FINAL_TIMEOUT : FINAL_TIMEOUT;
 }
 
-export async function startClubFunnel(userId: string, chatId: number, telegramId: string, isTestMode: boolean = false) {
+export async function startClubFunnel(userId: string, chatId: number, telegramId: number, isTestMode: boolean = false) {
   // Устанавливаем или сбрасываем тестовый режим
   setTestMode(isTestMode);
 
   await getOrCreateClubProgress(userId, telegramId);
 
   // 🧹 Очистка всех запланированных задач при перезапуске (club + обычная воронка)
-  const telegramUserId = parseInt(telegramId, 10);
+  const telegramUserId = telegramId;
 
   // Club воронка
   await schedulerService.cancelUserTasksByType(telegramUserId, 'club_auto_progress');
@@ -882,7 +882,7 @@ async function handleFallbackToMainFunnel(userId: string, chatId: number) {
   );
 
   // Отменяем все задачи club воронки
-  const telegramUserId = parseInt(user.telegramId, 10);
+  const telegramUserId = user.telegramId;
   await schedulerService.cancelUserTasksByType(telegramUserId, 'club_auto_progress');
 
   // Помечаем что club воронка завершена
@@ -934,7 +934,7 @@ export async function handleClubAutoProgress(userId: string, chatId: number, ste
       if (currentStep === 'showing_style') {
         const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
         if (user.length) {
-          await handleClubGetScale(userId, chatId, parseInt(user[0].telegramId));
+          await handleClubGetScale(userId, chatId, user[0].telegramId);
         }
       }
       break;

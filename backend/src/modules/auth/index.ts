@@ -134,7 +134,7 @@ export const authModule = new Elysia({ prefix: '/auth', tags: ['Auth'] })
         let [user] = await db
           .select()
           .from(users)
-          .where(eq(users.telegramId, String(telegramUser.id)))
+          .where(eq(users.telegramId, telegramUser.id))
           .limit(1);
 
         if (user) {
@@ -157,7 +157,7 @@ export const authModule = new Elysia({ prefix: '/auth', tags: ['Auth'] })
           [user] = await db
             .insert(users)
             .values({
-              telegramId: String(telegramUser.id),
+              telegramId: telegramUser.id,
               username: telegramUser.username,
               firstName: telegramUser.first_name,
               lastName: telegramUser.last_name,

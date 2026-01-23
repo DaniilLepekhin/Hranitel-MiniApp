@@ -206,7 +206,7 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
         const existingUsers = await db
           .select()
           .from(users)
-          .where(eq(users.telegramId, telegram_id.toString()))
+          .where(eq(users.telegramId, telegram_id))
           .limit(1);
 
         let user = existingUsers[0];
@@ -218,7 +218,7 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
           const [newUser] = await db
             .insert(users)
             .values({
-              telegramId: telegram_id.toString(),
+              telegramId: telegram_id,
               email: normalizedEmail || null,
               phone: phone || null,
               isPro: true,
@@ -310,7 +310,7 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
 
         // Track payment success in analytics
         await db.insert(paymentAnalytics).values({
-          telegramId: telegram_id.toString(),
+          telegramId: telegram_id,
           eventType: 'payment_success',
           paymentId: payment.id,
           paymentMethod: payment_method || 'RUB',
