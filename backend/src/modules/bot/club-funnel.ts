@@ -867,10 +867,10 @@ async function handleFallbackToMainFunnel(userId: string, chatId: number) {
   // Помечаем что club воронка завершена
   await updateClubProgress(userId, { currentStep: 'completed' });
 
-  // Запускаем таймеры обычной воронки (СООБЩЕНИЕ 4 через 2 минуты согласно voronka_before_pay_1.txt строка 49)
+  // Запускаем таймеры обычной воронки (СООБЩЕНИЕ 4 через 2 минуты, или 10 сек в тестовом режиме)
   await schedulerService.schedule(
     { type: 'five_min_reminder', userId: telegramUserId, chatId: chatId },
-    2 * 60 * 1000 // 2 минуты
+    getFinalTimeout()
   );
 
   logger.info({ userId, telegramId: user.telegramId }, 'Club funnel → Main funnel fallback (unpaid after 5 min)');
