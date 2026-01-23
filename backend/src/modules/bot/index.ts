@@ -1166,12 +1166,19 @@ bot.command('start', async (ctx) => {
 
     // 🆕 Check for club funnel link (start=club or start=club_XXX) - only for non-paying users
     // Поддерживаемые форматы:
-    // - club - без метки
-    // - club_insta_shapka - с меткой insta_shapka
-    // - club_tgchannel - с меткой tgchannel
+    // - club - без метки (utm_campaign=club, utm_medium=direct, utm_source=direct)
+    // - club_insta_shapka - utm_campaign=club, utm_medium=insta, utm_source=shapka
+    // - club_tgchannel - utm_campaign=club, utm_medium=tgchannel, utm_source=direct
     if (startPayload === 'club' || startPayload?.startsWith('club_')) {
-      // Извлекаем UTM-метку из payload (всё после "club_")
-      const utmSource = startPayload === 'club' ? null : startPayload.substring(5); // "club_".length = 5
+      // Парсим UTM из payload: club_MEDIUM_SOURCE или club_MEDIUM
+      let utmMedium = 'direct';
+      let utmSource = 'direct';
+
+      if (startPayload !== 'club') {
+        const parts = startPayload.substring(5).split('_'); // убираем "club_" и разбиваем по "_"
+        utmMedium = parts[0] || 'direct'; // первая часть = medium (insta, tgchannel, etc.)
+        utmSource = parts.slice(1).join('_') || 'direct'; // остальное = source (shapka, direct, stories, etc.)
+      }
 
       // Get or create user in database
       let clubUser = user; // Reuse user from above query
@@ -1189,23 +1196,21 @@ bot.command('start', async (ctx) => {
         clubUser = newUser;
       }
 
-      // Сохраняем UTM-метку в metadata пользователя
-      if (utmSource) {
-        const currentMetadata = (clubUser.metadata as Record<string, unknown>) || {};
-        await db
-          .update(users)
-          .set({
-            metadata: {
-              ...currentMetadata,
-              utm_source: utmSource,
-              utm_medium: 'deeplink',
-              utm_campaign: 'club_funnel',
-            },
-          })
-          .where(eq(users.telegramId, userId));
+      // Сохраняем UTM-метки в metadata пользователя
+      const currentMetadata = (clubUser.metadata as Record<string, unknown>) || {};
+      await db
+        .update(users)
+        .set({
+          metadata: {
+            ...currentMetadata,
+            utm_campaign: 'club',
+            utm_medium: utmMedium,
+            utm_source: utmSource,
+          },
+        })
+        .where(eq(users.telegramId, userId));
 
-        logger.info({ userId, utmSource }, 'Club funnel started with UTM source');
-      }
+      logger.info({ userId, utmCampaign: 'club', utmMedium, utmSource }, 'Club funnel started with UTM');
 
       await clubFunnel.startClubFunnel(clubUser.id, chatId, userId);
       return;
