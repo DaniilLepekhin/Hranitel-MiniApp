@@ -131,14 +131,17 @@ export const authModule = new Elysia({ prefix: '/auth', tags: ['Auth'] })
         }, 'Processing auth for user');
 
         // Find or create user
+        logger.debug({ telegramId: telegramUser.id }, 'DB: Looking up user');
         let [user] = await db
           .select()
           .from(users)
           .where(eq(users.telegramId, telegramUser.id))
           .limit(1);
+        logger.debug({ telegramId: telegramUser.id, found: !!user }, 'DB: User lookup complete');
 
         if (user) {
           // Update existing user - НЕ обновляем firstName/lastName (пользователь мог их изменить)
+          logger.debug({ userId: user.id }, 'DB: Updating existing user');
           [user] = await db
             .update(users)
             .set({
@@ -154,6 +157,7 @@ export const authModule = new Elysia({ prefix: '/auth', tags: ['Auth'] })
           logger.info({ userId: user.id, photoUrl: user.photoUrl?.substring(0, 50) }, 'User updated (firstName/lastName preserved)');
         } else {
           // Create new user
+          logger.debug({ telegramId: telegramUser.id }, 'DB: Creating new user');
           [user] = await db
             .insert(users)
             .values({
@@ -170,10 +174,12 @@ export const authModule = new Elysia({ prefix: '/auth', tags: ['Auth'] })
         }
 
         // Generate JWT
+        logger.debug({ userId: user.id }, 'Generating JWT token');
         const token = await jwt.sign({
           userId: user.id,
           telegramId: user.telegramId,
         });
+        logger.debug({ userId: user.id }, 'JWT token generated successfully');
 
         // Set httpOnly cookie
         cookie.auth_token.set({
@@ -202,11 +208,19 @@ export const authModule = new Elysia({ prefix: '/auth', tags: ['Auth'] })
           token,
         };
       } catch (error) {
-        logger.error({ error }, 'Auth error');
+        // Detailed error logging for debugging
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        logger.error({
+          error: errorMessage,
+          stack: errorStack,
+          type: error?.constructor?.name
+        }, 'Auth error - detailed');
         set.status = 500;
         return {
           success: false,
           error: 'Authentication failed',
+          debug: config.NODE_ENV !== 'production' ? errorMessage : undefined,
         };
       }
     },
