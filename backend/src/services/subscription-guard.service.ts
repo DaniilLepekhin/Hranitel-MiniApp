@@ -10,8 +10,11 @@ import { eq, lt, and, isNotNull } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import postgres from 'postgres';
 
-// Канал клуба
-const CLUB_CHANNEL_ID = -1002580645337;
+// Защищённые каналы клуба
+const PROTECTED_CHANNEL_IDS = [
+  -1002580645337,  // Основной канал клуба
+  -1003590120817,  // Дополнительный канал
+];
 
 // Подключение к старой БД для city_chats_ik
 const oldDbConnection = postgres({
@@ -113,7 +116,7 @@ class SubscriptionGuardService {
 
     // Проверяем, что это наш канал или один из чатов городов
     const cityChatIds = await this.getCityChatIds();
-    const isProtectedChat = chatId === CLUB_CHANNEL_ID || cityChatIds.includes(chatId);
+    const isProtectedChat = PROTECTED_CHANNEL_IDS.includes(chatId) || cityChatIds.includes(chatId);
 
     if (!isProtectedChat) {
       return;
@@ -148,7 +151,7 @@ class SubscriptionGuardService {
       return;
     }
 
-    const chatIds = [CLUB_CHANNEL_ID, ...(await this.getCityChatIds())];
+    const chatIds = [...PROTECTED_CHANNEL_IDS, ...(await this.getCityChatIds())];
 
     for (const chatId of chatIds) {
       try {
@@ -175,7 +178,7 @@ class SubscriptionGuardService {
       return;
     }
 
-    const chatIds = [CLUB_CHANNEL_ID, ...(await this.getCityChatIds())];
+    const chatIds = [...PROTECTED_CHANNEL_IDS, ...(await this.getCityChatIds())];
 
     for (const chatId of chatIds) {
       try {
