@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useMemo } from 'react';
-import { Play, Pause, X, Headphones, Radio } from 'lucide-react';
+import { Play, Pause, X, Headphones, Radio, Maximize } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useMediaPlayerStore } from '@/store/media-player';
 import { useShallow } from 'zustand/react/shallow';
@@ -167,18 +167,55 @@ export function MiniPlayer() {
       {/* Video Element - always in DOM but hidden when mini player shown */}
       {/* z-[101] чтобы быть выше FullMediaPlayer (z-[100]) когда showFullPlayer=true */}
       {currentMedia && currentMedia.type === 'video' && (
-        <video
-          ref={videoRef}
-          src={currentMedia.url}
-          style={{ display: showFullPlayer ? 'block' : 'none' }}
-          className={`fixed ${showFullPlayer ? 'top-[70px] bottom-[180px]' : 'inset-0'} left-0 right-0 w-full object-contain bg-black ${showFullPlayer ? 'z-[101]' : 'z-[95]'}`}
-          playsInline
-          controls={showFullPlayer}
-          controlsList="nodownload"
-          // @ts-ignore - webkit-specific attributes for iOS fullscreen
-          webkit-playsinline="true"
-          x-webkit-airplay="allow"
-        />
+        <>
+          <video
+            ref={videoRef}
+            src={currentMedia.url}
+            style={{ display: showFullPlayer ? 'block' : 'none' }}
+            className={`fixed ${showFullPlayer ? 'top-[70px] bottom-[180px]' : 'inset-0'} left-0 right-0 w-full object-contain bg-black ${showFullPlayer ? 'z-[101]' : 'z-[95]'}`}
+            playsInline
+            controls={showFullPlayer}
+            controlsList="nodownload"
+            // @ts-ignore - webkit-specific attributes for iOS fullscreen
+            webkit-playsinline="true"
+            x-webkit-airplay="allow"
+          />
+          {/* Кнопка полноэкранного режима поверх видео */}
+          {showFullPlayer && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const video = videoRef.current as HTMLVideoElement & {
+                  webkitEnterFullscreen?: () => void;
+                  webkitSupportsFullscreen?: boolean;
+                };
+                if (video) {
+                  try {
+                    // Для iOS Safari в Telegram WebApp
+                    if (video.webkitSupportsFullscreen && video.webkitEnterFullscreen) {
+                      video.webkitEnterFullscreen();
+                    } else if (video.requestFullscreen) {
+                      video.requestFullscreen();
+                    } else if ((video as any).webkitRequestFullscreen) {
+                      (video as any).webkitRequestFullscreen();
+                    } else {
+                      // Fallback: открыть видео в новой вкладке
+                      window.open(currentMedia.url, '_blank');
+                    }
+                  } catch (error) {
+                    console.warn('Fullscreen error:', error);
+                    window.open(currentMedia.url, '_blank');
+                  }
+                }
+                haptic.impact('medium');
+              }}
+              className="fixed top-[80px] right-4 z-[102] w-12 h-12 rounded-xl bg-black/60 backdrop-blur-sm flex items-center justify-center hover:bg-black/80 transition-all"
+              title="Полноэкранный режим"
+            >
+              <Maximize className="w-6 h-6 text-white" />
+            </button>
+          )}
+        </>
       )}
     </>
   ), [currentMedia, showFullPlayer]);
