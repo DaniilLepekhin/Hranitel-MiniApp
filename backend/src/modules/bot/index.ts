@@ -1263,20 +1263,19 @@ bot.command('start', async (ctx) => {
     }
 
     // 🧹 Очистка всех запланированных задач при перезапуске /start (обычная + club воронка)
-
-    // Обычная воронка (все типы задач)
-    await schedulerService.cancelUserTasksByType(userId, 'start_reminder');
-    await schedulerService.cancelUserTasksByType(userId, 'five_min_reminder');
-    await schedulerService.cancelUserTasksByType(userId, 'burning_question_reminder');
-    await schedulerService.cancelUserTasksByType(userId, 'payment_reminder');
-    await schedulerService.cancelUserTasksByType(userId, 'final_reminder');
-    await schedulerService.cancelUserTasksByType(userId, 'day2_reminder');
-    await schedulerService.cancelUserTasksByType(userId, 'day3_reminder');
-    await schedulerService.cancelUserTasksByType(userId, 'day4_reminder');
-    await schedulerService.cancelUserTasksByType(userId, 'day5_final');
-
-    // Club воронка
-    await schedulerService.cancelUserTasksByType(userId, 'club_auto_progress');
+    // ⚡ Используем batch метод для эффективности
+    await schedulerService.cancelUserTasksByTypes(userId, [
+      'start_reminder',
+      'five_min_reminder',
+      'burning_question_reminder',
+      'payment_reminder',
+      'final_reminder',
+      'day2_reminder',
+      'day3_reminder',
+      'day4_reminder',
+      'day5_final',
+      'club_auto_progress',
+    ]);
 
     // Сбрасываем тестовый режим club воронки (если был включён)
     clubFunnel.setTestMode(false);

@@ -282,21 +282,21 @@ export async function startClubFunnel(userId: string, chatId: number, telegramId
   await getOrCreateClubProgress(userId, telegramId);
 
   // 🧹 Очистка всех запланированных задач при перезапуске (club + обычная воронка)
+  // ⚡ Используем batch метод для эффективности - один проход вместо 10 отдельных запросов
   const telegramUserId = telegramId;
 
-  // Club воронка
-  await schedulerService.cancelUserTasksByType(telegramUserId, 'club_auto_progress');
-
-  // Обычная воронка (все типы задач)
-  await schedulerService.cancelUserTasksByType(telegramUserId, 'start_reminder');
-  await schedulerService.cancelUserTasksByType(telegramUserId, 'five_min_reminder');
-  await schedulerService.cancelUserTasksByType(telegramUserId, 'burning_question_reminder');
-  await schedulerService.cancelUserTasksByType(telegramUserId, 'payment_reminder');
-  await schedulerService.cancelUserTasksByType(telegramUserId, 'final_reminder');
-  await schedulerService.cancelUserTasksByType(telegramUserId, 'day2_reminder');
-  await schedulerService.cancelUserTasksByType(telegramUserId, 'day3_reminder');
-  await schedulerService.cancelUserTasksByType(telegramUserId, 'day4_reminder');
-  await schedulerService.cancelUserTasksByType(telegramUserId, 'day5_final');
+  await schedulerService.cancelUserTasksByTypes(telegramUserId, [
+    'club_auto_progress',    // Club воронка
+    'start_reminder',        // Обычная воронка
+    'five_min_reminder',
+    'burning_question_reminder',
+    'payment_reminder',
+    'final_reminder',
+    'day2_reminder',
+    'day3_reminder',
+    'day4_reminder',
+    'day5_final',
+  ]);
 
   logger.info({ userId, telegramId, isTestMode }, 'Club funnel started - cancelled all pending tasks from both funnels');
 

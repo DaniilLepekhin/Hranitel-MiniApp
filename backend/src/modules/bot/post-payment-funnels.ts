@@ -133,10 +133,13 @@ export async function handleKeywordSuccess(userId: string, chatId: number) {
     .where(eq(users.id, userId));
 
   // 2. Отменить все запланированные догревы кодового слова
+  // ⚡ Используем batch метод для эффективности
   const userInt = parseInt(userId);
-  await schedulerService.cancelUserTasksByType(userInt, 'keyword_reminder_20m');
-  await schedulerService.cancelUserTasksByType(userInt, 'keyword_reminder_60m');
-  await schedulerService.cancelUserTasksByType(userInt, 'keyword_reminder_120m');
+  await schedulerService.cancelUserTasksByTypes(userInt, [
+    'keyword_reminder_20m',
+    'keyword_reminder_60m',
+    'keyword_reminder_120m',
+  ]);
 
   // 3. Отправить приветственное сообщение с 4 задачами
   const keyboard = new InlineKeyboard()
@@ -238,10 +241,13 @@ export async function completeOnboarding(userId: string, chatId: number) {
     .where(eq(users.id, userId));
 
   // 2. Отменить все догревы ГОТОВО
+  // ⚡ Используем batch метод для эффективности
   const userInt = parseInt(userId);
-  await schedulerService.cancelUserTasksByType(userInt, 'ready_reminder_30m');
-  await schedulerService.cancelUserTasksByType(userInt, 'ready_reminder_60m');
-  await schedulerService.cancelUserTasksByType(userInt, 'ready_final_120m');
+  await schedulerService.cancelUserTasksByTypes(userInt, [
+    'ready_reminder_30m',
+    'ready_reminder_60m',
+    'ready_final_120m',
+  ]);
 
   // 3. Установить кнопку меню в левом нижнем углу (показывает команды бота)
   await getTelegramService().setChatMenuButton(chatId, { type: 'commands' });

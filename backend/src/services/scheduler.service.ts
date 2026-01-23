@@ -166,16 +166,25 @@ export class SchedulerService {
     }
 
     try {
-      // Get all task IDs from user index
-      const allTaskMappings = await redis.hgetall(this.USER_INDEX_KEY);
+      // Use HSCAN instead of HGETALL for better performance on large sets
+      const userTypeKey = `${userId}:${type}`;
       const tasksToCancel: string[] = [];
 
-      // Find tasks matching userId and type
-      for (const [taskId, value] of Object.entries(allTaskMappings)) {
-        if (value === `${userId}:${type}`) {
-          tasksToCancel.push(taskId);
+      // Scan through user index to find matching tasks
+      let cursor = '0';
+      do {
+        const [nextCursor, entries] = await redis.hscan(this.USER_INDEX_KEY, cursor, 'COUNT', 100);
+        cursor = nextCursor;
+
+        // entries is [key1, value1, key2, value2, ...]
+        for (let i = 0; i < entries.length; i += 2) {
+          const taskId = entries[i];
+          const value = entries[i + 1];
+          if (value === userTypeKey) {
+            tasksToCancel.push(taskId);
+          }
         }
-      }
+      } while (cursor !== '0');
 
       if (tasksToCancel.length === 0) {
         return 0;
@@ -197,10 +206,74 @@ export class SchedulerService {
         }
       }
 
-      logger.info({ userId, type, cancelled }, 'User tasks cancelled by type');
+      if (cancelled > 0) {
+        logger.info({ userId, type, cancelled }, 'User tasks cancelled by type');
+      }
       return cancelled;
     } catch (error) {
       logger.error({ error, userId, type }, 'Failed to cancel user tasks by type');
+      return 0;
+    }
+  }
+
+  /**
+   * Cancel all tasks of multiple types for a user in one batch
+   * Much more efficient than calling cancelUserTasksByType multiple times
+   * @param userId User ID
+   * @param types Array of task types to cancel
+   */
+  async cancelUserTasksByTypes(userId: number, types: ScheduledTask['type'][]): Promise<number> {
+    if (!isRedisAvailable || !redis) {
+      return 0;
+    }
+
+    try {
+      // Create a set of user:type keys to match
+      const userTypeKeys = new Set(types.map(type => `${userId}:${type}`));
+      const tasksToCancel: string[] = [];
+
+      // Single scan through user index to find all matching tasks
+      let cursor = '0';
+      do {
+        const [nextCursor, entries] = await redis.hscan(this.USER_INDEX_KEY, cursor, 'COUNT', 100);
+        cursor = nextCursor;
+
+        for (let i = 0; i < entries.length; i += 2) {
+          const taskId = entries[i];
+          const value = entries[i + 1];
+          if (userTypeKeys.has(value)) {
+            tasksToCancel.push(taskId);
+          }
+        }
+      } while (cursor !== '0');
+
+      if (tasksToCancel.length === 0) {
+        return 0;
+      }
+
+      // Find and remove from sorted set in batch
+      const allTasks = await redis.zrange(this.QUEUE_KEY, 0, -1);
+      const taskIdsSet = new Set(tasksToCancel);
+      let cancelled = 0;
+
+      // Build multi command for all deletions at once
+      const multi = redis.multi();
+      for (const taskJson of allTasks) {
+        const task = JSON.parse(taskJson) as ScheduledTask;
+        if (taskIdsSet.has(task.id)) {
+          multi.zrem(this.QUEUE_KEY, taskJson);
+          multi.hdel(this.USER_INDEX_KEY, task.id);
+          cancelled++;
+        }
+      }
+
+      if (cancelled > 0) {
+        await multi.exec();
+        logger.info({ userId, types, cancelled }, 'User tasks cancelled by types (batch)');
+      }
+      return cancelled;
+    } catch (error) {
+      logger.error({ error, userId, types }, 'Failed to cancel user tasks by types');
       return 0;
     }
   }
