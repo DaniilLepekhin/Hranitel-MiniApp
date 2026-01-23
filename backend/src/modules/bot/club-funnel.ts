@@ -328,7 +328,7 @@ export async function startClubFunnel(userId: string, chatId: number, telegramId
   const timeout = getButtonTimeout();
 
   await schedulerService.schedule(
-    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'ready' } },
+    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'ready', isTestMode: testModeEnabled } },
     timeout
   );
 }
@@ -457,7 +457,7 @@ export async function handleBirthDateConfirmed(userId: string, chatId: number, b
 
   const telegramUserId = await getTelegramUserId(userId);
   await schedulerService.schedule(
-    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'activate' } },
+    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'activate', isTestMode: testModeEnabled } },
     getButtonTimeout()
   );
 }
@@ -495,7 +495,7 @@ export async function handleClubActivate(userId: string, chatId: number) {
 
   const telegramUserId = await getTelegramUserId(userId);
   await schedulerService.schedule(
-    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'style' } },
+    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'style', isTestMode: testModeEnabled } },
     getButtonTimeout()
   );
 }
@@ -556,7 +556,7 @@ export async function handleClubGetStyle(userId: string, chatId: number) {
 
   const telegramUserId = await getTelegramUserId(userId);
   await schedulerService.schedule(
-    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'scale' } },
+    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'scale', isTestMode: testModeEnabled } },
     getButtonTimeout()
   );
 }
@@ -662,7 +662,7 @@ async function sendScaleMessage(userId: string, chatId: number) {
 
   const telegramUserId = await getTelegramUserId(userId);
   await schedulerService.schedule(
-    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'roadmap' } },
+    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'roadmap', isTestMode: testModeEnabled } },
     getButtonTimeout()
   );
 }
@@ -711,7 +711,7 @@ export async function handleClubGetRoadmap(userId: string, chatId: number) {
 
   const telegramUserId = await getTelegramUserId(userId);
   await schedulerService.schedule(
-    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'purchase' } },
+    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'purchase', isTestMode: testModeEnabled } },
     getFinalTimeout()
   );
 }
@@ -798,7 +798,7 @@ export async function handleClubStartRoute(userId: string, chatId: number, user:
   logger.info({ telegramUserId, odUserId: userId, fallbackTimeout }, 'handleClubStartRoute: Scheduling fallback task');
 
   await schedulerService.schedule(
-    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'fallback_to_main' } },
+    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'fallback_to_main', isTestMode: testModeEnabled } },
     fallbackTimeout
   );
 
@@ -880,7 +880,12 @@ async function handleFallbackToMainFunnel(userId: string, chatId: number) {
 // АВТОПРОКИДЫВАНИЕ
 // ============================================================================
 
-export async function handleClubAutoProgress(userId: string, chatId: number, step: string) {
+export async function handleClubAutoProgress(userId: string, chatId: number, step: string, isTestMode: boolean = false) {
+  // Восстанавливаем тестовый режим из данных задачи
+  if (isTestMode) {
+    setTestMode(true);
+  }
+
   const progress = await getClubProgress(userId);
   if (!progress) return;
 
