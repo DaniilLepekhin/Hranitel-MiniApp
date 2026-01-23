@@ -121,8 +121,10 @@ export default function ContentDetailPage() {
         // Fetch video with timecodes
         const videoData = await contentApi.getVideo(firstVideo.id);
 
-        // Определяем тип медиа: если есть videoUrl - это видео, иначе аудио
-        const isVideo = !!firstVideo.videoUrl;
+        // Определяем тип медиа по расширению URL: .mp3 = аудио, .mp4/.webm/youtube/vimeo = видео
+        const url = firstVideo.videoUrl?.toLowerCase() || '';
+        const isAudioFile = url.endsWith('.mp3') || url.endsWith('.m4a') || url.endsWith('.wav') || url.endsWith('.ogg');
+        const isVideo = !isAudioFile && !!firstVideo.videoUrl;
 
         const mediaItem: MediaItem = {
           id: firstVideo.id,
