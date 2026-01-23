@@ -33,6 +33,11 @@ interface CityChat {
   city: string;
 }
 
+// ⚡ Кэш для city_chats - обновляется раз в 5 минут
+const CITY_CHATS_CACHE_TTL = 5 * 60 * 1000; // 5 минут
+let cityChatIdsCache: number[] | null = null;
+let cityChatIdsCacheTime = 0;
+
 class SubscriptionGuardService {
   private api: Api | null = null;
 
@@ -42,12 +47,20 @@ class SubscriptionGuardService {
   init(api: Api) {
     this.api = api;
     logger.info('SubscriptionGuardService initialized');
+    // Прогреваем кэш при старте
+    this.getCityChatIds().catch(() => {});
   }
 
   /**
-   * Получить все chat_id из city_chats_ik
+   * Получить все chat_id из city_chats_ik (с кэшированием)
    */
   async getCityChatIds(): Promise<number[]> {
+    // Проверяем кэш
+    const now = Date.now();
+    if (cityChatIdsCache && (now - cityChatIdsCacheTime) < CITY_CHATS_CACHE_TTL) {
+      return cityChatIdsCache;
+    }
+
     try {
       const result = await oldDbConnection<{ chat_id: string | null }[]>`
         SELECT chat_id
@@ -63,11 +76,16 @@ class SubscriptionGuardService {
         })
         .filter((id): id is number => id !== null);
 
-      logger.info({ count: chatIds.length }, 'Fetched city chat IDs');
+      // Сохраняем в кэш
+      cityChatIdsCache = chatIds;
+      cityChatIdsCacheTime = now;
+
+      logger.info({ count: chatIds.length }, 'Fetched and cached city chat IDs');
       return chatIds;
     } catch (error) {
       logger.error({ error }, 'Error fetching city chat IDs');
-      return [];
+      // Возвращаем старый кэш если есть
+      return cityChatIdsCache || [];
     }
   }
 

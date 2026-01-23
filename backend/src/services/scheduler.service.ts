@@ -64,7 +64,8 @@ export interface ScheduledTask {
 export class SchedulerService {
   private readonly QUEUE_KEY = 'scheduler:tasks';
   private readonly PROCESSING_KEY = 'scheduler:processing';
-  private readonly USER_INDEX_KEY = 'scheduler:user_tasks'; // Hash: {taskId} -> userId for O(1) lookups
+  private readonly USER_INDEX_KEY = 'scheduler:user_tasks'; // Hash: {taskId} -> "userId:type" for O(1) lookups
+  private readonly TASK_DATA_KEY = 'scheduler:task_data'; // Hash: {taskId} -> taskJson for O(1) task lookup
   private processingInterval?: Timer;
   private isProcessing = false;
 
@@ -108,12 +109,14 @@ export class SchedulerService {
     };
 
     try {
+      const taskJson = JSON.stringify(fullTask);
       // Add task to Redis sorted set (score = executeAt timestamp)
-      // Also add to user index for fast user-specific queries
+      // Also add to user index and task data for fast lookups
       await redis
         .multi()
-        .zadd(this.QUEUE_KEY, executeAt, JSON.stringify(fullTask))
+        .zadd(this.QUEUE_KEY, executeAt, taskJson)
         .hset(this.USER_INDEX_KEY, taskId, `${task.userId}:${task.type}`)
+        .hset(this.TASK_DATA_KEY, taskId, taskJson)
         .exec();
       logger.info({ taskId, type: task.type, executeAt, userId: task.userId }, 'Task scheduled');
       return taskId;
@@ -125,6 +128,7 @@ export class SchedulerService {
 
   /**
    * Cancel a scheduled task
+   * ⚡ Optimized: O(1) lookup using TASK_DATA_KEY
    * @param taskId Task ID to cancel
    */
   async cancel(taskId: string): Promise<boolean> {
@@ -133,21 +137,22 @@ export class SchedulerService {
     }
 
     try {
-      // Find and remove task by ID
-      const tasks = await redis.zrange(this.QUEUE_KEY, 0, -1);
-      for (const taskJson of tasks) {
-        const task = JSON.parse(taskJson) as ScheduledTask;
-        if (task.id === taskId) {
-          await redis
-            .multi()
-            .zrem(this.QUEUE_KEY, taskJson)
-            .hdel(this.USER_INDEX_KEY, taskId)
-            .exec();
-          logger.info({ taskId }, 'Task cancelled');
-          return true;
-        }
+      // ⚡ O(1) lookup from task data hash
+      const taskJson = await redis.hget(this.TASK_DATA_KEY, taskId);
+
+      if (!taskJson) {
+        return false;
       }
-      return false;
+
+      await redis
+        .multi()
+        .zrem(this.QUEUE_KEY, taskJson)
+        .hdel(this.USER_INDEX_KEY, taskId)
+        .hdel(this.TASK_DATA_KEY, taskId)
+        .exec();
+
+      logger.info({ taskId }, 'Task cancelled');
+      return true;
     } catch (error) {
       logger.error({ error, taskId }, 'Failed to cancel task');
       return false;
@@ -156,7 +161,7 @@ export class SchedulerService {
 
   /**
    * Cancel all tasks of a specific type for a user
-   * Optimized for high-volume scenarios (10k+ users)
+   * ⚡ Optimized: uses TASK_DATA_KEY hash for O(1) task lookup
    * @param userId User ID
    * @param type Task type to cancel
    */
@@ -190,23 +195,27 @@ export class SchedulerService {
         return 0;
       }
 
-      // Find and remove from sorted set
-      const allTasks = await redis.zrange(this.QUEUE_KEY, 0, -1);
+      // ⚡ Get task data from hash instead of scanning entire sorted set
+      const taskJsons = await redis.hmget(this.TASK_DATA_KEY, ...tasksToCancel);
+
+      // Build multi command for all deletions at once
+      const multi = redis.multi();
       let cancelled = 0;
 
-      for (const taskJson of allTasks) {
-        const task = JSON.parse(taskJson) as ScheduledTask;
-        if (tasksToCancel.includes(task.id)) {
-          await redis
-            .multi()
-            .zrem(this.QUEUE_KEY, taskJson)
-            .hdel(this.USER_INDEX_KEY, task.id)
-            .exec();
-          cancelled++;
+      for (let i = 0; i < tasksToCancel.length; i++) {
+        const taskId = tasksToCancel[i];
+        const taskJson = taskJsons[i];
+
+        if (taskJson) {
+          multi.zrem(this.QUEUE_KEY, taskJson);
         }
+        multi.hdel(this.USER_INDEX_KEY, taskId);
+        multi.hdel(this.TASK_DATA_KEY, taskId);
+        cancelled++;
       }
 
       if (cancelled > 0) {
+        await multi.exec();
         logger.info({ userId, type, cancelled }, 'User tasks cancelled by type');
       }
       return cancelled;
@@ -218,7 +227,7 @@ export class SchedulerService {
 
   /**
    * Cancel all tasks of multiple types for a user in one batch
-   * Much more efficient than calling cancelUserTasksByType multiple times
+   * ⚡ Optimized: uses TASK_DATA_KEY hash for O(1) task lookup instead of ZRANGE
    * @param userId User ID
    * @param types Array of task types to cancel
    */
@@ -251,20 +260,23 @@ export class SchedulerService {
         return 0;
       }
 
-      // Find and remove from sorted set in batch
-      const allTasks = await redis.zrange(this.QUEUE_KEY, 0, -1);
-      const taskIdsSet = new Set(tasksToCancel);
-      let cancelled = 0;
+      // ⚡ Get task data from hash instead of scanning entire sorted set
+      const taskJsons = await redis.hmget(this.TASK_DATA_KEY, ...tasksToCancel);
 
       // Build multi command for all deletions at once
       const multi = redis.multi();
-      for (const taskJson of allTasks) {
-        const task = JSON.parse(taskJson) as ScheduledTask;
-        if (taskIdsSet.has(task.id)) {
+      let cancelled = 0;
+
+      for (let i = 0; i < tasksToCancel.length; i++) {
+        const taskId = tasksToCancel[i];
+        const taskJson = taskJsons[i];
+
+        if (taskJson) {
           multi.zrem(this.QUEUE_KEY, taskJson);
-          multi.hdel(this.USER_INDEX_KEY, task.id);
-          cancelled++;
         }
+        multi.hdel(this.USER_INDEX_KEY, taskId);
+        multi.hdel(this.TASK_DATA_KEY, taskId);
+        cancelled++;
       }
 
       if (cancelled > 0) {
@@ -377,11 +389,12 @@ export class SchedulerService {
                 // Execute the task callback
                 await callback(task);
 
-                // Remove from processing set and user index after successful execution
+                // Remove from processing set, user index, and task data after successful execution
                 await redis
                   .multi()
                   .srem(this.PROCESSING_KEY, taskJson)
                   .hdel(this.USER_INDEX_KEY, task.id)
+                  .hdel(this.TASK_DATA_KEY, task.id)
                   .exec();
 
                 logger.info({ taskId: task.id, type: task.type }, 'Task completed');
@@ -395,12 +408,13 @@ export class SchedulerService {
             }
           } catch (error) {
             logger.error({ error, taskJson }, 'Task execution failed');
-            // Remove from processing set and user index on error too
+            // Remove from processing set, user index, and task data on error too
             const parsedTask = JSON.parse(taskJson) as ScheduledTask;
             await redis
               .multi()
               .srem(this.PROCESSING_KEY, taskJson)
               .hdel(this.USER_INDEX_KEY, parsedTask.id)
+              .hdel(this.TASK_DATA_KEY, parsedTask.id)
               .exec();
           }
         })
@@ -454,6 +468,7 @@ export class SchedulerService {
 
   /**
    * Cancel ALL tasks for a specific user (when user pays)
+   * ⚡ Optimized: uses TASK_DATA_KEY hash for O(1) task lookup
    * @param userId User ID
    * @returns Number of cancelled tasks
    */
@@ -463,38 +478,50 @@ export class SchedulerService {
     }
 
     try {
-      // Get all task IDs from user index
-      const allTaskMappings = await redis.hgetall(this.USER_INDEX_KEY);
+      // Scan through user index to find all tasks for this user
       const tasksToCancel: string[] = [];
+      let cursor = '0';
 
-      // Find all tasks for this user
-      for (const [taskId, value] of Object.entries(allTaskMappings)) {
-        if (value.startsWith(`${userId}:`)) {
-          tasksToCancel.push(taskId);
+      do {
+        const [nextCursor, entries] = await redis.hscan(this.USER_INDEX_KEY, cursor, 'COUNT', 100);
+        cursor = nextCursor;
+
+        for (let i = 0; i < entries.length; i += 2) {
+          const taskId = entries[i];
+          const value = entries[i + 1];
+          if (value.startsWith(`${userId}:`)) {
+            tasksToCancel.push(taskId);
+          }
         }
-      }
+      } while (cursor !== '0');
 
       if (tasksToCancel.length === 0) {
         return 0;
       }
 
-      // Find and remove from sorted set
-      const allTasks = await redis.zrange(this.QUEUE_KEY, 0, -1);
+      // ⚡ Get task data from hash instead of scanning entire sorted set
+      const taskJsons = await redis.hmget(this.TASK_DATA_KEY, ...tasksToCancel);
+
+      // Build multi command for all deletions at once
+      const multi = redis.multi();
       let cancelled = 0;
 
-      for (const taskJson of allTasks) {
-        const task = JSON.parse(taskJson) as ScheduledTask;
-        if (tasksToCancel.includes(task.id)) {
-          await redis
-            .multi()
-            .zrem(this.QUEUE_KEY, taskJson)
-            .hdel(this.USER_INDEX_KEY, task.id)
-            .exec();
-          cancelled++;
+      for (let i = 0; i < tasksToCancel.length; i++) {
+        const taskId = tasksToCancel[i];
+        const taskJson = taskJsons[i];
+
+        if (taskJson) {
+          multi.zrem(this.QUEUE_KEY, taskJson);
         }
+        multi.hdel(this.USER_INDEX_KEY, taskId);
+        multi.hdel(this.TASK_DATA_KEY, taskId);
+        cancelled++;
       }
 
-      logger.info({ userId, cancelled }, 'All user tasks cancelled (user paid)');
+      if (cancelled > 0) {
+        await multi.exec();
+        logger.info({ userId, cancelled }, 'All user tasks cancelled (user paid)');
+      }
       return cancelled;
     } catch (error) {
       logger.error({ error, userId }, 'Failed to cancel all user tasks');
@@ -514,6 +541,7 @@ export class SchedulerService {
       await redis.del(this.QUEUE_KEY);
       await redis.del(this.PROCESSING_KEY);
       await redis.del(this.USER_INDEX_KEY);
+      await redis.del(this.TASK_DATA_KEY);
       logger.warn('All scheduled tasks cleared');
     } catch (error) {
       logger.error({ error }, 'Failed to clear tasks');
