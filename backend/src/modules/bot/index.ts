@@ -1653,6 +1653,160 @@ bot.command('meditate', async (ctx) => {
   }
 });
 
+// ============================================================================
+// 🧪 ТЕСТОВЫЕ КОМАНДЫ ДЛЯ АДМИНОВ
+// ============================================================================
+
+// Список админов (telegram IDs)
+const ADMIN_IDS = [
+  288589382, // Даниил
+  // Добавьте сюда другие ID админов
+];
+
+function isAdmin(userId: number): boolean {
+  return ADMIN_IDS.includes(userId);
+}
+
+// /test_start - тестовый просмотр обычной воронки /start (как будто новый пользователь)
+bot.command('test_start', async (ctx) => {
+  try {
+    const userId = ctx.from!.id;
+    const chatId = ctx.chat.id;
+
+    if (!isAdmin(userId)) {
+      await ctx.reply('❌ Эта команда доступна только админам.');
+      return;
+    }
+
+    logger.info({ userId }, 'Admin testing /start funnel');
+
+    const keyboard = new InlineKeyboard()
+      .text('Получить доступ', 'get_access')
+      .row()
+      .webApp('🚀 MiniApp', config.WEBAPP_URL);
+
+    await telegramService.sendMessage(
+      chatId,
+      '🧪 <b>ТЕСТОВЫЙ РЕЖИМ: Обычная воронка /start</b>\n\n' +
+      '<i>Это тестовый просмотр воронки. Таймеры НЕ запускаются.</i>\n\n' +
+      '━━━━━━━━━━━━━━━━━━━━━',
+      { parse_mode: 'HTML' }
+    );
+
+    // Send video with message (same as real /start)
+    await telegramService.sendVideo(
+      chatId,
+      'https://t.me/mate_bot_open/9492',
+      {
+        caption:
+          `<b>Код Успеха — здесь.</b>\n\n` +
+          `❤️ Экосистема, где <b>15 000+ участников</b>\n` +
+          `уже выстраивают доход в мягких нишах через поле, этапы и живую среду — а не одиночные курсы.\n\n` +
+          `Смотри видео и узнай, что ждет тебя внутри клуба\n\n` +
+          `Доступ сразу после входа 👇`,
+        reply_markup: keyboard,
+        parse_mode: 'HTML'
+      }
+    );
+
+    await ctx.reply(
+      '✅ Воронка /start отправлена.\n\n' +
+      '📌 Нажми "Получить доступ" чтобы увидеть следующее сообщение (билет + марафон)'
+    );
+
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in /test_start command');
+    await ctx.reply('❌ Ошибка при тестировании воронки');
+  }
+});
+
+// /test_club - тестовый просмотр club воронки (нумерологическая воронка до оплаты)
+bot.command('test_club', async (ctx) => {
+  try {
+    const userId = ctx.from!.id;
+    const chatId = ctx.chat.id;
+
+    if (!isAdmin(userId)) {
+      await ctx.reply('❌ Эта команда доступна только админам.');
+      return;
+    }
+
+    logger.info({ userId }, 'Admin testing club funnel');
+
+    // Получаем или создаем пользователя
+    let [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.telegramId, String(userId)))
+      .limit(1);
+
+    if (!user) {
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          telegramId: String(userId),
+          username: ctx.from?.username || null,
+          firstName: ctx.from?.first_name || null,
+          lastName: ctx.from?.last_name || null,
+        })
+        .returning();
+      user = newUser;
+    }
+
+    await telegramService.sendMessage(
+      chatId,
+      '🧪 <b>ТЕСТОВЫЙ РЕЖИМ: Club воронка (нумерология)</b>\n\n' +
+      '<i>Это тестовый просмотр воронки до оплаты. Таймеры работают в обычном режиме.</i>\n\n' +
+      '━━━━━━━━━━━━━━━━━━━━━',
+      { parse_mode: 'HTML' }
+    );
+
+    // Сбрасываем прогресс club воронки для чистого теста
+    await db
+      .delete(clubFunnelProgress)
+      .where(eq(clubFunnelProgress.userId, user.id));
+
+    // Запускаем club воронку
+    await clubFunnel.startClubFunnel(user.id, chatId, String(userId));
+
+    await ctx.reply(
+      '✅ Club воронка запущена.\n\n' +
+      '📌 Введи дату рождения в формате ДД.ММ.ГГГГ чтобы продолжить'
+    );
+
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in /test_club command');
+    await ctx.reply('❌ Ошибка при тестировании club воронки');
+  }
+});
+
+// /admin - показать список тестовых команд
+bot.command('admin', async (ctx) => {
+  try {
+    const userId = ctx.from!.id;
+
+    if (!isAdmin(userId)) {
+      await ctx.reply('❌ Эта команда доступна только админам.');
+      return;
+    }
+
+    await ctx.reply(
+      '🔧 <b>Админ-панель тестирования</b>\n\n' +
+      '<b>Тестовые воронки:</b>\n' +
+      '/test_start - просмотр обычной воронки /start\n' +
+      '/test_club - просмотр club воронки (нумерология)\n\n' +
+      '<b>Ссылки для тестирования:</b>\n' +
+      '• Обычная воронка: t.me/hranitelkodbot?start=test\n' +
+      '• Club воронка: t.me/hranitelkodbot?start=club\n\n' +
+      '<i>Тестовые команды не влияют на ваш статус оплаты</i>',
+      { parse_mode: 'HTML' }
+    );
+
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in /admin command');
+  }
+});
+
 // Callback handlers
 bot.callbackQuery('my_courses', async (ctx) => {
   try {
