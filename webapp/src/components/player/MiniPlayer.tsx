@@ -175,6 +175,9 @@ export function MiniPlayer() {
           playsInline
           controls={showFullPlayer}
           controlsList="nodownload"
+          // @ts-ignore - webkit-specific attributes for iOS fullscreen
+          webkit-playsinline="true"
+          x-webkit-airplay="allow"
         />
       )}
     </>

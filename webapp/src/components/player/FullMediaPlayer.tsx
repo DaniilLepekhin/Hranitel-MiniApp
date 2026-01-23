@@ -82,27 +82,44 @@ export function FullMediaPlayer() {
     haptic.impact('light');
   };
 
-  const toggleVideoFullscreen = () => {
+  const toggleVideoFullscreen = async () => {
     // Get video element from MiniPlayer (managed globally now)
-    const video = document.querySelector('video');
+    const video = document.querySelector('video') as HTMLVideoElement & {
+      webkitEnterFullscreen?: () => void;
+      webkitExitFullscreen?: () => void;
+      webkitSupportsFullscreen?: boolean;
+      webkitDisplayingFullscreen?: boolean;
+    };
     if (!video) return;
 
-    if (!isVideoFullscreen) {
-      // Enter fullscreen
-      if (video.requestFullscreen) {
-        video.requestFullscreen();
-      } else if ((video as any).webkitRequestFullscreen) {
-        (video as any).webkitRequestFullscreen();
+    try {
+      if (!isVideoFullscreen) {
+        // Для iOS Safari в Telegram WebApp используем webkitEnterFullscreen
+        if (video.webkitSupportsFullscreen && video.webkitEnterFullscreen) {
+          video.webkitEnterFullscreen();
+        } else if (video.requestFullscreen) {
+          await video.requestFullscreen();
+        } else if ((video as any).webkitRequestFullscreen) {
+          (video as any).webkitRequestFullscreen();
+        }
+        setIsVideoFullscreen(true);
+      } else {
+        // Exit fullscreen
+        if (video.webkitDisplayingFullscreen && video.webkitExitFullscreen) {
+          video.webkitExitFullscreen();
+        } else if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          (document as any).webkitExitFullscreen();
+        }
+        setIsVideoFullscreen(false);
       }
-      setIsVideoFullscreen(true);
-    } else {
-      // Exit fullscreen
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if ((document as any).webkitExitFullscreen) {
-        (document as any).webkitExitFullscreen();
+    } catch (error) {
+      console.warn('Fullscreen not supported:', error);
+      // Fallback: открываем видео в новой вкладке
+      if (currentMedia?.url) {
+        window.open(currentMedia.url, '_blank');
       }
-      setIsVideoFullscreen(false);
     }
     haptic.impact('medium');
   };
