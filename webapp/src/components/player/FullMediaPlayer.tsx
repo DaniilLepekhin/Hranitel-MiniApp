@@ -221,9 +221,9 @@ export function FullMediaPlayer() {
         )}
       </div>
 
-      {/* Player Controls (Fixed at bottom) */}
+      {/* Player Controls (Fixed at bottom) - скрыты для видео, т.к. используются нативные контролы */}
       {/* z-[102] чтобы быть выше video элемента (z-[101]) */}
-      <div className="fixed bottom-0 left-0 right-0 z-[102] px-6 pb-8 bg-gradient-to-t from-black/80 to-transparent backdrop-blur-sm">
+      <div className={`fixed bottom-0 left-0 right-0 z-[102] px-6 pb-8 bg-gradient-to-t from-black/80 to-transparent backdrop-blur-sm ${isVideo ? 'hidden' : ''}`}>
         {/* Progress bar */}
         <div className="mb-4">
           <input
