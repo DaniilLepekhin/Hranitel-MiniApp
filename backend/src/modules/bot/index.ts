@@ -759,6 +759,75 @@ bot.command('start', async (ctx) => {
       return;
     }
 
+    // 🧪 Deep link для тестовой обычной воронки (start=test_start_full)
+    if (startPayload === 'test_start_full') {
+      logger.info({ userId }, 'User testing FULL /start funnel via deep link');
+
+      // Отменяем все предыдущие задачи
+      await schedulerService.cancelAllUserTasks(userId);
+
+      const keyboard = new InlineKeyboard()
+        .text('Получить доступ', 'test_get_access_full');
+
+      await telegramService.sendVideo(
+        chatId,
+        'https://t.me/mate_bot_open/9492',
+        {
+          caption:
+            `<b>Код Успеха — здесь.</b>\n\n` +
+            `❤️ Экосистема, где <b>15 000+ участников</b>\n` +
+            `уже выстраивают доход в мягких нишах через поле, этапы и живую среду — а не одиночные курсы.\n\n` +
+            `Смотри видео и узнай, что ждет тебя внутри клуба\n\n` +
+            `Доступ сразу после входа 👇`,
+          reply_markup: keyboard,
+          parse_mode: 'HTML'
+        }
+      );
+
+      // Schedule fast 10-second reminder
+      await schedulerService.schedule(
+        {
+          type: 'test_start_reminder',
+          userId,
+          chatId,
+        },
+        10 * 1000
+      );
+      return;
+    }
+
+    // 🧪 Deep link для тестовой club воронки (start=test_club_full)
+    if (startPayload === 'test_club_full') {
+      logger.info({ userId }, 'User testing FULL club funnel via deep link');
+
+      // Get or create user in database
+      let testUser = user;
+      if (!testUser) {
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            telegramId: userId,
+            username: ctx.from?.username || null,
+            firstName: ctx.from?.first_name || null,
+            lastName: ctx.from?.last_name || null,
+          })
+          .returning();
+        testUser = newUser;
+      }
+
+      // Отменяем все предыдущие задачи
+      await schedulerService.cancelAllUserTasks(userId);
+
+      // Сбрасываем прогресс club воронки
+      await db
+        .delete(clubFunnelProgress)
+        .where(eq(clubFunnelProgress.userId, testUser.id));
+
+      // Запускаем club воронку с флагом тестового режима
+      await clubFunnel.startClubFunnel(testUser.id, chatId, userId, true);
+      return;
+    }
+
     // ❌ Если пользователь НЕ оплатил - запустить продажную воронку
     // 🧹 Очистка всех запланированных задач при перезапуске /start (обычная + club воронка)
 
