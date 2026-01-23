@@ -171,9 +171,10 @@ export function MiniPlayer() {
           ref={videoRef}
           src={currentMedia.url}
           style={{ display: showFullPlayer ? 'block' : 'none' }}
-          className={`fixed ${showFullPlayer ? 'top-16 bottom-40' : 'inset-0'} left-0 right-0 w-full h-auto object-contain bg-black ${showFullPlayer ? 'z-[101]' : 'z-[95]'}`}
+          className={`fixed ${showFullPlayer ? 'top-[70px] bottom-[180px]' : 'inset-0'} left-0 right-0 w-full object-contain bg-black ${showFullPlayer ? 'z-[101]' : 'z-[95]'}`}
           playsInline
-          controls={false}
+          controls={showFullPlayer}
+          controlsList="nodownload"
         />
       )}
     </>
