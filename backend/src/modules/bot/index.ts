@@ -1164,8 +1164,15 @@ bot.command('start', async (ctx) => {
       }
     }
 
-    // 🆕 Check for club funnel link (start=club) - only for non-paying users
-    if (startPayload === 'club') {
+    // 🆕 Check for club funnel link (start=club or start=club_XXX) - only for non-paying users
+    // Поддерживаемые форматы:
+    // - club - без метки
+    // - club_insta_shapka - с меткой insta_shapka
+    // - club_tgchannel - с меткой tgchannel
+    if (startPayload === 'club' || startPayload?.startsWith('club_')) {
+      // Извлекаем UTM-метку из payload (всё после "club_")
+      const utmSource = startPayload === 'club' ? null : startPayload.substring(5); // "club_".length = 5
+
       // Get or create user in database
       let clubUser = user; // Reuse user from above query
       if (!clubUser) {
@@ -1180,6 +1187,24 @@ bot.command('start', async (ctx) => {
           })
           .returning();
         clubUser = newUser;
+      }
+
+      // Сохраняем UTM-метку в metadata пользователя
+      if (utmSource) {
+        const currentMetadata = (clubUser.metadata as Record<string, unknown>) || {};
+        await db
+          .update(users)
+          .set({
+            metadata: {
+              ...currentMetadata,
+              utm_source: utmSource,
+              utm_medium: 'deeplink',
+              utm_campaign: 'club_funnel',
+            },
+          })
+          .where(eq(users.telegramId, userId));
+
+        logger.info({ userId, utmSource }, 'Club funnel started with UTM source');
       }
 
       await clubFunnel.startClubFunnel(clubUser.id, chatId, userId);
