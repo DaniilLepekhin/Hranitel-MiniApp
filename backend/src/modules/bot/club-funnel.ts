@@ -761,7 +761,9 @@ export async function handleClubStartRoute(userId: string, chatId: number, user:
   if (metadata.utm_term) purchaseUrl.searchParams.set('utm_term', metadata.utm_term);
 
   const keyboard13 = new InlineKeyboard()
-    .webApp('оформить подписку ❤️', purchaseUrl.toString());
+    .webApp('оформить подписку ❤️', purchaseUrl.toString())
+    .row()
+    .text('подробнее 🧐', 'club_more_info');
 
   logger.info({ chatId }, 'handleClubStartRoute: Sending final message with video...');
 
@@ -821,6 +823,76 @@ export async function handleClubStartRoute(userId: string, chatId: number, user:
   );
 
   logger.info({ userId, telegramUserId, chatId }, 'handleClubStartRoute: COMPLETE - fallback task scheduled');
+}
+
+// ============================================================================
+// ПОДРОБНЕЕ О ПРОГРАММЕ ФЕВРАЛЯ
+// ============================================================================
+
+/**
+ * Обработчик кнопки "подробнее 🧐" - отправляет видео с подробным описанием программы февраля
+ */
+export async function handleClubMoreInfo(userId: string, chatId: number) {
+  logger.info({ userId, chatId }, 'handleClubMoreInfo: START');
+
+  // Получаем user для формирования WebApp URL
+  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (!user) {
+    logger.error({ userId, chatId }, 'handleClubMoreInfo: User not found');
+    return;
+  }
+
+  // Формируем URL с параметрами
+  const purchaseUrl = new URL(WEBAPP_PURCHASE_URL);
+  const metadata = user.metadata as any || {};
+
+  if (metadata.metka) purchaseUrl.searchParams.set('metka', metadata.metka);
+  if (metadata.group_id) purchaseUrl.searchParams.set('group_id', metadata.group_id);
+  purchaseUrl.searchParams.set('client_id', user.telegramId);
+  purchaseUrl.searchParams.set('platform_id', user.username || '');
+
+  // UTM параметры
+  if (metadata.utm_campaign) purchaseUrl.searchParams.set('utm_campaign', metadata.utm_campaign);
+  if (metadata.utm_medium) purchaseUrl.searchParams.set('utm_medium', metadata.utm_medium);
+  if (metadata.utm_source) purchaseUrl.searchParams.set('utm_source', metadata.utm_source);
+  if (metadata.utm_content) purchaseUrl.searchParams.set('utm_content', metadata.utm_content);
+  if (metadata.utm_term) purchaseUrl.searchParams.set('utm_term', metadata.utm_term);
+
+  const keyboard = new InlineKeyboard()
+    .webApp('я с вами 😍', purchaseUrl.toString());
+
+  await getTelegramService().sendVideo(
+    chatId,
+    'https://t.me/mate_bot_open/9650',
+    {
+      caption:
+        `<b>ПРОБУЖДЕНИЕ. Что тебя ждёт в феврале 👇</b>\n\n` +
+        `С 1 по 4 февраля:\n` +
+        `<b>4 прямых эфира с Кристиной</b>\n\n` +
+        `<b>День 1. Стиль и деньги</b>\n` +
+        `Код архетипа → Как выглядеть, чтобы тебя запоминали. Образ = магнит для денег.\n\n` +
+        `<b>День 2. Честный разбор</b>\n` +
+        `Почему результаты не закрепляются. Слепые зоны, которые сливают ресурс.\n\n` +
+        `<b>День 3. Продукт года</b>\n` +
+        `Создаёшь продукт, который можно продавать весь год. Практика в эфире.\n\n` +
+        `<b>День 4. Дорожная карта</b>\n` +
+        `Твой пошаговый план на февраль и год. Работа в Десятках.\n\n` +
+        `<b>Что включено:</b>\n` +
+        `✔ Марафон «КОД ДЕНЕГ» — 30 дней\n` +
+        `✔ Клуб с поддержкой на месяц\n` +
+        `✔ Приложение ментального здоровья\n` +
+        `✔ Доступ к базе курсов и практик\n` +
+        `✔ Работа в Десятках (бадди-система)\n` +
+        `✔ Встречи по городам\n\n` +
+        `<b>💰 2000₽ вместо 3000₽</b>\n` +
+        `Скидка активна 24 часа.\n\n` +
+        `<b>👇 Жми кнопку — и начнём!</b>`,
+      parse_mode: 'HTML',
+      reply_markup: keyboard,
+    }
+  );
+
+  logger.info({ userId, chatId }, 'handleClubMoreInfo: COMPLETE');
 }
 
 // ============================================================================

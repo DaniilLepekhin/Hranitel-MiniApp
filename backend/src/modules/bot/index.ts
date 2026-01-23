@@ -2066,6 +2066,19 @@ bot.callbackQuery('club_start_route', async (ctx) => {
   }
 });
 
+// Club funnel - "подробнее 🧐" button
+bot.callbackQuery('club_more_info', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const user = await funnels.getUserByTgId(ctx.from.id);
+    if (user) {
+      await clubFunnel.handleClubMoreInfo(user.id, ctx.chat.id);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in club_more_info callback');
+  }
+});
+
 // 🆕 Menu - back button
 bot.callbackQuery('menu_back', async (ctx) => {
   try {
