@@ -326,9 +326,6 @@ export async function startClubFunnel(userId: string, chatId: number, telegramId
   await updateClubProgress(userId, { currentStep: 'awaiting_ready' });
 
   const timeout = getButtonTimeout();
-  if (isTestMode) {
-    await getTelegramService().sendMessage(chatId, `⏱ <i>[ТЕСТ: таймер ${timeout / 1000} сек]</i>`, { parse_mode: 'HTML' });
-  }
 
   await schedulerService.schedule(
     { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'ready' } },

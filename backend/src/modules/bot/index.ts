@@ -509,8 +509,6 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
       const msg2Keyboard = new InlineKeyboard()
         .webApp('Оплатить ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
 
-      await telegramService.sendMessage(chatId, '⏱ <i>[ТЕСТ: 10 сек прошло]</i>', { parse_mode: 'HTML' });
-
       await telegramService.sendPhoto(
         chatId,
         'https://t.me/mate_bot_open/9276',
@@ -552,8 +550,6 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
       );
     }
     else if (type === 'test_numerology_guide') {
-      await telegramService.sendMessage(chatId, '⏱ <i>[ТЕСТ: 15 сек прошло - нумерологический гайд]</i>', { parse_mode: 'HTML' });
-
       const guideKeyboard = new InlineKeyboard()
         .url('Скачать гайд ❤️', 'https://t.me/kristina_egiazarova_bot?start=leadmagnit180126');
 
@@ -576,8 +572,6 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
       );
     }
     else if (type === 'test_traps') {
-      await telegramService.sendMessage(chatId, '⏱ <i>[ТЕСТ: 15 сек прошло - 3 ловушки]</i>', { parse_mode: 'HTML' });
-
       const trapsKeyboard = new InlineKeyboard()
         .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
 
@@ -600,8 +594,6 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
       );
     }
     else if (type === 'test_burning') {
-      await telegramService.sendMessage(chatId, '⏱ <i>[ТЕСТ: 15 сек прошло - Что горит?]</i>', { parse_mode: 'HTML' });
-
       const burningKeyboard = new InlineKeyboard()
         .text('🔮 где мои деньги в 2026 году', 'topic_money_2026')
         .row()
@@ -930,8 +922,6 @@ bot.callbackQuery('test_get_access_full', async (ctx) => {
 
     // Cancel test reminder since user clicked
     await schedulerService.cancelUserTasksByType(userId, 'test_start_reminder');
-
-    await telegramService.sendMessage(chatId, '⏱ <i>[ТЕСТ: Нажата кнопка "Получить доступ"]</i>', { parse_mode: 'HTML' });
 
     const keyboard = new InlineKeyboard()
       .webApp('Оплатить ❤️', 'https://hranitel.daniillepekhin.com/payment_form_club.html');
@@ -1976,18 +1966,6 @@ bot.command('test_start_full', async (ctx) => {
     // Отменяем все предыдущие задачи
     await schedulerService.cancelAllUserTasks(userId);
 
-    await telegramService.sendMessage(
-      chatId,
-      '🧪 <b>ПОЛНЫЙ ТЕСТ: Обычная воронка /start</b>\n\n' +
-      '⏱ <b>Таймеры ускорены:</b>\n' +
-      '• 2 мин → 10 сек\n' +
-      '• 5 мин → 15 сек\n' +
-      '• 30 мин → 20 сек\n' +
-      '• Напоминания дней → 25-35 сек\n\n' +
-      '━━━━━━━━━━━━━━━━━━━━━',
-      { parse_mode: 'HTML' }
-    );
-
     const keyboard = new InlineKeyboard()
       .text('Получить доступ', 'test_get_access_full')
       .row()
@@ -2017,12 +1995,6 @@ bot.command('test_start_full', async (ctx) => {
         chatId,
       },
       10 * 1000 // 10 секунд
-    );
-
-    await ctx.reply(
-      '✅ Воронка запущена с ускоренными таймерами!\n\n' +
-      '⏳ Через 10 сек придёт напоминание (если не нажмёшь кнопку)\n\n' +
-      '📌 Можешь нажать "Получить доступ" или подождать'
     );
 
   } catch (error) {
@@ -2062,16 +2034,6 @@ bot.command('test_club_full', async (ctx) => {
     // Отменяем все предыдущие задачи
     await schedulerService.cancelAllUserTasks(userId);
 
-    await telegramService.sendMessage(
-      chatId,
-      '🧪 <b>ПОЛНЫЙ ТЕСТ: Club воронка (нумерология)</b>\n\n' +
-      '⏱ <b>Таймеры ускорены:</b>\n' +
-      '• 5 мин автопрогресс → 15 сек\n' +
-      '• 2 мин финал → 10 сек\n\n' +
-      '━━━━━━━━━━━━━━━━━━━━━',
-      { parse_mode: 'HTML' }
-    );
-
     // Сбрасываем прогресс club воронки
     await db
       .delete(clubFunnelProgress)
@@ -2079,12 +2041,6 @@ bot.command('test_club_full', async (ctx) => {
 
     // Запускаем club воронку с флагом тестового режима
     await clubFunnel.startClubFunnel(user.id, chatId, String(userId), true); // true = test mode with fast timers
-
-    await ctx.reply(
-      '✅ Club воронка запущена с ускоренными таймерами!\n\n' +
-      '📌 Введи дату рождения в формате ДД.ММ.ГГГГ\n\n' +
-      '⏳ Таймеры между сообщениями: 15 сек (вместо 5 мин)'
-    );
 
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in /test_club_full command');
