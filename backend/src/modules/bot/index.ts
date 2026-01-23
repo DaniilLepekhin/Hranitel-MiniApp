@@ -503,6 +503,128 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         await clubFunnel.handleClubAutoProgress(odUserId, chatId, step);
       }
     }
+    // 🧪 TEST: Ускоренная тестовая воронка /start
+    else if (type === 'test_start_reminder') {
+      // Тестовое напоминание (10 сек вместо 120)
+      const msg2Keyboard = new InlineKeyboard()
+        .webApp('Оплатить ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
+
+      await telegramService.sendMessage(chatId, '⏱ <i>[ТЕСТ: 10 сек прошло]</i>', { parse_mode: 'HTML' });
+
+      await telegramService.sendPhoto(
+        chatId,
+        'https://t.me/mate_bot_open/9276',
+        {
+          caption:
+            `<b>🎫 Твой билет в КОД УСПЕХА. Глава: Пробуждение</b>\n\n` +
+            `<b>Информация о подписке на клуб «Код Денег»:</b>\n\n` +
+            `👉🏼 1 месяц = 2.900 ₽\n` +
+            `👉🏼 В подписку входит полный доступ к клубу «Код Денег»\n` +
+            `👉🏼 Подписка продлевается автоматически\n\n` +
+            `Получить доступ в закрытый канал 👇🏼`,
+          reply_markup: msg2Keyboard,
+          parse_mode: 'HTML'
+        }
+      );
+
+      // Марафон
+      const marathonKeyboard = new InlineKeyboard()
+        .webApp('попасть на марафон ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
+
+      await telegramService.sendVideo(
+        chatId,
+        'https://t.me/mate_bot_open/9369',
+        {
+          caption:
+            `<b>Марафон КОД ДЕНЕГ внутри клуба КОД УСПЕХА</b>\n\n` +
+            `<b>30 дней марафона и 4 дня эфиров</b>\n\n` +
+            `<b>💰 Стоимость</b>\n` +
+            `<b>2000 ₽ для тебя</b>`,
+          parse_mode: 'HTML',
+          reply_markup: marathonKeyboard
+        }
+      );
+
+      // Следующее сообщение через 15 сек
+      await schedulerService.schedule(
+        { type: 'test_numerology_guide', userId, chatId },
+        15 * 1000
+      );
+    }
+    else if (type === 'test_numerology_guide') {
+      await telegramService.sendMessage(chatId, '⏱ <i>[ТЕСТ: 15 сек прошло - нумерологический гайд]</i>', { parse_mode: 'HTML' });
+
+      const guideKeyboard = new InlineKeyboard()
+        .url('Скачать гайд ❤️', 'https://t.me/kristina_egiazarova_bot?start=leadmagnit180126');
+
+      await telegramService.sendPhoto(
+        chatId,
+        'https://t.me/mate_bot_open/9370',
+        {
+          caption:
+            `<b>Хотите узнать, что скрывает ваше число рождения? ✨</b>\n\n` +
+            `<b>31 ключ к себе</b> внутри гайда ⬇️`,
+          parse_mode: 'HTML',
+          reply_markup: guideKeyboard
+        }
+      );
+
+      // 3 ловушки через 15 сек
+      await schedulerService.schedule(
+        { type: 'test_traps', userId, chatId },
+        15 * 1000
+      );
+    }
+    else if (type === 'test_traps') {
+      await telegramService.sendMessage(chatId, '⏱ <i>[ТЕСТ: 15 сек прошло - 3 ловушки]</i>', { parse_mode: 'HTML' });
+
+      const trapsKeyboard = new InlineKeyboard()
+        .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
+
+      await telegramService.sendVideo(
+        chatId,
+        'https://t.me/mate_bot_open/9250',
+        {
+          caption:
+            `<b>3 главные ловушки эксперта в мягких нишах.</b>\n\n` +
+            `Оформи подписку — и получи доступ ко всей экосистеме клуба 👇`,
+          parse_mode: 'HTML',
+          reply_markup: trapsKeyboard
+        }
+      );
+
+      // "Что горит" через 15 сек
+      await schedulerService.schedule(
+        { type: 'test_burning', userId, chatId },
+        15 * 1000
+      );
+    }
+    else if (type === 'test_burning') {
+      await telegramService.sendMessage(chatId, '⏱ <i>[ТЕСТ: 15 сек прошло - Что горит?]</i>', { parse_mode: 'HTML' });
+
+      const burningKeyboard = new InlineKeyboard()
+        .text('🔮 где мои деньги в 2026 году', 'topic_money_2026')
+        .row()
+        .text('💰 почему доход не растет', 'topic_income');
+
+      await telegramService.sendPhoto(
+        chatId,
+        'https://t.me/mate_bot_open/9277',
+        {
+          caption: `<b>🔥 ЧТО ГОРИТ ПРЯМО СЕЙЧАС?</b>\n\nВыбери свой вопрос ⬇️`,
+          parse_mode: 'HTML',
+          reply_markup: burningKeyboard
+        }
+      );
+
+      await telegramService.sendMessage(
+        chatId,
+        '✅ <b>Тестовая воронка /start завершена!</b>\n\n' +
+        'Дальше идут напоминания по дням (day2-day5), но для теста достаточно.\n\n' +
+        '/admin - вернуться к списку команд',
+        { parse_mode: 'HTML' }
+      );
+    }
     // 🔧 Payment check (scheduler-based, survives restarts)
     else if (type === 'payment_check') {
       const { checkNumber, maxChecks } = task.data || { checkNumber: 1, maxChecks: 10 };
@@ -791,6 +913,65 @@ bot.callbackQuery('get_access', async (ctx) => {
     );
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in get_access handler');
+  }
+});
+
+// 🧪 TEST: Handle "Получить доступ" для тестовой воронки с ускоренными таймерами
+bot.callbackQuery('test_get_access_full', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+
+    const userId = ctx.from!.id;
+    const chatId = ctx.chat!.id;
+
+    // Cancel test reminder since user clicked
+    await schedulerService.cancelUserTasksByType(userId, 'test_start_reminder');
+
+    await telegramService.sendMessage(chatId, '⏱ <i>[ТЕСТ: Нажата кнопка "Получить доступ"]</i>', { parse_mode: 'HTML' });
+
+    const keyboard = new InlineKeyboard()
+      .webApp('Оплатить ❤️', 'https://hranitel.daniillepekhin.com/payment_form_club.html');
+
+    await telegramService.sendPhoto(
+      chatId,
+      'https://t.me/mate_bot_open/9276',
+      {
+        caption:
+          `<b>🎫 Твой билет в КОД УСПЕХА. Глава: Пробуждение</b>\n\n` +
+          `<b>Информация о подписке:</b>\n` +
+          `👉🏼 1 месяц = 2.900 ₽\n\n` +
+          `Получить доступ 👇🏼`,
+        reply_markup: keyboard,
+        parse_mode: 'HTML'
+      }
+    );
+
+    const marathonKeyboard = new InlineKeyboard()
+      .webApp('попасть на марафон ❤️', 'https://hranitel.daniillepekhin.com/payment_form_club.html');
+
+    await telegramService.sendVideo(
+      chatId,
+      'https://t.me/mate_bot_open/9369',
+      {
+        caption:
+          `<b>Марафон КОД ДЕНЕГ внутри клуба КОД УСПЕХА</b>\n\n` +
+          `<b>30 дней марафона и 4 дня эфиров</b>\n\n` +
+          `<b>💰 2000 ₽ для тебя</b>`,
+        parse_mode: 'HTML',
+        reply_markup: marathonKeyboard
+      }
+    );
+
+    // Следующее сообщение через 15 сек (вместо 20 мин)
+    await schedulerService.schedule(
+      { type: 'test_numerology_guide', userId, chatId },
+      15 * 1000
+    );
+
+    await ctx.reply('⏳ Следующее сообщение через 15 сек...');
+
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in test_get_access_full handler');
   }
 });
 
@@ -1780,6 +1961,143 @@ bot.command('test_club', async (ctx) => {
   }
 });
 
+// /test_start_full - ПОЛНЫЙ тест обычной воронки с ускоренными таймерами (10 сек вместо часов)
+bot.command('test_start_full', async (ctx) => {
+  try {
+    const userId = ctx.from!.id;
+    const chatId = ctx.chat.id;
+
+    if (!isAdmin(userId)) {
+      await ctx.reply('❌ Эта команда доступна только админам.');
+      return;
+    }
+
+    logger.info({ userId }, 'Admin testing FULL /start funnel with fast timers');
+
+    // Отменяем все предыдущие задачи
+    await schedulerService.cancelAllUserTasks(userId);
+
+    await telegramService.sendMessage(
+      chatId,
+      '🧪 <b>ПОЛНЫЙ ТЕСТ: Обычная воронка /start</b>\n\n' +
+      '⏱ <b>Таймеры ускорены:</b>\n' +
+      '• 2 мин → 10 сек\n' +
+      '• 5 мин → 15 сек\n' +
+      '• 30 мин → 20 сек\n' +
+      '• Напоминания дней → 25-35 сек\n\n' +
+      '━━━━━━━━━━━━━━━━━━━━━',
+      { parse_mode: 'HTML' }
+    );
+
+    const keyboard = new InlineKeyboard()
+      .text('Получить доступ', 'test_get_access_full')
+      .row()
+      .webApp('🚀 MiniApp', config.WEBAPP_URL);
+
+    // Send video with message
+    await telegramService.sendVideo(
+      chatId,
+      'https://t.me/mate_bot_open/9492',
+      {
+        caption:
+          `<b>Код Успеха — здесь.</b>\n\n` +
+          `❤️ Экосистема, где <b>15 000+ участников</b>\n` +
+          `уже выстраивают доход в мягких нишах через поле, этапы и живую среду — а не одиночные курсы.\n\n` +
+          `Смотри видео и узнай, что ждет тебя внутри клуба\n\n` +
+          `Доступ сразу после входа 👇`,
+        reply_markup: keyboard,
+        parse_mode: 'HTML'
+      }
+    );
+
+    // Schedule fast 10-second reminder (вместо 120 сек)
+    await schedulerService.schedule(
+      {
+        type: 'test_start_reminder',
+        userId,
+        chatId,
+      },
+      10 * 1000 // 10 секунд
+    );
+
+    await ctx.reply(
+      '✅ Воронка запущена с ускоренными таймерами!\n\n' +
+      '⏳ Через 10 сек придёт напоминание (если не нажмёшь кнопку)\n\n' +
+      '📌 Можешь нажать "Получить доступ" или подождать'
+    );
+
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in /test_start_full command');
+    await ctx.reply('❌ Ошибка при тестировании воронки');
+  }
+});
+
+// /test_club_full - ПОЛНЫЙ тест club воронки с ускоренными таймерами
+bot.command('test_club_full', async (ctx) => {
+  try {
+    const userId = ctx.from!.id;
+    const chatId = ctx.chat.id;
+
+    if (!isAdmin(userId)) {
+      await ctx.reply('❌ Эта команда доступна только админам.');
+      return;
+    }
+
+    logger.info({ userId }, 'Admin testing FULL club funnel with fast timers');
+
+    // Получаем или создаем пользователя
+    let [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.telegramId, String(userId)))
+      .limit(1);
+
+    if (!user) {
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          telegramId: String(userId),
+          username: ctx.from?.username || null,
+          firstName: ctx.from?.first_name || null,
+          lastName: ctx.from?.last_name || null,
+        })
+        .returning();
+      user = newUser;
+    }
+
+    // Отменяем все предыдущие задачи
+    await schedulerService.cancelAllUserTasks(userId);
+
+    await telegramService.sendMessage(
+      chatId,
+      '🧪 <b>ПОЛНЫЙ ТЕСТ: Club воронка (нумерология)</b>\n\n' +
+      '⏱ <b>Таймеры ускорены:</b>\n' +
+      '• 5 мин автопрогресс → 15 сек\n' +
+      '• 2 мин финал → 10 сек\n\n' +
+      '━━━━━━━━━━━━━━━━━━━━━',
+      { parse_mode: 'HTML' }
+    );
+
+    // Сбрасываем прогресс club воронки
+    await db
+      .delete(clubFunnelProgress)
+      .where(eq(clubFunnelProgress.userId, user.id));
+
+    // Запускаем club воронку с флагом тестового режима
+    await clubFunnel.startClubFunnel(user.id, chatId, String(userId), true); // true = test mode with fast timers
+
+    await ctx.reply(
+      '✅ Club воронка запущена с ускоренными таймерами!\n\n' +
+      '📌 Введи дату рождения в формате ДД.ММ.ГГГГ\n\n' +
+      '⏳ Таймеры между сообщениями: 15 сек (вместо 5 мин)'
+    );
+
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in /test_club_full command');
+    await ctx.reply('❌ Ошибка при тестировании club воронки');
+  }
+});
+
 // /admin - показать список тестовых команд
 bot.command('admin', async (ctx) => {
   try {
@@ -1792,13 +2110,16 @@ bot.command('admin', async (ctx) => {
 
     await ctx.reply(
       '🔧 <b>Админ-панель тестирования</b>\n\n' +
-      '<b>Тестовые воронки:</b>\n' +
-      '/test_start - просмотр обычной воронки /start\n' +
-      '/test_club - просмотр club воронки (нумерология)\n\n' +
-      '<b>Ссылки для тестирования:</b>\n' +
-      '• Обычная воронка: t.me/hranitelkodbot?start=test\n' +
-      '• Club воронка: t.me/hranitelkodbot?start=club\n\n' +
-      '<i>Тестовые команды не влияют на ваш статус оплаты</i>',
+      '<b>Быстрый просмотр (без таймеров):</b>\n' +
+      '/test_start - первое сообщение воронки /start\n' +
+      '/test_club - первое сообщение club воронки\n\n' +
+      '<b>Полный тест (ускоренные таймеры):</b>\n' +
+      '/test_start_full - вся воронка /start (таймеры 10-35 сек)\n' +
+      '/test_club_full - вся club воронка (таймеры 10-15 сек)\n\n' +
+      '<b>Ссылки для реального теста:</b>\n' +
+      '• Обычная: t.me/hranitelkodbot?start=test\n' +
+      '• Club: t.me/hranitelkodbot?start=club\n\n' +
+      '<i>⚠️ Тесты не влияют на ваш статус оплаты</i>',
       { parse_mode: 'HTML' }
     );
 

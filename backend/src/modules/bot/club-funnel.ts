@@ -257,7 +257,30 @@ async function generateRoadmap(birthDate: string): Promise<Buffer | string | nul
 // СООБЩЕНИЕ 1: СТАРТ ВОРОНКИ
 // ============================================================================
 
-export async function startClubFunnel(userId: string, chatId: number, telegramId: string) {
+// 🧪 Флаг для тестового режима с ускоренными таймерами
+let testModeEnabled = false;
+const TEST_BUTTON_TIMEOUT = 15 * 1000; // 15 секунд вместо 5 минут
+const TEST_FINAL_TIMEOUT = 10 * 1000; // 10 секунд вместо 2 минут
+
+export function setTestMode(enabled: boolean) {
+  testModeEnabled = enabled;
+  logger.info({ testModeEnabled: enabled }, 'Club funnel test mode changed');
+}
+
+function getButtonTimeout(): number {
+  return testModeEnabled ? TEST_BUTTON_TIMEOUT : BUTTON_TIMEOUT;
+}
+
+function getFinalTimeout(): number {
+  return testModeEnabled ? TEST_FINAL_TIMEOUT : FINAL_TIMEOUT;
+}
+
+export async function startClubFunnel(userId: string, chatId: number, telegramId: string, isTestMode: boolean = false) {
+  // Устанавливаем тестовый режим если запрошен
+  if (isTestMode) {
+    setTestMode(true);
+  }
+
   await getOrCreateClubProgress(userId, telegramId);
 
   // 🧹 Очистка всех запланированных задач при перезапуске (club + обычная воронка)
@@ -277,7 +300,7 @@ export async function startClubFunnel(userId: string, chatId: number, telegramId
   await schedulerService.cancelUserTasksByType(telegramUserId, 'day4_reminder');
   await schedulerService.cancelUserTasksByType(telegramUserId, 'day5_final');
 
-  logger.info({ userId, telegramId }, 'Club funnel started - cancelled all pending tasks from both funnels');
+  logger.info({ userId, telegramId, isTestMode }, 'Club funnel started - cancelled all pending tasks from both funnels');
 
   const keyboard = new InlineKeyboard().text('Готов(а) 🚀', 'club_ready');
 
@@ -302,9 +325,14 @@ export async function startClubFunnel(userId: string, chatId: number, telegramId
 
   await updateClubProgress(userId, { currentStep: 'awaiting_ready' });
 
+  const timeout = getButtonTimeout();
+  if (isTestMode) {
+    await getTelegramService().sendMessage(chatId, `⏱ <i>[ТЕСТ: таймер ${timeout / 1000} сек]</i>`, { parse_mode: 'HTML' });
+  }
+
   await schedulerService.schedule(
     { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'ready' } },
-    BUTTON_TIMEOUT
+    timeout
   );
 }
 
@@ -433,7 +461,7 @@ export async function handleBirthDateConfirmed(userId: string, chatId: number, b
   const telegramUserId = await getTelegramUserId(userId);
   await schedulerService.schedule(
     { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'activate' } },
-    BUTTON_TIMEOUT
+    getButtonTimeout()
   );
 }
 
@@ -471,7 +499,7 @@ export async function handleClubActivate(userId: string, chatId: number) {
   const telegramUserId = await getTelegramUserId(userId);
   await schedulerService.schedule(
     { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'style' } },
-    BUTTON_TIMEOUT
+    getButtonTimeout()
   );
 }
 
@@ -532,7 +560,7 @@ export async function handleClubGetStyle(userId: string, chatId: number) {
   const telegramUserId = await getTelegramUserId(userId);
   await schedulerService.schedule(
     { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'scale' } },
-    BUTTON_TIMEOUT
+    getButtonTimeout()
   );
 }
 
@@ -638,7 +666,7 @@ async function sendScaleMessage(userId: string, chatId: number) {
   const telegramUserId = await getTelegramUserId(userId);
   await schedulerService.schedule(
     { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'roadmap' } },
-    BUTTON_TIMEOUT
+    getButtonTimeout()
   );
 }
 
@@ -687,7 +715,7 @@ export async function handleClubGetRoadmap(userId: string, chatId: number) {
   const telegramUserId = await getTelegramUserId(userId);
   await schedulerService.schedule(
     { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'purchase' } },
-    FINAL_TIMEOUT
+    getFinalTimeout()
   );
 }
 
