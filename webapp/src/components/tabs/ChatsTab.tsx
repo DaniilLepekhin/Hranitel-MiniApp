@@ -53,7 +53,7 @@ export function ChatsTab() {
     queryKey: ['city-chats', 'link', selectedCity],
     queryFn: () => cityChatsApi.getChatLink(selectedCity),
     enabled: !!selectedCity,
-    placeholderData: { success: true, chatLink: '', chatName: '', country: '' },
+    placeholderData: { success: true, chatLink: '', chatName: '', country: '', cityChatId: 0, telegramChatId: null },
   });
 
   const team = teamData?.team;
