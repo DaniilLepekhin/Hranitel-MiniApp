@@ -767,6 +767,9 @@ bot.command('start', async (ctx) => {
     // Club воронка
     await schedulerService.cancelUserTasksByType(userId, 'club_auto_progress');
 
+    // Сбрасываем тестовый режим club воронки (если был включён)
+    clubFunnel.setTestMode(false);
+
     logger.info({ userId }, 'Start command - cancelled all pending tasks from both funnels');
 
     const keyboard = new InlineKeyboard()
