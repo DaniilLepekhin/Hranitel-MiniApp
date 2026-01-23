@@ -212,6 +212,24 @@ class SubscriptionGuardService {
   }
 
   /**
+   * Разблокировать пользователя в конкретном чате
+   */
+  async unbanFromSpecificChat(telegramId: number, chatId: number): Promise<void> {
+    if (!this.api) {
+      logger.error('API not initialized');
+      return;
+    }
+
+    try {
+      await this.api.unbanChatMember(chatId, telegramId, { only_if_banned: true });
+      logger.info({ chatId, telegramId }, 'User unbanned from specific chat');
+    } catch (error) {
+      logger.debug({ error, chatId, telegramId }, 'Error unbanning user from specific chat');
+      throw error;
+    }
+  }
+
+  /**
    * Cron job: проверка истекших подписок
    * Запускается ежедневно, проверяет подписки которые истекли вчера
    */

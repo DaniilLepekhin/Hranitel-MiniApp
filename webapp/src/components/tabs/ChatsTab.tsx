@@ -90,9 +90,24 @@ export function ChatsTab() {
     setSelectedCity(city);
   };
 
-  const handleJoinCityChat = () => {
-    if (chatLinkData?.chatLink) {
+  const handleJoinCityChat = async () => {
+    if (chatLinkData?.chatLink && user) {
       haptic.impact('medium');
+
+      // Save selection and unban user before opening link
+      try {
+        const telegramId = parseInt(user.telegramId, 10);
+        await cityChatsApi.joinChat(
+          telegramId,
+          selectedCity,
+          chatLinkData.cityChatId,
+          chatLinkData.telegramChatId || undefined
+        );
+      } catch (error) {
+        console.error('Error saving city chat selection:', error);
+        // Continue to open link even if save fails
+      }
+
       if (webApp?.openTelegramLink) {
         webApp.openTelegramLink(chatLinkData.chatLink);
       } else {

@@ -45,6 +45,7 @@ export const users = pgTable('users', {
 
   // Geography
   city: text('city'), // Город пользователя для рейтингов и команд
+  cityChatId: integer('city_chat_id'), // ID записи из city_chats_ik (старая БД)
 
   // Gamification
   level: integer('level').default(1).notNull(),

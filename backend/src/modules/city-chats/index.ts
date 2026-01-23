@@ -1,8 +1,11 @@
 import { Elysia, t } from 'elysia';
-import { sql } from 'drizzle-orm';
+import { sql, eq } from 'drizzle-orm';
 import { config } from '@/config';
 import { logger } from '@/utils/logger';
 import postgres from 'postgres';
+import { db } from '@/db';
+import { users } from '@/db/schema';
+import { subscriptionGuardService } from '@/services/subscription-guard.service';
 
 // Connect directly to the old database for city_chats_ik table
 const oldDbConnection = postgres({
@@ -20,6 +23,7 @@ interface CityChat {
   city: string;
   chat_name: string;
   chat_link: string;
+  chat_id: string | null;
 }
 
 export const cityChatModule = new Elysia({ prefix: '/city-chats' })
@@ -110,7 +114,7 @@ export const cityChatModule = new Elysia({ prefix: '/city-chats' })
 
       try {
         const result = await oldDbConnection<CityChat[]>`
-          SELECT id, country, city, chat_name, chat_link
+          SELECT id, country, city, chat_name, chat_link, chat_id
           FROM city_chats_ik
           WHERE city = ${city}
           LIMIT 1
@@ -126,13 +130,15 @@ export const cityChatModule = new Elysia({ prefix: '/city-chats' })
 
         const chat = result[0];
 
-        logger.info({ city, chatLink: chat.chat_link }, 'Fetched chat link');
+        logger.info({ city, chatLink: chat.chat_link, cityChatId: chat.id }, 'Fetched chat link');
 
         return {
           success: true,
           chatLink: chat.chat_link,
           chatName: chat.chat_name,
           country: chat.country,
+          cityChatId: chat.id,
+          telegramChatId: chat.chat_id ? parseInt(chat.chat_id, 10) : null,
         };
       } catch (error) {
         logger.error({ error, city }, 'Error fetching chat link');
@@ -168,4 +174,68 @@ export const cityChatModule = new Elysia({ prefix: '/city-chats' })
       logger.error({ error }, 'Error fetching all chats');
       throw new Error('Failed to fetch chats');
     }
-  });
+  })
+
+  // Join city chat - save selection and unban user
+  .post(
+    '/join',
+    async ({ body }) => {
+      const { telegramId, city, cityChatId, telegramChatId } = body;
+
+      try {
+        // 1. Update user's city and cityChatId
+        const [user] = await db
+          .select()
+          .from(users)
+          .where(eq(users.telegramId, telegramId))
+          .limit(1);
+
+        if (!user) {
+          logger.warn({ telegramId }, 'User not found when joining city chat');
+          return {
+            success: false,
+            error: 'User not found',
+          };
+        }
+
+        // Update user's city and cityChatId
+        await db
+          .update(users)
+          .set({
+            city: city,
+            cityChatId: cityChatId,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.telegramId, telegramId));
+
+        logger.info({ telegramId, city, cityChatId }, 'User city chat selection saved');
+
+        // 2. Unban user from this specific chat if telegramChatId is provided
+        if (telegramChatId) {
+          try {
+            await subscriptionGuardService.unbanFromSpecificChat(telegramId, telegramChatId);
+            logger.info({ telegramId, telegramChatId }, 'User unbanned from city chat');
+          } catch (unbanError) {
+            // Log but don't fail - user might not be banned
+            logger.warn({ telegramId, telegramChatId, error: unbanError }, 'Error unbanning user from chat (may not be banned)');
+          }
+        }
+
+        return {
+          success: true,
+          message: 'City chat selection saved',
+        };
+      } catch (error) {
+        logger.error({ error, telegramId, city }, 'Error joining city chat');
+        throw new Error('Failed to join city chat');
+      }
+    },
+    {
+      body: t.Object({
+        telegramId: t.Number(),
+        city: t.String(),
+        cityChatId: t.Number(),
+        telegramChatId: t.Optional(t.Number()),
+      }),
+    }
+  );

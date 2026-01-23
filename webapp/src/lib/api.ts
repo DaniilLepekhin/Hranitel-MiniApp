@@ -375,9 +375,14 @@ export const cityChatsApi = {
       params: { country },
     }),
   getChatLink: (city: string) =>
-    api.get<{ success: boolean; chatLink: string; chatName: string; country: string }>(
+    api.get<{ success: boolean; chatLink: string; chatName: string; country: string; cityChatId: number; telegramChatId: number | null }>(
       '/city-chats/link',
       { params: { city } }
+    ),
+  joinChat: (telegramId: number, city: string, cityChatId: number, telegramChatId?: number) =>
+    api.post<{ success: boolean; message: string }>(
+      '/city-chats/join',
+      { telegramId, city, cityChatId, telegramChatId }
     ),
 };
 
