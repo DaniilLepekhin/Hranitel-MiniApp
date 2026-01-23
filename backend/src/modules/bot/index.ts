@@ -1198,45 +1198,12 @@ bot.command('start', async (ctx) => {
       }
 
       // 🆕 Пользователь с подпиской, но БЕЗ онбординга (импортирован из старой базы)
-      // Начинаем с "Ключ принят" вместо меню
+      // Запускаем полную воронку, но после roadmap показываем "Ключ принят" вместо покупки
       if (!user.onboardingStep) {
-        logger.info({ userId, telegramId: user.telegramId }, 'Imported user first activation - starting onboarding');
+        logger.info({ userId, telegramId: user.telegramId }, 'Imported user first activation - starting club funnel for imported');
 
-        // Устанавливаем статус awaiting_ready
-        await db.update(users)
-          .set({ onboardingStep: 'awaiting_ready' })
-          .where(eq(users.id, user.id));
-
-        // Отправляем приветственное сообщение с 4 задачами (без догревов для импортированных)
-        const keyboard = new InlineKeyboard()
-          .url('перейти в канал', 'https://t.me/+mwJ5e0d78GYzNDRi')
-          .row()
-          .webApp('вступить в чат города', `${process.env.WEBAPP_URL}?tab=chats`)
-          .row()
-          .webApp('открыть штаб', process.env.WEBAPP_URL!)
-          .row()
-          .url('приложение', 'http://qr.numschool-web.ru/')
-          .row()
-          .text('готово', 'onboarding_ready');
-
-        await telegramService.sendPhoto(
-          chatId,
-          'https://t.me/mate_bot_open/9357',
-          {
-            caption:
-              `<b>🗝 Ключ принят. Добро пожаловать домой, родная!</b>\n\n` +
-              `Я горжусь тобой. Ты посмотрела видео, услышала меня и приняла наши правила. Теперь ты — часть нашего сообщества.\n\n` +
-              `<b>ТВОИ ПЕРВЫЕ ШАГИ (СДЕЛАЙ ПРЯМО СЕЙЧАС):</b>\n\n` +
-              `1️⃣ Канал клуба – это наше главное инфо-поле. Все анонсы, ссылки на эфиры и послания от меня будут здесь. 👉 Вступить и закрепить канал.\n\n` +
-              `2️⃣ Твой город – найди свой город в списке. Там тебя уже ждут живые люди, с которыми ты скоро встретишься оффлайн. Напиши им: "Привет, я с вами!". 👉 Выбрать город.\n\n` +
-              `3️⃣ Твой штаб-приложение, где хранится вся информация – нажми на кнопку приложения. Там уже открыт доступ к практикам. 👉 Открыть штаб.\n` +
-              `4️⃣ Доступ к приложению ментального здоровья  👉 приложение\n\n` +
-              `🛑 Не откладывай. Сделай эти три действия сейчас.\n\n` +
-              `Как только вступишь во все чаты — жми кнопку ГОТОВО внизу.»`,
-            parse_mode: 'HTML',
-            reply_markup: keyboard
-          }
-        );
+        // Запускаем специальную воронку для импортированных пользователей
+        await clubFunnel.startClubFunnelForImported(user.id, chatId, user.telegramId);
         return;
       }
     }
@@ -2135,10 +2102,41 @@ bot.callbackQuery('club_start_route', async (ctx) => {
     await ctx.answerCallbackQuery();
     const user = await funnels.getUserByTgId(ctx.from.id);
     if (user) {
-      await clubFunnel.handleClubStartRoute(user.id, ctx.chat.id, user);
+      // 🆕 Для импортированных пользователей (isPro=true) показываем "Ключ принят"
+      if (user.isPro) {
+        await clubFunnel.handleClubStartRouteImported(user.id, ctx.chat.id);
+      } else {
+        await clubFunnel.handleClubStartRoute(user.id, ctx.chat.id, user);
+      }
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in club_start_route callback');
+  }
+});
+
+// 🆕 Club funnel for imported users - "Готов(а)" button
+bot.callbackQuery('club_ready_imported', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const user = await funnels.getUserByTgId(ctx.from.id);
+    if (user) {
+      await clubFunnel.handleClubReady(user.id, ctx.chat.id);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in club_ready_imported callback');
+  }
+});
+
+// 🆕 Club funnel for imported users - "Начать маршрут" button -> "Ключ принят"
+bot.callbackQuery('club_start_route_imported', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const user = await funnels.getUserByTgId(ctx.from.id);
+    if (user) {
+      await clubFunnel.handleClubStartRouteImported(user.id, ctx.chat.id);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in club_start_route_imported callback');
   }
 });
 

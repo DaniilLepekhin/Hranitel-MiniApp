@@ -1060,7 +1060,13 @@ export async function handleClubAutoProgress(userId: string, chatId: number, ste
       if (currentStep === 'showing_star') {
         const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
         if (user.length) {
-          await handleClubSubscribeRequest(userId, chatId, user[0].telegramId);
+          // 🆕 Для импортированных пользователей (isPro=true) пропускаем подписку
+          if (user[0].isPro) {
+            logger.info({ userId, telegramId: user[0].telegramId }, 'Imported user - skipping channel subscription, showing archetype directly');
+            await handleClubShowArchetype(userId, chatId);
+          } else {
+            await handleClubSubscribeRequest(userId, chatId, user[0].telegramId);
+          }
         }
       }
       break;
@@ -1079,14 +1085,27 @@ export async function handleClubAutoProgress(userId: string, chatId: number, ste
       break;
     case 'roadmap':
       if (currentStep === 'showing_scale') {
-        await handleClubGetRoadmap(userId, chatId);
+        // 🆕 Для импортированных пользователей (isPro=true) показываем версию без покупки
+        const userForRoadmap = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+        if (userForRoadmap.length && userForRoadmap[0].isPro) {
+          logger.info({ userId }, 'Imported user - showing roadmap for imported');
+          await handleClubGetRoadmapImported(userId, chatId);
+        } else {
+          await handleClubGetRoadmap(userId, chatId);
+        }
       }
       break;
     case 'purchase':
       if (currentStep === 'showing_roadmap') {
         const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
         if (user.length) {
-          await handleClubStartRoute(userId, chatId, user[0]);
+          // 🆕 Для импортированных пользователей (isPro=true) показываем "Ключ принят"
+          if (user[0].isPro) {
+            logger.info({ userId }, 'Imported user - showing welcome instead of purchase');
+            await handleClubStartRouteImported(userId, chatId);
+          } else {
+            await handleClubStartRoute(userId, chatId, user[0]);
+          }
         }
       }
       break;
@@ -1097,6 +1116,23 @@ export async function handleClubAutoProgress(userId: string, chatId: number, ste
         await handleFallbackToMainFunnel(userId, chatId);
       } else {
         logger.warn({ userId, chatId, currentStep, expected: 'awaiting_purchase' }, 'Club funnel: fallback skipped - wrong step');
+      }
+      break;
+
+    // 🆕 Шаги для импортированных пользователей (уже с подпиской)
+    case 'ready_imported':
+      if (currentStep === 'awaiting_ready') {
+        await handleClubReady(userId, chatId);
+      }
+      break;
+    case 'roadmap_imported':
+      if (currentStep === 'showing_scale') {
+        await handleClubGetRoadmapImported(userId, chatId);
+      }
+      break;
+    case 'welcome_imported':
+      if (currentStep === 'showing_roadmap') {
+        await handleClubStartRouteImported(userId, chatId);
       }
       break;
   }
@@ -1591,3 +1627,195 @@ const ARCHETYPES: { [key: number]: { name: string; images: string[]; text: strin
     text: `<b>🌸 Рождённые 22 числа — архетип Персефоны 🌸</b>\n\n<b>Роль: Проводник между мирами / Медиатор изменений / Носитель двойной природы</b>\nЧеловек, который одновременно чувствует свет и тень, рост и кризис, начало и завершение. Ты умеешь быть на границе состояний и проводить через неё других.\n\nЧитай полную расшифровку выше ☝️\n\n<b>👇 Хочешь узнать, как именно ты проявляешься в мире?</b>\nНажми кнопку ниже и получи:\n• расшифровку <b>стиля проявления</b> по дате рождения\n• как тебя считывают люди\n• где твоя точка влияния и роста`,
   },
 };
+
+// ============================================================================
+// 🆕 СПЕЦИАЛЬНАЯ ВОРОНКА ДЛЯ ИМПОРТИРОВАННЫХ ПОЛЬЗОВАТЕЛЕЙ
+// Пользователи с isPro=true но без onboardingStep - проходят воронку без покупки
+// ============================================================================
+
+/**
+ * Запуск воронки для импортированных пользователей (с уже активной подпиской)
+ * Отличие от обычной воронки: после roadmap показывается "Ключ принят" вместо покупки
+ */
+export async function startClubFunnelForImported(userId: string, chatId: number, telegramId: number) {
+  // Сбрасываем тестовый режим
+  setTestMode(false);
+
+  await getOrCreateClubProgress(userId, telegramId);
+
+  // 🧹 Очистка всех запланированных задач
+  await schedulerService.cancelUserTasksByTypes(telegramId, [
+    'club_auto_progress',
+    'start_reminder',
+    'five_min_reminder',
+    'burning_question_reminder',
+    'payment_reminder',
+    'final_reminder',
+    'day2_reminder',
+    'day3_reminder',
+    'day4_reminder',
+    'day5_final',
+  ]);
+
+  logger.info({ userId, telegramId, isImported: true }, 'Club funnel for imported user started');
+
+  const keyboard = new InlineKeyboard().text('Готов(а) 🚀', 'club_ready_imported');
+
+  // Сообщение 1 с картинкой - слегка изменённый текст для импортированных
+  await getTelegramService().sendPhoto(
+    chatId,
+    'https://t.me/mate_bot_open/9346',
+    {
+      caption: `<b>Ты на старте своего маршрута 🧭</b>\n\n` +
+        `У каждого человека есть свой путь.\n` +
+        `Сейчас ты увидишь <b>своего персонажа</b> — как ты движешься к деньгам и реализации ✨\n\n` +
+        `Пройди бота до конца, чтобы:\n` +
+        `— понять, из какой роли ты действуешь\n` +
+        `— увидеть свой маршрут\n` +
+        `— получить <b>доступ ко всем материалам клуба</b> 🎁\n\n` +
+        `<b>Готова посмотреть на себя без иллюзий и ожиданий? 👇</b>\n` +
+        `<i>Важно: если бот отвечает не сразу, не нажимай кнопку повторно — иногда ему нужно чуть больше времени, чтобы всё корректно собрать ⏳</i>`,
+      parse_mode: 'HTML',
+      reply_markup: keyboard,
+    }
+  );
+
+  await updateClubProgress(userId, { currentStep: 'awaiting_ready' });
+
+  await schedulerService.schedule(
+    { type: 'club_auto_progress', userId: telegramId, chatId: chatId, data: { odUserId: userId, step: 'ready_imported', isImported: true } },
+    getButtonTimeout()
+  );
+}
+
+/**
+ * Показать roadmap для импортированных с кнопкой "Начать маршрут" -> "Ключ принят"
+ */
+export async function handleClubGetRoadmapImported(userId: string, chatId: number) {
+  const keyboard12 = new InlineKeyboard().text('👉 Начать маршрут', 'club_start_route_imported');
+
+  // Получаем дату рождения из прогресса для генерации картинки
+  const progress = await getClubProgress(userId);
+  const birthDate = progress?.birthDate;
+
+  const message12Text =
+    `Это <b>твоя дорожная карта на год 😍</b>\n\n` +
+    `Если идти по ней шаг за шагом,\n` +
+    `ты переходишь <b>из точки А в точку Б:</b>\n\n` +
+    `— из хаоса → в систему\n` +
+    `— из нестабильного дохода → в устойчивый доход 💰\n` +
+    `— из сомнений → в ясную позицию\n` +
+    `— из потенциала → в реализованный результат\n\n` +
+    `Эта карта показывает, <b>каким человеком ты становишься по ходу пути:</b>\n` +
+    `с опорой, фокусом и пониманием, куда ты идёшь 🚀\n\n` +
+    `<b>👇 Нажми кнопку и получи полный доступ к клубу</b>`;
+
+  // Генерируем картинку дорожной карты
+  const roadmapImage = birthDate ? await generateRoadmap(birthDate) : null;
+
+  if (roadmapImage) {
+    await getTelegramService().sendPhoto(chatId, roadmapImage, {
+      caption: message12Text,
+      parse_mode: 'HTML',
+      reply_markup: keyboard12,
+    });
+  } else {
+    await getTelegramService().sendMessage(chatId, message12Text, {
+      parse_mode: 'HTML',
+      reply_markup: keyboard12,
+    });
+  }
+
+  await updateClubProgress(userId, { currentStep: 'showing_roadmap' });
+
+  const telegramUserId = await getTelegramUserId(userId);
+  await schedulerService.schedule(
+    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'welcome_imported', isImported: true } },
+    getFinalTimeout()
+  );
+}
+
+/**
+ * Финальный шаг для импортированных - показать видео с кодовым словом
+ * После ввода кода пользователь получит "Ключ принят"
+ */
+export async function handleClubStartRouteImported(userId: string, chatId: number) {
+  logger.info({ userId, chatId }, 'handleClubStartRouteImported: START - showing keyword video');
+
+  // Отменяем все задачи club воронки
+  const telegramUserId = await getTelegramUserId(userId);
+  await schedulerService.cancelUserTasksByType(telegramUserId, 'club_auto_progress');
+
+  // Обновляем статус пользователя - ожидаем кодовое слово
+  await db
+    .update(users)
+    .set({ onboardingStep: 'awaiting_keyword' })
+    .where(eq(users.id, userId));
+
+  // Отправляем видео с сообщением о кодовом слове
+  await getTelegramService().sendVideo(
+    chatId,
+    'https://t.me/mate_bot_open/9644',
+    {
+      caption: `«Ты начинаешь погружение в <b>«Код успеха. Глава: Пробуждение»</b> ✨\n\n` +
+        `Чтобы двери нашей экосистемы открылись, тебе нужно принять её правила.\n\n` +
+        `🎥 Посмотри видео Кристины <b>до самого конца.</b> Кристина расскажет, как устроена наша Вселенная: где искать ключи, как работает супер-апп и как найти свою стаю 😄 (чаты городов и десятки).\n\n` +
+        `<b>🗝 Внимание: внутри видео спрятан секретный Ключ (кодовое слово). Без него я не смогу выдать тебе доступы к материалам и закрытым чатам.</b>\n\n` +
+        `Смотри внимательно. <i>Как только услышишь слово — пиши его мне в ответ 👇🏼</i>»`,
+      parse_mode: 'HTML'
+    }
+  );
+
+  // Планируем догревы для кодового слова через 20, 80, 200 минут
+  await schedulerService.schedule(
+    { type: 'keyword_reminder_20m', userId: telegramUserId, chatId },
+    20 * 60 * 1000 // 20 минут
+  );
+
+  await schedulerService.schedule(
+    { type: 'keyword_reminder_60m', userId: telegramUserId, chatId },
+    80 * 60 * 1000 // 80 минут от начала
+  );
+
+  await schedulerService.schedule(
+    { type: 'keyword_reminder_120m', userId: telegramUserId, chatId },
+    200 * 60 * 1000 // 200 минут от начала
+  );
+
+  // Не обновляем clubFunnelProgress здесь - статус хранится в users.onboardingStep = 'awaiting_keyword'
+  // После ввода кодового слова пользователь перейдёт в handleKeywordSuccess
+
+  logger.info({ userId, chatId }, 'handleClubStartRouteImported: COMPLETE - keyword video sent, reminders scheduled');
+}
+
+/**
+ * Обработка авто-прогресса для импортированных пользователей
+ */
+export async function handleClubAutoProgressImported(
+  userId: string,
+  chatId: number,
+  step: string
+) {
+  const progress = await getClubProgress(userId);
+  const currentStep = progress?.currentStep;
+
+  logger.info({ userId, chatId, step, currentStep, isImported: true }, 'Club auto-progress imported triggered');
+
+  switch (step) {
+    case 'ready_imported':
+      if (currentStep === 'awaiting_ready') {
+        await handleClubReady(userId, chatId);
+      }
+      break;
+    case 'roadmap_imported':
+      if (currentStep === 'showing_scale') {
+        await handleClubGetRoadmapImported(userId, chatId);
+      }
+      break;
+    case 'welcome_imported':
+      if (currentStep === 'showing_roadmap') {
+        await handleClubStartRouteImported(userId, chatId);
+      }
+      break;
+  }
+}
