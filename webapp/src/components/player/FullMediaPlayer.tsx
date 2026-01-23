@@ -115,7 +115,8 @@ export function FullMediaPlayer() {
       </div>
 
       {/* Header */}
-      <div className="relative z-10 flex items-center justify-between p-4">
+      {/* z-[102] чтобы быть выше video элемента (z-[101]) */}
+      <div className="relative z-[102] flex items-center justify-between p-4">
         <button
           onClick={handleMinimize}
           className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition-all"
@@ -221,7 +222,8 @@ export function FullMediaPlayer() {
       </div>
 
       {/* Player Controls (Fixed at bottom) */}
-      <div className="relative z-10 px-6 pb-8 bg-gradient-to-t from-black/40 to-transparent backdrop-blur-sm">
+      {/* z-[102] чтобы быть выше video элемента (z-[101]) */}
+      <div className="fixed bottom-0 left-0 right-0 z-[102] px-6 pb-8 bg-gradient-to-t from-black/80 to-transparent backdrop-blur-sm">
         {/* Progress bar */}
         <div className="mb-4">
           <input
