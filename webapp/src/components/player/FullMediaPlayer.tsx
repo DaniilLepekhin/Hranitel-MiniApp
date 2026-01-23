@@ -4,8 +4,6 @@ import { useEffect, useState } from 'react';
 import {
   Play,
   Pause,
-  SkipBack,
-  SkipForward,
   Volume2,
   VolumeX,
   X,
@@ -19,8 +17,7 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { useMediaPlayerStore } from '@/store/media-player';
 
 export function FullMediaPlayer() {
-  const { haptic } = useTelegram();
-  const [isVideoFullscreen, setIsVideoFullscreen] = useState(false);
+  const { haptic, requestFullscreen, exitFullscreen, isFullscreen } = useTelegram();
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
 
   const {
@@ -50,12 +47,6 @@ export function FullMediaPlayer() {
     haptic.impact('light');
   };
 
-  const skip = (seconds: number) => {
-    const newTime = Math.max(0, Math.min(duration, currentTime + seconds));
-    seekTo(newTime);
-    haptic.impact('light');
-  };
-
   const handleSeek = (newTime: number) => {
     seekTo(newTime);
     haptic.impact('light');
@@ -82,63 +73,14 @@ export function FullMediaPlayer() {
     haptic.impact('light');
   };
 
-  const toggleVideoFullscreen = async () => {
-    // Get video element from MiniPlayer (managed globally now)
-    const video = document.querySelector('video') as HTMLVideoElement & {
-      webkitEnterFullscreen?: () => void;
-      webkitExitFullscreen?: () => void;
-      webkitSupportsFullscreen?: boolean;
-      webkitDisplayingFullscreen?: boolean;
-    };
-    if (!video) return;
-
-    try {
-      if (!isVideoFullscreen) {
-        // Для iOS Safari в Telegram WebApp используем webkitEnterFullscreen
-        if (video.webkitSupportsFullscreen && video.webkitEnterFullscreen) {
-          video.webkitEnterFullscreen();
-        } else if (video.requestFullscreen) {
-          await video.requestFullscreen();
-        } else if ((video as any).webkitRequestFullscreen) {
-          (video as any).webkitRequestFullscreen();
-        }
-        setIsVideoFullscreen(true);
-      } else {
-        // Exit fullscreen
-        if (video.webkitDisplayingFullscreen && video.webkitExitFullscreen) {
-          video.webkitExitFullscreen();
-        } else if (document.exitFullscreen) {
-          await document.exitFullscreen();
-        } else if ((document as any).webkitExitFullscreen) {
-          (document as any).webkitExitFullscreen();
-        }
-        setIsVideoFullscreen(false);
-      }
-    } catch (error) {
-      console.warn('Fullscreen not supported:', error);
-      // Fallback: открываем видео в новой вкладке
-      if (currentMedia?.url) {
-        window.open(currentMedia.url, '_blank');
-      }
+  const toggleWebAppFullscreen = () => {
+    if (isFullscreen) {
+      exitFullscreen();
+    } else {
+      requestFullscreen();
     }
     haptic.impact('medium');
   };
-
-  // Listen to fullscreen changes
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      const isFullscreen = !!(document.fullscreenElement || (document as any).webkitFullscreenElement);
-      setIsVideoFullscreen(isFullscreen);
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-    };
-  }, []);
 
   // Close speed menu when clicking outside
   useEffect(() => {
@@ -335,14 +277,14 @@ export function FullMediaPlayer() {
             )}
           </button>
 
-          {/* Right: Speed/Fullscreen */}
+          {/* Right: Fullscreen/Speed */}
           {isVideo ? (
             <button
-              onClick={toggleVideoFullscreen}
+              onClick={toggleWebAppFullscreen}
               className="w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"
-              title={isVideoFullscreen ? 'Выйти из полноэкранного режима' : 'Полноэкранный режим'}
+              title={isFullscreen ? 'Выйти из полноэкранного режима' : 'Полноэкранный режим'}
             >
-              {isVideoFullscreen ? (
+              {isFullscreen ? (
                 <Minimize className="w-5 h-5 text-white" />
               ) : (
                 <Maximize className="w-5 h-5 text-white" />
