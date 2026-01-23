@@ -866,11 +866,11 @@ async function handleFallbackToMainFunnel(userId: string, chatId: number) {
   await updateClubProgress(userId, { currentStep: 'completed' });
 
   // Запускаем таймеры обычной воронки: сначала нумерологический гид, затем "3 ловушки"
-  // В обычной воронке: гид через 20 мин после марафона, "3 ловушки" через 5 мин после гида
-  // В fallback: гид через 2 мин (или 10 сек в тесте), "3 ловушки" запланируется из обработчика гида
+  // Гид через 20 мин (как в обычной воронке), "3 ловушки" запланируется из обработчика гида
+  const numerologyTimeout = testModeEnabled ? TEST_FINAL_TIMEOUT : 20 * 60 * 1000; // 20 минут или 10 сек в тесте
   await schedulerService.schedule(
     { type: 'numerology_guide_reminder', userId: telegramUserId, chatId: chatId },
-    getFinalTimeout()
+    numerologyTimeout
   );
 
   logger.info({ userId, telegramId: user.telegramId }, 'Club funnel → Main funnel fallback: scheduled numerology_guide_reminder');
