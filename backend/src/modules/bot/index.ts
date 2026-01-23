@@ -1166,18 +1166,18 @@ bot.command('start', async (ctx) => {
 
     // 🆕 Check for club funnel link (start=club or start=club_XXX) - only for non-paying users
     // Поддерживаемые форматы:
-    // - club - без метки (utm_campaign=club, utm_medium=direct, utm_source=direct)
+    // - club - без метки (utm_campaign=club)
     // - club_insta_shapka - utm_campaign=club, utm_medium=insta, utm_source=shapka
-    // - club_tgchannel - utm_campaign=club, utm_medium=tgchannel, utm_source=direct
+    // - club_tgchannel - utm_campaign=club, utm_medium=tgchannel
     if (startPayload === 'club' || startPayload?.startsWith('club_')) {
       // Парсим UTM из payload: club_MEDIUM_SOURCE или club_MEDIUM
-      let utmMedium = 'direct';
-      let utmSource = 'direct';
+      let utmMedium: string | null = null;
+      let utmSource: string | null = null;
 
       if (startPayload !== 'club') {
         const parts = startPayload.substring(5).split('_'); // убираем "club_" и разбиваем по "_"
-        utmMedium = parts[0] || 'direct'; // первая часть = medium (insta, tgchannel, etc.)
-        utmSource = parts.slice(1).join('_') || 'direct'; // остальное = source (shapka, direct, stories, etc.)
+        utmMedium = parts[0] || null; // первая часть = medium (insta, tgchannel, etc.)
+        utmSource = parts.slice(1).join('_') || null; // остальное = source (shapka, stories, etc.)
       }
 
       // Get or create user in database
@@ -1196,21 +1196,23 @@ bot.command('start', async (ctx) => {
         clubUser = newUser;
       }
 
-      // Сохраняем UTM-метки в metadata пользователя
+      // Сохраняем UTM-метки в metadata пользователя (только непустые)
       const currentMetadata = (clubUser.metadata as Record<string, unknown>) || {};
+      const utmData: Record<string, string> = { utm_campaign: 'club' };
+      if (utmMedium) utmData.utm_medium = utmMedium;
+      if (utmSource) utmData.utm_source = utmSource;
+
       await db
         .update(users)
         .set({
           metadata: {
             ...currentMetadata,
-            utm_campaign: 'club',
-            utm_medium: utmMedium,
-            utm_source: utmSource,
+            ...utmData,
           },
         })
         .where(eq(users.telegramId, userId));
 
-      logger.info({ userId, utmCampaign: 'club', utmMedium, utmSource }, 'Club funnel started with UTM');
+      logger.info({ userId, ...utmData }, 'Club funnel started with UTM');
 
       await clubFunnel.startClubFunnel(clubUser.id, chatId, userId);
       return;
