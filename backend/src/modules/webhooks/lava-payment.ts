@@ -4,6 +4,7 @@ import { users, payments, paymentAnalytics } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { startOnboardingAfterPayment, handleGiftPaymentSuccess } from '@/modules/bot/post-payment-funnels';
+import { subscriptionGuardService } from '@/services/subscription-guard.service';
 
 export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
   // Lava payment success webhook
@@ -343,11 +344,19 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
           'Payment processed successfully'
         );
 
+        // 🛡️ Unban user from all protected chats (in case they were banned for expired subscription)
+        try {
+          await subscriptionGuardService.unbanUserFromAllChats(telegram_id);
+          logger.info({ telegramId: telegram_id }, 'User unbanned from all chats after payment');
+        } catch (error) {
+          logger.error({ error, telegramId: telegram_id }, 'Failed to unban user from chats');
+          // Don't fail the webhook - payment is already processed
+        }
+
         // Start post-payment funnel
         try {
-          const chatId = parseInt(telegram_id);
-          await startOnboardingAfterPayment(user.id, chatId);
-          logger.info({ userId: user.id, chatId }, 'Post-payment funnel started');
+          await startOnboardingAfterPayment(user.id, telegram_id);
+          logger.info({ userId: user.id, chatId: telegram_id }, 'Post-payment funnel started');
         } catch (error) {
           logger.error(
             { error, userId: user.id, telegramId: telegram_id },
@@ -381,6 +390,44 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
       detail: {
         summary: 'Lava payment success webhook',
         description: 'Handles successful payment notifications from Lava payment provider. Uses email to find payment_attempt and get all user data. For gift payments, email should be {recipient_id}@gift.local - gifter is found from gift_attempt analytics.',
+      },
+    }
+  )
+  // 🛡️ Cron job для проверки истекших подписок
+  // Вызывается ежедневно через GitHub Actions или cron сервис
+  .post(
+    '/cron/check-expired-subscriptions',
+    async ({ headers, set }) => {
+      // Простая проверка авторизации через секретный заголовок
+      const cronSecret = headers['x-cron-secret'];
+      if (cronSecret !== process.env.CRON_SECRET && cronSecret !== 'local-dev-secret') {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
+      try {
+        logger.info('Running expired subscriptions check via cron...');
+        const result = await subscriptionGuardService.checkExpiredSubscriptions();
+
+        return {
+          success: true,
+          message: 'Expired subscriptions check completed',
+          processed: result.processed,
+          removed: result.removed,
+        };
+      } catch (error) {
+        logger.error({ error }, 'Failed to run expired subscriptions check');
+        set.status = 500;
+        return {
+          success: false,
+          error: 'Failed to check expired subscriptions',
+        };
+      }
+    },
+    {
+      detail: {
+        summary: 'Check expired subscriptions (cron)',
+        description: 'Removes users with expired subscriptions from channel and city chats. Should be called daily via cron job.',
       },
     }
   );

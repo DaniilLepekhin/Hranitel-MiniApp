@@ -9,6 +9,7 @@ import { gamificationService } from '@/modules/gamification/service';
 import { schedulerService, type ScheduledTask } from '@/services/scheduler.service';
 import { TelegramService } from '@/services/telegram.service';
 import { stateService } from '@/services/state.service';
+import { subscriptionGuardService } from '@/services/subscription-guard.service';
 // 🆕 Post-payment funnels
 import * as funnels from './post-payment-funnels';
 // 🆕 Club funnel (numerology-based pre-payment funnel)
@@ -32,6 +33,8 @@ const telegramService = new TelegramService(bot.api);
 funnels.initTelegramService(bot.api);
 // Initialize telegram service for club funnel
 clubFunnel.initClubFunnelTelegramService(bot.api);
+// Initialize subscription guard service
+subscriptionGuardService.init(bot.api);
 
 // Helper to check payment status
 async function checkPaymentStatus(userId: number): Promise<boolean> {
@@ -2760,6 +2763,27 @@ bot.command('admin', async (ctx) => {
   }
 });
 
+// /getmyid - получить ID чата (не показывается в меню)
+bot.command('getmyid', async (ctx) => {
+  try {
+    const chatId = ctx.chat.id;
+    const userId = ctx.from?.id;
+    const chatType = ctx.chat.type;
+    const chatTitle = 'title' in ctx.chat ? ctx.chat.title : 'Личный чат';
+
+    await ctx.reply(
+      `📍 <b>Информация о чате</b>\n\n` +
+      `<b>Chat ID:</b> <code>${chatId}</code>\n` +
+      `<b>Тип:</b> ${chatType}\n` +
+      `<b>Название:</b> ${chatTitle}\n` +
+      `<b>Ваш User ID:</b> <code>${userId}</code>`,
+      { parse_mode: 'HTML' }
+    );
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in /getmyid command');
+  }
+});
+
 // Callback handlers
 bot.callbackQuery('my_courses', async (ctx) => {
   try {
@@ -2846,6 +2870,28 @@ bot.on('message:users_shared', async (ctx) => {
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in message:users_shared handler');
+  }
+});
+
+// 🛡️ Chat member update handler - проверка подписки при вступлении в канал/чаты
+bot.on('chat_member', async (ctx) => {
+  try {
+    const update = ctx.chatMember;
+    const chatId = update.chat.id;
+    const userId = update.new_chat_member.user.id;
+    const oldStatus = update.old_chat_member.status;
+    const newStatus = update.new_chat_member.status;
+
+    // Проверяем только случаи когда пользователь вступает (был не участником, стал участником)
+    const wasNotMember = ['left', 'kicked', 'restricted'].includes(oldStatus) || oldStatus === undefined;
+    const isMemberNow = ['member', 'administrator', 'creator'].includes(newStatus);
+
+    if (wasNotMember && isMemberNow) {
+      logger.info({ chatId, userId, oldStatus, newStatus }, 'User joining chat, checking subscription...');
+      await subscriptionGuardService.handleJoinAttempt(chatId, userId);
+    }
+  } catch (error) {
+    logger.error({ error }, 'Error in chat_member handler');
   }
 });
 
