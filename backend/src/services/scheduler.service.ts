@@ -83,11 +83,18 @@ export class SchedulerService {
       return null;
     }
 
-    // Check for duplicate task (same user + same type)
+    // Check for duplicate task (same user + same type + same step for club_auto_progress)
     const existingTasks = await this.getUserTasks(task.userId);
-    const duplicate = existingTasks.find(t => t.type === task.type);
+    const duplicate = existingTasks.find(t => {
+      if (t.type !== task.type) return false;
+      // For club_auto_progress, also check the step in data
+      if (t.type === 'club_auto_progress' && task.data?.step && t.data?.step) {
+        return t.data.step === task.data.step;
+      }
+      return true;
+    });
     if (duplicate) {
-      logger.info({ userId: task.userId, type: task.type }, 'Duplicate task skipped');
+      logger.info({ userId: task.userId, type: task.type, step: task.data?.step }, 'Duplicate task skipped');
       return null;
     }
 

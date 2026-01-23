@@ -30,7 +30,7 @@ function getTelegramService(): TelegramService {
 // КОНСТАНТЫ
 // ============================================================================
 
-const CHANNEL_USERNAME = '@kristina_egiazarovaaa1407';
+const CHANNEL_ID = -1001177888886; // ID канала для проверки подписки
 const STAR_WEBHOOK_URL = 'https://n8n4.daniillepekhin.ru/webhook/zvezda_club_generated';
 const ROADMAP_WEBHOOK_URL = 'https://n8n4.daniillepekhin.ru/webhook/zvezda_club_generated_roadmap';
 const BIRTHDATE_REGEX = /^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[012])\.((19|20)\d\d)$/;
@@ -175,11 +175,11 @@ function getStyleGroup(birthDay: number): number {
 
 async function checkChannelSubscription(userId: number): Promise<boolean> {
   try {
-    const member = await getTelegramService().getChatMember(CHANNEL_USERNAME, userId);
+    const member = await getTelegramService().getChatMember(CHANNEL_ID, userId);
     if (!member) return false;
     return ['member', 'administrator', 'creator'].includes(member.status);
   } catch (error) {
-    logger.error({ error, userId }, 'Error checking channel subscription');
+    logger.error({ error, userId, channelId: CHANNEL_ID }, 'Error checking channel subscription');
     return false;
   }
 }
@@ -567,7 +567,7 @@ export async function handleClubGetStyle(userId: string, chatId: number) {
 
 export async function handleClubGetScale(userId: string, chatId: number, telegramUserId: number) {
   const keyboard9 = new InlineKeyboard()
-    .url('подписаться 😍', `https://t.me/${CHANNEL_USERNAME.replace('@', '')}`)
+    .url('подписаться 😍', 'https://t.me/kristina_egiazarovaaa1407')
     .row()
     .text('Я подписалась ✅', 'club_check_subscription');
 
@@ -592,18 +592,18 @@ export async function handleClubGetScale(userId: string, chatId: number, telegra
 // ============================================================================
 
 export async function handleClubCheckSubscription(userId: string, chatId: number, telegramUserId: number) {
-  // TODO: Временно отключена проверка подписки - нужно подключить бота к каналу
-  const isSubscribed = true; // await checkChannelSubscription(telegramUserId);
+  // Проверяем подписку на канал
+  const isSubscribed = await checkChannelSubscription(telegramUserId);
 
   if (!isSubscribed) {
     const keyboard = new InlineKeyboard()
-      .url('подписаться 😍', `https://t.me/${CHANNEL_USERNAME.replace('@', '')}`)
+      .url('подписаться 😍', 'https://t.me/kristina_egiazarovaaa1407')
       .row()
       .text('Я подписалась ✅', 'club_check_subscription');
 
     await getTelegramService().sendMessage(
       chatId,
-      `❌ Ты пока не подписана на канал.\n\nПодпишись на ${CHANNEL_USERNAME} и нажми кнопку ещё раз 👇`,
+      `❌ Ты пока не подписана на канал.\n\nПодпишись на канал и нажми кнопку ещё раз 👇`,
       { parse_mode: 'HTML', reply_markup: keyboard }
     );
     return;
