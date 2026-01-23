@@ -87,13 +87,22 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
   const { type, userId, chatId } = task;
 
   try {
-    // Check if user already paid
-    const paid = await checkPaymentStatus(userId);
-    if (paid) {
-      logger.info({ userId, taskType: type }, 'User already paid, cancelling all remaining tasks');
-      // Cancel ALL remaining tasks for this user
-      await schedulerService.cancelAllUserTasks(userId);
-      return;
+    // Skip payment check for test tasks (test_start_reminder, test_five_min_reminder, etc.)
+    // Also skip for club_auto_progress in test mode
+    const isTestTask = type.startsWith('test_');
+    const isClubTestMode = type === 'club_auto_progress' && task.data?.isTestMode === true;
+
+    // Check if user already paid (skip for test tasks)
+    if (!isTestTask && !isClubTestMode) {
+      const paid = await checkPaymentStatus(userId);
+      if (paid) {
+        logger.info({ userId, taskType: type }, 'User already paid, cancelling all remaining tasks');
+        // Cancel ALL remaining tasks for this user
+        await schedulerService.cancelAllUserTasks(userId);
+        return;
+      }
+    } else {
+      logger.info({ userId, taskType: type, isTestMode: isTestTask || isClubTestMode }, 'Test mode - skipping payment check');
     }
 
     const keyboard = new InlineKeyboard()
@@ -773,9 +782,7 @@ bot.command('start', async (ctx) => {
     logger.info({ userId }, 'Start command - cancelled all pending tasks from both funnels');
 
     const keyboard = new InlineKeyboard()
-      .text('Получить доступ', 'get_access')
-      .row()
-      .webApp('🚀 MiniApp', config.WEBAPP_URL);
+      .text('Получить доступ', 'get_access');
 
     // Send video with message
     await telegramService.sendVideo(
@@ -1861,9 +1868,7 @@ bot.command('test_start', async (ctx) => {
     logger.info({ userId }, 'Admin testing /start funnel');
 
     const keyboard = new InlineKeyboard()
-      .text('Получить доступ', 'get_access')
-      .row()
-      .webApp('🚀 MiniApp', config.WEBAPP_URL);
+      .text('Получить доступ', 'get_access');
 
     await telegramService.sendMessage(
       chatId,
@@ -1972,9 +1977,7 @@ bot.command('test_start_full', async (ctx) => {
     await schedulerService.cancelAllUserTasks(userId);
 
     const keyboard = new InlineKeyboard()
-      .text('Получить доступ', 'test_get_access_full')
-      .row()
-      .webApp('🚀 MiniApp', config.WEBAPP_URL);
+      .text('Получить доступ', 'test_get_access_full');
 
     // Send video with message
     await telegramService.sendVideo(
