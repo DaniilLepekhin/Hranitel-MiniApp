@@ -82,6 +82,130 @@ function getDelayUntilMoscowTime(hour: number, minute: number = 0): number {
   return target.getTime() - now.getTime();
 }
 
+// ============================================================================
+// UTM PARSING - Парсинг UTM меток из deep link
+// Формат: {source}_{medium}_{campaign}_{content}_{term}
+// Пример: tgchannel_kris_january_promo → source=tgchannel, medium=kris, campaign=january, content=promo
+// ============================================================================
+interface UtmData {
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_content?: string;
+  utm_term?: string;
+  raw_payload?: string;
+}
+
+function parseUtmFromPayload(payload: string | undefined): UtmData {
+  if (!payload) return {};
+
+  // Зарезервированные payload'ы - НЕ парсим как UTM
+  const reservedPayloads = [
+    'club', 'test_start_full', 'test_club_full', 'test'
+  ];
+
+  // Проверяем на зарезервированные префиксы
+  if (payload.startsWith('present_') || payload.startsWith('gift_')) {
+    return {};
+  }
+
+  // Проверяем на точные совпадения с зарезервированными
+  if (reservedPayloads.includes(payload)) {
+    return {};
+  }
+
+  // Парсим UTM метки: source_medium_campaign_content_term
+  const parts = payload.split('_');
+
+  const utmData: UtmData = {
+    raw_payload: payload
+  };
+
+  if (parts.length >= 1 && parts[0]) utmData.utm_source = parts[0];
+  if (parts.length >= 2 && parts[1]) utmData.utm_medium = parts[1];
+  if (parts.length >= 3 && parts[2]) utmData.utm_campaign = parts[2];
+  if (parts.length >= 4 && parts[3]) utmData.utm_content = parts[3];
+  if (parts.length >= 5 && parts[4]) utmData.utm_term = parts[4];
+
+  return utmData;
+}
+
+// Сохранение UTM в metadata пользователя
+async function saveUtmToUser(telegramId: number, utmData: UtmData): Promise<void> {
+  if (Object.keys(utmData).length === 0) return;
+
+  try {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.telegramId, telegramId))
+      .limit(1);
+
+    if (user) {
+      const currentMetadata = (user.metadata as Record<string, unknown>) || {};
+
+      // Сохраняем UTM только если их ещё нет (first touch attribution)
+      if (!currentMetadata.utm_source) {
+        const newMetadata = {
+          ...currentMetadata,
+          ...utmData,
+          utm_saved_at: new Date().toISOString()
+        };
+
+        await db
+          .update(users)
+          .set({ metadata: newMetadata })
+          .where(eq(users.telegramId, telegramId));
+
+        logger.info({ telegramId, utmData }, 'UTM data saved to user metadata');
+      } else {
+        logger.info({ telegramId }, 'UTM already exists, skipping (first touch attribution)');
+      }
+    }
+  } catch (error) {
+    logger.error({ error, telegramId, utmData }, 'Failed to save UTM to user');
+  }
+}
+
+// Получение UTM из metadata пользователя
+async function getUtmFromUser(telegramId: number): Promise<UtmData> {
+  try {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.telegramId, telegramId))
+      .limit(1);
+
+    if (user && user.metadata) {
+      const metadata = user.metadata as Record<string, unknown>;
+      return {
+        utm_source: metadata.utm_source as string | undefined,
+        utm_medium: metadata.utm_medium as string | undefined,
+        utm_campaign: metadata.utm_campaign as string | undefined,
+        utm_content: metadata.utm_content as string | undefined,
+        utm_term: metadata.utm_term as string | undefined,
+        raw_payload: metadata.raw_payload as string | undefined,
+      };
+    }
+  } catch (error) {
+    logger.error({ error, telegramId }, 'Failed to get UTM from user');
+  }
+  return {};
+}
+
+// Добавление UTM к URL оплаты
+function addUtmToPaymentUrl(baseUrl: string, utmData: UtmData): string {
+  const url = new URL(baseUrl);
+
+  if (utmData.utm_source) url.searchParams.set('utm_source', utmData.utm_source);
+  if (utmData.utm_medium) url.searchParams.set('utm_medium', utmData.utm_medium);
+  if (utmData.utm_campaign) url.searchParams.set('utm_campaign', utmData.utm_campaign);
+  if (utmData.utm_content) url.searchParams.set('utm_content', utmData.utm_content);
+  if (utmData.utm_term) url.searchParams.set('utm_term', utmData.utm_term);
+
+  return url.toString();
+}
+
 // Task processor callback for scheduled tasks
 async function processScheduledTask(task: ScheduledTask): Promise<void> {
   const { type, userId, chatId } = task;
@@ -105,19 +229,23 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
       logger.info({ userId, taskType: type, isTestMode: isTestTask || isClubTestMode }, 'Test mode - skipping payment check');
     }
 
+    // 📊 Получаем UTM из metadata пользователя для добавления к URL оплаты
+    const utmData = await getUtmFromUser(userId);
+    const paymentUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+
     const keyboard = new InlineKeyboard()
-      .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`)
+      .webApp('Оформить подписку ❤️', paymentUrl)
       .row()
       .text('Я не готов 🤔', 'not_ready_1');
 
     const simpleKeyboard = new InlineKeyboard()
-      .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
+      .webApp('Оформить подписку ❤️', paymentUrl);
 
     if (type === 'start_reminder') {
       // СООБЩЕНИЕ 2 - 120-second reminder (same as get_access flow)
       // This is sent if user didn't click "Получить доступ" button
       const msg2Keyboard = new InlineKeyboard()
-        .webApp('Оплатить ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
+        .webApp('Оплатить ❤️', paymentUrl);
 
       await telegramService.sendPhoto(
         chatId,
@@ -142,7 +270,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
 
       // Сразу отправляем видео марафона
       const marathonKeyboard = new InlineKeyboard()
-        .webApp('попасть на марафон ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
+        .webApp('попасть на марафон ❤️', paymentUrl);
 
       await telegramService.sendVideo(
         chatId,
@@ -311,7 +439,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
     } else if (type === 'payment_reminder') {
       // СООБЩЕНИЕ 8 - Send 60-minute reminder with "я не готов" button
       const msg8Keyboard = new InlineKeyboard()
-        .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`)
+        .webApp('Оформить подписку ❤️', paymentUrl)
         .row()
         .text('я не готов 🤔', 'not_ready_3');
 
@@ -516,7 +644,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
     else if (type === 'test_start_reminder') {
       // СООБЩЕНИЕ 2 - Тестовое напоминание (10 сек вместо 120)
       const msg2Keyboard = new InlineKeyboard()
-        .webApp('Оплатить ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
+        .webApp('Оплатить ❤️', paymentUrl);
 
       await telegramService.sendPhoto(
         chatId,
@@ -538,7 +666,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
 
       // СООБЩЕНИЕ 3 - Марафон КОД ДЕНЕГ
       const marathonKeyboard = new InlineKeyboard()
-        .webApp('попасть на марафон ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
+        .webApp('попасть на марафон ❤️', paymentUrl);
 
       await telegramService.sendVideo(
         chatId,
@@ -621,7 +749,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
     else if (type === 'test_traps') {
       // СООБЩЕНИЕ 5 - 3 главные ловушки
       const trapsKeyboard = new InlineKeyboard()
-        .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
+        .webApp('Оформить подписку ❤️', paymentUrl);
 
       await telegramService.sendVideo(
         chatId,
@@ -686,8 +814,8 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
     }
     else if (type === 'test_day2') {
       // СООБЩЕНИЕ 9 - Day 2
-      const simpleKeyboard = new InlineKeyboard()
-        .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
+      const day2Keyboard = new InlineKeyboard()
+        .webApp('Оформить подписку ❤️', paymentUrl);
 
       await telegramService.sendVideo(
         chatId,
@@ -708,7 +836,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
             `Вход в клуб открыт.\n` +
             `Мы видим, что ты всё ещё не с нами 👀`,
           parse_mode: 'HTML',
-          reply_markup: simpleKeyboard
+          reply_markup: day2Keyboard
         }
       );
 
@@ -720,8 +848,8 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
     }
     else if (type === 'test_day3') {
       // СООБЩЕНИЕ 10 - Day 3
-      const simpleKeyboard = new InlineKeyboard()
-        .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
+      const day3Keyboard = new InlineKeyboard()
+        .webApp('Оформить подписку ❤️', paymentUrl);
 
       await telegramService.sendVideo(
         chatId,
@@ -738,7 +866,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
             `Доступ в клуб ещё открыт.\n` +
             `Ненадолго 🤫`,
           parse_mode: 'HTML',
-          reply_markup: simpleKeyboard
+          reply_markup: day3Keyboard
         }
       );
 
@@ -750,8 +878,8 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
     }
     else if (type === 'test_day4') {
       // СООБЩЕНИЕ 11 - Day 4
-      const simpleKeyboard = new InlineKeyboard()
-        .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
+      const day4Keyboard = new InlineKeyboard()
+        .webApp('Оформить подписку ❤️', paymentUrl);
 
       await telegramService.sendVideo(
         chatId,
@@ -770,7 +898,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
             `Если эта мысль уже щёлкнула —\n` +
             `значит, дверь в клуб не случайно ещё открыта 👀`,
           parse_mode: 'HTML',
-          reply_markup: simpleKeyboard
+          reply_markup: day4Keyboard
         }
       );
 
@@ -782,8 +910,8 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
     }
     else if (type === 'test_day5') {
       // СООБЩЕНИЕ 12 - Day 5 Final
-      const simpleKeyboard = new InlineKeyboard()
-        .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
+      const day5Keyboard = new InlineKeyboard()
+        .webApp('Оформить подписку ❤️', paymentUrl);
 
       await telegramService.sendPhoto(
         chatId,
@@ -804,7 +932,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
             `Если давно было ощущение «надо бы зайти» —\n` +
             `вот это оно и есть 🙂`,
           parse_mode: 'HTML',
-          reply_markup: simpleKeyboard
+          reply_markup: day5Keyboard
         }
       );
 
@@ -861,6 +989,14 @@ bot.command('start', async (ctx) => {
 
     // 🆕 Check for gift activation link (start=present_{recipient_tg_id})
     const startPayload = ctx.match;
+
+    // 📊 Парсим и сохраняем UTM метки из deep link (first touch attribution)
+    const utmData = parseUtmFromPayload(startPayload);
+    if (Object.keys(utmData).length > 0) {
+      await saveUtmToUser(userId, utmData);
+      logger.info({ userId, utmData }, 'UTM parsed from start payload');
+    }
+
     if (startPayload && startPayload.startsWith('present_')) {
       const recipientTgId = parseInt(startPayload.substring(8)); // Remove 'present_' prefix
       if (recipientTgId === userId) {
@@ -1131,7 +1267,10 @@ bot.callbackQuery('get_access', async (ctx) => {
 
     const userId = ctx.from!.id;
     const chatId = ctx.chat!.id;
-    const webAppUrl = `https://hranitel.daniillepekhin.com/payment_form_club.html`;
+
+    // 📊 Получаем UTM из metadata и добавляем к URL оплаты
+    const utmData = await getUtmFromUser(userId);
+    const webAppUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
 
     // Cancel the 120-second start reminder since user clicked the button
     await schedulerService.cancelUserTasksByType(userId, 'start_reminder');
@@ -1243,8 +1382,12 @@ bot.callbackQuery('test_get_access_full', async (ctx) => {
     // Cancel test reminder since user clicked
     await schedulerService.cancelUserTasksByType(userId, 'test_start_reminder');
 
+    // 📊 Получаем UTM из metadata пользователя
+    const utmData = await getUtmFromUser(userId);
+    const paymentUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+
     const keyboard = new InlineKeyboard()
-      .webApp('Оплатить ❤️', 'https://hranitel.daniillepekhin.com/payment_form_club.html');
+      .webApp('Оплатить ❤️', paymentUrl);
 
     await telegramService.sendPhoto(
       chatId,
@@ -1261,7 +1404,7 @@ bot.callbackQuery('test_get_access_full', async (ctx) => {
     );
 
     const marathonKeyboard = new InlineKeyboard()
-      .webApp('попасть на марафон ❤️', 'https://hranitel.daniillepekhin.com/payment_form_club.html');
+      .webApp('попасть на марафон ❤️', paymentUrl);
 
     await telegramService.sendVideo(
       chatId,
@@ -1344,8 +1487,13 @@ bot.callbackQuery('not_ready_3', async (ctx) => {
 
     const userId = ctx.from!.id;
     const chatId = ctx.chat!.id;
+
+    // 📊 Получаем UTM из metadata пользователя
+    const utmData = await getUtmFromUser(userId);
+    const paymentUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+
     const keyboard = new InlineKeyboard()
-      .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
+      .webApp('Оформить подписку ❤️', paymentUrl);
 
     // Cancel scheduled day2_reminder since user clicked "я не готов"
     await schedulerService.cancelUserTasksByType(userId, 'day2_reminder');
@@ -1396,8 +1544,13 @@ bot.callbackQuery('topic_money_2026', async (ctx) => {
     await ctx.answerCallbackQuery();
     const userId = ctx.from!.id;
     const chatId = ctx.chat!.id;
+
+    // 📊 Получаем UTM из metadata пользователя
+    const utmData = await getUtmFromUser(userId);
+    const paymentUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+
     const keyboard = new InlineKeyboard()
-      .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
+      .webApp('Оформить подписку ❤️', paymentUrl);
 
     // Schedule payment_reminder (MSG 8) in 60 minutes after topic
     await schedulerService.schedule(
@@ -1448,8 +1601,13 @@ bot.callbackQuery('topic_income', async (ctx) => {
     await ctx.answerCallbackQuery();
     const userId = ctx.from!.id;
     const chatId = ctx.chat!.id;
+
+    // 📊 Получаем UTM из metadata пользователя
+    const utmData = await getUtmFromUser(userId);
+    const paymentUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+
     const keyboard = new InlineKeyboard()
-      .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
+      .webApp('Оформить подписку ❤️', paymentUrl);
 
     // Schedule payment_reminder (MSG 8) in 60 minutes after topic
     await schedulerService.schedule(
@@ -1496,8 +1654,13 @@ bot.callbackQuery('topic_state', async (ctx) => {
     await ctx.answerCallbackQuery();
     const userId = ctx.from!.id;
     const chatId = ctx.chat!.id;
+
+    // 📊 Получаем UTM из metadata пользователя
+    const utmData = await getUtmFromUser(userId);
+    const paymentUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+
     const keyboard = new InlineKeyboard()
-      .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
+      .webApp('Оформить подписку ❤️', paymentUrl);
 
     // Schedule payment_reminder (MSG 8) in 60 minutes after topic
     await schedulerService.schedule(
@@ -1545,8 +1708,13 @@ bot.callbackQuery('topic_environment', async (ctx) => {
     await ctx.answerCallbackQuery();
     const userId = ctx.from!.id;
     const chatId = ctx.chat!.id;
+
+    // 📊 Получаем UTM из metadata пользователя
+    const utmData = await getUtmFromUser(userId);
+    const paymentUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+
     const keyboard = new InlineKeyboard()
-      .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
+      .webApp('Оформить подписку ❤️', paymentUrl);
 
     // Schedule payment_reminder (MSG 8) in 60 minutes after topic
     await schedulerService.schedule(
@@ -1857,9 +2025,15 @@ bot.callbackQuery('menu_gift_subscription', async (ctx) => {
 // Handle topic selection buttons (old reply keyboard - keep for backward compatibility)
 bot.hears('🔮 где мои деньги в 2026 году', async (ctx) => {
   try {
+    const userId = ctx.from!.id;
     const chatId = ctx.chat.id;
+
+    // 📊 Получаем UTM из metadata пользователя
+    const utmData = await getUtmFromUser(userId);
+    const paymentUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+
     const keyboard = new InlineKeyboard()
-      .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
+      .webApp('Оформить подписку ❤️', paymentUrl);
 
     await telegramService.sendMessage(
       chatId,
@@ -1892,9 +2066,15 @@ bot.hears('🔮 где мои деньги в 2026 году', async (ctx) => {
 
 bot.hears('💰 почему доход не растет', async (ctx) => {
   try {
+    const userId = ctx.from!.id;
     const chatId = ctx.chat.id;
+
+    // 📊 Получаем UTM из metadata пользователя
+    const utmData = await getUtmFromUser(userId);
+    const paymentUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+
     const keyboard = new InlineKeyboard()
-      .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
+      .webApp('Оформить подписку ❤️', paymentUrl);
 
     await telegramService.sendMessage(
       chatId,
@@ -1922,9 +2102,15 @@ bot.hears('💰 почему доход не растет', async (ctx) => {
 
 bot.hears('🧠 состояние vs деньги', async (ctx) => {
   try {
+    const userId = ctx.from!.id;
     const chatId = ctx.chat.id;
+
+    // 📊 Получаем UTM из metadata пользователя
+    const utmData = await getUtmFromUser(userId);
+    const paymentUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+
     const keyboard = new InlineKeyboard()
-      .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
+      .webApp('Оформить подписку ❤️', paymentUrl);
 
     await telegramService.sendMessage(
       chatId,
@@ -1954,9 +2140,15 @@ bot.hears('🧠 состояние vs деньги', async (ctx) => {
 
 bot.hears('🌍 окружение', async (ctx) => {
   try {
+    const userId = ctx.from!.id;
     const chatId = ctx.chat.id;
+
+    // 📊 Получаем UTM из metadata пользователя
+    const utmData = await getUtmFromUser(userId);
+    const paymentUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+
     const keyboard = new InlineKeyboard()
-      .webApp('Оформить подписку ❤️', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
+      .webApp('Оформить подписку ❤️', paymentUrl);
 
     // Send all images as media group
     await telegramService.sendMediaGroup(chatId, [
