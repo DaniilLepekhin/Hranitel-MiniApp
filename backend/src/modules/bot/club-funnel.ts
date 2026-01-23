@@ -276,10 +276,8 @@ function getFinalTimeout(): number {
 }
 
 export async function startClubFunnel(userId: string, chatId: number, telegramId: string, isTestMode: boolean = false) {
-  // Устанавливаем тестовый режим если запрошен
-  if (isTestMode) {
-    setTestMode(true);
-  }
+  // Устанавливаем или сбрасываем тестовый режим
+  setTestMode(isTestMode);
 
   await getOrCreateClubProgress(userId, telegramId);
 
