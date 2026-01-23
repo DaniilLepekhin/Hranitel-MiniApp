@@ -1165,19 +1165,22 @@ bot.command('start', async (ctx) => {
     }
 
     // 🆕 Check for club funnel link (start=club or start=club_XXX) - only for non-paying users
-    // Поддерживаемые форматы:
+    // Поддерживаемые форматы (utm_campaign utm_medium utm_source utm_content):
     // - club - без метки (utm_campaign=club)
+    // - club_insta - utm_campaign=club, utm_medium=insta
     // - club_insta_shapka - utm_campaign=club, utm_medium=insta, utm_source=shapka
-    // - club_tgchannel - utm_campaign=club, utm_medium=tgchannel
+    // - club_insta_shapka_promo - utm_campaign=club, utm_medium=insta, utm_source=shapka, utm_content=promo
     if (startPayload === 'club' || startPayload?.startsWith('club_')) {
-      // Парсим UTM из payload: club_MEDIUM_SOURCE или club_MEDIUM
+      // Парсим UTM из payload: club_MEDIUM_SOURCE_CONTENT
       let utmMedium: string | null = null;
       let utmSource: string | null = null;
+      let utmContent: string | null = null;
 
       if (startPayload !== 'club') {
         const parts = startPayload.substring(5).split('_'); // убираем "club_" и разбиваем по "_"
         utmMedium = parts[0] || null; // первая часть = medium (insta, tgchannel, etc.)
-        utmSource = parts.slice(1).join('_') || null; // остальное = source (shapka, stories, etc.)
+        utmSource = parts[1] || null; // вторая часть = source (shapka, stories, etc.)
+        utmContent = parts.slice(2).join('_') || null; // остальное = content
       }
 
       // Get or create user in database
@@ -1201,6 +1204,7 @@ bot.command('start', async (ctx) => {
       const utmData: Record<string, string> = { utm_campaign: 'club' };
       if (utmMedium) utmData.utm_medium = utmMedium;
       if (utmSource) utmData.utm_source = utmSource;
+      if (utmContent) utmData.utm_content = utmContent;
 
       await db
         .update(users)
@@ -1219,6 +1223,42 @@ bot.command('start', async (ctx) => {
     }
 
     // ❌ Если пользователь НЕ оплатил - запустить продажную воронку
+
+    // 🆕 Парсинг UTM для start_XXX ссылок (start_MEDIUM_SOURCE_CONTENT)
+    // Примеры: start_tiktok, start_insta_reels, start_insta_reels_promo
+    if (startPayload?.startsWith('start_')) {
+      let utmMedium: string | null = null;
+      let utmSource: string | null = null;
+      let utmContent: string | null = null;
+
+      const parts = startPayload.substring(6).split('_'); // убираем "start_" и разбиваем по "_"
+      utmMedium = parts[0] || null;
+      utmSource = parts[1] || null;
+      utmContent = parts.slice(2).join('_') || null;
+
+      // Сохраняем UTM-метки в metadata пользователя
+      const currentUser = user || await db.select().from(users).where(eq(users.telegramId, userId)).limit(1).then(r => r[0]);
+      if (currentUser) {
+        const currentMetadata = (currentUser.metadata as Record<string, unknown>) || {};
+        const utmData: Record<string, string> = { utm_campaign: 'start' };
+        if (utmMedium) utmData.utm_medium = utmMedium;
+        if (utmSource) utmData.utm_source = utmSource;
+        if (utmContent) utmData.utm_content = utmContent;
+
+        await db
+          .update(users)
+          .set({
+            metadata: {
+              ...currentMetadata,
+              ...utmData,
+            },
+          })
+          .where(eq(users.telegramId, userId));
+
+        logger.info({ userId, ...utmData }, 'Start funnel with UTM');
+      }
+    }
+
     // 🧹 Очистка всех запланированных задач при перезапуске /start (обычная + club воронка)
 
     // Обычная воронка (все типы задач)
