@@ -808,14 +808,6 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
 
-      // Воронка завершена
-      await telegramService.sendMessage(
-        chatId,
-        '✅ <b>Тестовая воронка полностью завершена!</b>\n\n' +
-        'Все 12 сообщений отправлены (включая day2-day5).\n\n' +
-        '/admin - вернуться к списку команд',
-        { parse_mode: 'HTML' }
-      );
     }
     // 🔧 Payment check (scheduler-based, survives restarts)
     else if (type === 'payment_check') {
