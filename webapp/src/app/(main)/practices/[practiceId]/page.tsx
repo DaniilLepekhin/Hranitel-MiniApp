@@ -113,9 +113,12 @@ export default function PracticePage() {
     try {
       const videoData = await contentApi.getVideo(firstVideo.id);
 
+      // Определяем тип медиа: если есть videoUrl - это видео, иначе аудио
+      const isVideo = !!firstVideo.videoUrl;
+
       const mediaItem: MediaItem = {
         id: firstVideo.id,
-        type: 'audio',
+        type: isVideo ? 'video' : 'audio',
         title: item.title,
         description: item.description || undefined,
         url: firstVideo.videoUrl,
@@ -176,27 +179,32 @@ export default function PracticePage() {
         </Card>
       )}
 
-      {/* Audio Player */}
-      {videos.length > 0 && (
-        <Card
-          className="mb-6 p-5 hover:scale-[1.02] transition-all cursor-pointer bg-gradient-to-br from-[#d93547]/10 to-[#9c1723]/10 border-2 border-[#d93547]"
-          onClick={handlePlayAudio}
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#d93547] to-[#9c1723] flex items-center justify-center shadow-lg flex-shrink-0">
-              <Play className="w-8 h-8 text-white ml-1" fill="white" />
+      {/* Media Player (Video/Audio) */}
+      {videos.length > 0 && (() => {
+        const hasVideo = !!videos[0]?.videoUrl;
+        return (
+          <Card
+            className="mb-6 p-5 hover:scale-[1.02] transition-all cursor-pointer bg-gradient-to-br from-[#d93547]/10 to-[#9c1723]/10 border-2 border-[#d93547]"
+            onClick={handlePlayAudio}
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#d93547] to-[#9c1723] flex items-center justify-center shadow-lg flex-shrink-0">
+                <Play className="w-8 h-8 text-white ml-1" fill="white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-[#2b2520] mb-1">
+                  {hasVideo ? 'Смотреть видео' : 'Слушать аудио-гайд'}
+                </h3>
+                <p className="text-[#6b5a4a] text-sm">
+                  {videos[0]?.durationSeconds
+                    ? `${Math.floor(videos[0].durationSeconds / 60)} мин • ${hasVideo ? 'Видео практика' : 'Практика с аудио сопровождением'}`
+                    : hasVideo ? 'Видео практика' : 'Практика с аудио сопровождением'}
+                </p>
+              </div>
             </div>
-            <div className="flex-1">
-              <h3 className="font-bold text-[#2b2520] mb-1">Слушать аудио-гайд</h3>
-              <p className="text-[#6b5a4a] text-sm">
-                {videos[0]?.durationSeconds
-                  ? `${Math.floor(videos[0].durationSeconds / 60)} мин • Практика с аудио сопровождением`
-                  : 'Практика с аудио сопровождением'}
-              </p>
-            </div>
-          </div>
-        </Card>
-      )}
+          </Card>
+        );
+      })()}
 
       {/* Practice Content */}
       <Card className="p-6">
@@ -293,7 +301,9 @@ export default function PracticePage() {
             <p className="font-semibold text-[#2b2520] mb-1">Выполните практику</p>
             <p className="text-[#6b5a4a] text-sm">
               {videos.length > 0
-                ? 'Слушайте аудио-гайд и следуйте инструкциям. Можете свернуть плеер и продолжить слушать в фоне.'
+                ? (videos[0]?.videoUrl
+                    ? 'Смотрите видео и следуйте инструкциям. Можете свернуть плеер и продолжить просмотр в фоне.'
+                    : 'Слушайте аудио-гайд и следуйте инструкциям. Можете свернуть плеер и продолжить слушать в фоне.')
                 : 'Следуйте инструкциям выше и применяйте практику в своей жизни. Регулярное выполнение практик усилит трансформацию.'
               }
             </p>

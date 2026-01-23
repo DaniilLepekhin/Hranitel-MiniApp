@@ -121,9 +121,12 @@ export default function ContentDetailPage() {
         // Fetch video with timecodes
         const videoData = await contentApi.getVideo(firstVideo.id);
 
+        // Определяем тип медиа: если есть videoUrl - это видео, иначе аудио
+        const isVideo = !!firstVideo.videoUrl;
+
         const mediaItem: MediaItem = {
           id: firstVideo.id,
-          type: 'audio',
+          type: isVideo ? 'video' : 'audio',
           title: firstVideo.title,
           description: firstVideo.description || item.description || undefined,
           url: firstVideo.videoUrl,
