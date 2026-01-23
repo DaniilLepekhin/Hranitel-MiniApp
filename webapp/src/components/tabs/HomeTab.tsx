@@ -234,7 +234,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
               color: '#2d2620',
             }}
           >
-            Ты в пространстве клуба «Код Денег»
+            Ты в пространстве клуба «Код Успеха»
           </p>
         </div>
 
