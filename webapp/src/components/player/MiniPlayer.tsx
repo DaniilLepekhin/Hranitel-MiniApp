@@ -165,12 +165,13 @@ export function MiniPlayer() {
       )}
 
       {/* Video Element - always in DOM but hidden when mini player shown */}
+      {/* z-[101] чтобы быть выше FullMediaPlayer (z-[100]) когда showFullPlayer=true */}
       {currentMedia && currentMedia.type === 'video' && (
         <video
           ref={videoRef}
           src={currentMedia.url}
           style={{ display: showFullPlayer ? 'block' : 'none' }}
-          className="fixed inset-0 w-full h-full object-contain bg-black z-[95]"
+          className={`fixed ${showFullPlayer ? 'top-16 bottom-40' : 'inset-0'} left-0 right-0 w-full h-auto object-contain bg-black ${showFullPlayer ? 'z-[101]' : 'z-[95]'}`}
           playsInline
           controls={false}
         />
