@@ -137,8 +137,8 @@ export const cityChatModule = new Elysia({ prefix: '/city-chats' })
           chatLink: chat.chat_link,
           chatName: chat.chat_name,
           country: chat.country,
-          cityChatId: chat.id,
-          telegramChatId: chat.platform_id || null,
+          cityChatId: Number(chat.id),
+          telegramChatId: chat.platform_id ? Number(chat.platform_id) : null,
         };
       } catch (error) {
         logger.error({ error, city }, 'Error fetching chat link');
