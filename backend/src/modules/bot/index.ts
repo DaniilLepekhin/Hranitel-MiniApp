@@ -2089,7 +2089,12 @@ bot.callbackQuery('club_get_roadmap', async (ctx) => {
     await ctx.answerCallbackQuery();
     const user = await funnels.getUserByTgId(ctx.from.id);
     if (user) {
-      await clubFunnel.handleClubGetRoadmap(user.id, ctx.chat.id);
+      // Для isPro пользователей показываем версию без покупки
+      if (user.isPro) {
+        await clubFunnel.handleClubGetRoadmapImported(user.id, ctx.chat.id);
+      } else {
+        await clubFunnel.handleClubGetRoadmap(user.id, ctx.chat.id);
+      }
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in club_get_roadmap callback');
