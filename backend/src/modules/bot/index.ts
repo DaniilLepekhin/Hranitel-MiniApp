@@ -2904,9 +2904,21 @@ bot.on('message:text', async (ctx) => {
     const text = rawText.toUpperCase();
     const user = await funnels.getUserByTgId(userId);
 
-    if (user?.onboardingStep === 'awaiting_keyword' && text === 'КАРТА') {
-      await funnels.handleKeywordSuccess(user.id, ctx.chat.id);
-      return;
+    // Проверка кодового слова "КАРТА"
+    if (text === 'КАРТА' && user) {
+      // Случай 1: Пользователь на этапе awaiting_keyword - стандартный флоу
+      if (user.onboardingStep === 'awaiting_keyword') {
+        await funnels.handleKeywordSuccess(user.id, ctx.chat.id);
+        return;
+      }
+
+      // Случай 2: Мигрированный пользователь с isPro и onboarding_complete
+      // Они уже оплатили, но не прошли онбординг с кодовым словом
+      if (user.isPro && user.onboardingStep === 'onboarding_complete') {
+        logger.info({ userId, telegramId: user.telegramId }, 'Migrated user entered keyword КАРТА, starting onboarding');
+        await funnels.handleKeywordSuccess(user.id, ctx.chat.id);
+        return;
+      }
     }
 
     // 🆕 Check if user is in club funnel awaiting birthdate
