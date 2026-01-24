@@ -10,9 +10,10 @@ const poolConfig: postgres.Options<{}> = {
   max: isProduction ? 150 : 10, // 🔥 150 connections для 10K+ concurrent users
   idle_timeout: 20,
   connect_timeout: 10,
-  max_lifetime: 60 * 30, // 30 minutes
+  max_lifetime: null, // Отключаем max_lifetime - избегаем TimeoutNegativeWarning в postgres.js
   prepare: true, // Prepared statements для быстрых повторяющихся запросов
   keep_alive: isProduction ? 60 : undefined, // Keep-alive каждые 60 сек в production
+  onnotice: () => {}, // Подавляем notice сообщения от PostgreSQL
 };
 
 // Primary database connection (for writes and critical reads)
