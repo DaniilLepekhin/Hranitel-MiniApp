@@ -97,12 +97,7 @@ export function ChatsTab() {
       // Save selection and unban user before opening link
       try {
         const telegramId = parseInt(user.telegramId, 10);
-        await cityChatsApi.joinChat(
-          telegramId,
-          selectedCity,
-          chatLinkData.cityChatId,
-          chatLinkData.telegramChatId || undefined
-        );
+        await cityChatsApi.joinChat(telegramId, chatLinkData.cityChatId);
       } catch (error) {
         console.error('Error saving city chat selection:', error);
         // Continue to open link even if save fails

@@ -180,10 +180,28 @@ export const cityChatModule = new Elysia({ prefix: '/city-chats' })
   .post(
     '/join',
     async ({ body }) => {
-      const { telegramId, city, cityChatId, telegramChatId } = body;
+      const { telegramId, cityChatId } = body;
 
       try {
-        // 1. Update user's city and cityChatId
+        // 1. Get city info from old database by cityChatId
+        const chatResult = await oldDbConnection<CityChat[]>`
+          SELECT id, country, city, chat_name, chat_link, platform_id
+          FROM city_chats_ik
+          WHERE id = ${cityChatId}
+          LIMIT 1
+        `;
+
+        if (chatResult.length === 0) {
+          logger.warn({ cityChatId }, 'City chat not found');
+          return {
+            success: false,
+            error: 'City chat not found',
+          };
+        }
+
+        const cityChat = chatResult[0];
+
+        // 2. Find user
         const [user] = await db
           .select()
           .from(users)
@@ -198,26 +216,26 @@ export const cityChatModule = new Elysia({ prefix: '/city-chats' })
           };
         }
 
-        // Update user's city and cityChatId
+        // 3. Update user's city and cityChatId
         await db
           .update(users)
           .set({
-            city: city,
+            city: cityChat.city,
             cityChatId: cityChatId,
             updatedAt: new Date(),
           })
           .where(eq(users.telegramId, telegramId));
 
-        logger.info({ telegramId, city, cityChatId }, 'User city chat selection saved');
+        logger.info({ telegramId, city: cityChat.city, cityChatId }, 'User city chat selection saved');
 
-        // 2. Unban user from this specific chat if telegramChatId is provided
-        if (telegramChatId) {
+        // 4. Unban user from this specific chat if platform_id is available
+        if (cityChat.platform_id) {
           try {
-            await subscriptionGuardService.unbanFromSpecificChat(telegramId, telegramChatId);
-            logger.info({ telegramId, telegramChatId }, 'User unbanned from city chat');
+            await subscriptionGuardService.unbanFromSpecificChat(telegramId, cityChat.platform_id);
+            logger.info({ telegramId, telegramChatId: cityChat.platform_id }, 'User unbanned from city chat');
           } catch (unbanError) {
             // Log but don't fail - user might not be banned
-            logger.warn({ telegramId, telegramChatId, error: unbanError }, 'Error unbanning user from chat (may not be banned)');
+            logger.warn({ telegramId, telegramChatId: cityChat.platform_id, error: unbanError }, 'Error unbanning user from chat (may not be banned)');
           }
         }
 
@@ -226,16 +244,14 @@ export const cityChatModule = new Elysia({ prefix: '/city-chats' })
           message: 'City chat selection saved',
         };
       } catch (error) {
-        logger.error({ error, telegramId, city }, 'Error joining city chat');
+        logger.error({ error, telegramId, cityChatId }, 'Error joining city chat');
         throw new Error('Failed to join city chat');
       }
     },
     {
       body: t.Object({
         telegramId: t.Number(),
-        city: t.String(),
         cityChatId: t.Number(),
-        telegramChatId: t.Optional(t.Union([t.Number(), t.Null()])),
       }),
     }
   );

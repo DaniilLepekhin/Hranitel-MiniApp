@@ -379,10 +379,10 @@ export const cityChatsApi = {
       '/city-chats/link',
       { params: { city } }
     ),
-  joinChat: (telegramId: number, city: string, cityChatId: number, telegramChatId?: number) =>
+  joinChat: (telegramId: number, cityChatId: number) =>
     api.post<{ success: boolean; message: string }>(
       '/city-chats/join',
-      { telegramId, city, cityChatId, telegramChatId }
+      { telegramId, cityChatId }
     ),
 };
 
