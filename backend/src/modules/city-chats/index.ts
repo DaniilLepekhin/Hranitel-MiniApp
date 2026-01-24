@@ -1,5 +1,5 @@
 import { Elysia, t } from 'elysia';
-import { sql, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { config } from '@/config';
 import { logger } from '@/utils/logger';
 import postgres from 'postgres';
@@ -7,15 +7,22 @@ import { db } from '@/db';
 import { users } from '@/db/schema';
 import { subscriptionGuardService } from '@/services/subscription-guard.service';
 
-// Connect directly to the old database for city_chats_ik table
-const oldDbConnection = postgres({
-  host: '31.128.36.81',
-  port: 5423,
-  database: 'club_hranitel',
-  username: 'postgres',
-  password: 'kH*kyrS&9z7K',
-  ssl: false,
-});
+// Connect to old database for city_chats_ik table (uses OLD_DATABASE_URL from env)
+const oldDbConnection = config.OLD_DATABASE_URL
+  ? postgres(config.OLD_DATABASE_URL, {
+      max: 5,
+      idle_timeout: 20,
+      connect_timeout: 10,
+    })
+  : null;
+
+// Helper to ensure connection exists
+const getOldDb = () => {
+  if (!oldDbConnection) {
+    throw new Error('OLD_DATABASE_URL not configured');
+  }
+  return oldDbConnection;
+};
 
 interface CityChat {
   id: number;
@@ -30,7 +37,7 @@ export const cityChatModule = new Elysia({ prefix: '/city-chats' })
   // Get all countries
   .get('/countries', async () => {
     try {
-      const result = await oldDbConnection<{ country: string }[]>`
+      const result = await getOldDb()<{ country: string }[]>`
         SELECT DISTINCT country
         FROM city_chats_ik
         WHERE country IS NOT NULL
@@ -67,7 +74,7 @@ export const cityChatModule = new Elysia({ prefix: '/city-chats' })
       }
 
       try {
-        const result = await oldDbConnection<{ city: string; chat_name: string }[]>`
+        const result = await getOldDb()<{ city: string; chat_name: string }[]>`
           SELECT city, chat_name
           FROM city_chats_ik
           WHERE country = ${country}
@@ -113,7 +120,7 @@ export const cityChatModule = new Elysia({ prefix: '/city-chats' })
       }
 
       try {
-        const result = await oldDbConnection<CityChat[]>`
+        const result = await getOldDb()<CityChat[]>`
           SELECT id, country, city, chat_name, chat_link, platform_id
           FROM city_chats_ik
           WHERE city = ${city}
@@ -157,7 +164,7 @@ export const cityChatModule = new Elysia({ prefix: '/city-chats' })
     try {
       const limit = query.limit ? parseInt(query.limit) : 100;
 
-      const result = await oldDbConnection<CityChat[]>`
+      const result = await getOldDb()<CityChat[]>`
         SELECT id, country, city, chat_name, chat_link
         FROM city_chats_ik
         ORDER BY country, city
@@ -184,7 +191,7 @@ export const cityChatModule = new Elysia({ prefix: '/city-chats' })
 
       try {
         // 1. Get city info from old database by cityChatId
-        const chatResult = await oldDbConnection<CityChat[]>`
+        const chatResult = await getOldDb()<CityChat[]>`
           SELECT id, country, city, chat_name, chat_link, platform_id
           FROM city_chats_ik
           WHERE id = ${cityChatId}

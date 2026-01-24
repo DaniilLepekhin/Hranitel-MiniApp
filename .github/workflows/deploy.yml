@@ -68,7 +68,7 @@ jobs:
             echo "TELEGRAM_BOT_USERNAME=$TELEGRAM_BOT_USERNAME" >> .env
             echo "REDIS_URL=$REDIS_URL" >> .env
             echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> .env
-            echo "OLD_DATABASE_URL=postgres://postgres:kH*kyrS&9z7K@31.128.36.81:5423/club_hranitel" >> .env
+            echo "OLD_DATABASE_URL=${{ secrets.OLD_DATABASE_URL }}" >> .env
 
             # Install Bun if not exists
             if ! command -v bun &> /dev/null; then
