@@ -23,7 +23,7 @@ interface CityChat {
   city: string;
   chat_name: string;
   chat_link: string;
-  chat_id: string | null;
+  platform_id: number | null; // Telegram chat ID stored in platform_id column
 }
 
 export const cityChatModule = new Elysia({ prefix: '/city-chats' })
@@ -114,7 +114,7 @@ export const cityChatModule = new Elysia({ prefix: '/city-chats' })
 
       try {
         const result = await oldDbConnection<CityChat[]>`
-          SELECT id, country, city, chat_name, chat_link, chat_id
+          SELECT id, country, city, chat_name, chat_link, platform_id
           FROM city_chats_ik
           WHERE city = ${city}
           LIMIT 1
@@ -138,7 +138,7 @@ export const cityChatModule = new Elysia({ prefix: '/city-chats' })
           chatName: chat.chat_name,
           country: chat.country,
           cityChatId: chat.id,
-          telegramChatId: chat.chat_id ? parseInt(chat.chat_id, 10) : null,
+          telegramChatId: chat.platform_id || null,
         };
       } catch (error) {
         logger.error({ error, city }, 'Error fetching chat link');
