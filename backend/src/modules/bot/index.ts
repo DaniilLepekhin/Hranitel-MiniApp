@@ -1996,7 +1996,8 @@ bot.callbackQuery('club_ready', async (ctx) => {
     await ctx.answerCallbackQuery();
     const user = await funnels.getUserByTgId(ctx.from.id);
     if (user) {
-      await clubFunnel.handleClubReady(user.id, ctx.chat.id);
+      // 🛡️ Всегда отправляем в личку пользователю, а не в группу
+      await clubFunnel.handleClubReady(user.id, ctx.from.id);
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in club_ready callback');
@@ -2011,7 +2012,8 @@ bot.callbackQuery(/^club_confirm_date_yes_/, async (ctx) => {
     const birthDate = data.replace('club_confirm_date_yes_', '');
     const user = await funnels.getUserByTgId(ctx.from.id);
     if (user && birthDate) {
-      await clubFunnel.handleBirthDateConfirmed(user.id, ctx.chat.id, birthDate);
+      // 🛡️ Всегда отправляем в личку пользователю
+      await clubFunnel.handleBirthDateConfirmed(user.id, ctx.from.id, birthDate);
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in club_confirm_date_yes callback');
@@ -2024,7 +2026,8 @@ bot.callbackQuery('club_confirm_date_no', async (ctx) => {
     await ctx.answerCallbackQuery();
     const user = await funnels.getUserByTgId(ctx.from.id);
     if (user) {
-      await clubFunnel.handleBirthDateRejected(user.id, ctx.chat.id);
+      // 🛡️ Всегда отправляем в личку пользователю
+      await clubFunnel.handleBirthDateRejected(user.id, ctx.from.id);
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in club_confirm_date_no callback');
@@ -2037,7 +2040,8 @@ bot.callbackQuery('club_activate', async (ctx) => {
     await ctx.answerCallbackQuery();
     const user = await funnels.getUserByTgId(ctx.from.id);
     if (user) {
-      await clubFunnel.handleClubActivate(user.id, ctx.chat.id);
+      // 🛡️ Всегда отправляем в личку пользователю
+      await clubFunnel.handleClubActivate(user.id, ctx.from.id);
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in club_activate callback');
@@ -2050,7 +2054,8 @@ bot.callbackQuery('club_get_style', async (ctx) => {
     await ctx.answerCallbackQuery();
     const user = await funnels.getUserByTgId(ctx.from.id);
     if (user) {
-      await clubFunnel.handleClubGetStyle(user.id, ctx.chat.id);
+      // 🛡️ Всегда отправляем в личку пользователю
+      await clubFunnel.handleClubGetStyle(user.id, ctx.from.id);
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in club_get_style callback');
@@ -2063,7 +2068,8 @@ bot.callbackQuery('club_get_scale', async (ctx) => {
     await ctx.answerCallbackQuery();
     const user = await funnels.getUserByTgId(ctx.from.id);
     if (user) {
-      await clubFunnel.handleClubGetScale(user.id, ctx.chat.id, ctx.from.id);
+      // 🛡️ Всегда отправляем в личку пользователю
+      await clubFunnel.handleClubGetScale(user.id, ctx.from.id, ctx.from.id);
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in club_get_scale callback');
@@ -2076,7 +2082,8 @@ bot.callbackQuery('club_check_subscription', async (ctx) => {
     await ctx.answerCallbackQuery();
     const user = await funnels.getUserByTgId(ctx.from.id);
     if (user) {
-      await clubFunnel.handleClubCheckSubscription(user.id, ctx.chat.id, ctx.from.id);
+      // 🛡️ Всегда отправляем в личку пользователю
+      await clubFunnel.handleClubCheckSubscription(user.id, ctx.from.id, ctx.from.id);
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in club_check_subscription callback');
@@ -2089,11 +2096,12 @@ bot.callbackQuery('club_get_roadmap', async (ctx) => {
     await ctx.answerCallbackQuery();
     const user = await funnels.getUserByTgId(ctx.from.id);
     if (user) {
+      // 🛡️ Всегда отправляем в личку пользователю
       // Для isPro пользователей показываем версию без покупки
       if (user.isPro) {
-        await clubFunnel.handleClubGetRoadmapImported(user.id, ctx.chat.id);
+        await clubFunnel.handleClubGetRoadmapImported(user.id, ctx.from.id);
       } else {
-        await clubFunnel.handleClubGetRoadmap(user.id, ctx.chat.id);
+        await clubFunnel.handleClubGetRoadmap(user.id, ctx.from.id);
       }
     }
   } catch (error) {
@@ -2107,11 +2115,12 @@ bot.callbackQuery('club_start_route', async (ctx) => {
     await ctx.answerCallbackQuery();
     const user = await funnels.getUserByTgId(ctx.from.id);
     if (user) {
-      // 🆕 Для импортированных пользователей (isPro=true) показываем "Ключ принят"
+      // 🛡️ Всегда отправляем в личку пользователю
+      // Для импортированных пользователей (isPro=true) показываем "Ключ принят"
       if (user.isPro) {
-        await clubFunnel.handleClubStartRouteImported(user.id, ctx.chat.id);
+        await clubFunnel.handleClubStartRouteImported(user.id, ctx.from.id);
       } else {
-        await clubFunnel.handleClubStartRoute(user.id, ctx.chat.id, user);
+        await clubFunnel.handleClubStartRoute(user.id, ctx.from.id, user);
       }
     }
   } catch (error) {
@@ -2125,7 +2134,8 @@ bot.callbackQuery('club_ready_imported', async (ctx) => {
     await ctx.answerCallbackQuery();
     const user = await funnels.getUserByTgId(ctx.from.id);
     if (user) {
-      await clubFunnel.handleClubReady(user.id, ctx.chat.id);
+      // 🛡️ Всегда отправляем в личку пользователю
+      await clubFunnel.handleClubReady(user.id, ctx.from.id);
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in club_ready_imported callback');
@@ -2138,7 +2148,8 @@ bot.callbackQuery('club_start_route_imported', async (ctx) => {
     await ctx.answerCallbackQuery();
     const user = await funnels.getUserByTgId(ctx.from.id);
     if (user) {
-      await clubFunnel.handleClubStartRouteImported(user.id, ctx.chat.id);
+      // 🛡️ Всегда отправляем в личку пользователю
+      await clubFunnel.handleClubStartRouteImported(user.id, ctx.from.id);
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in club_start_route_imported callback');
@@ -2151,7 +2162,8 @@ bot.callbackQuery('club_more_info', async (ctx) => {
     await ctx.answerCallbackQuery();
     const user = await funnels.getUserByTgId(ctx.from.id);
     if (user) {
-      await clubFunnel.handleClubMoreInfo(user.id, ctx.chat.id);
+      // 🛡️ Всегда отправляем в личку пользователю
+      await clubFunnel.handleClubMoreInfo(user.id, ctx.from.id);
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in club_more_info callback');
