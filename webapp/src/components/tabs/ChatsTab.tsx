@@ -91,7 +91,7 @@ export function ChatsTab() {
   };
 
   const handleJoinCityChat = async () => {
-    if (chatLinkData?.chatLink && user) {
+    if (chatLinkData?.chatLink && chatLinkData.cityChatId > 0 && user) {
       haptic.impact('medium');
 
       // Save selection and unban user before opening link
@@ -597,7 +597,7 @@ export function ChatsTab() {
                   </div>
                 )}
 
-                {selectedCity && chatLinkData?.chatLink && (
+                {selectedCity && chatLinkData?.chatLink && chatLinkData.cityChatId > 0 && (
                   <button
                     onClick={handleJoinCityChat}
                     className="w-full py-3 rounded-lg text-center active:scale-[0.98] transition-transform"
