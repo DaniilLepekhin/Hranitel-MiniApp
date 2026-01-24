@@ -5,31 +5,35 @@ import { eq, and, desc } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { startOnboardingAfterPayment, handleGiftPaymentSuccess } from '@/modules/bot/post-payment-funnels';
 import { subscriptionGuardService } from '@/services/subscription-guard.service';
+import { withLock } from '@/utils/distributed-lock';
 
 export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
   // Lava payment success webhook
   .post(
     '/lava-payment-success',
     async ({ body, set }) => {
+      const {
+        email,
+        payment_method,
+        amount,
+        contact_id, // Lava contact_id for subscription management
+      } = body;
+
+      // Validate required fields
+      if (!email) {
+        logger.error({ body }, 'Missing email in webhook');
+        set.status = 400;
+        return { success: false, error: 'Missing email' };
+      }
+
+      // Normalize email
+      const normalizedEmail = email.toLowerCase().trim();
+
+      // Use distributed lock to prevent duplicate payment processing
+      const lockKey = `payment:lava:${normalizedEmail}`;
       try {
-        logger.info({ body }, 'Received Lava payment webhook');
-
-        const {
-          email,
-          payment_method,
-          amount,
-          contact_id, // Lava contact_id for subscription management
-        } = body;
-
-        // Validate required fields
-        if (!email) {
-          logger.error({ body }, 'Missing email in webhook');
-          set.status = 400;
-          return { success: false, error: 'Missing email' };
-        }
-
-        // Normalize email
-        const normalizedEmail = email.toLowerCase().trim();
+        const result = await withLock(lockKey, async () => {
+          logger.info({ body }, 'Received Lava payment webhook (lock acquired)');
 
         // ==========================================
         // GIFT PAYMENT HANDLING
@@ -371,6 +375,19 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
           userId: user.id,
           paymentId: payment.id,
         };
+        }, { ttl: 60000 }); // 60 second lock
+
+        // Handle lock acquisition failure
+        if (result === null) {
+          logger.warn({ email: normalizedEmail }, 'Payment webhook skipped - already processing');
+          set.status = 409; // Conflict
+          return {
+            success: false,
+            error: 'Payment already being processed',
+          };
+        }
+
+        return result;
       } catch (error) {
         logger.error({ error, body }, 'Failed to process Lava payment webhook');
         set.status = 500;

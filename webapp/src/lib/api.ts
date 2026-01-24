@@ -4,6 +4,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL !== undefined
 
 interface ApiOptions extends RequestInit {
   params?: Record<string, string | number | undefined>;
+  retry?: number; // Number of retries (default: 2)
+  retryDelay?: number; // Delay between retries in ms (default: 1000)
 }
 
 // Token management - synchronized with auth store
@@ -42,7 +44,7 @@ class ApiClient {
   }
 
   private async request<T>(endpoint: string, options: ApiOptions = {}, skipV1Prefix = false): Promise<T> {
-    const { params, ...init } = options;
+    const { params, retry = 2, retryDelay = 1000, ...init } = options;
 
     let url = skipV1Prefix
       ? `${this.baseUrl}${endpoint}`
@@ -71,22 +73,45 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${authToken}`;
     }
 
-    const response = await fetch(url, {
-      ...init,
-      headers,
-      credentials: 'include',
-    });
+    let lastError: Error | null = null;
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-      const error: any = new Error(errorData.message || errorData.error || 'Request failed');
-      error.status = response.status;
-      error.response = { data: errorData };
-      console.error(`API Error [${response.status}] ${endpoint}:`, errorData);
-      throw error;
+    for (let attempt = 0; attempt <= retry; attempt++) {
+      try {
+        const response = await fetch(url, {
+          ...init,
+          headers,
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+          const error: any = new Error(errorData.message || errorData.error || 'Request failed');
+          error.status = response.status;
+          error.response = { data: errorData };
+
+          // Don't retry on 4xx client errors (except 429 rate limit)
+          if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+            console.error(`API Error [${response.status}] ${endpoint}:`, errorData);
+            throw error;
+          }
+
+          lastError = error;
+        } else {
+          return response.json();
+        }
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        // Network errors should be retried
+        if (attempt < retry) {
+          console.warn(`API request failed (attempt ${attempt + 1}/${retry + 1}), retrying in ${retryDelay}ms...`, endpoint);
+          await new Promise(resolve => setTimeout(resolve, retryDelay * (attempt + 1))); // Exponential backoff
+        }
+      }
     }
 
-    return response.json();
+    console.error(`API Error [failed after ${retry + 1} attempts] ${endpoint}:`, lastError);
+    throw lastError || new Error('Request failed');
   }
 
   get<T>(endpoint: string, options?: ApiOptions): Promise<T> {

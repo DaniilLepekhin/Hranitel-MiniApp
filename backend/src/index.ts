@@ -107,6 +107,11 @@ const app = new Elysia()
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
   }))
+  // Kubernetes liveness probe (minimal check - app is alive)
+  .get('/health/live', () => ({
+    status: 'alive',
+    timestamp: new Date().toISOString(),
+  }))
   // Comprehensive readiness check (readiness probe)
   .get('/health/ready', async ({ set }) => {
     const checks: Record<string, string | number | boolean> = {};
@@ -221,18 +226,43 @@ if (!isDevelopment) {
   });
 }
 
-// Graceful shutdown
+// Graceful shutdown with timeout
+const SHUTDOWN_TIMEOUT_MS = 30000; // 30 seconds max
+let isShuttingDown = false;
+
 const shutdown = async (signal: string) => {
+  if (isShuttingDown) {
+    logger.warn({ signal }, 'Shutdown already in progress, ignoring signal');
+    return;
+  }
+  isShuttingDown = true;
+
   logger.warn({ signal }, 'Shutting down gracefully...');
 
-  try {
-    await app.stop();
-    await closeDatabaseConnection();
-    await closeRedisConnection();
+  // Force exit after timeout
+  const forceExitTimer = setTimeout(() => {
+    logger.error('Shutdown timeout exceeded, forcing exit');
+    process.exit(1);
+  }, SHUTDOWN_TIMEOUT_MS);
 
+  try {
+    // Stop accepting new connections
+    await app.stop();
+    logger.info('Server stopped accepting new connections');
+
+    // Close database connections
+    await closeDatabaseConnection();
+    logger.info('Database connections closed');
+
+    // Close Redis connections
+    await closeRedisConnection();
+    logger.info('Redis connections closed');
+
+    clearTimeout(forceExitTimer);
     logger.info('Shutdown complete');
     process.exit(0);
   } catch (error) {
+    clearTimeout(forceExitTimer);
     logger.error({ error }, 'Shutdown error');
     process.exit(1);
   }

@@ -7,6 +7,9 @@ module.exports = {
     script: 'bun',
     args: 'run src/index.ts',
     cwd: '/var/www/hranitel/backend',
+
+    // Single instance - Bun is already highly optimized
+    // For scaling, use multiple servers behind a load balancer
     instances: 1,
     exec_mode: 'fork',
 
@@ -29,9 +32,12 @@ module.exports = {
     max_restarts: 10,
     restart_delay: 4000,
 
-    // Shutdown
-    kill_timeout: 5000,
+    // Graceful shutdown (match backend SHUTDOWN_TIMEOUT_MS)
+    kill_timeout: 30000,
     wait_ready: true,
-    listen_timeout: 10000,
+    listen_timeout: 15000,
+
+    // Health monitoring
+    exp_backoff_restart_delay: 100,
   }]
 };

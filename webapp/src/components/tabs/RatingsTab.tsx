@@ -38,8 +38,9 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     queryKey: ['energies-balance', user?.id],
     queryFn: () => energiesApi.getBalance(user!.id),
     enabled: !!user && !!token,
-    retry: false,
+    retry: 2,
     staleTime: getStaleTimeUntilMidnight(),
+    gcTime: 24 * 60 * 60 * 1000, // 24 часа в кэше
     placeholderData: { success: true, balance: 0 }, // Показываем 0 сразу
   });
 
@@ -48,8 +49,9 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     queryKey: ['leaderboard', showFullLeaderboard ? 50 : 10],
     queryFn: () => gamificationApi.leaderboard(showFullLeaderboard ? 50 : 10),
     enabled: !!user && !!token,
-    retry: false,
+    retry: 2,
     staleTime: getStaleTimeUntilMidnight(),
+    gcTime: 24 * 60 * 60 * 1000, // 24 часа в кэше
     placeholderData: { success: true, leaderboard: [] }, // Показываем пустой массив сразу
   });
 
@@ -58,8 +60,9 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     queryKey: ['city-ratings', showFullCityRatings ? 50 : 5],
     queryFn: () => ratingsApi.getCityRatings(showFullCityRatings ? 50 : 5),
     enabled: !!user && !!token,
-    retry: false,
+    retry: 2,
     staleTime: getStaleTimeUntilMidnight(),
+    gcTime: 24 * 60 * 60 * 1000, // 24 часа в кэше
     placeholderData: { success: true, ratings: [] }, // Показываем пустой массив сразу
   });
 
@@ -68,8 +71,9 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     queryKey: ['team-ratings', showFullTeamRatings ? 50 : 5],
     queryFn: () => ratingsApi.getTeamRatings(showFullTeamRatings ? 50 : 5),
     enabled: !!user && !!token,
-    retry: false,
+    retry: 2,
     staleTime: getStaleTimeUntilMidnight(),
+    gcTime: 24 * 60 * 60 * 1000, // 24 часа в кэше
     placeholderData: { success: true, ratings: [] }, // Показываем пустой массив сразу
   });
 
@@ -78,8 +82,9 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     queryKey: ['user-position', user?.id],
     queryFn: () => ratingsApi.getUserPosition(user!.id),
     enabled: !!user && !!token,
-    retry: false,
+    retry: 2,
     staleTime: getStaleTimeUntilMidnight(),
+    gcTime: 24 * 60 * 60 * 1000, // 24 часа в кэше
     placeholderData: { success: true, position: undefined as any }, // Показываем undefined сразу
   });
 

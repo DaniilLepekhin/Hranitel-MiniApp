@@ -25,7 +25,9 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
     queryKey: ['energies-balance', user?.id],
     queryFn: () => energiesApi.getBalance(user!.id),
     enabled: !!user && !!token,
-    retry: false,
+    retry: 2,
+    staleTime: 30 * 1000, // 30 секунд - данные считаются свежими
+    gcTime: 5 * 60 * 1000, // 5 минут - хранить в кэше
     placeholderData: { success: true, balance: 0 }, // Показываем 0 сразу для мгновенного рендера
   });
 
