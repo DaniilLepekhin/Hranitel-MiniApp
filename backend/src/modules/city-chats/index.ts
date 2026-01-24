@@ -235,7 +235,7 @@ export const cityChatModule = new Elysia({ prefix: '/city-chats' })
         telegramId: t.Number(),
         city: t.String(),
         cityChatId: t.Number(),
-        telegramChatId: t.Optional(t.Number()),
+        telegramChatId: t.Optional(t.Union([t.Number(), t.Null()])),
       }),
     }
   );
