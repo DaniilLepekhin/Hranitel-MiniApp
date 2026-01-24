@@ -50,16 +50,18 @@ export function validateTelegramInitData(initData: string): boolean {
       return false;
     }
 
-    // Check auth_date (5 minutes tolerance)
+    // Check auth_date (24 hours tolerance)
+    // Увеличено с 5 минут до 24 часов - безопасность обеспечивается HMAC подписью,
+    // а короткий таймаут вызывает проблемы у пользователей с кэшированным WebApp
     const authDate = urlParams.get('auth_date');
     if (authDate) {
       const authTimestamp = parseInt(authDate, 10) * 1000;
       const now = Date.now();
-      const fiveMinutes = 5 * 60 * 1000;
+      const twentyFourHours = 24 * 60 * 60 * 1000;
 
-      // Allow some tolerance for time differences
-      if (Math.abs(now - authTimestamp) > fiveMinutes + 60000) {
-        logger.warn({ authDate, now }, 'Telegram initData expired');
+      // Allow 24 hours tolerance - HMAC signature ensures security
+      if (now - authTimestamp > twentyFourHours) {
+        logger.warn({ authDate, now }, 'Telegram initData expired (older than 24h)');
         return false;
       }
     }
