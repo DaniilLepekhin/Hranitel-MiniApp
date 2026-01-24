@@ -2225,6 +2225,9 @@ bot.callbackQuery('menu_gift_subscription', async (ctx) => {
 
 // Handle topic selection buttons (old reply keyboard - keep for backward compatibility)
 bot.hears('🔮 где мои деньги в 2026 году', async (ctx) => {
+  // 🛡️ Игнорируем сообщения в групповых чатах (только личные сообщения)
+  if (ctx.chat.type !== 'private') return;
+
   try {
     const userId = ctx.from!.id;
     const chatId = ctx.chat.id;
@@ -2266,6 +2269,9 @@ bot.hears('🔮 где мои деньги в 2026 году', async (ctx) => {
 });
 
 bot.hears('💰 почему доход не растет', async (ctx) => {
+  // 🛡️ Игнорируем сообщения в групповых чатах (только личные сообщения)
+  if (ctx.chat.type !== 'private') return;
+
   try {
     const userId = ctx.from!.id;
     const chatId = ctx.chat.id;
@@ -2302,6 +2308,9 @@ bot.hears('💰 почему доход не растет', async (ctx) => {
 });
 
 bot.hears('🧠 состояние vs деньги', async (ctx) => {
+  // 🛡️ Игнорируем сообщения в групповых чатах (только личные сообщения)
+  if (ctx.chat.type !== 'private') return;
+
   try {
     const userId = ctx.from!.id;
     const chatId = ctx.chat.id;
@@ -2340,6 +2349,9 @@ bot.hears('🧠 состояние vs деньги', async (ctx) => {
 });
 
 bot.hears('🌍 окружение', async (ctx) => {
+  // 🛡️ Игнорируем сообщения в групповых чатах (только личные сообщения)
+  if (ctx.chat.type !== 'private') return;
+
   try {
     const userId = ctx.from!.id;
     const chatId = ctx.chat.id;
@@ -2897,6 +2909,11 @@ bot.callbackQuery('meditations', async (ctx) => {
 
 // 🆕 Message handler - keyword "КАРТА" validation + Club funnel birthdate input
 bot.on('message:text', async (ctx) => {
+  // 🛡️ Игнорируем сообщения в групповых чатах (только личные сообщения)
+  if (ctx.chat.type !== 'private') {
+    return;
+  }
+
   try {
     const userId = ctx.from.id;
     const rawText = ctx.message.text?.trim() || '';
