@@ -33,11 +33,12 @@ export function ChatsTab() {
     placeholderData: { success: true, team: null },
   });
 
-  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch countries
+  // 🚀 Fetch countries only when selector is open
   const { data: countriesData, isLoading: isLoadingCountries } = useQuery({
     queryKey: ['city-chats', 'countries'],
     queryFn: () => cityChatsApi.getCountries(),
-    placeholderData: { success: true, countries: [] },
+    enabled: showCitySelector,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch cities when country is selected
