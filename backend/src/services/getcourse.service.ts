@@ -1,6 +1,8 @@
 /**
  * 🎓 GetCourse Integration Service
  * Интеграция с GetCourse API для создания заказов после оплаты
+ *
+ * GetCourse API требует form-data с params в base64
  */
 
 import { logger } from '@/utils/logger';
@@ -36,8 +38,24 @@ interface GetCourseDealResult {
   error?: string;
 }
 
+interface GetCourseApiResponse {
+  success: boolean;
+  action?: string;
+  result?: {
+    success: boolean;
+    deal_id?: number;
+    user_id?: number;
+    user_status?: string;
+    error_message?: string;
+    error?: boolean;
+  };
+  error_code?: number;
+  error_message?: string;
+}
+
 /**
  * Создание сделки в GetCourse
+ * API требует form-data с params в base64
  */
 export async function createGetCourseDeal(
   userData: GetCourseUserData,
@@ -51,73 +69,66 @@ export async function createGetCourseDeal(
   }
 
   try {
-    // Очищаем телефон от спецсимволов
-    const cleanPhone = userData.phone
-      ? userData.phone.replace(/[^0-9]/g, '')
-      : '';
-
-    // Формируем данные для API
-    const dealData = {
-      quantity: 1,
-      deal_status: 'payed',
-      deal_is_paid: 1,
-      payment_type: 'lava',
-      payment_status: 'accepted',
-      addfields: {
-        tg_id: userData.telegram_id?.toString() || '',
-        utm_content: userData.utm_content || '',
-        platform_id: userData.platform_id || '',
-        utm_campaign: userData.utm_campaign || '',
-        utm_medium: userData.utm_medium || '',
-        utm_source: userData.utm_source || '',
+    // Формируем params объект для GetCourse
+    const params: Record<string, any> = {
+      user: {
+        email: userData.email,
+        first_name: userData.first_name || '',
+        addfields: {
+          tg_id: userData.telegram_id?.toString() || '',
+        },
+      },
+      deal: {
+        offer_code: offerCode,
+        deal_cost: dealCost,
+        quantity: 1,
+        deal_status: 'payed',
+        deal_is_paid: 1,
+        payment_status: 'accepted',
+        addfields: {
+          tg_id: userData.telegram_id?.toString() || '',
+        },
+      },
+      system: {
+        refresh_if_exists: 1,
       },
     };
 
-    const userDataGC = {
-      first_name: userData.first_name || '',
-      addfields: {
-        tg_id: userData.telegram_id?.toString() || '',
-        utm_content: userData.utm_content || '',
-        platform_id: userData.platform_id || '',
-        utm_campaign: userData.utm_campaign || '',
-        utm_medium: userData.utm_medium || '',
-        utm_source: userData.utm_source || '',
-      },
-    };
+    // Добавляем телефон только если он есть (GetCourse не любит пустой phone)
+    if (userData.phone) {
+      const cleanPhone = userData.phone.replace(/[^0-9]/g, '');
+      if (cleanPhone) {
+        params.user.phone = cleanPhone;
+      }
+    }
 
-    const systemData = {
-      refresh_if_exists: 1,
-    };
-
-    const sessionData = {
-      utm_medium: userData.utm_medium || '',
-      utm_campaign: userData.utm_campaign || '',
-      utm_source: userData.utm_source || '',
-      utm_content: userData.utm_content || '',
-      platform_id: userData.platform_id || '',
-    };
+    // Добавляем UTM в addfields если есть
+    if (userData.utm_source) {
+      params.user.addfields.utm_source = userData.utm_source;
+      params.deal.addfields.utm_source = userData.utm_source;
+    }
+    if (userData.utm_medium) {
+      params.user.addfields.utm_medium = userData.utm_medium;
+      params.deal.addfields.utm_medium = userData.utm_medium;
+    }
+    if (userData.utm_campaign) {
+      params.user.addfields.utm_campaign = userData.utm_campaign;
+      params.deal.addfields.utm_campaign = userData.utm_campaign;
+    }
+    if (userData.utm_content) {
+      params.user.addfields.utm_content = userData.utm_content;
+      params.deal.addfields.utm_content = userData.utm_content;
+    }
+    if (userData.platform_id) {
+      params.user.addfields.platform_id = userData.platform_id;
+      params.deal.addfields.platform_id = userData.platform_id;
+    }
 
     // Формируем запрос к GetCourse API
     const apiUrl = `https://${GETCOURSE_ACCOUNT}.getcourse.ru/pl/api/deals`;
 
-    const requestBody = {
-      action: 'add',
-      key: GETCOURSE_SECRET,
-      params: {
-        user: {
-          email: userData.email,
-          phone: cleanPhone,
-          ...userDataGC,
-        },
-        deal: {
-          offer_code: offerCode,
-          deal_cost: dealCost,
-          ...dealData,
-        },
-        system: systemData,
-        session: sessionData,
-      },
-    };
+    // GetCourse требует params в base64
+    const paramsBase64 = Buffer.from(JSON.stringify(params)).toString('base64');
 
     logger.info(
       {
@@ -128,12 +139,18 @@ export async function createGetCourseDeal(
       'Sending deal to GetCourse'
     );
 
+    // Отправляем как form-data
+    const formData = new URLSearchParams();
+    formData.append('action', 'add');
+    formData.append('key', GETCOURSE_SECRET);
+    formData.append('params', paramsBase64);
+
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify(requestBody),
+      body: formData.toString(),
     });
 
     if (!response.ok) {
@@ -147,16 +164,10 @@ export async function createGetCourseDeal(
       };
     }
 
-    const result = await response.json() as {
-      success: boolean;
-      error_code?: number;
-      error_message?: string;
-      result?: {
-        user_id?: number;
-        deal_id?: number;
-      };
-    };
+    const result = await response.json() as GetCourseApiResponse;
 
+    // GetCourse возвращает success: true даже при ошибках валидации
+    // Нужно проверять result.success и result.error
     if (!result.success) {
       logger.error(
         { error_code: result.error_code, error_message: result.error_message },
@@ -168,11 +179,24 @@ export async function createGetCourseDeal(
       };
     }
 
+    // Проверяем внутренний результат
+    if (result.result && !result.result.success) {
+      logger.error(
+        { error_message: result.result.error_message },
+        'GetCourse deal creation failed'
+      );
+      return {
+        success: false,
+        error: result.result.error_message || 'Deal creation failed',
+      };
+    }
+
     logger.info(
       {
         email: userData.email,
         user_id: result.result?.user_id,
         deal_id: result.result?.deal_id,
+        user_status: result.result?.user_status,
       },
       'Deal created in GetCourse successfully'
     );
