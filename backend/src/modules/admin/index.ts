@@ -86,8 +86,8 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         throw new Error(`n8n webhook failed: ${n8nResponse.status}`);
       }
 
-      const n8nResult = await n8nResponse.json() as { payment_url?: string; url?: string; link?: string };
-      const paymentUrl = n8nResult.payment_url || n8nResult.url || n8nResult.link;
+      const n8nResult = await n8nResponse.json() as { paymentUrl?: string; payment_url?: string; url?: string; link?: string };
+      const paymentUrl = n8nResult.paymentUrl || n8nResult.payment_url || n8nResult.url || n8nResult.link;
 
       if (!paymentUrl) {
         logger.error({ n8nResult }, 'n8n did not return payment URL');
