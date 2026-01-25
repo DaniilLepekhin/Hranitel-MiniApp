@@ -39,6 +39,7 @@ import { contentModule } from '@/modules/content';
 import { ratingsRoutes } from '@/modules/ratings';
 import { analyticsModule } from '@/modules/analytics';
 import { lavaPaymentWebhook } from '@/modules/webhooks/lava-payment';
+import { adminRoutes } from '@/modules/admin';
 
 const app = new Elysia()
   // 🔒 Security middlewares (first - before anything else)
@@ -197,6 +198,8 @@ const app = new Elysia()
   .group('/api', (app) => app.use(analyticsModule))
   // Webhooks (no auth required)
   .group('/api', (app) => app.use(lavaPaymentWebhook))
+  // Admin API (secret header auth)
+  .group('/api', (app) => app.use(adminRoutes))
   // Content module (Путь - educational content system)
   .use(contentModule)
   // New КОД ДЕНЕГ 4.0 routes (without /api/v1 prefix, already included in route definitions)
