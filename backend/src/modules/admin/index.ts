@@ -37,7 +37,7 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
     '/generate-payment-link',
     async ({ body }) => {
       const {
-        telegram_id,
+        telegram_id: rawTelegramId,
         email,
         name,
         phone,
@@ -46,6 +46,9 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         utm_source = 'admin',
         utm_campaign = 'manual',
       } = body;
+
+      // Преобразуем telegram_id в число
+      const telegram_id = typeof rawTelegramId === 'string' ? parseInt(rawTelegramId, 10) : rawTelegramId;
 
       // Создаем payment_attempt (необходим для webhook)
       await db.insert(paymentAnalytics).values({
@@ -104,7 +107,7 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
     },
     {
       body: t.Object({
-        telegram_id: t.Number({ description: 'Telegram ID пользователя' }),
+        telegram_id: t.Union([t.Number(), t.String()], { description: 'Telegram ID пользователя' }),
         email: t.String({ description: 'Email пользователя (обязательно для Lava)' }),
         name: t.Optional(t.String({ description: 'Имя пользователя' })),
         phone: t.Optional(t.String({ description: 'Телефон пользователя' })),
@@ -127,7 +130,8 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
   .post(
     '/reset-user-funnel',
     async ({ body }) => {
-      const { telegram_id } = body;
+      const { telegram_id: rawTelegramId } = body;
+      const telegram_id = typeof rawTelegramId === 'string' ? parseInt(rawTelegramId, 10) : rawTelegramId;
 
       // Находим пользователя
       const [user] = await db
@@ -167,7 +171,7 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
     },
     {
       body: t.Object({
-        telegram_id: t.Number({ description: 'Telegram ID пользователя' }),
+        telegram_id: t.Union([t.Number(), t.String()], { description: 'Telegram ID пользователя' }),
       }),
       detail: {
         summary: 'Сброс воронки пользователя',
@@ -183,7 +187,8 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
   .post(
     '/revoke-subscription',
     async ({ body }) => {
-      const { telegram_id, kick_immediately = false } = body;
+      const { telegram_id: rawTelegramId, kick_immediately = false } = body;
+      const telegram_id = typeof rawTelegramId === 'string' ? parseInt(rawTelegramId, 10) : rawTelegramId;
 
       // Находим пользователя
       const [user] = await db
@@ -251,7 +256,7 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
     },
     {
       body: t.Object({
-        telegram_id: t.Number({ description: 'Telegram ID пользователя' }),
+        telegram_id: t.Union([t.Number(), t.String()], { description: 'Telegram ID пользователя' }),
         kick_immediately: t.Optional(t.Boolean({ description: 'Удалить из каналов сразу (по умолчанию false)' })),
       }),
       detail: {
@@ -333,7 +338,8 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
   .post(
     '/grant-subscription',
     async ({ body }) => {
-      const { telegram_id, days = 30, source = 'admin_grant' } = body;
+      const { telegram_id: rawTelegramId, days = 30, source = 'admin_grant' } = body;
+      const telegram_id = typeof rawTelegramId === 'string' ? parseInt(rawTelegramId, 10) : rawTelegramId;
 
       // Находим или создаем пользователя
       let [user] = await db
@@ -387,7 +393,7 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
     },
     {
       body: t.Object({
-        telegram_id: t.Number({ description: 'Telegram ID пользователя' }),
+        telegram_id: t.Union([t.Number(), t.String()], { description: 'Telegram ID пользователя' }),
         days: t.Optional(t.Number({ description: 'Количество дней подписки (по умолчанию 30)' })),
         source: t.Optional(t.String({ description: 'Источник выдачи' })),
       }),
