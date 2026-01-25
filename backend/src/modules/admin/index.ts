@@ -70,6 +70,7 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       });
 
       // Вызываем n8n webhook для генерации ссылки на оплату
+      // Формат как в payment_form_club.html
       const n8nResponse = await fetch(N8N_LAVA_WEBHOOK_URL, {
         method: 'POST',
         headers: {
@@ -79,8 +80,8 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
           email: email.toLowerCase().trim(),
           name: name || '',
           phone: phone || '',
-          amount: amount,
-          currency: currency,
+          payment_method: currency, // RUB, USD, EUR
+          telegram_id: telegram_id.toString(),
         }),
       });
 
