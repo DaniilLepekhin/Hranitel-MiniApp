@@ -69,13 +69,18 @@ export async function createGetCourseDeal(
   }
 
   try {
-    // Формируем params объект для GetCourse
+    // Формируем params объект для GetCourse (как в Salebot примере)
     const params: Record<string, any> = {
       user: {
         email: userData.email,
         first_name: userData.first_name || '',
         addfields: {
           tg_id: userData.telegram_id?.toString() || '',
+          utm_content: userData.utm_content || '',
+          platform_id: userData.platform_id || '',
+          utm_campaign: userData.utm_campaign || '',
+          utm_medium: userData.utm_medium || '',
+          utm_source: userData.utm_source || '',
         },
       },
       deal: {
@@ -84,44 +89,35 @@ export async function createGetCourseDeal(
         quantity: 1,
         deal_status: 'payed',
         deal_is_paid: 1,
+        payment_type: 'tinkoff', // GetCourse принимает tinkoff
         payment_status: 'accepted',
         addfields: {
           tg_id: userData.telegram_id?.toString() || '',
+          utm_content: userData.utm_content || '',
+          platform_id: userData.platform_id || '',
+          utm_campaign: userData.utm_campaign || '',
+          utm_medium: userData.utm_medium || '',
+          utm_source: userData.utm_source || '',
         },
       },
       system: {
         refresh_if_exists: 1,
       },
+      session: {
+        utm_medium: userData.utm_medium || '',
+        utm_campaign: userData.utm_campaign || '',
+        utm_source: userData.utm_source || '',
+        utm_content: userData.utm_content || '',
+        platform_id: userData.platform_id || '',
+      },
     };
 
-    // Добавляем телефон только если он есть (GetCourse не любит пустой phone)
+    // Добавляем телефон (очищенный от спецсимволов)
     if (userData.phone) {
       const cleanPhone = userData.phone.replace(/[^0-9]/g, '');
       if (cleanPhone) {
         params.user.phone = cleanPhone;
       }
-    }
-
-    // Добавляем UTM в addfields если есть
-    if (userData.utm_source) {
-      params.user.addfields.utm_source = userData.utm_source;
-      params.deal.addfields.utm_source = userData.utm_source;
-    }
-    if (userData.utm_medium) {
-      params.user.addfields.utm_medium = userData.utm_medium;
-      params.deal.addfields.utm_medium = userData.utm_medium;
-    }
-    if (userData.utm_campaign) {
-      params.user.addfields.utm_campaign = userData.utm_campaign;
-      params.deal.addfields.utm_campaign = userData.utm_campaign;
-    }
-    if (userData.utm_content) {
-      params.user.addfields.utm_content = userData.utm_content;
-      params.deal.addfields.utm_content = userData.utm_content;
-    }
-    if (userData.platform_id) {
-      params.user.addfields.platform_id = userData.platform_id;
-      params.deal.addfields.platform_id = userData.platform_id;
     }
 
     // Формируем запрос к GetCourse API
