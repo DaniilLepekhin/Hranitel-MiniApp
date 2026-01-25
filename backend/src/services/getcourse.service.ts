@@ -7,7 +7,7 @@ import { logger } from '@/utils/logger';
 
 // GetCourse API credentials
 const GETCOURSE_ACCOUNT = 'ishodniikod';
-const GETCOURSE_SECRET = process.env.GETCOURSE_SECRET || 'tFtsSPzFKUG5yEZUnLKpBhw6XHxePzlkIdL7rBg8F3Cw1JZifU2MPYsRb29pBoNm4X2Spiy4iiWUVWWD2RRMGd9zTSG9g3H4Ra6oIJk01bYaFuJHxGaVPkpS5HlWZbSn';
+const GETCOURSE_SECRET = process.env.GETCOURSE_SECRET;
 
 // GetCourse offer codes
 const GETCOURSE_OFFERS = {
@@ -44,6 +44,12 @@ export async function createGetCourseDeal(
   offerCode: string = GETCOURSE_OFFERS.club_30_days,
   dealCost: string = '0'
 ): Promise<GetCourseDealResult> {
+  // Проверяем наличие API ключа
+  if (!GETCOURSE_SECRET) {
+    logger.warn('GETCOURSE_SECRET not configured, skipping GetCourse integration');
+    return { success: false, error: 'GETCOURSE_SECRET not configured' };
+  }
+
   try {
     // Очищаем телефон от спецсимволов
     const cleanPhone = userData.phone
