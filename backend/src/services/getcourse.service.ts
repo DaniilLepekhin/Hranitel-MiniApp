@@ -16,7 +16,7 @@ const GETCOURSE_OFFERS = {
   '3_months': '6905452',
   '12_months': '6905454',
   '7_days': '6905456',
-  'club_30_days': '7146498', // Основной оффер клуба на 30 дней
+  'club_30_days': '7510638', // Основной оффер клуба на 30 дней
 };
 
 interface GetCourseUserData {
