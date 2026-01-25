@@ -598,6 +598,36 @@ export const giftSubscriptions = pgTable('gift_subscriptions', {
   index('gift_subscriptions_activated_idx').on(table.activated),
 ]);
 
+// 🆕 Subscription History (история подписок для аналитики продлений/отписок)
+export const subscriptionHistory = pgTable('subscription_history', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  telegramId: bigint('telegram_id', { mode: 'number' }).notNull(),
+
+  // Event data
+  eventType: varchar('event_type', { length: 20 }).notNull(), // 'activated' | 'renewed' | 'expired' | 'cancelled'
+
+  // Subscription period
+  periodStart: timestamp('period_start').notNull(), // Начало периода подписки
+  periodEnd: timestamp('period_end').notNull(), // Конец периода подписки
+
+  // Payment data
+  paymentId: uuid('payment_id').references(() => payments.id, { onDelete: 'set null' }),
+  amount: numeric('amount', { precision: 10, scale: 2 }),
+  currency: varchar('currency', { length: 3 }).default('RUB'),
+
+  // Source tracking
+  source: varchar('source', { length: 50 }), // 'lava', 'manual', 'gift', 'migration'
+
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('subscription_history_user_id_idx').on(table.userId),
+  index('subscription_history_telegram_id_idx').on(table.telegramId),
+  index('subscription_history_event_type_idx').on(table.eventType),
+  index('subscription_history_period_end_idx').on(table.periodEnd),
+  index('subscription_history_created_at_idx').on(table.createdAt),
+]);
+
 // 🆕 Club Funnel Progress (воронка клуба - нумерология)
 export const clubFunnelProgress = pgTable('club_funnel_progress', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -644,6 +674,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   userKeys: many(userKeys),
   userContentProgress: many(userContentProgress),
   clubFunnelProgress: many(clubFunnelProgress),
+  subscriptionHistory: many(subscriptionHistory),
 }));
 
 export const coursesRelations = relations(courses, ({ many }) => ({
@@ -857,6 +888,17 @@ export const clubFunnelProgressRelations = relations(clubFunnelProgress, ({ one 
   }),
 }));
 
+export const subscriptionHistoryRelations = relations(subscriptionHistory, ({ one }) => ({
+  user: one(users, {
+    fields: [subscriptionHistory.userId],
+    references: [users.id],
+  }),
+  payment: one(payments, {
+    fields: [subscriptionHistory.paymentId],
+    references: [payments.id],
+  }),
+}));
+
 // Types
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -910,3 +952,5 @@ export type GiftSubscription = typeof giftSubscriptions.$inferSelect;
 export type NewGiftSubscription = typeof giftSubscriptions.$inferInsert;
 export type ClubFunnelProgress = typeof clubFunnelProgress.$inferSelect;
 export type NewClubFunnelProgress = typeof clubFunnelProgress.$inferInsert;
+export type SubscriptionHistory = typeof subscriptionHistory.$inferSelect;
+export type NewSubscriptionHistory = typeof subscriptionHistory.$inferInsert;
