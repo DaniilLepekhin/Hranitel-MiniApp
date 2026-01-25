@@ -3,7 +3,7 @@
  * API для административных операций
  *
  * Документация:
- * - POST /admin/generate-payment-link - Генерация ссылки на оплату
+ * - POST /admin/generate-payment-link - Генерация ссылки на оплату (БЕЗ авторизации)
  * - POST /admin/reset-user-funnel - Сброс воронки пользователя
  * - POST /admin/revoke-subscription - Отзыв подписки
  * - GET /admin/user/:telegram_id - Информация о пользователе
@@ -18,19 +18,15 @@ import { logger } from '@/utils/logger';
 // n8n webhook для генерации ссылки на оплату Lava
 const N8N_LAVA_WEBHOOK_URL = 'https://n8n4.daniillepekhin.ru/webhook/lava_club2';
 
-export const adminRoutes = new Elysia({ prefix: '/admin' })
-  // Простая авторизация через секретный заголовок
-  .derive(({ headers, set }) => {
-    const adminSecret = headers['x-admin-secret'];
-    if (adminSecret !== process.env.ADMIN_SECRET && adminSecret !== 'local-dev-secret') {
-      set.status = 401;
-      throw new Error('Unauthorized');
-    }
-    return {};
-  })
+// Хелпер для проверки авторизации
+const checkAdminAuth = (headers: Record<string, string | undefined>) => {
+  const adminSecret = headers['x-admin-secret'];
+  return adminSecret === process.env.ADMIN_SECRET || adminSecret === 'local-dev-secret';
+};
 
+export const adminRoutes = new Elysia({ prefix: '/admin' })
   /**
-   * 📝 Генерация ссылки на оплату
+   * 📝 Генерация ссылки на оплату (БЕЗ АВТОРИЗАЦИИ)
    * Создает payment_attempt и возвращает ссылку на виджет Lava
    */
   .post(
@@ -149,7 +145,12 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
    */
   .post(
     '/reset-user-funnel',
-    async ({ body }) => {
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
       const { telegram_id: rawTelegramId } = body;
       const telegram_id = typeof rawTelegramId === 'string' ? parseInt(rawTelegramId, 10) : rawTelegramId;
 
@@ -206,7 +207,12 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
    */
   .post(
     '/revoke-subscription',
-    async ({ body }) => {
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
       const { telegram_id: rawTelegramId, kick_immediately = false } = body;
       const telegram_id = typeof rawTelegramId === 'string' ? parseInt(rawTelegramId, 10) : rawTelegramId;
 
@@ -291,7 +297,12 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
    */
   .get(
     '/user/:telegram_id',
-    async ({ params }) => {
+    async ({ params, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
       const telegram_id = parseInt(params.telegram_id);
 
       const [user] = await db
@@ -335,8 +346,8 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         funnel: funnel ? {
           current_step: funnel.currentStep,
           birth_date: funnel.birthDate,
-          archetype: funnel.archetype,
-          style: funnel.style,
+          archetype_number: funnel.archetypeNumber,
+          chislo: funnel.chislo,
           updated_at: funnel.updatedAt,
         } : null,
       };
@@ -357,7 +368,12 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
    */
   .post(
     '/grant-subscription',
-    async ({ body }) => {
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
       const { telegram_id: rawTelegramId, days = 30, source = 'admin_grant' } = body;
       const telegram_id = typeof rawTelegramId === 'string' ? parseInt(rawTelegramId, 10) : rawTelegramId;
 
