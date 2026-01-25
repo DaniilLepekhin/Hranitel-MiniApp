@@ -15,8 +15,8 @@ import { users, paymentAnalytics, clubFunnelProgress } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 
-// Lava виджет URL (замените на реальный)
-const LAVA_WIDGET_BASE_URL = process.env.LAVA_WIDGET_URL || 'https://link.lava.ru/qEPKZ';
+// n8n webhook для генерации ссылки на оплату Lava
+const N8N_LAVA_WEBHOOK_URL = 'https://n8n4.daniillepekhin.ru/webhook/lava_club2';
 
 export const adminRoutes = new Elysia({ prefix: '/admin' })
   // Простая авторизация через секретный заголовок
@@ -69,15 +69,33 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         },
       });
 
-      // Формируем URL с предзаполненными данными
-      const params = new URLSearchParams();
-      if (email) params.set('email', email.toLowerCase().trim());
-      if (name) params.set('name', name);
-      if (phone) params.set('phone', phone);
-      params.set('amount', amount);
-      params.set('currency', currency);
+      // Вызываем n8n webhook для генерации ссылки на оплату
+      const n8nResponse = await fetch(N8N_LAVA_WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email.toLowerCase().trim(),
+          name: name || '',
+          phone: phone || '',
+          amount: amount,
+          currency: currency,
+        }),
+      });
 
-      const paymentUrl = `${LAVA_WIDGET_BASE_URL}?${params.toString()}`;
+      if (!n8nResponse.ok) {
+        logger.error({ status: n8nResponse.status }, 'n8n webhook failed');
+        throw new Error(`n8n webhook failed: ${n8nResponse.status}`);
+      }
+
+      const n8nResult = await n8nResponse.json() as { payment_url?: string; url?: string; link?: string };
+      const paymentUrl = n8nResult.payment_url || n8nResult.url || n8nResult.link;
+
+      if (!paymentUrl) {
+        logger.error({ n8nResult }, 'n8n did not return payment URL');
+        throw new Error('n8n did not return payment URL');
+      }
 
       logger.info(
         {
@@ -87,8 +105,9 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
           phone,
           amount,
           currency,
+          paymentUrl,
         },
-        'Admin generated payment link'
+        'Admin generated payment link via n8n'
       );
 
       return {
