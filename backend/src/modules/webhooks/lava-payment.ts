@@ -6,6 +6,7 @@ import { logger } from '@/utils/logger';
 import { startOnboardingAfterPayment, handleGiftPaymentSuccess } from '@/modules/bot/post-payment-funnels';
 import { subscriptionGuardService } from '@/services/subscription-guard.service';
 import { withLock } from '@/utils/distributed-lock';
+import { getcourseService } from '@/services/getcourse.service';
 
 export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
   // Lava payment success webhook
@@ -354,6 +355,37 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
           logger.info({ telegramId: telegram_id }, 'User unbanned from all chats after payment');
         } catch (error) {
           logger.error({ error, telegramId: telegram_id }, 'Failed to unban user from chats');
+          // Don't fail the webhook - payment is already processed
+        }
+
+        // 🎓 Send deal to GetCourse
+        try {
+          const gcResult = await getcourseService.sendClubSubscription(
+            normalizedEmail,
+            phone,
+            name,
+            telegram_id,
+            {
+              utm_source: utm_source || undefined,
+              utm_medium: utm_medium || undefined,
+              utm_campaign: utm_campaign || undefined,
+              utm_content: utm_content || undefined,
+              platform_id: client_id || undefined,
+            }
+          );
+          if (gcResult.success) {
+            logger.info(
+              { telegramId: telegram_id, gcUserId: gcResult.user_id, gcDealId: gcResult.deal_id },
+              'Deal created in GetCourse'
+            );
+          } else {
+            logger.warn(
+              { telegramId: telegram_id, error: gcResult.error },
+              'Failed to create deal in GetCourse'
+            );
+          }
+        } catch (error) {
+          logger.error({ error, telegramId: telegram_id }, 'Error sending to GetCourse');
           // Don't fail the webhook - payment is already processed
         }
 
