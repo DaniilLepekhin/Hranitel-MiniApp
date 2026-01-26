@@ -864,7 +864,7 @@ export async function handleClubMoreInfo(userId: string, chatId: number) {
   // Сначала отправляем видео без подписи
   await getTelegramService().sendVideo(
     chatId,
-    'https://t.me/mate_bot_open/9650',
+    'https://t.me/mate_bot_open/9676',
     {}
   );
 
