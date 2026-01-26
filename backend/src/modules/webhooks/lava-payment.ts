@@ -39,10 +39,11 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
         // ==========================================
         // GIFT PAYMENT HANDLING
         // ==========================================
-        // Если email заканчивается на @gift.local - это подарочная подписка
-        if (normalizedEmail.endsWith('@gift.local')) {
-          // Парсим recipient_id из email (формат: {recipient_id}@gift.local)
-          const recipientTgId = normalizedEmail.replace('@gift.local', '');
+        // Если email содержит _giftclub@mail.ru - это подарочная подписка
+        // Формат: {recipient_id}_giftclub@mail.ru
+        if (normalizedEmail.includes('_giftclub@mail.ru')) {
+          // Парсим recipient_id из email
+          const recipientTgId = normalizedEmail.replace('_giftclub@mail.ru', '');
 
           if (!recipientTgId) {
             logger.error({ email: normalizedEmail }, 'Missing recipient_id for gift payment');

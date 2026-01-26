@@ -447,8 +447,8 @@
         throw new Error('Не указан получатель подарка');
       }
 
-      // Email формируется как recipient_id@gift.local для идентификации в хуке
-      const email = `${params.recipient_id}@gift.local`;
+      // Email формируется как recipient_id_giftclub@mail.ru для идентификации в хуке
+      const email = `${params.recipient_id}_giftclub@mail.ru`;
 
       // Определяем payment_method для API
       let apiPaymentMethod;
@@ -471,8 +471,8 @@
         group_id: 'hranitel_kod_bot'
       };
 
-      // Generate payment link - используем webhook для друзей (разовый платеж)
-      const response = await fetch('https://n8n4.daniillepekhin.ru/webhook/lava_club2_for_friends', {
+      // Generate payment link - используем основной webhook
+      const response = await fetch('https://n8n4.daniillepekhin.ru/webhook/lava_club2', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
