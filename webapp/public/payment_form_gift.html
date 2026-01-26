@@ -103,7 +103,7 @@
     .currency-options {
       margin: 8px 0;
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 6px;
     }
 
@@ -319,6 +319,7 @@
         <div class="currency-options">
           <div class="currency-option active" id="usd">USD</div>
           <div class="currency-option" id="eur">EUR</div>
+          <div class="currency-option" id="paypal">PayPal</div>
         </div>
       </div>
 
@@ -347,7 +348,8 @@
       'bank-rf': '2 000₽',
       'foreign-bank': {
         'usd': '26$',
-        'eur': '22€'
+        'eur': '22€',
+        'paypal': '26$'
       }
     };
 
@@ -454,6 +456,8 @@
       let apiPaymentMethod;
       if (paymentMethod === 'bank-rf') {
         apiPaymentMethod = 'RUB';
+      } else if (currency === 'paypal') {
+        apiPaymentMethod = 'PAYPAL';
       } else {
         apiPaymentMethod = currency === 'usd' ? 'USD' : 'EUR';
       }
@@ -478,15 +482,19 @@
         body: JSON.stringify({
           telegram_id: gifterTgId ? gifterTgId.toString() : params.gifter_id,
           payment_method: apiPaymentMethod,
-          amount: apiPaymentMethod === 'RUB' ? '2000' : (apiPaymentMethod === 'USD' ? '26' : '22'),
+          amount: apiPaymentMethod === 'RUB' ? '2000' : '26',
           email: email,
           name: `Gift from ${gifterTgId}`,
           metka: 'gift_payment'
         })
       }).catch(err => console.error('payment-attempt error:', err));
 
-      // Generate payment link - используем основной webhook
-      const response = await fetch('https://n8n4.daniillepekhin.ru/webhook/lava_club2', {
+      // Generate payment link - выбираем webhook в зависимости от метода оплаты
+      const webhookUrl = currency === 'paypal'
+        ? 'https://n8n4.daniillepekhin.ru/webhook/lava_club2_for_friends_paypal'
+        : 'https://n8n4.daniillepekhin.ru/webhook/lava_club2';
+
+      const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
