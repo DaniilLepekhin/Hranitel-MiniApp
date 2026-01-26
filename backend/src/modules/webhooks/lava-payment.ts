@@ -51,34 +51,26 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
             return { success: false, error: 'Missing recipient_id' };
           }
 
-          // Найти gift_attempt чтобы узнать кто даритель
-          const [giftAttempt] = await db
+          // Найти payment_attempt по email чтобы узнать кто даритель
+          const [paymentAttempt] = await db
             .select()
             .from(paymentAnalytics)
-            .where(eq(paymentAnalytics.eventType, 'gift_attempt'))
+            .where(
+              and(
+                eq(paymentAnalytics.email, normalizedEmail),
+                eq(paymentAnalytics.eventType, 'payment_attempt')
+              )
+            )
             .orderBy(desc(paymentAnalytics.createdAt))
-            .limit(100); // Берем последние 100 и ищем нужный
+            .limit(1);
 
-          // Ищем gift_attempt с нужным recipient_id в metadata
-          const allGiftAttempts = await db
-            .select()
-            .from(paymentAnalytics)
-            .where(eq(paymentAnalytics.eventType, 'gift_attempt'))
-            .orderBy(desc(paymentAnalytics.createdAt))
-            .limit(100);
-
-          const matchingAttempt = allGiftAttempts.find(attempt => {
-            const metadata = attempt.metadata as Record<string, any>;
-            return metadata?.recipient_id === recipientTgId;
-          });
-
-          if (!matchingAttempt) {
-            logger.error({ recipientTgId }, 'No gift_attempt found for this recipient');
+          if (!paymentAttempt) {
+            logger.error({ email: normalizedEmail }, 'No payment_attempt found for gift payment');
             set.status = 400;
-            return { success: false, error: 'No gift attempt found for this recipient' };
+            return { success: false, error: 'No payment attempt found for gift payment' };
           }
 
-          const gifterTgId = (matchingAttempt.metadata as Record<string, any>)?.gifter_id;
+          const gifterTgId = paymentAttempt.telegramId;
 
           logger.info({ recipientTgId, gifterTgId, amount }, 'Processing gift payment');
 
@@ -148,7 +140,7 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
             await handleGiftPaymentSuccess(
               gifter.id,
               parseInt(recipientTgId),
-              parseInt(gifterTgId),
+              gifterTgId, // уже number
               payment.id
             );
           } catch (error) {

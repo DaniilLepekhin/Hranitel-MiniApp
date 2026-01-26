@@ -471,6 +471,20 @@
         group_id: 'hranitel_kod_bot'
       };
 
+      // Создаём payment_attempt в базе (нужно для webhook)
+      await fetch('https://hranitel.daniillepekhin.com/api/analytics/payment-attempt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegram_id: gifterTgId ? gifterTgId.toString() : params.gifter_id,
+          payment_method: apiPaymentMethod,
+          amount: apiPaymentMethod === 'RUB' ? '2000' : (apiPaymentMethod === 'USD' ? '26' : '22'),
+          email: email,
+          name: `Gift from ${gifterTgId}`,
+          metka: 'gift_payment'
+        })
+      }).catch(err => console.error('payment-attempt error:', err));
+
       // Generate payment link - используем основной webhook
       const response = await fetch('https://n8n4.daniillepekhin.ru/webhook/lava_club2', {
         method: 'POST',
