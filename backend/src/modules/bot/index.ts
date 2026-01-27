@@ -274,7 +274,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
 
       await telegramService.sendPhoto(
         chatId,
-        'https://t.me/mate_bot_open/9681',
+        'https://t.me/mate_bot_open/9686',
         {
           caption:
             `<b>🎫 Твой билет в КОД УСПЕХА. Глава: Пробуждение</b>\n\n` +
@@ -870,7 +870,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
 
       await telegramService.sendPhoto(
         chatId,
-        'https://t.me/mate_bot_open/9681',
+        'https://t.me/mate_bot_open/9686',
         {
           caption:
             `<b>🎫 Твой билет в КОД УСПЕХА. Глава: Пробуждение</b>\n\n` +
@@ -1753,7 +1753,7 @@ bot.callbackQuery('what_included', async (ctx) => {
     // Send image with ticket info
     await telegramService.sendPhoto(
       chatId,
-      'https://t.me/mate_bot_open/9681',
+      'https://t.me/mate_bot_open/9686',
       {
         caption:
           `<b>🎫 Твой билет в КОД УСПЕХА. Глава: Пробуждение</b>\n\n` +
@@ -1794,7 +1794,7 @@ bot.callbackQuery('get_access', async (ctx) => {
     // Send image with ticket info
     await telegramService.sendPhoto(
       chatId,
-      'https://t.me/mate_bot_open/9681',
+      'https://t.me/mate_bot_open/9686',
       {
         caption:
           `<b>🎫 Твой билет в КОД УСПЕХА. Глава: Пробуждение</b>\n\n` +
@@ -1849,7 +1849,7 @@ bot.callbackQuery('test_get_access_full', async (ctx) => {
 
     await telegramService.sendPhoto(
       chatId,
-      'https://t.me/mate_bot_open/9681',
+      'https://t.me/mate_bot_open/9686',
       {
         caption:
           `<b>🎫 Твой билет в КОД УСПЕХА. Глава: Пробуждение</b>\n\n` +
