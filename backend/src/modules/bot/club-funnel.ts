@@ -11,6 +11,7 @@ import { schedulerService } from '@/services/scheduler.service';
 import { TelegramService } from '@/services/telegram.service';
 import { logger } from '@/utils/logger';
 import { config } from '@/config';
+import { redis } from '@/utils/redis';
 
 // Create telegram service instance
 let telegramService: TelegramService | null = null;
@@ -46,6 +47,39 @@ const WEBAPP_PURCHASE_URL = 'https://hranitel.daniillepekhin.com/payment_form_cl
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
+
+// Redis key для хранения типа воронки пользователя
+const FUNNEL_TYPE_PREFIX = 'funnel:type:';
+const FUNNEL_TYPE_TTL = 3600; // 1 час
+
+/**
+ * Установить тип воронки для пользователя
+ */
+export async function setFunnelType(telegramId: number, funnelType: 'club' | 'character_test'): Promise<void> {
+  if (!redis) return;
+  const key = `${FUNNEL_TYPE_PREFIX}${telegramId}`;
+  await redis.setex(key, FUNNEL_TYPE_TTL, funnelType);
+  logger.debug({ telegramId, funnelType }, 'Funnel type set');
+}
+
+/**
+ * Получить тип воронки для пользователя
+ */
+export async function getFunnelType(telegramId: number): Promise<'club' | 'character_test' | null> {
+  if (!redis) return null;
+  const key = `${FUNNEL_TYPE_PREFIX}${telegramId}`;
+  const value = await redis.get(key);
+  return value as 'club' | 'character_test' | null;
+}
+
+/**
+ * Удалить тип воронки для пользователя
+ */
+export async function clearFunnelType(telegramId: number): Promise<void> {
+  if (!redis) return;
+  const key = `${FUNNEL_TYPE_PREFIX}${telegramId}`;
+  await redis.del(key);
+}
 
 /**
  * Получить Telegram user ID (number) из UUID userId
@@ -343,6 +377,11 @@ export async function handleClubReady(userId: string, chatId: number) {
     logger.warn({ error: e }, 'Failed to send video note');
   }
 
+  // Получаем telegram_id для установки типа воронки
+  const telegramUserId = await getTelegramUserId(userId);
+  // Устанавливаем тип воронки = club (обычная воронка, не тест персонажа)
+  await setFunnelType(telegramUserId, 'club');
+
   // Сообщение 3: Запрос даты рождения с картинкой
   await getTelegramService().sendPhoto(
     chatId,
@@ -371,7 +410,7 @@ export async function handleClubReady(userId: string, chatId: number) {
 // ОБРАБОТКА ДАТЫ РОЖДЕНИЯ
 // ============================================================================
 
-export async function handleBirthDateInput(userId: string, chatId: number, birthDate: string) {
+export async function handleBirthDateInput(userId: string, chatId: number, birthDate: string, telegramUserId: number) {
   if (!BIRTHDATE_REGEX.test(birthDate)) {
     await getTelegramService().sendMessage(
       chatId,
@@ -381,9 +420,13 @@ export async function handleBirthDateInput(userId: string, chatId: number, birth
     return;
   }
 
+  // Проверяем тип воронки для выбора правильного callback
+  const funnelType = await getFunnelType(telegramUserId);
+  const isCharacterTest = funnelType === 'character_test';
+
   const keyboard = new InlineKeyboard()
-    .text('Да', `club_confirm_date_yes_${birthDate}`)
-    .text('Нет', 'club_confirm_date_no');
+    .text('Да', isCharacterTest ? `ct_confirm_date_yes_${birthDate}` : `club_confirm_date_yes_${birthDate}`)
+    .text('Нет', isCharacterTest ? 'ct_confirm_date_no' : 'club_confirm_date_no');
 
   await getTelegramService().sendMessage(
     chatId,
@@ -1825,4 +1868,275 @@ export async function handleClubAutoProgressImported(
       }
       break;
   }
+}
+
+// ============================================================================
+// 🎭 ВОРОНКА ТЕСТА ПЕРСОНАЖА (БЕЗ ПРОДАЖИ)
+// Доступна всем пользователям через кнопку "Пройти тест: какой я персонаж"
+// ============================================================================
+
+/**
+ * Запуск воронки теста персонажа
+ */
+export async function startCharacterTestFunnel(userId: string, chatId: number, telegramUserId: number) {
+  // Создаём или обновляем прогресс воронки
+  await getOrCreateClubProgress(userId, telegramUserId);
+
+  // Устанавливаем тип воронки = character_test
+  await setFunnelType(telegramUserId, 'character_test');
+
+  // Отправляем запрос даты рождения
+  await getTelegramService().sendPhoto(
+    chatId,
+    'https://t.me/mate_bot_open/9347',
+    {
+      caption: `<b>С этого момента путь уже запущен.</b>\n\n` +
+        `Первый шаг сделан — и это главное.\n\n` +
+        `По дате рождения ты получишь расшифровку:\n` +
+        `— <b>твоего архетипа</b> — из какой роли ты действуешь\n` +
+        `— <b>твоего стиля</b> — как ты проявляешься и считываешься людьми\n` +
+        `— <b>твоего масштаба</b> — где твой потенциал и точка роста\n\n` +
+        `Для этого <b>МНЕ НУЖНА ТВОЯ ДАТА РОЖДЕНИЯ.</b>\n` +
+        `Она отражает твой внутренний ритм и способ принимать решения 🧠\n\n` +
+        `Введи дату рождения в формате <b>ДД.ММ.ГГГГ</b>\n` +
+        `Например: <i>14.07.1994</i>\n\n` +
+        `<b>Впиши свою дату рождения в поле ниже 👇</b>`,
+      parse_mode: 'HTML',
+    }
+  );
+
+  await updateClubProgress(userId, { currentStep: 'awaiting_birthdate' });
+  logger.info({ userId, chatId }, 'Character test funnel started - awaiting birthdate');
+}
+
+/**
+ * Показать финальное сообщение теста (дорожная карта без продажи)
+ */
+export async function handleCharacterTestFinal(userId: string, chatId: number) {
+  const progress = await getClubProgress(userId);
+  const birthDate = progress?.birthDate;
+
+  // Генерируем дорожную карту
+  const roadmapImage = birthDate ? await generateRoadmap(birthDate) : null;
+
+  const finalText =
+    `<b>Это твоя дорожная карта на год 😍</b>\n\n` +
+    `Если идти по ней шаг за шагом,\n` +
+    `ты переходишь из точки А в точку Б:\n\n` +
+    `— из хаоса → в систему\n` +
+    `— из нестабильного дохода → в устойчивый доход 💰\n` +
+    `— из сомнений → в ясную позицию\n` +
+    `— из потенциала → в реализованный результат\n\n` +
+    `<b>Сохрани эту карту и возвращайся к ней ✨</b>`;
+
+  if (roadmapImage) {
+    await getTelegramService().sendPhoto(chatId, roadmapImage, {
+      caption: finalText,
+      parse_mode: 'HTML',
+    });
+  } else {
+    await getTelegramService().sendMessage(chatId, finalText, {
+      parse_mode: 'HTML',
+    });
+  }
+
+  await updateClubProgress(userId, { currentStep: 'character_test_complete' });
+  logger.info({ userId, chatId }, 'Character test funnel completed');
+}
+
+/**
+ * Показать масштаб в тесте персонажа (без кнопки продажи, с кнопкой на финал)
+ */
+export async function handleCharacterTestScale(userId: string, chatId: number) {
+  // Эмодзи
+  try {
+    await getTelegramService().sendAnimation(chatId, VIDEO_NOTE_EMOJI);
+  } catch (e) {
+    logger.warn({ error: e }, 'Failed to send video note');
+  }
+
+  const progress = await getClubProgress(userId);
+  if (!progress?.birthDayNumber) return;
+
+  const styleGroup = getStyleGroup(progress.birthDayNumber);
+
+  // Картинки масштаба
+  const scaleImages = getScaleImages(styleGroup);
+  if (scaleImages.length > 0) {
+    await getTelegramService().sendMediaGroup(
+      chatId,
+      scaleImages.map((url) => ({ type: 'photo', media: url }))
+    );
+  }
+
+  const keyboard = new InlineKeyboard().text('👉 Узнать свою точку роста', 'character_test_final');
+
+  await getTelegramService().sendMessage(
+    chatId,
+    `Прочитав расшифровку <b>своего масштаба по дате рождения</b> выше, ты могла почувствовать, <b>в чём твоя сила и как тебе легче расти ✨</b>\n\n` +
+    `И обычно в этот момент возникает другое ощущение 👇\n` +
+    `что возможностей больше, чем реализовано.\n\n` +
+    `Хочется понять:\n` +
+    `— где именно сейчас твой потенциал не включён\n` +
+    `— почему деньги и рост идут неравномерно 💸\n` +
+    `— и что в тебе уже готово к следующему шагу 🚀\n\n` +
+    `⬇️ Нажми кнопку ниже,\n` +
+    `забери свои монетки 🪙\n` +
+    `и посмотри, <b>что для тебя открывается дальше ✨</b>`,
+    { parse_mode: 'HTML', reply_markup: keyboard }
+  );
+
+  await updateClubProgress(userId, { currentStep: 'character_test_scale' });
+}
+
+/**
+ * Показать стиль в тесте персонажа (с кнопкой на масштаб теста)
+ */
+export async function handleCharacterTestStyle(userId: string, chatId: number) {
+  // Эмодзи
+  try {
+    await getTelegramService().sendAnimation(chatId, VIDEO_NOTE_EMOJI);
+  } catch (e) {
+    logger.warn({ error: e }, 'Failed to send video note');
+  }
+
+  const progress = await getClubProgress(userId);
+  if (!progress?.birthDayNumber) {
+    logger.error({ userId }, 'No birth day found');
+    return;
+  }
+
+  const styleGroup = getStyleGroup(progress.birthDayNumber);
+
+  // Картинки стиля
+  const styleImages = getStyleImages(styleGroup);
+  if (styleImages.length > 0) {
+    try {
+      await getTelegramService().sendMediaGroup(
+        chatId,
+        styleImages.map((url) => ({ type: 'photo', media: url }))
+      );
+    } catch (e) {
+      logger.warn({ error: e, styleGroup }, 'Failed to send style media group');
+    }
+  }
+
+  const keyboard = new InlineKeyboard().text('👉 Где мой масштаб', 'character_test_scale');
+
+  await getTelegramService().sendMessage(
+    chatId,
+    `<b>✨ Прочитай расшифровку своего стиля выше.</b>\n` +
+    `Эти образы и смыслы можно сохранить —\n` +
+    `чтобы возвращаться к ним и <b>не терять своё ощущение себя 🤍</b>\n\n` +
+    `Это то, <b>как ты уже влияешь на людей и пространство —</b>\n` +
+    `даже если раньше не всегда это осознавала.\n\n` +
+    `Но стиль — это лишь форма\n` +
+    `Самое интересное — глубже 👇\n\n` +
+    `<b>💥 Где твой масштаб?</b>\n` +
+    `Где твои деньги, рост и реализация?\n\n` +
+    `Давай посмотрим, <b>какой уровень тебе действительно доступен —</b>\n` +
+    `по твоей дате рождения 🔍\n\n` +
+    `⬇️ Нажми кнопку ниже, чтобы получить следующую расшифровку.`,
+    { parse_mode: 'HTML', reply_markup: keyboard }
+  );
+
+  await updateClubProgress(userId, { currentStep: 'character_test_style' });
+}
+
+/**
+ * Показать архетип в тесте персонажа (с кнопкой на стиль теста)
+ */
+export async function handleCharacterTestArchetype(userId: string, chatId: number) {
+  const progress = await getClubProgress(userId);
+  if (!progress?.archetypeNumber) {
+    logger.error({ userId }, 'No archetype number found');
+    return;
+  }
+
+  const archetype = ARCHETYPES[progress.archetypeNumber];
+  if (!archetype) {
+    logger.error({ archetypeNumber: progress.archetypeNumber }, 'Unknown archetype');
+    return;
+  }
+
+  const keyboard = new InlineKeyboard().text('👉 Получить расшифровку стиля', 'character_test_style');
+
+  try {
+    // Отправляем картинки как media group
+    if (archetype.images && archetype.images.length > 0) {
+      await getTelegramService().sendMediaGroup(
+        chatId,
+        archetype.images.map((url) => ({ type: 'photo', media: url }))
+      );
+    }
+
+    await getTelegramService().sendMessage(chatId, archetype.text, {
+      parse_mode: 'HTML',
+      reply_markup: keyboard,
+    });
+  } catch (e) {
+    await getTelegramService().sendMessage(chatId, archetype.text, {
+      parse_mode: 'HTML',
+      reply_markup: keyboard,
+    });
+  }
+
+  await updateClubProgress(userId, { currentStep: 'character_test_archetype' });
+}
+
+/**
+ * Обработка подтверждения даты рождения в тесте персонажа
+ */
+export async function handleCharacterTestBirthDateConfirmed(userId: string, chatId: number, birthDate: string) {
+  const birthDay = getBirthDay(birthDate);
+  const archetypeNumber = getArchetypeNumber(birthDay);
+
+  await updateClubProgress(userId, {
+    birthDate,
+    birthDayNumber: birthDay,
+    archetypeNumber,
+    currentStep: 'character_test_birthdate_confirmed',
+  });
+
+  // Генерируем звезду
+  const starImage = await generateStar(birthDate);
+
+  // Вычисляем архетип по дню рождения
+  const archetypeFromDay = getBirthDayArchetype(birthDay);
+
+  await updateClubProgress(userId, {
+    chislo: archetypeFromDay,
+  });
+
+  const message4Text =
+    `Перед тобой — <b>твоя личная карта ✨</b>\n\n` +
+    `Круги и цифры на звезде — это <b>числа из твоей даты рождения 🔢</b>\n` +
+    `Они показывают, как ты думаешь, принимаешь решения и <b>как у тебя устроены сферы денег, отношений и здоровья.</b>\n\n` +
+    `Важно понимать:\n` +
+    `у кого-то эта система <b>работает и даёт результат,</b>\n` +
+    `а у кого-то — есть, но почти не включена ⚠️\n\n` +
+    `Эта карта показывает <b>потенциал 🌱</b>\n` +
+    `Но потенциал ≠ реализация.\n\n` +
+    `Дальше ты получишь персональную расшифровку:\n` +
+    `— твоего <b>архетипа</b>\n` +
+    `— <b>стиля проявления</b>\n` +
+    `— и <b>твоего масштаба</b>\n\n` +
+    `<b>Если хочешь включить эту систему —\nжми кнопку ниже 👇</b>`;
+
+  const keyboard = new InlineKeyboard().text('хочу активировать свой потенциал', 'character_test_activate');
+
+  if (starImage) {
+    await getTelegramService().sendPhoto(chatId, starImage, {
+      caption: message4Text,
+      parse_mode: 'HTML',
+      reply_markup: keyboard,
+    });
+  } else {
+    await getTelegramService().sendMessage(chatId, message4Text, {
+      parse_mode: 'HTML',
+      reply_markup: keyboard,
+    });
+  }
+
+  await updateClubProgress(userId, { currentStep: 'character_test_showing_star' });
 }

@@ -1435,6 +1435,36 @@ bot.command('start', async (ctx) => {
       return;
     }
 
+    // 🎭 Deep link для теста персонажа (start=character_test) - доступен ВСЕМ пользователям
+    if (startPayload === 'character_test') {
+      logger.info({ userId }, 'User started character test funnel');
+
+      // Get or create user in database
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.telegramId, userId))
+        .limit(1);
+
+      let testUser = existingUser;
+      if (!testUser) {
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            telegramId: userId,
+            username: ctx.from?.username || null,
+            firstName: ctx.from?.first_name || null,
+            lastName: ctx.from?.last_name || null,
+          })
+          .returning();
+        testUser = newUser;
+      }
+
+      // Запускаем воронку теста персонажа (без продажи)
+      await clubFunnel.startCharacterTestFunnel(testUser.id, chatId, userId);
+      return;
+    }
+
     // 🔍 Check if user already exists and has paid FIRST (before any funnels)
     const [user] = await db
       .select()
@@ -2464,6 +2494,90 @@ bot.callbackQuery('club_more_info', async (ctx) => {
   }
 });
 
+// ============================================================================
+// 🎭 CHARACTER TEST FUNNEL CALLBACKS
+// ============================================================================
+
+// Character test - Birthdate confirmation YES
+bot.callbackQuery(/^ct_confirm_date_yes_/, async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const data = ctx.callbackQuery.data;
+    const birthDate = data.replace('ct_confirm_date_yes_', '');
+    const user = await funnels.getUserByTgId(ctx.from.id);
+    if (user && birthDate) {
+      await clubFunnel.handleCharacterTestBirthDateConfirmed(user.id, ctx.from.id, birthDate);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in ct_confirm_date_yes callback');
+  }
+});
+
+// Character test - Birthdate confirmation NO
+bot.callbackQuery('ct_confirm_date_no', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const user = await funnels.getUserByTgId(ctx.from.id);
+    if (user) {
+      await clubFunnel.handleBirthDateRejected(user.id, ctx.from.id);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in ct_confirm_date_no callback');
+  }
+});
+
+// Character test - "хочу активировать свой потенциал" button -> Archetype
+bot.callbackQuery('character_test_activate', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const user = await funnels.getUserByTgId(ctx.from.id);
+    if (user) {
+      await clubFunnel.handleCharacterTestArchetype(user.id, ctx.from.id);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in character_test_activate callback');
+  }
+});
+
+// Character test - "Получить расшифровку стиля" button
+bot.callbackQuery('character_test_style', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const user = await funnels.getUserByTgId(ctx.from.id);
+    if (user) {
+      await clubFunnel.handleCharacterTestStyle(user.id, ctx.from.id);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in character_test_style callback');
+  }
+});
+
+// Character test - "Где мой масштаб" button
+bot.callbackQuery('character_test_scale', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const user = await funnels.getUserByTgId(ctx.from.id);
+    if (user) {
+      await clubFunnel.handleCharacterTestScale(user.id, ctx.from.id);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in character_test_scale callback');
+  }
+});
+
+// Character test - "Узнать свою точку роста" button -> Final (roadmap)
+bot.callbackQuery('character_test_final', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const user = await funnels.getUserByTgId(ctx.from.id);
+    if (user) {
+      await clubFunnel.handleCharacterTestFinal(user.id, ctx.from.id);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in character_test_final callback');
+  }
+});
+
 // 🆕 Menu - back button (only for paid users)
 bot.callbackQuery('menu_back', async (ctx) => {
   try {
@@ -3334,7 +3448,7 @@ bot.on('message:text', async (ctx) => {
         .limit(1);
 
       if (progress?.currentStep === 'awaiting_birthdate') {
-        await clubFunnel.handleBirthDateInput(user.id, ctx.chat.id, rawText);
+        await clubFunnel.handleBirthDateInput(user.id, ctx.chat.id, rawText, ctx.from.id);
         return;
       }
     }
