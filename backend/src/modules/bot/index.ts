@@ -1324,6 +1324,39 @@ bot.command('start', async (ctx) => {
 
     logger.info({ userId }, 'Start command - cancelled all pending tasks from both funnels');
 
+    // 🆕 Создаём пользователя если его нет в базе (для обычного /start без club_ параметров)
+    if (!user) {
+      // Парсим UTM из startPayload если есть (формат: start_MEDIUM_SOURCE_CONTENT)
+      let utmCampaign = 'start';
+      let utmMedium: string | null = null;
+      let utmSource: string | null = null;
+      let utmContent: string | null = null;
+
+      if (startPayload && startPayload.startsWith('start_')) {
+        const parts = startPayload.substring(6).split('_'); // убираем "start_" и разбиваем по "_"
+        utmMedium = parts[0] || null;
+        utmSource = parts[1] || null;
+        utmContent = parts.slice(2).join('_') || null;
+      }
+
+      const metadata: Record<string, string> = { utm_campaign: utmCampaign };
+      if (utmMedium) metadata.utm_medium = utmMedium;
+      if (utmSource) metadata.utm_source = utmSource;
+      if (utmContent) metadata.utm_content = utmContent;
+
+      await db
+        .insert(users)
+        .values({
+          telegramId: userId,
+          username: ctx.from?.username || null,
+          firstName: ctx.from?.first_name || null,
+          lastName: ctx.from?.last_name || null,
+          metadata,
+        });
+
+      logger.info({ userId, ...metadata }, 'Created new user from /start command');
+    }
+
     const keyboard = new InlineKeyboard()
       .text('Получить доступ', 'get_access');
 
