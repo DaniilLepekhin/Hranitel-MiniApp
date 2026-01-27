@@ -55,13 +55,15 @@ export async function startOnboardingAfterPayment(userId: string, chatId: number
     .set({ onboardingStep: 'awaiting_keyword' })
     .where(eq(users.id, userId));
 
-  // 1.5. Установить команду /menu для этого пользователя (только оплатившие видят кнопку Меню)
+  // 1.5. Установить команду /menu и кнопку меню для этого пользователя (только оплатившие видят кнопку Меню)
   try {
     await getTelegramService().setMyCommands(
       [{ command: 'menu', description: 'Главное меню' }],
       { scope: { type: 'chat', chat_id: chatId } }
     );
-    logger.info({ chatId }, 'Set /menu command for paid user');
+    // 🆕 Сразу устанавливаем кнопку меню в левом нижнем углу (не ждём завершения онбординга)
+    await getTelegramService().setChatMenuButton(chatId, { type: 'commands' });
+    logger.info({ chatId }, 'Set /menu command and menu button for paid user');
   } catch (error) {
     logger.error({ error, chatId }, 'Failed to set /menu command for user');
   }
