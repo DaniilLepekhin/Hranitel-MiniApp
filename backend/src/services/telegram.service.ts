@@ -250,6 +250,40 @@ export class TelegramService {
   }
 
   /**
+   * Set bot commands for a specific user (scope: chat)
+   * Used to show /menu button only for paid users
+   */
+  async setMyCommands(
+    commands: Array<{ command: string; description: string }>,
+    options?: { scope: { type: 'chat'; chat_id: number } }
+  ): Promise<boolean> {
+    try {
+      await this.api.setMyCommands(commands, options);
+      logger.info({ commands, options }, 'Bot commands set successfully');
+      return true;
+    } catch (error) {
+      logger.error({ error, commands, options }, 'Error setting bot commands');
+      return false;
+    }
+  }
+
+  /**
+   * Delete bot commands for a specific user (removes menu button)
+   */
+  async deleteMyCommands(
+    options?: { scope: { type: 'chat'; chat_id: number } }
+  ): Promise<boolean> {
+    try {
+      await this.api.deleteMyCommands(options);
+      logger.info({ options }, 'Bot commands deleted successfully');
+      return true;
+    } catch (error) {
+      logger.error({ error, options }, 'Error deleting bot commands');
+      return false;
+    }
+  }
+
+  /**
    * Execute an API call with exponential backoff retry
    */
   private async executeWithRetry<T>(

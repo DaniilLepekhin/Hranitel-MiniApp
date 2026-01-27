@@ -21,10 +21,8 @@ export const bot = new Bot(config.TELEGRAM_BOT_TOKEN);
 // Initialize bot info (required for webhooks)
 await bot.init();
 
-// Set bot commands for menu button
-await bot.api.setMyCommands([
-  { command: 'menu', description: 'Главное меню' },
-]);
+// Remove global menu commands (will be set individually per user after payment)
+await bot.api.setMyCommands([]);
 
 // Initialize Telegram service
 const telegramService = new TelegramService(bot.api);

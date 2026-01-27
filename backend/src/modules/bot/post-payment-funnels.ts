@@ -49,6 +49,17 @@ export async function startOnboardingAfterPayment(userId: string, chatId: number
     .set({ onboardingStep: 'awaiting_keyword' })
     .where(eq(users.id, userId));
 
+  // 1.5. Установить команду /menu для этого пользователя (только оплатившие видят кнопку Меню)
+  try {
+    await getTelegramService().setMyCommands(
+      [{ command: 'menu', description: 'Главное меню' }],
+      { scope: { type: 'chat', chat_id: chatId } }
+    );
+    logger.info({ chatId }, 'Set /menu command for paid user');
+  } catch (error) {
+    logger.error({ error, chatId }, 'Failed to set /menu command for user');
+  }
+
   // 2. Отправить видео с сообщением
   await getTelegramService().sendVideo(
     chatId,

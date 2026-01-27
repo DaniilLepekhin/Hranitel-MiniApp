@@ -263,6 +263,16 @@ class SubscriptionGuardService {
           // Удаляем из всех чатов
           await this.removeUserFromAllChats(user.telegramId);
 
+          // Удаляем команду /menu у пользователя (убираем кнопку Меню)
+          if (this.api) {
+            try {
+              await this.api.deleteMyCommands({ scope: { type: 'chat', chat_id: user.telegramId } });
+              logger.info({ telegramId: user.telegramId }, 'Removed /menu command for expired user');
+            } catch (cmdError) {
+              logger.warn({ error: cmdError, telegramId: user.telegramId }, 'Failed to remove /menu command');
+            }
+          }
+
           // Обновляем статус подписки
           await db
             .update(users)
