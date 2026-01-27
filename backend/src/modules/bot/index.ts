@@ -2180,20 +2180,37 @@ bot.callbackQuery('club_more_info', async (ctx) => {
   }
 });
 
-// 🆕 Menu - back button
+// 🆕 Menu - back button (only for paid users)
 bot.callbackQuery('menu_back', async (ctx) => {
   try {
     await ctx.answerCallbackQuery();
+
+    const userId = ctx.from.id;
+    const hasPaid = await checkPaymentStatus(userId);
+
+    if (!hasPaid) {
+      await ctx.reply('Меню доступно только участникам клуба 🔒');
+      return;
+    }
+
     await funnels.sendMenuMessage(ctx.chat.id);
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in menu_back callback');
   }
 });
 
-// 🆕 Menu - instruction video
+// 🆕 Menu - instruction video (only for paid users)
 bot.callbackQuery('menu_instruction', async (ctx) => {
   try {
     await ctx.answerCallbackQuery();
+
+    const userId = ctx.from.id;
+    const hasPaid = await checkPaymentStatus(userId);
+
+    if (!hasPaid) {
+      await ctx.reply('Инструкция доступна только участникам клуба 🔒');
+      return;
+    }
 
     const keyboard = new InlineKeyboard()
       .text('вернуться в меню', 'menu_back');
@@ -2212,11 +2229,20 @@ bot.callbackQuery('menu_instruction', async (ctx) => {
   }
 });
 
-// 🆕 Menu - gift subscription
+// 🆕 Menu - gift subscription (only for paid users)
 bot.callbackQuery('menu_gift_subscription', async (ctx) => {
   try {
     await ctx.answerCallbackQuery();
-    const user = await funnels.getUserByTgId(ctx.from.id);
+
+    const userId = ctx.from.id;
+    const hasPaid = await checkPaymentStatus(userId);
+
+    if (!hasPaid) {
+      await ctx.reply('Подарить подписку могут только участники клуба 🔒');
+      return;
+    }
+
+    const user = await funnels.getUserByTgId(userId);
     if (!user) return;
 
     // Set user state to selecting gift user
@@ -2422,10 +2448,36 @@ bot.hears('🌍 окружение', async (ctx) => {
   }
 });
 
-// 🆕 /menu command - show post-onboarding menu
+// 🆕 /menu command - show post-onboarding menu (only for paid users)
 bot.command('menu', async (ctx) => {
   try {
-    await funnels.sendMenuMessage(ctx.chat.id);
+    const userId = ctx.from!.id;
+    const chatId = ctx.chat.id;
+
+    // Check if user has active subscription
+    const hasPaid = await checkPaymentStatus(userId);
+
+    if (!hasPaid) {
+      // User doesn't have subscription - redirect to payment funnel
+      logger.info({ userId }, '/menu called by non-paid user, redirecting to payment');
+
+      const keyboard = new InlineKeyboard()
+        .text('Получить доступ', 'get_access');
+
+      await telegramService.sendMessage(
+        chatId,
+        `<b>Меню доступно только участникам клуба 🔒</b>\n\n` +
+        `Чтобы получить доступ к клубу «КОД УСПЕХА», нажми кнопку ниже 👇`,
+        {
+          parse_mode: 'HTML',
+          reply_markup: keyboard
+        }
+      );
+      return;
+    }
+
+    // User has subscription - show menu
+    await funnels.sendMenuMessage(chatId);
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in /menu command');
   }
