@@ -976,7 +976,7 @@ export async function sendMenuMessage(chatId: number) {
     .row()
     .url('канал клуба', 'https://t.me/+mwJ5e0d78GYzNDRi')
     .row()
-    .webApp('штаб клуба', process.env.WEBAPP_URL!)
+    .webApp('все материалы здесь', process.env.WEBAPP_URL!)
     .row()
     .text('подарить подписку', 'menu_gift_subscription')
     .row()
