@@ -1,6 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { db } from '@/db';
-import { paymentAnalytics, payments } from '@/db/schema';
+import { paymentAnalytics, payments, users } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 
 export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analytics'] })
@@ -21,6 +22,31 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
           email,
           phone,
         } = body;
+
+        // 🆕 Создаём пользователя если его нет в базе (на случай если он открыл форму оплаты минуя /start)
+        const telegramIdNum = parseInt(telegram_id, 10);
+        if (!isNaN(telegramIdNum)) {
+          const existingUser = await db.query.users.findFirst({
+            where: eq(users.telegramId, telegramIdNum),
+          });
+
+          if (!existingUser) {
+            const metadata: Record<string, string | null> = {};
+            if (utm_campaign) metadata.utmCampaign = utm_campaign;
+            if (utm_medium) metadata.utmMedium = utm_medium;
+            if (utm_source) metadata.utmSource = utm_source;
+            if (utm_content) metadata.utmContent = utm_content;
+
+            await db.insert(users).values({
+              telegramId: telegramIdNum,
+              username: null,
+              firstName: name || null,
+              lastName: null,
+              metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+            });
+            logger.info({ telegramId: telegramIdNum, utm_campaign }, 'Created new user from payment form open');
+          }
+        }
 
         // Create metka if not provided
         const finalMetka = metka || [utm_campaign, utm_medium].filter(p => p).join('_');
