@@ -321,9 +321,9 @@ export const contentApi = {
   getItem: (itemId: string) =>
     api.get<{ item: ContentItem }>(`/content/items/${itemId}`),
 
-  // Get monthly program
-  getMonthProgram: () =>
-    api.get<{ items: ContentItem[] }>('/content/month-program'),
+  // Get monthly program (with optional month filter, e.g. '2026-02')
+  getMonthProgram: (month?: string) =>
+    api.get<{ items: ContentItem[] }>('/content/month-program', { params: month ? { month } : undefined }),
 
   // Get content sections (lessons/episodes)
   getSections: (itemId: string) =>

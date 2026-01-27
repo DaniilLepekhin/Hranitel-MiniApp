@@ -55,15 +55,28 @@ export const contentModule = new Elysia({ prefix: '/api/v1/content' })
     })
   })
 
-  // Get monthly program
-  .get('/month-program', async () => {
+  // Get monthly program (by specific month, e.g. 2026-02)
+  .get('/month-program', async ({ query }) => {
+    const { month } = query;
+
+    let conditions = [eq(contentItems.monthProgram, true)];
+
+    // Если передан месяц - фильтруем по нему
+    if (month) {
+      conditions.push(eq(contentItems.programMonth, month));
+    }
+
     const items = await db
       .select()
       .from(contentItems)
-      .where(eq(contentItems.monthProgram, true))
+      .where(and(...conditions))
       .orderBy(asc(contentItems.orderIndex));
 
     return { items };
+  }, {
+    query: t.Object({
+      month: t.Optional(t.String()) // формат: 2026-02
+    })
   })
 
   // Get content sections (lessons, episodes)

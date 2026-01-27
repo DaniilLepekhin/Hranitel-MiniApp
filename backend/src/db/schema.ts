@@ -428,6 +428,7 @@ export const contentItems = pgTable('content_items', {
   coverUrl: text('cover_url'),
   keyNumber: integer('key_number'), // 1-12, связь с ключами
   monthProgram: boolean('month_program').default(false), // программа месяца
+  programMonth: varchar('program_month', { length: 7 }), // формат: 2026-02 (год-месяц)
   orderIndex: integer('order_index').default(0).notNull(),
   isPublished: boolean('is_published').default(true).notNull(),
 
@@ -437,6 +438,7 @@ export const contentItems = pgTable('content_items', {
   index('content_items_type_idx').on(table.type),
   index('content_items_key_number_idx').on(table.keyNumber),
   index('content_items_month_program_idx').on(table.monthProgram),
+  index('content_items_program_month_idx').on(table.programMonth),
   index('content_items_order_index_idx').on(table.orderIndex),
 ]);
 
