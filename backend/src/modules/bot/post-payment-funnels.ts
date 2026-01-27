@@ -957,8 +957,17 @@ export async function activateGiftForUser(recipientTgId: number, token: string, 
 // ============================================================================
 
 export async function sendMenuMessage(chatId: number) {
-  // Установить кнопку меню в левом нижнем углу (показывает команды бота)
-  await getTelegramService().setChatMenuButton(chatId, { type: 'commands' });
+  // Установить команду /menu и кнопку меню в левом нижнем углу
+  // Это восстановит кнопку если она пропала
+  try {
+    await getTelegramService().setMyCommands(
+      [{ command: 'menu', description: 'Главное меню' }],
+      { scope: { type: 'chat', chat_id: chatId } }
+    );
+    await getTelegramService().setChatMenuButton(chatId, { type: 'commands' });
+  } catch (error) {
+    logger.error({ error, chatId }, 'Failed to set menu commands/button');
+  }
 
   const keyboard = new InlineKeyboard()
     .text('инструкция', 'menu_instruction')
