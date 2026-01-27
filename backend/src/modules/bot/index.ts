@@ -3284,14 +3284,23 @@ bot.on('message:text', async (ctx) => {
   try {
     const userId = ctx.from.id;
     const rawText = ctx.message.text?.trim() || '';
-    // Normalize text for keyword validation (trim whitespace, uppercase)
-    const text = rawText.toUpperCase();
+    // Normalize text for keyword validation (trim whitespace, uppercase, remove extra spaces)
+    const text = rawText.toUpperCase().replace(/\s+/g, ' ').trim();
     const user = await funnels.getUserByTgId(userId);
 
-    // Проверка кодового слова "КАРТА"
-    if (text === 'КАРТА' && user) {
+    // Проверка кодового слова "КАРТА" (поддержка вариантов написания)
+    // Принимаем: КАРТА, карта, Карта, KAPTA (латиница), с пробелами и т.д.
+    const isKeywordKarta = text === 'КАРТА' ||
+                           text === 'KAPTA' || // латиница
+                           text.includes('КАРТА') ||
+                           text.includes('KAPTA');
+
+    if (isKeywordKarta && user) {
+      logger.info({ userId, rawText, text, onboardingStep: user.onboardingStep }, 'User entered keyword КАРТА');
+
       // Случай 1: Пользователь на этапе awaiting_keyword - стандартный флоу
       if (user.onboardingStep === 'awaiting_keyword') {
+        logger.info({ userId }, 'Processing keyword for awaiting_keyword user');
         await funnels.handleKeywordSuccess(user.id, ctx.chat.id);
         return;
       }
@@ -3303,6 +3312,9 @@ bot.on('message:text', async (ctx) => {
         await funnels.handleKeywordSuccess(user.id, ctx.chat.id);
         return;
       }
+
+      // Случай 3: Пользователь написал КАРТА но не на нужном этапе - логируем для отладки
+      logger.warn({ userId, onboardingStep: user.onboardingStep, isPro: user.isPro }, 'User entered КАРТА but not in correct state');
     }
 
     // 🆕 Check if user is in club funnel awaiting birthdate
