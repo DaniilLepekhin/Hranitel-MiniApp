@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { Navigation, TabType } from '@/components/ui/Navigation';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { SubscriptionRequiredScreen } from '@/components/ui/SubscriptionRequiredScreen';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { useMediaPlayerStore } from '@/store/media-player';
@@ -142,6 +143,12 @@ function HomeContent() {
   // Show loading screen during initial app load (not on navigation)
   if (!hasInitialized) {
     return <LoadingScreen />;
+  }
+
+  // 🔒 Проверка подписки - показываем экран блокировки если нет подписки
+  // isPro = true означает активную подписку
+  if (!user?.isPro) {
+    return <SubscriptionRequiredScreen />;
   }
 
   return (
