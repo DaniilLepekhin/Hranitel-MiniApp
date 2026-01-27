@@ -333,6 +333,39 @@ jobs:
 
             echo "✅ Cron setup completed"
 
+      - name: Setup Chat Schedule Cron Jobs
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: false
+          command_timeout: 2m
+          script: |
+            echo "🕐 Setting up chat schedule cron jobs..."
+
+            SCRIPTS_DIR="/var/www/hranitel/backend/scripts"
+
+            # Make scripts executable
+            chmod +x "${SCRIPTS_DIR}/chat_open_morning.sh" 2>/dev/null || true
+            chmod +x "${SCRIPTS_DIR}/chat_close_evening.sh" 2>/dev/null || true
+
+            # Chat schedule cron entries (Moscow time = UTC+3)
+            # 10:00 MSK = 07:00 UTC - Open chat
+            # 22:00 MSK = 19:00 UTC - Close chat
+            CRON_MORNING="0 7 * * * ${SCRIPTS_DIR}/chat_open_morning.sh"
+            CRON_EVENING="0 19 * * * ${SCRIPTS_DIR}/chat_close_evening.sh"
+
+            # Remove old entries and add new ones
+            (crontab -l 2>/dev/null | grep -v "chat_open_morning.sh" | grep -v "chat_close_evening.sh"; echo "${CRON_MORNING}"; echo "${CRON_EVENING}") | crontab -
+
+            echo "✅ Chat schedule cron jobs configured:"
+            echo "  - Morning (10:00 MSK / 07:00 UTC): chat_open_morning.sh"
+            echo "  - Evening (22:00 MSK / 19:00 UTC): chat_close_evening.sh"
+
+            echo "📋 Current crontab:"
+            crontab -l
+
       - name: Notify Deployment Status
         if: always()
         run: |
