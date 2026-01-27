@@ -24,6 +24,17 @@ await bot.init();
 // Remove global menu commands (will be set individually per user after payment)
 await bot.api.setMyCommands([]);
 
+// 🚫 MIDDLEWARE: Игнорируем все сообщения из групповых чатов и каналов (chatId < 0)
+// Воронки работают ТОЛЬКО в личных чатах с ботом
+bot.use(async (ctx, next) => {
+  const chatId = ctx.chat?.id;
+  if (chatId && chatId < 0) {
+    // Молча игнорируем - не логируем каждое сообщение чтобы не спамить
+    return;
+  }
+  await next();
+});
+
 // Initialize Telegram service
 const telegramService = new TelegramService(bot.api);
 
@@ -33,6 +44,12 @@ funnels.initTelegramService(bot.api);
 clubFunnel.initClubFunnelTelegramService(bot.api);
 // Initialize subscription guard service
 subscriptionGuardService.init(bot.api);
+
+// 🚫 Helper to check if chat is a group/channel (negative ID)
+// Воронки работают только в личных чатах с ботом
+function isGroupChat(chatId: number): boolean {
+  return chatId < 0;
+}
 
 // Helper to check payment status
 async function checkPaymentStatus(userId: number): Promise<boolean> {
@@ -212,6 +229,12 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
   const { type, userId, chatId, data } = task;
   const isTestMode = data?.isTestMode === true;
   const testDelay = 10 * 1000; // 10 секунд для тестового режима
+
+  // 🚫 Игнорируем групповые чаты и каналы (chatId < 0)
+  if (isGroupChat(chatId)) {
+    logger.info({ userId, chatId, taskType: type }, 'Ignoring scheduled task for group chat/channel');
+    return;
+  }
 
   try {
     // Skip payment check for test tasks (test_start_reminder, test_five_min_reminder, etc.)

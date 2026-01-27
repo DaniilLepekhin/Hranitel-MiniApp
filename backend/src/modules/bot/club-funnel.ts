@@ -1031,6 +1031,12 @@ async function handleFallbackToMainFunnel(userId: string, chatId: number) {
 // ============================================================================
 
 export async function handleClubAutoProgress(userId: string, chatId: number, step: string, isTestMode: boolean = false) {
+  // 🚫 Игнорируем групповые чаты и каналы (chatId < 0)
+  if (chatId < 0) {
+    logger.info({ userId, chatId, step }, 'Ignoring club auto-progress for group chat/channel');
+    return;
+  }
+
   // Восстанавливаем тестовый режим из данных задачи
   if (isTestMode) {
     setTestMode(true);
@@ -1791,6 +1797,12 @@ export async function handleClubAutoProgressImported(
   chatId: number,
   step: string
 ) {
+  // 🚫 Игнорируем групповые чаты и каналы (chatId < 0)
+  if (chatId < 0) {
+    logger.info({ userId, chatId, step }, 'Ignoring club auto-progress imported for group chat/channel');
+    return;
+  }
+
   const progress = await getClubProgress(userId);
   const currentStep = progress?.currentStep;
 

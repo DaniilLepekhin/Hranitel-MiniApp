@@ -44,6 +44,12 @@ export async function getUserByTgId(tgId: number) {
  * ЭТАП 1: Начать онбординг после оплаты
  */
 export async function startOnboardingAfterPayment(userId: string, chatId: number) {
+  // 🚫 Игнорируем групповые чаты и каналы (chatId < 0)
+  if (chatId < 0) {
+    logger.info({ userId, chatId }, 'Ignoring onboarding for group chat/channel');
+    return;
+  }
+
   // 1. Обновить статус пользователя
   await db.update(users)
     .set({ onboardingStep: 'awaiting_keyword' })
