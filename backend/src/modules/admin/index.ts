@@ -14,6 +14,7 @@ import { db } from '@/db';
 import { users, paymentAnalytics, clubFunnelProgress } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
+import { startOnboardingAfterPayment } from '@/modules/bot/post-payment-funnels';
 
 // n8n webhook для генерации ссылки на оплату Lava
 const N8N_LAVA_WEBHOOK_URL = 'https://n8n4.daniillepekhin.ru/webhook/lava_club2';
@@ -364,7 +365,7 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
   )
 
   /**
-   * ➕ Выдать подписку вручную
+   * ➕ Выдать подписку вручную (без сообщения)
    */
   .post(
     '/grant-subscription',
@@ -436,6 +437,106 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       detail: {
         summary: 'Выдать подписку вручную',
         description: 'Выдает подписку пользователю на указанное количество дней. Если пользователь не существует, он будет создан.',
+      },
+    }
+  )
+
+  /**
+   * 💳 Ручная оплата - выдает подписку И отправляет сообщение с видео (как после реальной оплаты)
+   */
+  .post(
+    '/manual-payment',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { telegram_id: rawTelegramId, days = 30, source = 'manual_payment' } = body;
+      const telegram_id = typeof rawTelegramId === 'string' ? parseInt(rawTelegramId, 10) : rawTelegramId;
+
+      // Находим или создаем пользователя
+      let [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.telegramId, telegram_id))
+        .limit(1);
+
+      const subscriptionExpires = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+
+      if (!user) {
+        // Создаем нового пользователя
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            telegramId: telegram_id,
+            isPro: true,
+            subscriptionExpires,
+            firstPurchaseDate: new Date(),
+            metadata: { source },
+          })
+          .returning();
+        user = newUser;
+
+        logger.info({ telegram_id, days, source }, 'Admin created user with manual payment');
+      } else {
+        // Обновляем существующего
+        const [updated] = await db
+          .update(users)
+          .set({
+            isPro: true,
+            subscriptionExpires,
+            firstPurchaseDate: user.firstPurchaseDate || new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, user.id))
+          .returning();
+        user = updated;
+
+        logger.info({ telegram_id, days, source }, 'Admin granted manual payment subscription');
+      }
+
+      // Отправляем сообщение с видео (как после реальной оплаты)
+      // chatId = telegram_id для личных сообщений
+      try {
+        await startOnboardingAfterPayment(user.id, telegram_id);
+        logger.info({ telegram_id, userId: user.id }, 'Sent onboarding message after manual payment');
+      } catch (error) {
+        logger.error({ error, telegram_id }, 'Failed to send onboarding message');
+        return {
+          success: true,
+          message: `Подписка выдана на ${days} дней для ${telegram_id}, но сообщение не отправлено (возможно бот заблокирован)`,
+          user: {
+            id: user.id,
+            telegram_id: user.telegramId,
+            is_pro: user.isPro,
+            subscription_expires: user.subscriptionExpires,
+          },
+          message_sent: false,
+        };
+      }
+
+      return {
+        success: true,
+        message: `Подписка выдана на ${days} дней для ${telegram_id}. Сообщение с видео отправлено.`,
+        user: {
+          id: user.id,
+          telegram_id: user.telegramId,
+          is_pro: user.isPro,
+          subscription_expires: user.subscriptionExpires,
+        },
+        message_sent: true,
+      };
+    },
+    {
+      body: t.Object({
+        telegram_id: t.Union([t.Number(), t.String()], { description: 'Telegram ID пользователя' }),
+        days: t.Optional(t.Number({ description: 'Количество дней подписки (по умолчанию 30)' })),
+        source: t.Optional(t.String({ description: 'Источник выдачи' })),
+      }),
+      detail: {
+        summary: 'Ручная оплата (с отправкой сообщения)',
+        description: 'Выдает подписку И отправляет сообщение с видео о правилах и кодовом слове (как после реальной оплаты). Пользователь будет поставлен на шаг awaiting_keyword.',
       },
     }
   );
