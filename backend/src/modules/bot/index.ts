@@ -3288,6 +3288,14 @@ bot.on('message:text', async (ctx) => {
     const text = rawText.toUpperCase().replace(/\s+/g, ' ').trim();
     const user = await funnels.getUserByTgId(userId);
 
+    // 🔥 АВТОПРОПУСК: Если пользователь на awaiting_keyword и пишет ЛЮБОЕ сообщение - пропускаем дальше
+    // Это решает проблему когда кодовое слово не распознаётся (латиница, опечатки и т.д.)
+    if (user && user.onboardingStep === 'awaiting_keyword' && user.isPro) {
+      logger.info({ userId, rawText, text }, 'User on awaiting_keyword wrote message - auto-advancing to next step');
+      await funnels.handleKeywordSuccess(user.id, ctx.chat.id);
+      return;
+    }
+
     // Проверка кодового слова "КАРТА" (поддержка вариантов написания)
     // Принимаем: КАРТА, карта, Карта, KAPTA (латиница), с пробелами и т.д.
     const isKeywordKarta = text === 'КАРТА' ||
@@ -3298,7 +3306,7 @@ bot.on('message:text', async (ctx) => {
     if (isKeywordKarta && user) {
       logger.info({ userId, rawText, text, onboardingStep: user.onboardingStep }, 'User entered keyword КАРТА');
 
-      // Случай 1: Пользователь на этапе awaiting_keyword - стандартный флоу
+      // Случай 1: Пользователь на этапе awaiting_keyword - стандартный флоу (уже обработано выше)
       if (user.onboardingStep === 'awaiting_keyword') {
         logger.info({ userId }, 'Processing keyword for awaiting_keyword user');
         await funnels.handleKeywordSuccess(user.id, ctx.chat.id);
