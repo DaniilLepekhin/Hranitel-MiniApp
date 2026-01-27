@@ -53,7 +53,27 @@ export interface ScheduledTask {
     | 'gift_expiry_1day'       // За 1 день до окончания в 9:00 МСК
 
     // 🆕 Club funnel (numerology-based pre-payment)
-    | 'club_auto_progress';    // Авто-прокидывание шага воронки
+    | 'club_auto_progress'    // Авто-прокидывание шага воронки
+
+    // 🆕 Start funnel messages (pre-payment)
+    | 'start_marathon_5min'      // Марафон КОД ДЕНЕГ через 5 мин после билета
+    | 'start_results_10min'      // Результаты участников через 5 мин после гайда
+    | 'start_2026_images_15min'  // Картинки 2026 через 5 мин после результатов
+    | 'start_kristina_25min'     // История Кристины через 10 мин после картинок
+    | 'numerology_guide_reminder' // Гайд по нумерологии
+    | 'energy_tatiana_reminder'  // Видео об энергии (Татьяна) через 60 мин после топиков
+
+    // 🧪 Test funnel types (for admin testing with fast timers)
+    | 'test_start_reminder'
+    | 'test_numerology_guide'
+    | 'test_traps'
+    | 'test_burning'
+    | 'test_energy_tatiana'    // Видео об энергии (10 сек вместо 60 мин)
+    | 'test_payment_reminder'  // "Это не просто клуб" (10 сек вместо 60 мин)
+    | 'test_day2'
+    | 'test_day3'
+    | 'test_day4'
+    | 'test_day5';
 
   userId: number;
   chatId: number;
