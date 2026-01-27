@@ -209,7 +209,9 @@ function addUtmToPaymentUrl(baseUrl: string, utmData: UtmData): string {
 
 // Task processor callback for scheduled tasks
 async function processScheduledTask(task: ScheduledTask): Promise<void> {
-  const { type, userId, chatId } = task;
+  const { type, userId, chatId, data } = task;
+  const isTestMode = data?.isTestMode === true;
+  const testDelay = 10 * 1000; // 10 секунд для тестового режима
 
   try {
     // Skip payment check for test tasks (test_start_reminder, test_five_min_reminder, etc.)
@@ -250,7 +252,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
 
       await telegramService.sendPhoto(
         chatId,
-        'https://t.me/mate_bot_open/9276',
+        'https://t.me/mate_bot_open/9681',
         {
           caption:
             `<b>🎫 Твой билет в КОД УСПЕХА. Глава: Пробуждение</b>\n\n` +
@@ -333,14 +335,15 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
 
-      // Через 5 минут - нумерологический гайд
+      // Через 5 минут - нумерологический гайд (или 10 сек в тестовом режиме)
       await schedulerService.schedule(
         {
           type: 'numerology_guide_reminder',
           userId,
           chatId,
+          data: isTestMode ? { isTestMode: true } : undefined,
         },
-        5 * 60 * 1000 // 5 minutes
+        isTestMode ? testDelay : 5 * 60 * 1000
       );
     } else if (type === 'numerology_guide_reminder') {
       // Нумерологический гайд через 5 минут после марафона (если не оплатил)
@@ -366,14 +369,15 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
 
-      // Через 5 минут после гайда отправляем результаты участников
+      // Через 5 минут после гайда отправляем результаты участников (или 10 сек в тестовом режиме)
       await schedulerService.schedule(
         {
           type: 'start_results_10min',
           userId,
           chatId,
+          data: isTestMode ? { isTestMode: true } : undefined,
         },
-        5 * 60 * 1000 // 5 minutes
+        isTestMode ? testDelay : 5 * 60 * 1000
       );
     } else if (type === 'start_results_10min') {
       // 🆕 Результаты участников марафона через 5 минут после гайда
@@ -408,14 +412,15 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
 
-      // Через 5 минут - картинки 2026
+      // Через 5 минут - картинки 2026 (или 10 сек в тестовом режиме)
       await schedulerService.schedule(
         {
           type: 'start_2026_images_15min',
           userId,
           chatId,
+          data: isTestMode ? { isTestMode: true } : undefined,
         },
-        5 * 60 * 1000 // 5 minutes
+        isTestMode ? testDelay : 5 * 60 * 1000
       );
     } else if (type === 'start_2026_images_15min') {
       // 🆕 Картинки 2026 через 5 минут после результатов
@@ -468,14 +473,15 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
 
-      // Через 10 минут - история Кристины
+      // Через 10 минут - история Кристины (или 10 сек в тестовом режиме)
       await schedulerService.schedule(
         {
           type: 'start_kristina_25min',
           userId,
           chatId,
+          data: isTestMode ? { isTestMode: true } : undefined,
         },
-        10 * 60 * 1000 // 10 minutes
+        isTestMode ? testDelay : 10 * 60 * 1000
       );
     } else if (type === 'start_kristina_25min') {
       // 🆕 История Кристины через 10 минут после картинок
@@ -509,14 +515,15 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
 
-      // Через 20 минут - 3 ловушки
+      // Через 20 минут - 3 ловушки (или 10 сек в тестовом режиме)
       await schedulerService.schedule(
         {
           type: 'five_min_reminder',
           userId,
           chatId,
+          data: isTestMode ? { isTestMode: true } : undefined,
         },
-        20 * 60 * 1000 // 20 minutes
+        isTestMode ? testDelay : 20 * 60 * 1000
       );
     } else if (type === 'five_min_reminder') {
       // СООБЩЕНИЕ 6 - Send 5-minute reminder with video - "3 ловушки"
@@ -545,14 +552,15 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
 
-      // Schedule 20-minute "Что горит" reminder
+      // Schedule 20-minute "Что горит" reminder (или 10 сек в тестовом режиме)
       await schedulerService.schedule(
         {
           type: 'burning_question_reminder',
           userId,
           chatId,
+          data: isTestMode ? { isTestMode: true } : undefined,
         },
-        20 * 60 * 1000 // 20 minutes
+        isTestMode ? testDelay : 20 * 60 * 1000
       );
     } else if (type === 'burning_question_reminder') {
       // Send "Что горит прямо сейчас?" reminder after 20 minutes
@@ -578,14 +586,15 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
 
-      // Schedule 60-minute energy/Tatiana reminder (then payment_reminder after that)
+      // Schedule 60-minute energy/Tatiana reminder (или 10 сек в тестовом режиме)
       await schedulerService.schedule(
         {
           type: 'energy_tatiana_reminder',
           userId,
           chatId,
+          data: isTestMode ? { isTestMode: true } : undefined,
         },
-        60 * 60 * 1000 // 60 minutes
+        isTestMode ? testDelay : 60 * 60 * 1000
       );
     } else if (type === 'energy_tatiana_reminder') {
       // 🆕 СООБЩЕНИЕ: Видео об энергии (история Татьяны) - через 60 мин после топиков
@@ -614,14 +623,15 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
 
-      // Schedule payment_reminder через 60 минут
+      // Schedule payment_reminder через 60 минут (или 10 сек в тестовом режиме)
       await schedulerService.schedule(
         {
           type: 'payment_reminder',
           userId,
           chatId,
+          data: isTestMode ? { isTestMode: true } : undefined,
         },
-        60 * 60 * 1000 // 60 minutes
+        isTestMode ? testDelay : 60 * 60 * 1000
       );
     } else if (type === 'payment_reminder') {
       // СООБЩЕНИЕ 8 - Send 60-minute reminder with "я не готов" button
@@ -663,13 +673,14 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
 
-      // Schedule day 2 reminder at 10:00 Moscow time
-      const delayToDay2 = getDelayUntilMoscowTime(10, 0);
+      // Schedule day 2 reminder at 10:00 Moscow time (или 10 сек в тестовом режиме)
+      const delayToDay2 = isTestMode ? testDelay : getDelayUntilMoscowTime(10, 0);
       await schedulerService.schedule(
         {
           type: 'day2_reminder',
           userId,
           chatId,
+          data: isTestMode ? { isTestMode: true } : undefined,
         },
         delayToDay2
       );
@@ -700,12 +711,13 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
 
       // Schedule day 3 reminder at 11:00 Moscow time next day (25 hours from day2)
       // Since day2 is sent at 10:00, we need 25 hours = 1 day + 1 hour
-      const delayToDay3 = 25 * 60 * 60 * 1000; // 25 hours
+      const delayToDay3 = isTestMode ? testDelay : 25 * 60 * 60 * 1000; // 25 hours (или 10 сек в тестовом режиме)
       await schedulerService.schedule(
         {
           type: 'day3_reminder',
           userId,
           chatId,
+          data: isTestMode ? { isTestMode: true } : undefined,
         },
         delayToDay3
       );
@@ -731,12 +743,13 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
       );
 
       // Schedule day 4 reminder 24 hours after day3 (same time next day)
-      const delayToDay4 = 24 * 60 * 60 * 1000; // 24 hours
+      const delayToDay4 = isTestMode ? testDelay : 24 * 60 * 60 * 1000; // 24 hours (или 10 сек в тестовом режиме)
       await schedulerService.schedule(
         {
           type: 'day4_reminder',
           userId,
           chatId,
+          data: isTestMode ? { isTestMode: true } : undefined,
         },
         delayToDay4
       );
@@ -764,12 +777,13 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
       );
 
       // Schedule day 5 final reminder 24 hours after day4 (same time next day, 4 hours before closing)
-      const delayToDay5 = 24 * 60 * 60 * 1000; // 24 hours
+      const delayToDay5 = isTestMode ? testDelay : 24 * 60 * 60 * 1000; // 24 hours (или 10 сек в тестовом режиме)
       await schedulerService.schedule(
         {
           type: 'day5_final',
           userId,
           chatId,
+          data: isTestMode ? { isTestMode: true } : undefined,
         },
         delayToDay5
       );
@@ -835,7 +849,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
 
       await telegramService.sendPhoto(
         chatId,
-        'https://t.me/mate_bot_open/9276',
+        'https://t.me/mate_bot_open/9681',
         {
           caption:
             `<b>🎫 Твой билет в КОД УСПЕХА. Глава: Пробуждение</b>\n\n` +
@@ -1703,7 +1717,7 @@ bot.callbackQuery('get_access', async (ctx) => {
     // Send image with ticket info
     await telegramService.sendPhoto(
       chatId,
-      'https://t.me/mate_bot_open/9276',
+      'https://t.me/mate_bot_open/9681',
       {
         caption:
           `<b>🎫 Твой билет в КОД УСПЕХА. Глава: Пробуждение</b>\n\n` +
@@ -1758,7 +1772,7 @@ bot.callbackQuery('test_get_access_full', async (ctx) => {
 
     await telegramService.sendPhoto(
       chatId,
-      'https://t.me/mate_bot_open/9276',
+      'https://t.me/mate_bot_open/9681',
       {
         caption:
           `<b>🎫 Твой билет в КОД УСПЕХА. Глава: Пробуждение</b>\n\n` +
@@ -1776,8 +1790,9 @@ bot.callbackQuery('test_get_access_full', async (ctx) => {
     );
 
     // 🧪 В тестовом режиме: марафон через 10 сек (вместо 5 мин)
+    // Передаём isTestMode чтобы все последующие сообщения тоже использовали ускоренные таймеры
     await schedulerService.schedule(
-      { type: 'start_marathon_5min', userId, chatId },
+      { type: 'start_marathon_5min', userId, chatId, data: { isTestMode: true } },
       10 * 1000 // 10 seconds for testing
     );
 
