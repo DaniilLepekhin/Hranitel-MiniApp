@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Check, ChevronRight, AlertCircle, Trophy, X } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { useTelegram } from '@/hooks/useTelegram';
+import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
 
 // Типы
 interface Question {
@@ -311,7 +312,7 @@ export default function BuddyTestPage() {
   // Показываем загрузку если нет доступа или проверяем пользователя
   if (!user || !hasAccess) {
     return (
-      <div className="min-h-screen bg-[#f7f1e8] flex items-center justify-center">
+      <div className="min-h-screen bg-[#f0ece8] flex items-center justify-center">
         <div className="text-center p-6">
           <AlertCircle className="w-16 h-16 text-[#d93547] mx-auto mb-4" />
           <h2 style={{ fontFamily: '"TT Nooks", Georgia, serif', fontSize: '24px', color: '#2d2620' }}>
@@ -340,7 +341,7 @@ export default function BuddyTestPage() {
   // Результат теста
   if (showResult) {
     return (
-      <div className="min-h-screen bg-[#f7f1e8] flex flex-col">
+      <div className="min-h-screen bg-[#f0ece8] flex flex-col">
         {/* Header */}
         <div className="flex items-center p-4 border-b border-[#2d2620]/10">
           <button
@@ -417,9 +418,12 @@ export default function BuddyTestPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f1e8] flex flex-col">
+    <div className="min-h-screen bg-[#f0ece8] flex flex-col relative">
+      {/* Фон как на главной */}
+      <OptimizedBackground variant="home" />
+
       {/* Header */}
-      <div className="p-4 border-b border-[#2d2620]/10">
+      <div className="p-4 border-b border-[#2d2620]/10 relative z-10">
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => {
@@ -504,7 +508,22 @@ export default function BuddyTestPage() {
       </div>
 
       {/* Question */}
-      <div className="flex-1 p-6 overflow-y-auto pb-32">
+      <div className="flex-1 p-6 overflow-y-auto pb-32 relative z-10">
+        {/* Город пользователя */}
+        {user?.city && (
+          <p
+            className="mb-2"
+            style={{
+              fontFamily: 'Gilroy, sans-serif',
+              fontSize: '13px',
+              fontWeight: 500,
+              color: '#6b5a4a',
+            }}
+          >
+            г. {user.city}
+          </p>
+        )}
+
         <div className="mb-2">
           <span
             className="px-3 py-1 rounded-full"
@@ -594,7 +613,7 @@ export default function BuddyTestPage() {
       </div>
 
       {/* Bottom button */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#f7f1e8] via-[#f7f1e8] to-transparent pt-8">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#f0ece8] via-[#f0ece8] to-transparent pt-8 z-20">
         <button
           onClick={handleNext}
           disabled={!canProceed()}
