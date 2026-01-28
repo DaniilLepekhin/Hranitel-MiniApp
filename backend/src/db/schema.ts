@@ -26,7 +26,14 @@ export const clubFunnelStepEnum = pgEnum('club_funnel_step', [
   'awaiting_roadmap',
   'showing_roadmap',
   'awaiting_purchase',
-  'completed'
+  'completed',
+  // Character test funnel steps
+  'character_test_birthdate_confirmed',
+  'character_test_showing_star',
+  'character_test_archetype',
+  'character_test_style',
+  'character_test_scale',
+  'character_test_complete'
 ]);
 
 // Users

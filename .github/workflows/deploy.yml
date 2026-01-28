@@ -178,6 +178,10 @@ jobs:
             echo "📊 Applying migration 0011_add_city_chat_id_to_users.sql..."
             psql "$DATABASE_URL" -f drizzle/migrations/0011_add_city_chat_id_to_users.sql && echo "✅ Migration 0011 completed"
 
+            # Apply migration 0012 (add character test steps to enum - uses IF NOT EXISTS, safe to run multiple times)
+            echo "📊 Applying migration 0012_add_character_test_steps.sql..."
+            psql "$DATABASE_URL" -f drizzle/migrations/0012_add_character_test_steps.sql && echo "✅ Migration 0012 completed"
+
             echo "✅ All migrations applied successfully!"
 
             # 🔍 Pre-deployment health check
