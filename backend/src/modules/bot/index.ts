@@ -2498,6 +2498,19 @@ bot.callbackQuery('club_more_info', async (ctx) => {
 // 🎭 CHARACTER TEST FUNNEL CALLBACKS
 // ============================================================================
 
+// Start character test from menu button
+bot.callbackQuery('start_character_test', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const user = await funnels.getUserByTgId(ctx.from.id);
+    if (user) {
+      await clubFunnel.startCharacterTestFunnel(user.id, ctx.chat.id, ctx.from.id);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in start_character_test callback');
+  }
+});
+
 // Character test - Birthdate confirmation YES
 bot.callbackQuery(/^ct_confirm_date_yes_/, async (ctx) => {
   try {

@@ -978,7 +978,7 @@ export async function sendMenuMessage(chatId: number) {
     .row()
     .webApp('все материалы здесь', process.env.WEBAPP_URL!)
     .row()
-    .url('Пройти тест: какой я персонаж', 'https://t.me/mate_bot_hranitel?start=character_test')
+    .text('Пройти тест: какой я персонаж', 'start_character_test')
     .row()
     .text('подарить подписку', 'menu_gift_subscription')
     .row()
