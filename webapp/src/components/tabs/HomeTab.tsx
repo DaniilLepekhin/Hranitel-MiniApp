@@ -393,6 +393,68 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
               </div>
             </div>
           </div>
+
+          {/* Кнопка "Тест на Лидера десятки" - только для tg_id 389209990 */}
+          {user?.telegramId === '389209990' && (
+            <div
+              className="w-full cursor-pointer active:scale-[0.99] transition-transform mt-3"
+              onClick={() => {
+                haptic.impact('light');
+                router.push('/buddy-test');
+              }}
+              style={{
+                borderRadius: '8px',
+                border: '1px solid #d93547',
+                background: 'linear-gradient(243.413deg, rgb(174, 30, 43) 15.721%, rgb(156, 23, 35) 99.389%)',
+                padding: '16px',
+              }}
+            >
+              <div className="flex items-center gap-3">
+                {/* Иконка лидера */}
+                <div
+                  className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{
+                    background: 'rgba(255,255,255,0.15)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                  }}
+                >
+                  <span style={{ fontSize: '20px' }}>👑</span>
+                </div>
+                <div className="flex-1">
+                  <p
+                    style={{
+                      fontFamily: 'Gilroy, sans-serif',
+                      fontWeight: 700,
+                      fontSize: '15px',
+                      color: '#f7f1e8',
+                      marginBottom: '2px',
+                    }}
+                  >
+                    Тест на Лидера десятки
+                  </p>
+                  <p
+                    style={{
+                      fontFamily: 'Gilroy, sans-serif',
+                      fontWeight: 400,
+                      fontSize: '12px',
+                      color: 'rgba(247, 241, 232, 0.8)',
+                    }}
+                  >
+                    Пройди тест и стань лидером группы
+                  </p>
+                </div>
+                {/* Стрелка */}
+                <div
+                  className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
+                  style={{
+                    background: '#f7f1e8',
+                  }}
+                >
+                  <span style={{ color: '#9c1723', fontSize: '14px' }}>→</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>

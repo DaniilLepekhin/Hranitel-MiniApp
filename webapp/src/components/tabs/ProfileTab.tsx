@@ -562,25 +562,6 @@ export function ProfileTab() {
 
         {/* ===== ССЫЛКИ ===== */}
         <div className="space-y-[20px] px-[30px]">
-          {/* Тест на Бадди - только для tg_id 389209990 */}
-          {user?.telegramId === '389209990' && (
-            <button
-              onClick={() => openLink('/buddy-test', 'buddy_test')}
-              disabled={loadingLink === 'buddy_test'}
-              className="w-full py-3 rounded-lg transition-all active:scale-95 disabled:opacity-50"
-              style={{
-                fontFamily: 'Gilroy, sans-serif',
-                fontWeight: 600,
-                fontSize: '16px',
-                color: '#fff',
-                background: 'linear-gradient(243.413deg, rgb(174, 30, 43) 15.721%, rgb(156, 23, 35) 99.389%)',
-                border: 'none',
-              }}
-            >
-              {loadingLink === 'buddy_test' ? 'Открываю...' : 'Тест на Лидера десятки'}
-            </button>
-          )}
-
           <button
             onClick={() => openLink('/docs/rules', 'rules')}
             disabled={loadingLink === 'rules'}
