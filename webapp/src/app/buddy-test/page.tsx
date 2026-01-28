@@ -6,6 +6,7 @@ import { ArrowLeft, Check, ChevronRight, AlertCircle, Trophy, X } from 'lucide-r
 import { useAuthStore } from '@/store/auth';
 import { useTelegram } from '@/hooks/useTelegram';
 import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
+import { api } from '@/lib/api';
 
 // Типы
 interface Question {
@@ -199,20 +200,39 @@ export default function BuddyTestPage() {
   const progress = ((currentQuestion) / questions.length) * 100;
   const currentBlock = blocks.find(b => b.questions.includes(question?.id));
 
-  const handleSelect = useCallback((optionId: string) => {
+  const handleSelect = useCallback(async (optionId: string) => {
     haptic.impact('light');
 
     const question = questions[currentQuestion];
     const option = question.options.find(o => o.id === optionId);
 
     if (question.type === 'single') {
-      setAnswers(prev => ({ ...prev, [question.id]: [optionId] }));
+      const newAnswers = { ...answers, [question.id]: [optionId] };
+      setAnswers(newAnswers);
 
       // Проверка на стоп-ответ
       if (option?.isStop) {
         setStopReason(option.text);
         setShowResult(true);
         setTestPassed(false);
+
+        // Сохраняем провальный результат на сервер
+        try {
+          const answersArray = Object.entries(newAnswers).map(([questionId, selectedOptions]) => ({
+            questionId: Number(questionId),
+            selectedOptions,
+          }));
+
+          await api.post('/api/v1/leader-test/submit', {
+            passed: false,
+            score: 0,
+            totalQuestions: questions.length,
+            stopReason: option.text,
+            answers: answersArray,
+          });
+        } catch (error) {
+          console.error('Failed to save test result:', error);
+        }
         return;
       }
     } else if (question.type === 'multiple') {
@@ -235,7 +255,7 @@ export default function BuddyTestPage() {
         return { ...prev, [question.id]: [...current, optionId] };
       });
     }
-  }, [currentQuestion, haptic]);
+  }, [currentQuestion, haptic, answers]);
 
   const handleNext = useCallback(() => {
     haptic.impact('medium');
@@ -262,9 +282,10 @@ export default function BuddyTestPage() {
     }
   }, [currentQuestion, answers, haptic]);
 
-  const calculateResult = useCallback(() => {
+  const calculateResult = useCallback(async () => {
     let correctCount = 0;
     let hasStopAnswer = false;
+    let stopReasonText: string | null = null;
 
     for (const q of questions) {
       const selected = answers[q.id] || [];
@@ -279,6 +300,7 @@ export default function BuddyTestPage() {
           const opt = q.options.find(o => o.id === optId);
           if (opt?.isStop) {
             hasStopAnswer = true;
+            stopReasonText = opt.text;
             setStopReason(opt.text);
             break;
           }
@@ -295,8 +317,28 @@ export default function BuddyTestPage() {
 
     // Тест пройден если нет стоп-ответов и >= 70% правильных
     const passRate = correctCount / questions.length;
-    setTestPassed(!hasStopAnswer && passRate >= 0.7);
+    const passed = !hasStopAnswer && passRate >= 0.7;
+
+    setTestPassed(passed);
     setShowResult(true);
+
+    // Сохраняем результат на сервер
+    try {
+      const answersArray = Object.entries(answers).map(([questionId, selectedOptions]) => ({
+        questionId: Number(questionId),
+        selectedOptions,
+      }));
+
+      await api.post('/api/v1/leader-test/submit', {
+        passed,
+        score: correctCount,
+        totalQuestions: questions.length,
+        stopReason: stopReasonText,
+        answers: answersArray,
+      });
+    } catch (error) {
+      console.error('Failed to save test result:', error);
+    }
   }, [answers]);
 
   const canProceed = useCallback(() => {

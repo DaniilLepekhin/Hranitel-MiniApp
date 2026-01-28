@@ -666,6 +666,33 @@ export const clubFunnelProgress = pgTable('club_funnel_progress', {
   index('club_funnel_progress_current_step_idx').on(table.currentStep),
 ]);
 
+// 🆕 Leader Test Results (результаты теста на Лидера десятки)
+export const leaderTestResults = pgTable('leader_test_results', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  telegramId: bigint('telegram_id', { mode: 'number' }).notNull(),
+
+  // Test results
+  passed: boolean('passed').notNull(),
+  score: integer('score').notNull(), // Количество правильных ответов
+  totalQuestions: integer('total_questions').notNull(),
+  stopReason: text('stop_reason'), // Если провален из-за стоп-ответа
+
+  // Answers (JSON array of answer objects)
+  answers: jsonb('answers').notNull(), // [{questionId: 1, selectedOptions: ['1a', '1b']}]
+
+  // User context at time of test
+  city: text('city'),
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('leader_test_results_user_id_idx').on(table.userId),
+  index('leader_test_results_telegram_id_idx').on(table.telegramId),
+  index('leader_test_results_passed_idx').on(table.passed),
+  index('leader_test_results_created_at_idx').on(table.createdAt),
+]);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   courseProgress: many(courseProgress),
