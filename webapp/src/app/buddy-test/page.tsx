@@ -183,7 +183,7 @@ export default function BuddyTestPage() {
 
   // Проверка доступа - только для tg_id 389209990
   const allowedTgId = '389209990';
-  const hasAccess = user?.telegramId === allowedTgId;
+  const hasAccess = String(user?.telegramId) === allowedTgId;
 
   useEffect(() => {
     if (!hasAccess && user) {
