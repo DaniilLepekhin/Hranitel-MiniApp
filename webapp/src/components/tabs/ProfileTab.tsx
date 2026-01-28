@@ -563,7 +563,7 @@ export function ProfileTab() {
         {/* ===== ССЫЛКИ ===== */}
         <div className="space-y-[20px] px-[30px]">
           {/* Тест на Бадди - только для tg_id 389209990 */}
-          {user?.telegramId === 389209990 && (
+          {user?.telegramId === '389209990' && (
             <button
               onClick={() => openLink('/buddy-test', 'buddy_test')}
               disabled={loadingLink === 'buddy_test'}
