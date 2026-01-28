@@ -97,6 +97,7 @@ jobs:
             export TELEGRAM_WEBHOOK_SECRET="${{ secrets.TELEGRAM_WEBHOOK_SECRET }}"
             export TELEGRAM_BOT_USERNAME="${{ secrets.TELEGRAM_BOT_USERNAME }}"
             export OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}"
+            export GETCOURSE_SECRET="${{ secrets.GETCOURSE_SECRET }}"
 
             # Also create .env file for PM2 persistence (Bun auto-loads .env)
             echo "DATABASE_URL=$DATABASE_URL" > .env
@@ -112,6 +113,7 @@ jobs:
             echo "REDIS_URL=$REDIS_URL" >> .env
             echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> .env
             echo "OLD_DATABASE_URL=${{ secrets.OLD_DATABASE_URL }}" >> .env
+            echo "GETCOURSE_SECRET=$GETCOURSE_SECRET" >> .env
 
             # Install Bun if not exists
             if ! command -v bun &> /dev/null; then
