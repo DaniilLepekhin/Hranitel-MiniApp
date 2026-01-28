@@ -2519,7 +2519,7 @@ bot.callbackQuery(/^ct_confirm_date_yes_/, async (ctx) => {
     const birthDate = data.replace('ct_confirm_date_yes_', '');
     const user = await funnels.getUserByTgId(ctx.from.id);
     if (user && birthDate) {
-      await clubFunnel.handleCharacterTestBirthDateConfirmed(user.id, ctx.from.id, birthDate);
+      await clubFunnel.handleCharacterTestBirthDateConfirmed(user.id, ctx.chat.id, birthDate);
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in ct_confirm_date_yes callback');
@@ -2532,7 +2532,7 @@ bot.callbackQuery('ct_confirm_date_no', async (ctx) => {
     await ctx.answerCallbackQuery();
     const user = await funnels.getUserByTgId(ctx.from.id);
     if (user) {
-      await clubFunnel.handleBirthDateRejected(user.id, ctx.from.id);
+      await clubFunnel.handleBirthDateRejected(user.id, ctx.chat.id);
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in ct_confirm_date_no callback');
@@ -2545,7 +2545,7 @@ bot.callbackQuery('character_test_activate', async (ctx) => {
     await ctx.answerCallbackQuery();
     const user = await funnels.getUserByTgId(ctx.from.id);
     if (user) {
-      await clubFunnel.handleCharacterTestArchetype(user.id, ctx.from.id);
+      await clubFunnel.handleCharacterTestArchetype(user.id, ctx.chat.id);
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in character_test_activate callback');
@@ -2558,7 +2558,7 @@ bot.callbackQuery('character_test_style', async (ctx) => {
     await ctx.answerCallbackQuery();
     const user = await funnels.getUserByTgId(ctx.from.id);
     if (user) {
-      await clubFunnel.handleCharacterTestStyle(user.id, ctx.from.id);
+      await clubFunnel.handleCharacterTestStyle(user.id, ctx.chat.id);
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in character_test_style callback');
@@ -2571,7 +2571,7 @@ bot.callbackQuery('character_test_scale', async (ctx) => {
     await ctx.answerCallbackQuery();
     const user = await funnels.getUserByTgId(ctx.from.id);
     if (user) {
-      await clubFunnel.handleCharacterTestScale(user.id, ctx.from.id);
+      await clubFunnel.handleCharacterTestScale(user.id, ctx.chat.id);
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in character_test_scale callback');
@@ -2584,7 +2584,7 @@ bot.callbackQuery('character_test_final', async (ctx) => {
     await ctx.answerCallbackQuery();
     const user = await funnels.getUserByTgId(ctx.from.id);
     if (user) {
-      await clubFunnel.handleCharacterTestFinal(user.id, ctx.from.id);
+      await clubFunnel.handleCharacterTestFinal(user.id, ctx.chat.id);
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in character_test_final callback');
