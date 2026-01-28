@@ -581,24 +581,6 @@ export function ProfileTab() {
           </button>
 
           <button
-            onClick={() => openLink('https://t.me/mate_bot_hranitel?start=character_test', 'character_test')}
-            disabled={loadingLink === 'character_test'}
-            className="w-full text-center transition-all active:scale-95 disabled:opacity-50"
-            style={{
-              fontFamily: 'Gilroy, sans-serif',
-              fontWeight: 400,
-              fontSize: '18.517px',
-              lineHeight: 1.45,
-              letterSpacing: '-0.3703px',
-              color: loadingLink === 'character_test' ? '#9c1723' : '#2d2620',
-              textDecoration: 'underline',
-              textDecorationColor: loadingLink === 'character_test' ? '#9c1723' : '#2d2620',
-            }}
-          >
-            {loadingLink === 'character_test' ? 'Открываю...' : 'Пройти тест: какой я персонаж'}
-          </button>
-
-          <button
             onClick={() => openLink('/docs/offer', 'offer')}
             disabled={loadingLink === 'offer'}
             className="w-full text-center transition-all active:scale-95 disabled:opacity-50"
