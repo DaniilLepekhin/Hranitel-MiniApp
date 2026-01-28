@@ -978,6 +978,8 @@ export async function sendMenuMessage(chatId: number) {
     .row()
     .webApp('все материалы здесь', process.env.WEBAPP_URL!)
     .row()
+    .url('пройти тест на архетип', 'https://t.me/mate_bot_hranitel?start=character_test')
+    .row()
     .text('подарить подписку', 'menu_gift_subscription')
     .row()
     .url('оферта', 'https://ishodnyi-код.com/clubofert')
