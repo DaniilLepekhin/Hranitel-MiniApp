@@ -423,15 +423,34 @@ export default function BuddyTestPage() {
             }
           </p>
 
+          {testPassed && (
+            <a
+              href="https://t.me/+7tLrXfTW8is4NjQy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full max-w-xs py-4 rounded-xl transition-all active:scale-95 mb-3 text-center block"
+              style={{
+                background: 'linear-gradient(243deg, #ae1e2b 15%, #9c1723 99%)',
+                color: '#fff',
+                fontFamily: 'Gilroy, sans-serif',
+                fontWeight: 600,
+                fontSize: '16px',
+              }}
+            >
+              Канал лидеров
+            </a>
+          )}
+
           <button
             onClick={() => router.push('/')}
             className="w-full max-w-xs py-4 rounded-xl transition-all active:scale-95"
             style={{
-              background: 'linear-gradient(243deg, #ae1e2b 15%, #9c1723 99%)',
-              color: '#fff',
+              background: testPassed ? '#fff' : 'linear-gradient(243deg, #ae1e2b 15%, #9c1723 99%)',
+              color: testPassed ? '#2d2620' : '#fff',
               fontFamily: 'Gilroy, sans-serif',
               fontWeight: 600,
               fontSize: '16px',
+              border: testPassed ? '1px solid #2d2620' : 'none',
             }}
           >
             Вернуться в приложение
