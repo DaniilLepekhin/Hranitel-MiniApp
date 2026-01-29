@@ -268,18 +268,40 @@ export default function BuddyTestPage() {
     setTestPassed(passed);
     setShowResult(true);
 
-    // Сохраняем результат на сервер (используем прямой fetch с токеном из store)
+    // Сохраняем результат на сервер
+    // Берём токен напрямую из localStorage чтобы избежать проблем с hydration
     try {
       const answersArray = Object.entries(answers).map(([questionId, selectedOptions]) => ({
         questionId: Number(questionId),
         selectedOptions,
       }));
 
+      // Получаем токен напрямую из localStorage
+      let authToken = token;
+      if (typeof window !== 'undefined') {
+        try {
+          const stored = localStorage.getItem('auth-storage');
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (parsed?.state?.token) {
+              authToken = parsed.state.token;
+            }
+          }
+        } catch (e) {
+          console.error('Failed to get token from localStorage:', e);
+        }
+      }
+
+      if (!authToken) {
+        console.error('No auth token available');
+        return;
+      }
+
       const response = await fetch(`${API_URL}/api/v1/leader-test/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${authToken}`,
         },
         body: JSON.stringify({
           passed,
