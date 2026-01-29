@@ -632,17 +632,40 @@ export default function BuddyTestPage() {
                 }}
               >
                 <div className="flex items-center gap-3">
-                  <div
-                    className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{
-                      border: isSelected ? 'none' : '2px solid #2d2620',
-                      background: isSelected
-                        ? 'linear-gradient(243deg, #ae1e2b 15%, #9c1723 99%)'
-                        : 'transparent',
-                    }}
-                  >
-                    {isSelected && <Check className="w-4 h-4 text-white" />}
-                  </div>
+                  {/* Радиокнопка (круг) для single, чекбокс (квадрат) для multiple/checkbox */}
+                  {question.type === 'single' ? (
+                    // Радиокнопка - круг с точкой внутри
+                    <div
+                      className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{
+                        border: '2px solid',
+                        borderColor: isSelected ? '#9c1723' : '#2d2620',
+                        background: 'transparent',
+                      }}
+                    >
+                      {isSelected && (
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{
+                            background: 'linear-gradient(243deg, #ae1e2b 15%, #9c1723 99%)',
+                          }}
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    // Чекбокс - квадрат с галочкой
+                    <div
+                      className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
+                      style={{
+                        border: isSelected ? 'none' : '2px solid #2d2620',
+                        background: isSelected
+                          ? 'linear-gradient(243deg, #ae1e2b 15%, #9c1723 99%)'
+                          : 'transparent',
+                      }}
+                    >
+                      {isSelected && <Check className="w-4 h-4 text-white" />}
+                    </div>
+                  )}
                   <span
                     style={{
                       fontFamily: 'Gilroy, sans-serif',
