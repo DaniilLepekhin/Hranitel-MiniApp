@@ -6,7 +6,7 @@ import { ArrowLeft, Check, ChevronRight, AlertCircle, Trophy, X } from 'lucide-r
 import { useAuthStore } from '@/store/auth';
 import { useTelegram } from '@/hooks/useTelegram';
 import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
-import { api, setAuthToken } from '@/lib/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://hranitel.daniillepekhin.com';
 
 // Типы
 interface Question {
@@ -178,13 +178,6 @@ export default function BuddyTestPage() {
   const allowedTgId = '389209990';
   const hasAccess = String(user?.telegramId) === allowedTgId;
 
-  // Синхронизируем токен из store при загрузке
-  useEffect(() => {
-    if (token) {
-      setAuthToken(token);
-    }
-  }, [token]);
-
   useEffect(() => {
     if (!hasAccess && user) {
       router.replace('/');
@@ -275,24 +268,35 @@ export default function BuddyTestPage() {
     setTestPassed(passed);
     setShowResult(true);
 
-    // Сохраняем результат на сервер
+    // Сохраняем результат на сервер (используем прямой fetch с токеном из store)
     try {
       const answersArray = Object.entries(answers).map(([questionId, selectedOptions]) => ({
         questionId: Number(questionId),
         selectedOptions,
       }));
 
-      await api.post('/leader-test/submit', {
-        passed,
-        score: correctCount,
-        totalQuestions: questions.length,
-        stopReason: stopReasonText,
-        answers: answersArray,
+      const response = await fetch(`${API_URL}/api/v1/leader-test/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          passed,
+          score: correctCount,
+          totalQuestions: questions.length,
+          stopReason: stopReasonText,
+          answers: answersArray,
+        }),
       });
+
+      if (!response.ok) {
+        console.error('Failed to save test result:', response.status);
+      }
     } catch (error) {
       console.error('Failed to save test result:', error);
     }
-  }, [answers]);
+  }, [answers, token]);
 
   const handleNext = useCallback(() => {
     haptic.impact('medium');
