@@ -394,8 +394,8 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
             </div>
           </div>
 
-          {/* Кнопка "Тест на Лидера десятки" - только для tg_id 389209990 */}
-          {String(user?.telegramId) === '389209990' && (
+          {/* Кнопка "Тест на Лидера десятки" - только для определённых tg_id */}
+          {['389209990', '709347866', '7353667659'].includes(String(user?.telegramId)) && (
             <div
               className="w-full cursor-pointer active:scale-[0.99] transition-transform mt-3"
               onClick={() => {
