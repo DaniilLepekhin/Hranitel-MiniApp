@@ -209,41 +209,14 @@ export default function BuddyTestPage() {
   const progress = ((currentQuestion) / questions.length) * 100;
   const currentBlock = blocks.find(b => b.questions.includes(question?.id));
 
-  const handleSelect = useCallback(async (optionId: string) => {
+  const handleSelect = useCallback((optionId: string) => {
     haptic.impact('light');
 
     const question = questions[currentQuestion];
-    const option = question.options.find(o => o.id === optionId);
 
     if (question.type === 'single') {
-      const newAnswers = { ...answers, [question.id]: [optionId] };
-      setAnswers(newAnswers);
-
-      // Проверка на стоп-ответ
-      if (option?.isStop) {
-        setStopReason(option.text);
-        setShowResult(true);
-        setTestPassed(false);
-
-        // Сохраняем провальный результат на сервер
-        try {
-          const answersArray = Object.entries(newAnswers).map(([questionId, selectedOptions]) => ({
-            questionId: Number(questionId),
-            selectedOptions,
-          }));
-
-          await api.post('/api/v1/leader-test/submit', {
-            passed: false,
-            score: 0,
-            totalQuestions: questions.length,
-            stopReason: option.text,
-            answers: answersArray,
-          });
-        } catch (error) {
-          console.error('Failed to save test result:', error);
-        }
-        return;
-      }
+      // Для single просто выбираем один ответ (не прерываем тест)
+      setAnswers(prev => ({ ...prev, [question.id]: [optionId] }));
     } else if (question.type === 'multiple') {
       setAnswers(prev => {
         const current = prev[question.id] || [];
@@ -264,32 +237,7 @@ export default function BuddyTestPage() {
         return { ...prev, [question.id]: [...current, optionId] };
       });
     }
-  }, [currentQuestion, haptic, answers]);
-
-  const handleNext = useCallback(() => {
-    haptic.impact('medium');
-
-    const question = questions[currentQuestion];
-    const selected = answers[question.id] || [];
-
-    // Проверка на стоп-ответ для single
-    if (question.type === 'single' && selected.length > 0) {
-      const option = question.options.find(o => o.id === selected[0]);
-      if (option?.isStop) {
-        setStopReason(option.text);
-        setShowResult(true);
-        setTestPassed(false);
-        return;
-      }
-    }
-
-    if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(prev => prev + 1);
-    } else {
-      // Подсчет результата
-      calculateResult();
-    }
-  }, [currentQuestion, answers, haptic]);
+  }, [currentQuestion, haptic]);
 
   const calculateResult = useCallback(async () => {
     let correctCount = 0;
@@ -356,6 +304,17 @@ export default function BuddyTestPage() {
       console.error('Failed to save test result:', error);
     }
   }, [answers]);
+
+  const handleNext = useCallback(() => {
+    haptic.impact('medium');
+
+    if (currentQuestion < questions.length - 1) {
+      setCurrentQuestion(prev => prev + 1);
+    } else {
+      // Подсчет результата только после всех вопросов
+      calculateResult();
+    }
+  }, [currentQuestion, haptic, calculateResult]);
 
   const canProceed = useCallback(() => {
     const question = questions[currentQuestion];
@@ -451,9 +410,7 @@ export default function BuddyTestPage() {
           >
             {testPassed
               ? 'Ты успешно прошла тест на Лидера десятки! Мы свяжемся с тобой в ближайшее время для следующего этапа.'
-              : stopReason
-                ? `Выбранный ответ "${stopReason}" не соответствует требованиям к роли Лидера. Попробуй позже, когда будешь готова.`
-                : 'Результаты теста показывают, что сейчас роль Лидера десятки может быть не лучшим выбором. Попробуй ещё раз позже!'
+              : 'Результаты теста показывают, что сейчас роль Лидера десятки может быть не лучшим выбором. Попробуй ещё раз позже!'
             }
           </p>
 
