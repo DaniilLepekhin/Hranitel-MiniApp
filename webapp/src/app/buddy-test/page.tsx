@@ -291,7 +291,7 @@ export default function BuddyTestPage() {
       const selected = answers[q.id] || [];
 
       if (q.type === 'checkbox' && q.requireAll) {
-        // Для чекбоксов нужны все ответы
+        // Для чекбоксов нужны ВСЕ ответы
         const allSelected = q.options.every(opt => selected.includes(opt.id));
         if (allSelected) correctCount++;
       } else {
@@ -306,12 +306,19 @@ export default function BuddyTestPage() {
           }
         }
 
-        // Проверка правильности
+        // Проверка правильности:
+        // Вопрос засчитан если есть хотя бы один правильный И нет неправильных
         const hasCorrect = selected.some(optId => {
           const opt = q.options.find(o => o.id === optId);
           return opt?.isCorrect;
         });
-        if (hasCorrect) correctCount++;
+        const hasIncorrect = selected.some(optId => {
+          const opt = q.options.find(o => o.id === optId);
+          return opt && !opt.isCorrect;
+        });
+
+        // Засчитываем только если есть правильный и НЕТ неправильных
+        if (hasCorrect && !hasIncorrect) correctCount++;
       }
     }
 
