@@ -168,18 +168,12 @@ export default function BuddyTestPage() {
   const { user, token } = useAuthStore();
   const { haptic } = useTelegram();
 
-  // Синхронизируем токен из store с api модулем
-  useEffect(() => {
-    if (token) {
-      setAuthToken(token);
-    }
-  }, [token]);
-
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string[]>>({});
   const [showResult, setShowResult] = useState(false);
   const [testPassed, setTestPassed] = useState(false);
   const [stopReason, setStopReason] = useState<string | null>(null);
+  const [trackingDone, setTrackingDone] = useState(false);
 
   // Проверка доступа - только для tg_id 389209990
   const allowedTgId = '389209990';
@@ -191,15 +185,20 @@ export default function BuddyTestPage() {
     }
   }, [hasAccess, user, router]);
 
-  // Трекинг начала теста (ждём пока токен будет готов)
+  // Синхронизируем токен и трекаем начало теста
   useEffect(() => {
-    if (!hasAccess || !user || !token) return;
+    if (!hasAccess || !user || !token || trackingDone) return;
 
-    // Токен уже установлен через useEffect выше
+    // Сначала синхронизируем токен
+    setAuthToken(token);
+
+    // Затем отправляем трекинг
     api.post('/leader-test/start', {}).catch(() => {
       // Игнорируем ошибку трекинга
     });
-  }, [hasAccess, user, token]);
+
+    setTrackingDone(true);
+  }, [hasAccess, user, token, trackingDone]);
 
   const question = questions[currentQuestion];
   const selectedAnswers = answers[question?.id] || [];
