@@ -6,7 +6,7 @@ import { ArrowLeft, Check, ChevronRight, AlertCircle, Trophy, X } from 'lucide-r
 import { useAuthStore } from '@/store/auth';
 import { useTelegram } from '@/hooks/useTelegram';
 import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
-import { api, getAuthToken, setAuthToken } from '@/lib/api';
+import { api, setAuthToken } from '@/lib/api';
 
 // Типы
 interface Question {
@@ -173,32 +173,23 @@ export default function BuddyTestPage() {
   const [showResult, setShowResult] = useState(false);
   const [testPassed, setTestPassed] = useState(false);
   const [stopReason, setStopReason] = useState<string | null>(null);
-  const [trackingDone, setTrackingDone] = useState(false);
 
   // Проверка доступа - только для tg_id 389209990
   const allowedTgId = '389209990';
   const hasAccess = String(user?.telegramId) === allowedTgId;
+
+  // Синхронизируем токен из store при загрузке
+  useEffect(() => {
+    if (token) {
+      setAuthToken(token);
+    }
+  }, [token]);
 
   useEffect(() => {
     if (!hasAccess && user) {
       router.replace('/');
     }
   }, [hasAccess, user, router]);
-
-  // Синхронизируем токен и трекаем начало теста
-  useEffect(() => {
-    if (!hasAccess || !user || !token || trackingDone) return;
-
-    // Сначала синхронизируем токен
-    setAuthToken(token);
-
-    // Затем отправляем трекинг
-    api.post('/leader-test/start', {}).catch(() => {
-      // Игнорируем ошибку трекинга
-    });
-
-    setTrackingDone(true);
-  }, [hasAccess, user, token, trackingDone]);
 
   const question = questions[currentQuestion];
   const selectedAnswers = answers[question?.id] || [];
