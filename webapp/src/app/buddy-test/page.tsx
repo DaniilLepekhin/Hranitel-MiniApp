@@ -268,42 +268,30 @@ export default function BuddyTestPage() {
     setTestPassed(passed);
     setShowResult(true);
 
-    // Сохраняем результат на сервер
-    // Берём токен напрямую из localStorage чтобы избежать проблем с hydration
+    // Сохраняем результат на сервер через публичный endpoint с initData
     try {
       const answersArray = Object.entries(answers).map(([questionId, selectedOptions]) => ({
         questionId: Number(questionId),
         selectedOptions,
       }));
 
-      // Получаем токен напрямую из localStorage
-      let authToken = token;
-      if (typeof window !== 'undefined') {
-        try {
-          const stored = localStorage.getItem('auth-storage');
-          if (stored) {
-            const parsed = JSON.parse(stored);
-            if (parsed?.state?.token) {
-              authToken = parsed.state.token;
-            }
-          }
-        } catch (e) {
-          console.error('Failed to get token from localStorage:', e);
-        }
-      }
+      // Получаем initData из Telegram WebApp
+      const initData = typeof window !== 'undefined'
+        ? window.Telegram?.WebApp?.initData
+        : null;
 
-      if (!authToken) {
-        console.error('No auth token available');
+      if (!initData) {
+        console.error('No Telegram initData available');
         return;
       }
 
-      const response = await fetch(`${API_URL}/api/v1/leader-test/submit`, {
+      const response = await fetch(`${API_URL}/api/v1/leader-test/submit-public`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`,
         },
         body: JSON.stringify({
+          initData,
           passed,
           score: correctCount,
           totalQuestions: questions.length,
@@ -318,7 +306,7 @@ export default function BuddyTestPage() {
     } catch (error) {
       console.error('Failed to save test result:', error);
     }
-  }, [answers, token]);
+  }, [answers]);
 
   const handleNext = useCallback(() => {
     haptic.impact('medium');

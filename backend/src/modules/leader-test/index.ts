@@ -8,9 +8,109 @@ import { db } from '@/db';
 import { leaderTestResults, leaderTestStarts, leaderTestClosedCities, users } from '@/db/schema';
 import { eq, desc, count, sql } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
-import { authMiddleware } from '@/middlewares/auth';
+import { authMiddleware, validateTelegramInitData, parseTelegramUser } from '@/middlewares/auth';
 
 export const leaderTestModule = new Elysia({ prefix: '/leader-test', tags: ['Leader Test'] })
+  /**
+   * Публичный endpoint для сохранения результата теста
+   * Валидирует пользователя через Telegram initData напрямую
+   * Не требует JWT токена - для обхода проблем с кешем WebApp
+   */
+  .post(
+    '/submit-public',
+    async ({ body, set }) => {
+      const { initData, passed, score, totalQuestions, stopReason, answers } = body;
+
+      // Валидируем initData
+      if (!validateTelegramInitData(initData)) {
+        logger.warn({ initData: initData?.substring(0, 100) }, 'Invalid initData for leader test submit');
+        set.status = 401;
+        return { success: false, error: 'Invalid Telegram data' };
+      }
+
+      // Парсим данные пользователя
+      const tgUser = parseTelegramUser(initData);
+      if (!tgUser || !tgUser.id) {
+        set.status = 401;
+        return { success: false, error: 'Could not parse user data' };
+      }
+
+      try {
+        // Находим пользователя по telegramId
+        const [dbUser] = await db
+          .select()
+          .from(users)
+          .where(eq(users.telegramId, tgUser.id))
+          .limit(1);
+
+        if (!dbUser) {
+          logger.warn({ telegramId: tgUser.id }, 'User not found for leader test submit');
+          set.status = 404;
+          return { success: false, error: 'User not found' };
+        }
+
+        // Сохраняем результат
+        const [result] = await db
+          .insert(leaderTestResults)
+          .values({
+            userId: dbUser.id,
+            telegramId: tgUser.id,
+            passed,
+            score,
+            totalQuestions,
+            stopReason: stopReason || null,
+            answers,
+            city: dbUser.city || null,
+          })
+          .returning();
+
+        logger.info({
+          userId: dbUser.id,
+          telegramId: tgUser.id,
+          passed,
+          score,
+          totalQuestions,
+          city: dbUser.city,
+        }, 'Leader test result saved (public endpoint)');
+
+        return {
+          success: true,
+          result: {
+            id: result.id,
+            passed: result.passed,
+            score: result.score,
+            totalQuestions: result.totalQuestions,
+            createdAt: result.createdAt,
+          },
+        };
+      } catch (error) {
+        logger.error({ error, telegramId: tgUser.id }, 'Failed to save leader test result (public)');
+        set.status = 500;
+        return { success: false, error: 'Failed to save test result' };
+      }
+    },
+    {
+      body: t.Object({
+        initData: t.String({ description: 'Telegram WebApp initData для валидации' }),
+        passed: t.Boolean({ description: 'Пройден ли тест' }),
+        score: t.Number({ description: 'Количество правильных ответов' }),
+        totalQuestions: t.Number({ description: 'Всего вопросов' }),
+        stopReason: t.Optional(t.String({ description: 'Причина провала (стоп-ответ)' })),
+        answers: t.Array(
+          t.Object({
+            questionId: t.Number(),
+            selectedOptions: t.Array(t.String()),
+          }),
+          { description: 'Массив ответов пользователя' }
+        ),
+      }),
+      detail: {
+        summary: 'Сохранить результат теста (публичный)',
+        description: 'Сохраняет результаты теста с валидацией через Telegram initData',
+      },
+    }
+  )
+
   .use(authMiddleware)
 
   /**
