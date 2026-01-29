@@ -6,7 +6,7 @@ import { ArrowLeft, Check, ChevronRight, AlertCircle, Trophy, X } from 'lucide-r
 import { useAuthStore } from '@/store/auth';
 import { useTelegram } from '@/hooks/useTelegram';
 import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
-import { api } from '@/lib/api';
+import { api, getAuthToken } from '@/lib/api';
 
 // Типы
 interface Question {
@@ -184,13 +184,23 @@ export default function BuddyTestPage() {
     }
   }, [hasAccess, user, router]);
 
-  // Трекинг начала теста
+  // Трекинг начала теста (ждём пока токен будет готов)
   useEffect(() => {
-    if (hasAccess && user) {
-      api.post('/leader-test/start', {}).catch(() => {
-        // Игнорируем ошибку трекинга
-      });
-    }
+    if (!hasAccess || !user) return;
+
+    // Ждём немного пока токен установится
+    const tryTrackStart = () => {
+      if (getAuthToken()) {
+        api.post('/leader-test/start', {}).catch(() => {
+          // Игнорируем ошибку трекинга
+        });
+      } else {
+        // Токен ещё не готов, попробуем через 500ms
+        setTimeout(tryTrackStart, 500);
+      }
+    };
+
+    tryTrackStart();
   }, [hasAccess, user]);
 
   const question = questions[currentQuestion];
