@@ -446,7 +446,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
           {/* Кнопка "Тест на Лидера десятки" - для пользователей с подпиской >= 3 месяцев */}
           {leaderTestStatus?.hasAccess && (
             <div
-              className={`w-full mt-3 relative overflow-hidden ${isTestLocked ? 'opacity-70' : 'cursor-pointer active:scale-[0.99]'} transition-transform`}
+              className={`w-full mt-3 relative overflow-hidden ${isTestLocked ? '' : 'cursor-pointer active:scale-[0.99]'} transition-transform`}
               onClick={() => {
                 if (isTestLocked) {
                   haptic.notification('warning');
@@ -462,35 +462,36 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
                 padding: '16px',
               }}
             >
-              {/* Замочек/галочка если тест уже пройден или квота исчерпана */}
+              {/* Индикатор статуса теста в правом верхнем углу */}
               {isTestLocked && (
-                <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/30 backdrop-blur-[2px]">
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
-                      {leaderTestStatus?.hasPassed ? (
-                        <Check className="w-6 h-6 text-green-600" />
-                      ) : (
-                        <Lock className="w-6 h-6 text-[#9c1723]" />
-                      )}
-                    </div>
-                    <p
-                      style={{
-                        fontFamily: 'Gilroy, sans-serif',
-                        fontWeight: 600,
-                        fontSize: '12px',
-                        color: 'white',
-                        textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                        textAlign: 'center',
-                        maxWidth: '200px',
-                      }}
-                    >
-                      {leaderTestStatus?.hasPassed
-                        ? 'Тест пройден'
-                        : leaderTestStatus?.quotaExceeded
-                          ? 'Набор завершён'
-                          : 'Тест завершён'}
-                    </p>
-                  </div>
+                <div
+                  className="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+                  style={{
+                    background: leaderTestStatus?.hasPassed
+                      ? 'rgba(34, 197, 94, 0.9)'
+                      : 'rgba(0, 0, 0, 0.5)',
+                    backdropFilter: 'blur(4px)',
+                  }}
+                >
+                  {leaderTestStatus?.hasPassed ? (
+                    <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                  ) : (
+                    <Lock className="w-3.5 h-3.5 text-white" />
+                  )}
+                  <span
+                    style={{
+                      fontFamily: 'Gilroy, sans-serif',
+                      fontWeight: 600,
+                      fontSize: '11px',
+                      color: 'white',
+                    }}
+                  >
+                    {leaderTestStatus?.hasPassed
+                      ? 'Пройден'
+                      : leaderTestStatus?.quotaExceeded
+                        ? 'Закрыт'
+                        : 'Завершён'}
+                  </span>
                 </div>
               )}
 
