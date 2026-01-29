@@ -144,7 +144,7 @@ const questions: Question[] = [
     blockTitle: 'Согласие с правилами',
     title: 'Отметь пункты, с которыми ты согласна',
     type: 'checkbox',
-    requireAll: false, // Можно выбрать любые или не выбирать
+    requireAll: true, // Нужно выбрать ВСЕ пункты для прохождения
     options: [
       { id: '9a', text: 'Я понимаю, что роль Лидера — это ответственность, а не статус', isCorrect: true },
       { id: '9b', text: 'Я не продаю свои услуги участникам десятки', isCorrect: true },
@@ -325,8 +325,13 @@ export default function BuddyTestPage() {
 
     if (question.type === 'single') return selected.length === 1;
     if (question.type === 'multiple') return selected.length >= 1 && selected.length <= (question.maxSelections || 2);
-    // Для checkbox - всегда можно завершить (даже без выбора)
-    if (question.type === 'checkbox') return true;
+    // Для checkbox с requireAll - нужно выбрать все, иначе можно продолжить без выбора
+    if (question.type === 'checkbox') {
+      if (question.requireAll) {
+        return selected.length === question.options.length;
+      }
+      return true;
+    }
     return false;
   }, [currentQuestion, answers]);
 
