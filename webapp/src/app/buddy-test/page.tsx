@@ -192,7 +192,7 @@ export default function BuddyTestPage() {
         : null;
 
       if (!initData) {
-        setTestStatus({ alreadyCompleted: false, hasPassed: false, quotaExceeded: false });
+        setTestStatus({ alreadyCompleted: false, hasPassed: false, quotaExceeded: false, hasAccess: false });
         return;
       }
 
