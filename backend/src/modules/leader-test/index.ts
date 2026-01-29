@@ -85,7 +85,28 @@ export const leaderTestModule = new Elysia({ prefix: '/leader-test', tags: ['Lea
           .limit(1);
 
         if (!dbUser) {
-          return { success: true, hasCompleted: false, hasPassed: false, quotaExceeded: false };
+          return { success: true, hasCompleted: false, hasPassed: false, quotaExceeded: false, hasAccess: false };
+        }
+
+        // Проверяем доступ по длительности подписки (subscription_expires - created_at >= 3 месяца)
+        let hasAccess = false;
+        if (dbUser.subscriptionExpires && dbUser.createdAt) {
+          const subscriptionExpires = new Date(dbUser.subscriptionExpires);
+          const createdAt = new Date(dbUser.createdAt);
+          const diffMonths = (subscriptionExpires.getTime() - createdAt.getTime()) / (30 * 24 * 60 * 60 * 1000);
+          hasAccess = diffMonths >= 3;
+        }
+
+        // Если нет доступа - возвращаем сразу
+        if (!hasAccess) {
+          return {
+            success: true,
+            hasCompleted: false,
+            hasPassed: false,
+            quotaExceeded: false,
+            hasAccess: false,
+            city: dbUser.city,
+          };
         }
 
         // Проверяем, есть ли результаты теста
@@ -122,10 +143,11 @@ export const leaderTestModule = new Elysia({ prefix: '/leader-test', tags: ['Lea
           quotaReason,
           quotaInfo,
           city: dbUser.city,
+          hasAccess: true,
         };
       } catch (error) {
         logger.error({ error, telegramId: tgUser.id }, 'Failed to check leader test completion');
-        return { success: true, hasCompleted: false, hasPassed: false, quotaExceeded: false };
+        return { success: true, hasCompleted: false, hasPassed: false, quotaExceeded: false, hasAccess: false };
       }
     },
     {

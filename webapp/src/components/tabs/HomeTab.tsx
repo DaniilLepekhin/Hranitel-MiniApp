@@ -33,21 +33,17 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
     placeholderData: { success: true, balance: 0 }, // Показываем 0 сразу для мгновенного рендера
   });
 
-  // Проверка, проходил ли пользователь тест на Лидера + квоты города
+  // Проверка, проходил ли пользователь тест на Лидера + квоты города + доступ по подписке
   const [leaderTestStatus, setLeaderTestStatus] = useState<{
     hasCompleted: boolean;
     hasPassed: boolean;
     quotaExceeded: boolean;
     quotaReason?: string;
+    hasAccess: boolean;
   } | null>(null);
 
   useEffect(() => {
     const checkLeaderTestCompletion = async () => {
-      // Проверяем только для разрешённых пользователей
-      if (!['389209990', '709347866', '7353667659'].includes(String(user?.telegramId))) {
-        return;
-      }
-
       const initData = typeof window !== 'undefined'
         ? window.Telegram?.WebApp?.initData
         : null;
@@ -69,6 +65,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
               hasPassed: data.hasPassed,
               quotaExceeded: data.quotaExceeded || false,
               quotaReason: data.quotaReason,
+              hasAccess: data.hasAccess || false,
             });
           }
         }
@@ -446,8 +443,8 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
             </div>
           </div>
 
-          {/* Кнопка "Тест на Лидера десятки" - только для определённых tg_id */}
-          {['389209990', '709347866', '7353667659'].includes(String(user?.telegramId)) && (
+          {/* Кнопка "Тест на Лидера десятки" - для пользователей с подпиской >= 3 месяцев */}
+          {leaderTestStatus?.hasAccess && (
             <div
               className={`w-full mt-3 relative overflow-hidden ${isTestLocked ? 'opacity-70' : 'cursor-pointer active:scale-[0.99]'} transition-transform`}
               onClick={() => {

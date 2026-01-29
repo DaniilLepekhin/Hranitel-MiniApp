@@ -178,11 +178,11 @@ export default function BuddyTestPage() {
     hasPassed: boolean;
     quotaExceeded: boolean;
     quotaReason?: string;
+    hasAccess: boolean;
   } | null>(null);
 
-  // Проверка доступа - только для определённых tg_id
-  const allowedTgIds = ['389209990', '709347866', '7353667659'];
-  const hasAccess = allowedTgIds.includes(String(user?.telegramId));
+  // Доступ определяется через API (подписка >= 3 месяцев)
+  const hasAccess = testStatus?.hasAccess ?? false;
 
   // Проверяем, проходил ли пользователь тест и доступна ли квота
   useEffect(() => {
@@ -211,23 +211,22 @@ export default function BuddyTestPage() {
               hasPassed: data.hasPassed,
               quotaExceeded: data.quotaExceeded || false,
               quotaReason: data.quotaReason,
+              hasAccess: data.hasAccess || false,
             });
           } else {
-            setTestStatus({ alreadyCompleted: false, hasPassed: false, quotaExceeded: false });
+            setTestStatus({ alreadyCompleted: false, hasPassed: false, quotaExceeded: false, hasAccess: false });
           }
         } else {
-          setTestStatus({ alreadyCompleted: false, hasPassed: false, quotaExceeded: false });
+          setTestStatus({ alreadyCompleted: false, hasPassed: false, quotaExceeded: false, hasAccess: false });
         }
       } catch (error) {
         console.error('Failed to check completion:', error);
-        setTestStatus({ alreadyCompleted: false, hasPassed: false, quotaExceeded: false });
+        setTestStatus({ alreadyCompleted: false, hasPassed: false, quotaExceeded: false, hasAccess: false });
       }
     };
 
-    if (hasAccess) {
-      checkCompletion();
-    }
-  }, [hasAccess]);
+    checkCompletion();
+  }, []);
 
   // Тест недоступен если уже пройден ИЛИ квота исчерпана
   const isTestBlocked = testStatus?.alreadyCompleted || testStatus?.quotaExceeded;
@@ -389,8 +388,22 @@ export default function BuddyTestPage() {
     return false;
   }, [currentQuestion, answers]);
 
-  // Показываем загрузку если нет доступа или проверяем пользователя
-  if (!user || !hasAccess) {
+  // Показываем загрузку пока проверяем статус
+  if (testStatus === null) {
+    return (
+      <div className="min-h-screen bg-[#f0ece8] flex items-center justify-center">
+        <div className="text-center p-6">
+          <div className="w-12 h-12 border-4 border-[#9c1723] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p style={{ fontFamily: 'Gilroy, sans-serif', color: '#6b5a4a' }}>
+            Загрузка...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Показываем экран ограниченного доступа если нет доступа
+  if (!hasAccess) {
     return (
       <div className="min-h-screen bg-[#f0ece8] flex items-center justify-center">
         <div className="text-center p-6">
@@ -399,7 +412,7 @@ export default function BuddyTestPage() {
             Доступ ограничен
           </h2>
           <p style={{ fontFamily: 'Gilroy, sans-serif', color: '#6b5a4a', marginTop: '8px' }}>
-            Этот тест доступен только по приглашению
+            Тест доступен для участников с подпиской от 3 месяцев
           </p>
           <button
             onClick={() => router.back()}
@@ -413,20 +426,6 @@ export default function BuddyTestPage() {
           >
             Вернуться назад
           </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Показываем загрузку пока проверяем статус прохождения
-  if (testStatus === null) {
-    return (
-      <div className="min-h-screen bg-[#f0ece8] flex items-center justify-center">
-        <div className="text-center p-6">
-          <div className="w-12 h-12 border-4 border-[#9c1723] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p style={{ fontFamily: 'Gilroy, sans-serif', color: '#6b5a4a' }}>
-            Загрузка...
-          </p>
         </div>
       </div>
     );
