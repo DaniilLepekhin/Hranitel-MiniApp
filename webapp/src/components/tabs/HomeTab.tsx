@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Copy, Megaphone, Lock } from 'lucide-react';
+import { Search, Copy, Megaphone, Lock, Star, Crown } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth';
 import { energiesApi } from '@/lib/api';
@@ -357,7 +357,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
                   border: '1px solid rgba(255,255,255,0.3)',
                 }}
               >
-                <span style={{ fontSize: '20px' }}>⭐</span>
+                <Star className="w-5 h-5" style={{ color: '#f7f1e8' }} fill="#f7f1e8" />
               </div>
               <div className="flex-1">
                 <p
@@ -418,7 +418,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
                     border: '1px solid rgba(255,255,255,0.3)',
                   }}
                 >
-                  <span style={{ fontSize: '20px' }}>👑</span>
+                  <Crown className="w-5 h-5" style={{ color: '#f7f1e8' }} />
                 </div>
                 <div className="flex-1">
                   <p
