@@ -6,7 +6,7 @@ import { ArrowLeft, Check, ChevronRight, AlertCircle, Trophy, X } from 'lucide-r
 import { useAuthStore } from '@/store/auth';
 import { useTelegram } from '@/hooks/useTelegram';
 import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
-import { api, getAuthToken } from '@/lib/api';
+import { api, getAuthToken, setAuthToken } from '@/lib/api';
 
 // Типы
 interface Question {
@@ -165,8 +165,15 @@ const blocks = [
 
 export default function BuddyTestPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const { haptic } = useTelegram();
+
+  // Синхронизируем токен из store с api модулем
+  useEffect(() => {
+    if (token) {
+      setAuthToken(token);
+    }
+  }, [token]);
 
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string[]>>({});
@@ -186,22 +193,13 @@ export default function BuddyTestPage() {
 
   // Трекинг начала теста (ждём пока токен будет готов)
   useEffect(() => {
-    if (!hasAccess || !user) return;
+    if (!hasAccess || !user || !token) return;
 
-    // Ждём немного пока токен установится
-    const tryTrackStart = () => {
-      if (getAuthToken()) {
-        api.post('/leader-test/start', {}).catch(() => {
-          // Игнорируем ошибку трекинга
-        });
-      } else {
-        // Токен ещё не готов, попробуем через 500ms
-        setTimeout(tryTrackStart, 500);
-      }
-    };
-
-    tryTrackStart();
-  }, [hasAccess, user]);
+    // Токен уже установлен через useEffect выше
+    api.post('/leader-test/start', {}).catch(() => {
+      // Игнорируем ошибку трекинга
+    });
+  }, [hasAccess, user, token]);
 
   const question = questions[currentQuestion];
   const selectedAnswers = answers[question?.id] || [];
