@@ -666,6 +666,16 @@ export const clubFunnelProgress = pgTable('club_funnel_progress', {
   index('club_funnel_progress_current_step_idx').on(table.currentStep),
 ]);
 
+// 🆕 Leader Test Closed Cities (закрытые города для теста)
+export const leaderTestClosedCities = pgTable('leader_test_closed_cities', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  city: text('city').notNull().unique(), // Название города (точное совпадение)
+  reason: text('reason'), // Причина закрытия (опционально)
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('leader_test_closed_cities_city_idx').on(table.city),
+]);
+
 // 🆕 Leader Test Starts (трекинг открытия теста)
 export const leaderTestStarts = pgTable('leader_test_starts', {
   id: uuid('id').primaryKey().defaultRandom(),

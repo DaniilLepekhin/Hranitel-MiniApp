@@ -34,7 +34,6 @@ const questions: Question[] = [
     block: 'motivation',
     blockTitle: 'Мотивация и ресурс',
     title: 'Почему ты хочешь стать Лидером десятки?',
-    description: 'Можно выбрать 1–2 варианта',
     type: 'multiple',
     maxSelections: 2,
     options: [
@@ -51,7 +50,6 @@ const questions: Question[] = [
     block: 'motivation',
     blockTitle: 'Мотивация и ресурс',
     title: 'Какая формулировка больше всего про тебя?',
-    description: 'Выбери один вариант',
     type: 'single',
     options: [
       { id: '2a', text: 'Я умею слушать и удерживать фокус группы', isCorrect: true },
@@ -66,7 +64,6 @@ const questions: Question[] = [
     block: 'motivation',
     blockTitle: 'Мотивация и ресурс',
     title: 'Оцени свой реальный ресурс по времени',
-    description: 'Выбери один вариант',
     type: 'single',
     options: [
       { id: '3a', text: 'У меня много свободного времени, я стабильна', isCorrect: true },
@@ -79,8 +76,7 @@ const questions: Question[] = [
     id: 4,
     block: 'cases',
     blockTitle: 'Проверка на адекватность',
-    title: 'Ситуация «Молчание»',
-    description: 'Ты задала вопрос в чате и дала задание. Уже сутки никто не отвечает. Что ты сделаешь?',
+    title: 'Ситуация «Молчание»\nТы задала вопрос в чате и дала задание. Уже сутки никто не отвечает. Что ты сделаешь?',
     type: 'single',
     options: [
       { id: '4a', text: 'Напомню в чате, спокойно обозначив важность ответа', isCorrect: true },
@@ -93,8 +89,7 @@ const questions: Question[] = [
     id: 5,
     block: 'cases',
     blockTitle: 'Проверка на адекватность',
-    title: 'Ситуация «Нытик»',
-    description: 'Участница постоянно жалуется, забирая внимание группы. Остальные раздражаются.',
+    title: 'Ситуация «Нытик»\nУчастница постоянно жалуется, забирая внимание группы. Остальные раздражаются.',
     type: 'single',
     options: [
       { id: '5a', text: 'Мягко остановлю, верну фокус к теме и напомню правила', isCorrect: true },
@@ -107,8 +102,7 @@ const questions: Question[] = [
     id: 6,
     block: 'cases',
     blockTitle: 'Проверка на адекватность',
-    title: 'Ситуация «Границы»',
-    description: 'Участница пишет тебе в 2 часа ночи с просьбой помочь с домашкой.',
+    title: 'Ситуация «Границы»\nУчастница пишет тебе в 2 часа ночи с просьбой помочь с домашкой.',
     type: 'single',
     options: [
       { id: '6a', text: 'Отвечу утром и напомню о времени работы и границах', isCorrect: true },
@@ -123,7 +117,6 @@ const questions: Question[] = [
     block: 'tech',
     blockTitle: 'Технические навыки',
     title: 'Как у тебя с техникой (Zoom / боты)?',
-    description: 'Выбери один вариант',
     type: 'single',
     options: [
       { id: '7a', text: 'Легко организую Zoom, могу записать созвон и прислать запись', isCorrect: true },
@@ -136,8 +129,7 @@ const questions: Question[] = [
     id: 8,
     block: 'video',
     blockTitle: 'Видео-формат',
-    title: 'Готова ли ты записать короткое видео?',
-    description: 'До 1 минуты с ответом «Кто я и почему за мной могут идти люди»',
+    title: 'Готова ли ты записать короткое видео?\nДо 1 минуты с ответом «Кто я и почему за мной могут идти люди»',
     type: 'single',
     options: [
       { id: '8a', text: 'Да, готова', isCorrect: true },
@@ -151,9 +143,8 @@ const questions: Question[] = [
     block: 'rules',
     blockTitle: 'Согласие с правилами',
     title: 'Отметь пункты, с которыми ты согласна',
-    description: 'Необходимо выбрать все пункты',
     type: 'checkbox',
-    requireAll: true,
+    requireAll: false, // Можно выбрать любые или не выбирать
     options: [
       { id: '9a', text: 'Я понимаю, что роль Лидера — это ответственность, а не статус', isCorrect: true },
       { id: '9b', text: 'Я не продаю свои услуги участникам десятки', isCorrect: true },
@@ -322,7 +313,8 @@ export default function BuddyTestPage() {
 
     if (question.type === 'single') return selected.length === 1;
     if (question.type === 'multiple') return selected.length >= 1 && selected.length <= (question.maxSelections || 2);
-    if (question.type === 'checkbox') return question.requireAll ? selected.length === question.options.length : selected.length > 0;
+    // Для checkbox - всегда можно завершить (даже без выбора)
+    if (question.type === 'checkbox') return true;
     return false;
   }, [currentQuestion, answers]);
 
@@ -524,61 +516,37 @@ export default function BuddyTestPage() {
 
       {/* Question */}
       <div className="flex-1 p-6 overflow-y-auto pb-32 relative z-10">
-        {/* Город пользователя */}
+        {/* Город пользователя в красной плашке */}
         {user?.city && (
-          <p
-            className="mb-2"
-            style={{
-              fontFamily: 'Gilroy, sans-serif',
-              fontSize: '13px',
-              fontWeight: 500,
-              color: '#6b5a4a',
-            }}
-          >
-            г. {user.city}
-          </p>
+          <div className="mb-4">
+            <span
+              className="px-3 py-1 rounded-full"
+              style={{
+                background: 'linear-gradient(243deg, #ae1e2b 15%, #9c1723 99%)',
+                color: '#fff',
+                fontFamily: 'Gilroy, sans-serif',
+                fontSize: '12px',
+                fontWeight: 600,
+              }}
+            >
+              г. {user.city}
+            </span>
+          </div>
         )}
 
-        <div className="mb-2">
-          <span
-            className="px-3 py-1 rounded-full"
-            style={{
-              background: 'linear-gradient(243deg, #ae1e2b 15%, #9c1723 99%)',
-              color: '#fff',
-              fontFamily: 'Gilroy, sans-serif',
-              fontSize: '12px',
-              fontWeight: 600,
-            }}
-          >
-            {question.blockTitle}
-          </span>
-        </div>
-
         <h2
-          className="mb-3"
+          className="mb-6"
           style={{
             fontFamily: '"TT Nooks", Georgia, serif',
             fontWeight: 300,
             fontSize: '28px',
-            lineHeight: 1.2,
+            lineHeight: 1.3,
             color: '#2d2620',
+            whiteSpace: 'pre-line',
           }}
         >
           {question.title}
         </h2>
-
-        {question.description && (
-          <p
-            className="mb-6"
-            style={{
-              fontFamily: 'Gilroy, sans-serif',
-              fontSize: '14px',
-              color: '#6b5a4a',
-            }}
-          >
-            {question.description}
-          </p>
-        )}
 
         {/* Options */}
         <div className="space-y-3">

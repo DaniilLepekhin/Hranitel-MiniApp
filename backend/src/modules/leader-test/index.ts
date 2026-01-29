@@ -5,13 +5,65 @@
 
 import { Elysia, t } from 'elysia';
 import { db } from '@/db';
-import { leaderTestResults, leaderTestStarts, users } from '@/db/schema';
+import { leaderTestResults, leaderTestStarts, leaderTestClosedCities, users } from '@/db/schema';
 import { eq, desc, count, sql } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { authMiddleware } from '@/middlewares/auth';
 
 export const leaderTestModule = new Elysia({ prefix: '/leader-test', tags: ['Leader Test'] })
   .use(authMiddleware)
+
+  /**
+   * Проверка доступности теста для пользователя
+   */
+  .get(
+    '/availability',
+    async ({ user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
+      try {
+        // Получаем город пользователя
+        const [userData] = await db
+          .select({ city: users.city })
+          .from(users)
+          .where(eq(users.id, user.id))
+          .limit(1);
+
+        const userCity = userData?.city;
+
+        // Проверяем, закрыт ли город
+        let isCityClosed = false;
+        if (userCity) {
+          const [closedCity] = await db
+            .select()
+            .from(leaderTestClosedCities)
+            .where(eq(leaderTestClosedCities.city, userCity))
+            .limit(1);
+
+          isCityClosed = !!closedCity;
+        }
+
+        return {
+          success: true,
+          available: !isCityClosed,
+          city: userCity || null,
+          reason: isCityClosed ? 'Набор лидеров в вашем городе закрыт' : null,
+        };
+      } catch (error) {
+        logger.error({ error, userId: user.id }, 'Failed to check leader test availability');
+        return { success: true, available: true, city: null }; // В случае ошибки разрешаем
+      }
+    },
+    {
+      detail: {
+        summary: 'Проверка доступности теста',
+        description: 'Проверяет, доступен ли тест для города пользователя',
+      },
+    }
+  )
 
   /**
    * Трекинг начала теста (открыл страницу)
@@ -275,6 +327,130 @@ export const leaderTestModule = new Elysia({ prefix: '/leader-test', tags: ['Lea
       detail: {
         summary: 'Статистика теста (админ)',
         description: 'Возвращает статистику по тесту: сколько начало, прошло, провалило',
+      },
+    }
+  )
+
+  /**
+   * Получить список закрытых городов (админ)
+   */
+  .get(
+    '/closed-cities',
+    async ({ user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
+      const allowedTgIds = [389209990];
+      if (!allowedTgIds.includes(user.telegramId)) {
+        set.status = 403;
+        return { success: false, error: 'Forbidden' };
+      }
+
+      try {
+        const cities = await db
+          .select()
+          .from(leaderTestClosedCities)
+          .orderBy(leaderTestClosedCities.city);
+
+        return { success: true, cities };
+      } catch (error) {
+        logger.error({ error }, 'Failed to get closed cities');
+        set.status = 500;
+        return { success: false, error: 'Failed to get closed cities' };
+      }
+    },
+    {
+      detail: {
+        summary: 'Список закрытых городов (админ)',
+        description: 'Возвращает список городов, для которых тест закрыт',
+      },
+    }
+  )
+
+  /**
+   * Добавить город в закрытые (админ)
+   */
+  .post(
+    '/closed-cities',
+    async ({ body, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
+      const allowedTgIds = [389209990];
+      if (!allowedTgIds.includes(user.telegramId)) {
+        set.status = 403;
+        return { success: false, error: 'Forbidden' };
+      }
+
+      try {
+        const [city] = await db
+          .insert(leaderTestClosedCities)
+          .values({
+            city: body.city,
+            reason: body.reason || null,
+          })
+          .returning();
+
+        logger.info({ city: body.city, adminId: user.id }, 'City closed for leader test');
+
+        return { success: true, city };
+      } catch (error) {
+        logger.error({ error, city: body.city }, 'Failed to close city');
+        set.status = 500;
+        return { success: false, error: 'Failed to close city' };
+      }
+    },
+    {
+      body: t.Object({
+        city: t.String({ description: 'Название города' }),
+        reason: t.Optional(t.String({ description: 'Причина закрытия' })),
+      }),
+      detail: {
+        summary: 'Закрыть город (админ)',
+        description: 'Добавляет город в список закрытых для теста',
+      },
+    }
+  )
+
+  /**
+   * Удалить город из закрытых (админ)
+   */
+  .delete(
+    '/closed-cities/:city',
+    async ({ params, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
+      const allowedTgIds = [389209990];
+      if (!allowedTgIds.includes(user.telegramId)) {
+        set.status = 403;
+        return { success: false, error: 'Forbidden' };
+      }
+
+      try {
+        await db
+          .delete(leaderTestClosedCities)
+          .where(eq(leaderTestClosedCities.city, decodeURIComponent(params.city)));
+
+        logger.info({ city: params.city, adminId: user.id }, 'City opened for leader test');
+
+        return { success: true };
+      } catch (error) {
+        logger.error({ error, city: params.city }, 'Failed to open city');
+        set.status = 500;
+        return { success: false, error: 'Failed to open city' };
+      }
+    },
+    {
+      detail: {
+        summary: 'Открыть город (админ)',
+        description: 'Удаляет город из списка закрытых',
       },
     }
   );
