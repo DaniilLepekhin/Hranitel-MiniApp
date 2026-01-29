@@ -187,7 +187,7 @@ export default function BuddyTestPage() {
   // Трекинг начала теста
   useEffect(() => {
     if (hasAccess && user) {
-      api.post('/api/v1/leader-test/start', {}).catch(() => {
+      api.post('/leader-test/start', {}).catch(() => {
         // Игнорируем ошибку трекинга
       });
     }
@@ -284,7 +284,7 @@ export default function BuddyTestPage() {
         selectedOptions,
       }));
 
-      await api.post('/api/v1/leader-test/submit', {
+      await api.post('/leader-test/submit', {
         passed,
         score: correctCount,
         totalQuestions: questions.length,
