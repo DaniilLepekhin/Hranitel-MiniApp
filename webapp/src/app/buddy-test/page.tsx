@@ -285,7 +285,7 @@ export default function BuddyTestPage() {
           passed,
           score: correctCount,
           totalQuestions: questions.length,
-          stopReason: stopReasonText,
+          ...(stopReasonText && { stopReason: stopReasonText }),
           answers: answersArray,
         }),
       });
