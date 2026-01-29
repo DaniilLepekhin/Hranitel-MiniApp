@@ -173,10 +173,64 @@ export default function BuddyTestPage() {
   const [showResult, setShowResult] = useState(false);
   const [testPassed, setTestPassed] = useState(false);
   const [stopReason, setStopReason] = useState<string | null>(null);
+  const [testStatus, setTestStatus] = useState<{
+    alreadyCompleted: boolean;
+    hasPassed: boolean;
+    quotaExceeded: boolean;
+    quotaReason?: string;
+  } | null>(null);
 
   // Проверка доступа - только для определённых tg_id
   const allowedTgIds = ['389209990', '709347866', '7353667659'];
   const hasAccess = allowedTgIds.includes(String(user?.telegramId));
+
+  // Проверяем, проходил ли пользователь тест и доступна ли квота
+  useEffect(() => {
+    const checkCompletion = async () => {
+      const initData = typeof window !== 'undefined'
+        ? window.Telegram?.WebApp?.initData
+        : null;
+
+      if (!initData) {
+        setTestStatus({ alreadyCompleted: false, hasPassed: false, quotaExceeded: false });
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/api/v1/leader-test/check-completed`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ initData }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setTestStatus({
+              alreadyCompleted: data.hasCompleted,
+              hasPassed: data.hasPassed,
+              quotaExceeded: data.quotaExceeded || false,
+              quotaReason: data.quotaReason,
+            });
+          } else {
+            setTestStatus({ alreadyCompleted: false, hasPassed: false, quotaExceeded: false });
+          }
+        } else {
+          setTestStatus({ alreadyCompleted: false, hasPassed: false, quotaExceeded: false });
+        }
+      } catch (error) {
+        console.error('Failed to check completion:', error);
+        setTestStatus({ alreadyCompleted: false, hasPassed: false, quotaExceeded: false });
+      }
+    };
+
+    if (hasAccess) {
+      checkCompletion();
+    }
+  }, [hasAccess]);
+
+  // Тест недоступен если уже пройден ИЛИ квота исчерпана
+  const isTestBlocked = testStatus?.alreadyCompleted || testStatus?.quotaExceeded;
 
   useEffect(() => {
     if (!hasAccess && user) {
@@ -358,6 +412,125 @@ export default function BuddyTestPage() {
             }}
           >
             Вернуться назад
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Показываем загрузку пока проверяем статус прохождения
+  if (testStatus === null) {
+    return (
+      <div className="min-h-screen bg-[#f0ece8] flex items-center justify-center">
+        <div className="text-center p-6">
+          <div className="w-12 h-12 border-4 border-[#9c1723] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p style={{ fontFamily: 'Gilroy, sans-serif', color: '#6b5a4a' }}>
+            Загрузка...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Показываем экран "Тест уже пройден" или "Квота исчерпана"
+  if (isTestBlocked && !showResult) {
+    // Определяем что показывать
+    const showQuotaExceeded = testStatus.quotaExceeded && !testStatus.alreadyCompleted;
+
+    return (
+      <div className="min-h-screen bg-[#f0ece8] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center p-4 border-b border-[#2d2620]/10">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center justify-center w-10 h-10 rounded-xl transition-all active:scale-95"
+            style={{ border: '1px solid #2d2620' }}
+          >
+            <X className="w-5 h-5" style={{ color: '#2d2620' }} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 flex flex-col items-center justify-center p-6">
+          <div
+            className="w-24 h-24 rounded-full flex items-center justify-center mb-6"
+            style={{
+              background: testStatus.hasPassed
+                ? 'linear-gradient(243deg, #22c55e 15%, #16a34a 99%)'
+                : 'linear-gradient(243deg, #ae1e2b 15%, #9c1723 99%)'
+            }}
+          >
+            {testStatus.hasPassed ? (
+              <Trophy className="w-12 h-12 text-white" />
+            ) : (
+              <AlertCircle className="w-12 h-12 text-white" />
+            )}
+          </div>
+
+          <h1
+            className="text-center mb-4"
+            style={{
+              fontFamily: '"TT Nooks", Georgia, serif',
+              fontWeight: 300,
+              fontSize: '32px',
+              color: '#2d2620',
+            }}
+          >
+            {testStatus.hasPassed
+              ? 'Тест пройден!'
+              : showQuotaExceeded
+                ? 'Набор завершён'
+                : 'Тест завершён'}
+          </h1>
+
+          <p
+            className="text-center mb-8 max-w-sm"
+            style={{
+              fontFamily: 'Gilroy, sans-serif',
+              fontSize: '16px',
+              lineHeight: 1.5,
+              color: '#6b5a4a',
+            }}
+          >
+            {testStatus.hasPassed
+              ? 'Ты уже успешно прошла этот тест! Переходи в канал лидеров.'
+              : showQuotaExceeded
+                ? testStatus.quotaReason || 'Набор лидеров в твоём городе завершён.'
+                : 'Ты уже проходила этот тест. Повторное прохождение недоступно.'
+            }
+          </p>
+
+          {testStatus.hasPassed && (
+            <a
+              href="https://t.me/+7tLrXfTW8is4NjQy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full max-w-xs py-4 rounded-xl transition-all active:scale-95 mb-3 text-center block"
+              style={{
+                background: 'linear-gradient(243deg, #ae1e2b 15%, #9c1723 99%)',
+                color: '#fff',
+                fontFamily: 'Gilroy, sans-serif',
+                fontWeight: 600,
+                fontSize: '16px',
+              }}
+            >
+              Канал лидеров
+            </a>
+          )}
+
+          <button
+            onClick={() => router.push('/')}
+            className="w-full max-w-xs py-4 rounded-xl transition-all active:scale-95"
+            style={{
+              background: testStatus.hasPassed ? '#fff' : 'linear-gradient(243deg, #ae1e2b 15%, #9c1723 99%)',
+              color: testStatus.hasPassed ? '#2d2620' : '#fff',
+              fontFamily: 'Gilroy, sans-serif',
+              fontWeight: 600,
+              fontSize: '16px',
+              border: testStatus.hasPassed ? '1px solid #2d2620' : 'none',
+            }}
+          >
+            Вернуться в приложение
           </button>
         </div>
       </div>

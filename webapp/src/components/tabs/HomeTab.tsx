@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Copy, Megaphone, Lock, Star, Crown } from 'lucide-react';
+import { Search, Copy, Megaphone, Lock, Star, Crown, Check } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth';
 import { energiesApi } from '@/lib/api';
 import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
 import { useTelegram } from '@/hooks/useTelegram';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.hranitelkoda.ru';
 
 interface HomeTabProps {
   onProfileClick?: () => void;
@@ -30,6 +32,56 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
     gcTime: 5 * 60 * 1000, // 5 минут - хранить в кэше
     placeholderData: { success: true, balance: 0 }, // Показываем 0 сразу для мгновенного рендера
   });
+
+  // Проверка, проходил ли пользователь тест на Лидера + квоты города
+  const [leaderTestStatus, setLeaderTestStatus] = useState<{
+    hasCompleted: boolean;
+    hasPassed: boolean;
+    quotaExceeded: boolean;
+    quotaReason?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    const checkLeaderTestCompletion = async () => {
+      // Проверяем только для разрешённых пользователей
+      if (!['389209990', '709347866', '7353667659'].includes(String(user?.telegramId))) {
+        return;
+      }
+
+      const initData = typeof window !== 'undefined'
+        ? window.Telegram?.WebApp?.initData
+        : null;
+
+      if (!initData) return;
+
+      try {
+        const response = await fetch(`${API_URL}/api/v1/leader-test/check-completed`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ initData }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setLeaderTestStatus({
+              hasCompleted: data.hasCompleted,
+              hasPassed: data.hasPassed,
+              quotaExceeded: data.quotaExceeded || false,
+              quotaReason: data.quotaReason,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check leader test completion:', error);
+      }
+    };
+
+    checkLeaderTestCompletion();
+  }, [user?.telegramId]);
+
+  // Тест недоступен если уже пройден ИЛИ квота города исчерпана
+  const isTestLocked = leaderTestStatus?.hasCompleted || leaderTestStatus?.quotaExceeded;
 
   // 🚀 МЕМОИЗАЦИЯ: Вычисляем только когда данные меняются
   const epBalance = useMemo(() => balanceData?.balance || 0, [balanceData?.balance]);
@@ -397,8 +449,12 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
           {/* Кнопка "Тест на Лидера десятки" - только для определённых tg_id */}
           {['389209990', '709347866', '7353667659'].includes(String(user?.telegramId)) && (
             <div
-              className="w-full cursor-pointer active:scale-[0.99] transition-transform mt-3"
+              className={`w-full mt-3 relative overflow-hidden ${isTestLocked ? 'opacity-70' : 'cursor-pointer active:scale-[0.99]'} transition-transform`}
               onClick={() => {
+                if (isTestLocked) {
+                  haptic.notification('warning');
+                  return;
+                }
                 haptic.impact('light');
                 router.push('/buddy-test');
               }}
@@ -409,6 +465,38 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
                 padding: '16px',
               }}
             >
+              {/* Замочек/галочка если тест уже пройден или квота исчерпана */}
+              {isTestLocked && (
+                <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/30 backdrop-blur-[2px]">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
+                      {leaderTestStatus?.hasPassed ? (
+                        <Check className="w-6 h-6 text-green-600" />
+                      ) : (
+                        <Lock className="w-6 h-6 text-[#9c1723]" />
+                      )}
+                    </div>
+                    <p
+                      style={{
+                        fontFamily: 'Gilroy, sans-serif',
+                        fontWeight: 600,
+                        fontSize: '12px',
+                        color: 'white',
+                        textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                        textAlign: 'center',
+                        maxWidth: '200px',
+                      }}
+                    >
+                      {leaderTestStatus?.hasPassed
+                        ? 'Тест пройден'
+                        : leaderTestStatus?.quotaExceeded
+                          ? 'Набор завершён'
+                          : 'Тест завершён'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center gap-3">
                 {/* Иконка лидера */}
                 <div

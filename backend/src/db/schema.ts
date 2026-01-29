@@ -676,6 +676,17 @@ export const leaderTestClosedCities = pgTable('leader_test_closed_cities', {
   index('leader_test_closed_cities_city_idx').on(table.city),
 ]);
 
+// 🆕 Leader Test City Quotas (квоты на успешные прохождения по городам)
+export const leaderTestCityQuotas = pgTable('leader_test_city_quotas', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  city: text('city').notNull().unique(), // Название города
+  maxPassed: integer('max_passed').notNull(), // Максимум успешных прохождений
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('leader_test_city_quotas_city_idx').on(table.city),
+]);
+
 // 🆕 Leader Test Starts (трекинг открытия теста)
 export const leaderTestStarts = pgTable('leader_test_starts', {
   id: uuid('id').primaryKey().defaultRandom(),

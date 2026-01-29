@@ -5,12 +5,140 @@
 
 import { Elysia, t } from 'elysia';
 import { db } from '@/db';
-import { leaderTestResults, leaderTestStarts, leaderTestClosedCities, users } from '@/db/schema';
-import { eq, desc, count, sql } from 'drizzle-orm';
+import { leaderTestResults, leaderTestStarts, leaderTestClosedCities, leaderTestCityQuotas, users } from '@/db/schema';
+import { eq, desc, count, sql, and } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { authMiddleware, validateTelegramInitData, parseTelegramUser } from '@/middlewares/auth';
 
+// Функция для проверки квоты города
+async function checkCityQuota(city: string | null): Promise<{ available: boolean; current: number; max: number | null; reason?: string }> {
+  if (!city) {
+    return { available: true, current: 0, max: null };
+  }
+
+  // Получаем квоту для города
+  const [quota] = await db
+    .select()
+    .from(leaderTestCityQuotas)
+    .where(eq(leaderTestCityQuotas.city, city))
+    .limit(1);
+
+  if (!quota) {
+    // Нет квоты для города - разрешаем (можно изменить на запрет)
+    return { available: true, current: 0, max: null };
+  }
+
+  // Считаем сколько уже успешно прошли тест в этом городе
+  const [passedCount] = await db
+    .select({ count: sql<number>`count(distinct ${leaderTestResults.userId})` })
+    .from(leaderTestResults)
+    .where(and(
+      eq(leaderTestResults.city, city),
+      eq(leaderTestResults.passed, true)
+    ));
+
+  const current = Number(passedCount?.count) || 0;
+  const max = quota.maxPassed;
+
+  if (current >= max) {
+    return {
+      available: false,
+      current,
+      max,
+      reason: `Набор лидеров в городе "${city}" завершён (${current}/${max})`,
+    };
+  }
+
+  return { available: true, current, max };
+}
+
 export const leaderTestModule = new Elysia({ prefix: '/leader-test', tags: ['Leader Test'] })
+  /**
+   * Публичный endpoint для проверки, проходил ли пользователь тест
+   * Также проверяет доступность теста по квоте города
+   * Валидирует пользователя через Telegram initData
+   */
+  .post(
+    '/check-completed',
+    async ({ body, set }) => {
+      const { initData } = body;
+
+      // Валидируем initData
+      if (!validateTelegramInitData(initData)) {
+        set.status = 401;
+        return { success: false, error: 'Invalid Telegram data' };
+      }
+
+      // Парсим данные пользователя
+      const tgUser = parseTelegramUser(initData);
+      if (!tgUser || !tgUser.id) {
+        set.status = 401;
+        return { success: false, error: 'Could not parse user data' };
+      }
+
+      try {
+        // Находим пользователя по telegramId
+        const [dbUser] = await db
+          .select()
+          .from(users)
+          .where(eq(users.telegramId, tgUser.id))
+          .limit(1);
+
+        if (!dbUser) {
+          return { success: true, hasCompleted: false, hasPassed: false, quotaExceeded: false };
+        }
+
+        // Проверяем, есть ли результаты теста
+        const results = await db
+          .select({
+            passed: leaderTestResults.passed,
+          })
+          .from(leaderTestResults)
+          .where(eq(leaderTestResults.userId, dbUser.id))
+          .limit(1);
+
+        const hasCompleted = results.length > 0;
+        const hasPassed = results.some(r => r.passed);
+
+        // Проверяем квоту города (только если тест ещё не пройден)
+        let quotaExceeded = false;
+        let quotaReason: string | undefined;
+        let quotaInfo: { current: number; max: number | null } | undefined;
+
+        if (!hasCompleted && dbUser.city) {
+          const quotaCheck = await checkCityQuota(dbUser.city);
+          quotaExceeded = !quotaCheck.available;
+          quotaReason = quotaCheck.reason;
+          if (quotaCheck.max !== null) {
+            quotaInfo = { current: quotaCheck.current, max: quotaCheck.max };
+          }
+        }
+
+        return {
+          success: true,
+          hasCompleted,
+          hasPassed,
+          quotaExceeded,
+          quotaReason,
+          quotaInfo,
+          city: dbUser.city,
+        };
+      } catch (error) {
+        logger.error({ error, telegramId: tgUser.id }, 'Failed to check leader test completion');
+        return { success: true, hasCompleted: false, hasPassed: false, quotaExceeded: false };
+      }
+    },
+    {
+      body: t.Object({
+        initData: t.String({ description: 'Telegram WebApp initData для валидации' }),
+      }),
+      detail: {
+        summary: 'Проверить, проходил ли пользователь тест',
+        description: 'Проверяет, есть ли у пользователя результаты теста и доступна ли квота города (публичный endpoint)',
+      },
+    }
+  )
+
   /**
    * Публичный endpoint для сохранения результата теста
    * Валидирует пользователя через Telegram initData напрямую
@@ -551,6 +679,181 @@ export const leaderTestModule = new Elysia({ prefix: '/leader-test', tags: ['Lea
       detail: {
         summary: 'Открыть город (админ)',
         description: 'Удаляет город из списка закрытых',
+      },
+    }
+  )
+
+  /**
+   * Получить все квоты городов (админ)
+   */
+  .get(
+    '/city-quotas',
+    async ({ user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
+      const allowedTgIds = [389209990];
+      if (!allowedTgIds.includes(user.telegramId)) {
+        set.status = 403;
+        return { success: false, error: 'Forbidden' };
+      }
+
+      try {
+        // Получаем все квоты с подсчётом текущих прохождений
+        const quotas = await db
+          .select()
+          .from(leaderTestCityQuotas)
+          .orderBy(leaderTestCityQuotas.city);
+
+        // Добавляем текущее количество прошедших для каждого города
+        const quotasWithCurrent = await Promise.all(
+          quotas.map(async (quota) => {
+            const [passedCount] = await db
+              .select({ count: sql<number>`count(distinct ${leaderTestResults.userId})` })
+              .from(leaderTestResults)
+              .where(and(
+                eq(leaderTestResults.city, quota.city),
+                eq(leaderTestResults.passed, true)
+              ));
+
+            return {
+              ...quota,
+              currentPassed: Number(passedCount?.count) || 0,
+            };
+          })
+        );
+
+        return { success: true, quotas: quotasWithCurrent };
+      } catch (error) {
+        logger.error({ error }, 'Failed to get city quotas');
+        set.status = 500;
+        return { success: false, error: 'Failed to get city quotas' };
+      }
+    },
+    {
+      detail: {
+        summary: 'Получить все квоты городов (админ)',
+        description: 'Возвращает список всех квот с текущим количеством прохождений',
+      },
+    }
+  )
+
+  /**
+   * Массовое добавление/обновление квот городов (админ)
+   */
+  .post(
+    '/city-quotas/bulk',
+    async ({ body, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
+      const allowedTgIds = [389209990];
+      if (!allowedTgIds.includes(user.telegramId)) {
+        set.status = 403;
+        return { success: false, error: 'Forbidden' };
+      }
+
+      try {
+        const { quotas } = body;
+        let inserted = 0;
+        let updated = 0;
+
+        for (const quota of quotas) {
+          // Проверяем, существует ли уже квота для этого города
+          const [existing] = await db
+            .select()
+            .from(leaderTestCityQuotas)
+            .where(eq(leaderTestCityQuotas.city, quota.city))
+            .limit(1);
+
+          if (existing) {
+            // Обновляем
+            await db
+              .update(leaderTestCityQuotas)
+              .set({ maxPassed: quota.maxPassed, updatedAt: new Date() })
+              .where(eq(leaderTestCityQuotas.city, quota.city));
+            updated++;
+          } else {
+            // Вставляем новую
+            await db
+              .insert(leaderTestCityQuotas)
+              .values({
+                city: quota.city,
+                maxPassed: quota.maxPassed,
+              });
+            inserted++;
+          }
+        }
+
+        logger.info({
+          adminId: user.id,
+          inserted,
+          updated,
+          total: quotas.length,
+        }, 'City quotas bulk updated');
+
+        return { success: true, inserted, updated };
+      } catch (error) {
+        logger.error({ error }, 'Failed to bulk update city quotas');
+        set.status = 500;
+        return { success: false, error: 'Failed to bulk update city quotas' };
+      }
+    },
+    {
+      body: t.Object({
+        quotas: t.Array(
+          t.Object({
+            city: t.String({ description: 'Название города' }),
+            maxPassed: t.Number({ description: 'Максимум успешных прохождений' }),
+          })
+        ),
+      }),
+      detail: {
+        summary: 'Массовое добавление квот (админ)',
+        description: 'Добавляет или обновляет квоты для нескольких городов',
+      },
+    }
+  )
+
+  /**
+   * Удалить квоту города (админ)
+   */
+  .delete(
+    '/city-quotas/:city',
+    async ({ params, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
+      const allowedTgIds = [389209990];
+      if (!allowedTgIds.includes(user.telegramId)) {
+        set.status = 403;
+        return { success: false, error: 'Forbidden' };
+      }
+
+      try {
+        await db
+          .delete(leaderTestCityQuotas)
+          .where(eq(leaderTestCityQuotas.city, decodeURIComponent(params.city)));
+
+        logger.info({ city: params.city, adminId: user.id }, 'City quota deleted');
+
+        return { success: true };
+      } catch (error) {
+        logger.error({ error, city: params.city }, 'Failed to delete city quota');
+        set.status = 500;
+        return { success: false, error: 'Failed to delete city quota' };
+      }
+    },
+    {
+      detail: {
+        summary: 'Удалить квоту города (админ)',
+        description: 'Удаляет квоту для города (тест станет доступен без ограничений)',
       },
     }
   );
