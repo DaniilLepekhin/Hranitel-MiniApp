@@ -193,6 +193,15 @@ export default function BuddyTestPage() {
     }
   }, [hasAccess, user, router]);
 
+  // Трекинг начала теста
+  useEffect(() => {
+    if (hasAccess && user) {
+      api.post('/api/v1/leader-test/start', {}).catch(() => {
+        // Игнорируем ошибку трекинга
+      });
+    }
+  }, [hasAccess, user]);
+
   const question = questions[currentQuestion];
   const selectedAnswers = answers[question?.id] || [];
 

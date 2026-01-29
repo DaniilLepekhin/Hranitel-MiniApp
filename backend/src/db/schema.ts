@@ -666,6 +666,19 @@ export const clubFunnelProgress = pgTable('club_funnel_progress', {
   index('club_funnel_progress_current_step_idx').on(table.currentStep),
 ]);
 
+// 🆕 Leader Test Starts (трекинг открытия теста)
+export const leaderTestStarts = pgTable('leader_test_starts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  telegramId: bigint('telegram_id', { mode: 'number' }).notNull(),
+  city: text('city'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('leader_test_starts_user_id_idx').on(table.userId),
+  index('leader_test_starts_telegram_id_idx').on(table.telegramId),
+  index('leader_test_starts_created_at_idx').on(table.createdAt),
+]);
+
 // 🆕 Leader Test Results (результаты теста на Лидера десятки)
 export const leaderTestResults = pgTable('leader_test_results', {
   id: uuid('id').primaryKey().defaultRandom(),
