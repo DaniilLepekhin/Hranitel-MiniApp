@@ -85,6 +85,7 @@ export const leaderTestModule = new Elysia({ prefix: '/leader-test', tags: ['Lea
           .limit(1);
 
         if (!dbUser) {
+          logger.info({ telegramId: tgUser.id }, 'Leader test: user not found');
           return { success: true, hasCompleted: false, hasPassed: false, quotaExceeded: false, hasAccess: false };
         }
 
@@ -96,6 +97,19 @@ export const leaderTestModule = new Elysia({ prefix: '/leader-test', tags: ['Lea
           const now = new Date();
           const diffMonths = (now.getTime() - memberSince.getTime()) / (30 * 24 * 60 * 60 * 1000);
           hasAccess = diffMonths >= 3;
+          logger.info({
+            telegramId: tgUser.id,
+            isPro: dbUser.isPro,
+            createdAt: dbUser.createdAt,
+            diffMonths,
+            hasAccess
+          }, 'Leader test: access check');
+        } else {
+          logger.info({
+            telegramId: tgUser.id,
+            isPro: dbUser.isPro,
+            createdAt: dbUser.createdAt,
+          }, 'Leader test: no access (missing isPro or createdAt)');
         }
 
         // Если нет доступа - возвращаем сразу
