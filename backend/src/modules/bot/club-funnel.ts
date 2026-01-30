@@ -378,7 +378,7 @@ export async function startClubFunnel(userId: string, chatId: number, telegramId
   const timeout = getButtonTimeout();
 
   await schedulerService.schedule(
-    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'ready', isTestMode: testModeEnabled } },
+    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'ready', isTestMode: testModeEnabled, ignoreIsPro: ignoreIsProEnabled } },
     timeout
   );
 }
@@ -517,7 +517,7 @@ export async function handleBirthDateConfirmed(userId: string, chatId: number, b
   const telegramUserId = await getTelegramUserId(userId);
   // После "личной карты" идёт подписка на канал
   await schedulerService.schedule(
-    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'subscribe', isTestMode: testModeEnabled } },
+    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'subscribe', isTestMode: testModeEnabled, ignoreIsPro: ignoreIsProEnabled } },
     getButtonTimeout()
   );
 }
@@ -591,7 +591,7 @@ export async function handleClubShowArchetype(userId: string, chatId: number) {
 
   const telegramUserId = await getTelegramUserId(userId);
   await schedulerService.schedule(
-    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'style', isTestMode: testModeEnabled } },
+    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'style', isTestMode: testModeEnabled, ignoreIsPro: ignoreIsProEnabled } },
     getButtonTimeout()
   );
 }
@@ -652,7 +652,7 @@ export async function handleClubGetStyle(userId: string, chatId: number) {
 
   const telegramUserId = await getTelegramUserId(userId);
   await schedulerService.schedule(
-    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'scale', isTestMode: testModeEnabled } },
+    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'scale', isTestMode: testModeEnabled, ignoreIsPro: ignoreIsProEnabled } },
     getButtonTimeout()
   );
 }
@@ -741,7 +741,7 @@ async function sendScaleMessage(userId: string, chatId: number) {
 
   const telegramUserId = await getTelegramUserId(userId);
   await schedulerService.schedule(
-    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'roadmap', isTestMode: testModeEnabled } },
+    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'roadmap', isTestMode: testModeEnabled, ignoreIsPro: ignoreIsProEnabled } },
     getButtonTimeout()
   );
 }
@@ -787,7 +787,7 @@ export async function handleClubGetRoadmap(userId: string, chatId: number) {
 
   const telegramUserId = await getTelegramUserId(userId);
   await schedulerService.schedule(
-    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'purchase', isTestMode: testModeEnabled } },
+    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'purchase', isTestMode: testModeEnabled, ignoreIsPro: ignoreIsProEnabled } },
     getFinalTimeout()
   );
 }
@@ -876,7 +876,7 @@ export async function handleClubStartRoute(userId: string, chatId: number, user:
   logger.info({ telegramUserId, odUserId: userId, fallbackTimeout }, 'handleClubStartRoute: Scheduling fallback task');
 
   await schedulerService.schedule(
-    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'fallback_to_main', isTestMode: testModeEnabled } },
+    { type: 'club_auto_progress', userId: telegramUserId, chatId: chatId, data: { odUserId: userId, step: 'fallback_to_main', isTestMode: testModeEnabled, ignoreIsPro: ignoreIsProEnabled } },
     fallbackTimeout
   );
 
@@ -1091,7 +1091,7 @@ async function handleFallbackToMainFunnel(userId: string, chatId: number) {
 // АВТОПРОКИДЫВАНИЕ
 // ============================================================================
 
-export async function handleClubAutoProgress(userId: string, chatId: number, step: string, isTestMode: boolean = false) {
+export async function handleClubAutoProgress(userId: string, chatId: number, step: string, isTestMode: boolean = false, ignoreIsPro: boolean = false) {
   // 🚫 Игнорируем групповые чаты и каналы (chatId < 0)
   if (chatId < 0) {
     logger.info({ userId, chatId, step }, 'Ignoring club auto-progress for group chat/channel');
@@ -1101,6 +1101,10 @@ export async function handleClubAutoProgress(userId: string, chatId: number, ste
   // Восстанавливаем тестовый режим из данных задачи
   if (isTestMode) {
     setTestMode(true);
+  }
+  // Восстанавливаем флаг ignoreIsPro из данных задачи
+  if (ignoreIsPro) {
+    setIgnoreIsPro(true);
   }
 
   const progress = await getClubProgress(userId);

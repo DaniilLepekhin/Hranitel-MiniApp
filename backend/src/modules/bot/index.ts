@@ -857,9 +857,9 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
     else if (type === 'gift_expiry_1day') await funnels.sendGiftExpiry1Day(userId, chatId);
     // 🆕 Club funnel auto-progress
     else if (type === 'club_auto_progress') {
-      const { odUserId, step, isTestMode } = task.data || {};
+      const { odUserId, step, isTestMode, ignoreIsPro } = task.data || {};
       if (odUserId && chatId && step) {
-        await clubFunnel.handleClubAutoProgress(odUserId, chatId, step, isTestMode);
+        await clubFunnel.handleClubAutoProgress(odUserId, chatId, step, isTestMode, ignoreIsPro);
       }
     }
     // 🧪 TEST: Ускоренная тестовая воронка /start (ПОЛНЫЕ тексты, ускоренные таймеры)
