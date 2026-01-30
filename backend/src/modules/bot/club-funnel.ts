@@ -310,8 +310,15 @@ export function setIgnoreIsPro(enabled: boolean) {
 }
 
 // Проверка isPro с учётом тестового режима
-export function shouldTreatAsIsPro(actualIsPro: boolean): boolean {
-  if (ignoreIsProEnabled) {
+// ВАЖНО: Читаем флаг напрямую из БД, т.к. глобальные переменные не сохраняются между HTTP запросами
+export async function shouldTreatAsIsPro(actualIsPro: boolean, userId: string): Promise<boolean> {
+  // Получаем флаг ignoreIsPro из прогресса воронки
+  const progress = await getClubProgress(userId);
+  const ignoreIsPro = progress?.ignoreIsPro || false;
+
+  logger.info({ userId, actualIsPro, ignoreIsPro }, 'shouldTreatAsIsPro check');
+
+  if (ignoreIsPro) {
     return false; // В тестовом режиме всегда считаем что isPro = false
   }
   return actualIsPro;
@@ -1222,7 +1229,7 @@ export async function handleClubAutoProgress(userId: string, chatId: number, ste
         if (user.length) {
           // 🆕 Для импортированных пользователей (isPro=true) пропускаем подписку
           // 🧪 В тестовом режиме ignoreIsPro=true всегда идём как новый пользователь
-          if (shouldTreatAsIsPro(user[0].isPro)) {
+          if (await shouldTreatAsIsPro(user[0].isPro, userId)) {
             logger.info({ userId, telegramId: user[0].telegramId }, 'Imported user - skipping channel subscription, showing archetype directly');
             await handleClubShowArchetype(userId, chatId);
           } else {
@@ -1249,7 +1256,7 @@ export async function handleClubAutoProgress(userId: string, chatId: number, ste
         // 🆕 Для импортированных пользователей (isPro=true) показываем версию без покупки
         // 🧪 В тестовом режиме ignoreIsPro=true всегда идём как новый пользователь
         const userForRoadmap = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-        if (userForRoadmap.length && shouldTreatAsIsPro(userForRoadmap[0].isPro)) {
+        if (userForRoadmap.length && await shouldTreatAsIsPro(userForRoadmap[0].isPro, userId)) {
           logger.info({ userId }, 'Imported user - showing roadmap for imported');
           await handleClubGetRoadmapImported(userId, chatId);
         } else {
@@ -1263,7 +1270,7 @@ export async function handleClubAutoProgress(userId: string, chatId: number, ste
         if (user.length) {
           // 🆕 Для импортированных пользователей (isPro=true) показываем "Ключ принят"
           // 🧪 В тестовом режиме ignoreIsPro=true всегда идём как новый пользователь
-          if (shouldTreatAsIsPro(user[0].isPro)) {
+          if (await shouldTreatAsIsPro(user[0].isPro, userId)) {
             logger.info({ userId }, 'Imported user - showing welcome instead of purchase');
             await handleClubStartRouteImported(userId, chatId);
           } else {
