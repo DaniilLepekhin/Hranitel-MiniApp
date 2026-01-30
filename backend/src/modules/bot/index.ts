@@ -2607,8 +2607,15 @@ bot.callbackQuery('club_start_route_imported', async (ctx) => {
     await ctx.answerCallbackQuery();
     const user = await funnels.getUserByTgId(ctx.from.id);
     if (user) {
-      // 🛡️ Всегда отправляем в личку пользователю
-      await clubFunnel.handleClubStartRouteImported(user.id, ctx.from.id);
+      // 🛡️ Проверяем тестовый режим - если ignoreIsPro=true, показываем форму оплаты
+      const treatAsIsPro = await clubFunnel.shouldTreatAsIsPro(user.isPro, user.id);
+      if (treatAsIsPro) {
+        // Оплаченный пользователь - показываем keyword video
+        await clubFunnel.handleClubStartRouteImported(user.id, ctx.from.id);
+      } else {
+        // Тестовый режим или неоплаченный - показываем форму оплаты
+        await clubFunnel.handleClubStartRoute(user.id, ctx.from.id, user);
+      }
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in club_start_route_imported callback');
