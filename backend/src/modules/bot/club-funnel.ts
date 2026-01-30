@@ -296,9 +296,25 @@ let testModeEnabled = false;
 const TEST_BUTTON_TIMEOUT = 15 * 1000; // 15 секунд вместо 5 минут
 const TEST_FINAL_TIMEOUT = 10 * 1000; // 10 секунд вместо 2 минут
 
+// 🧪 Флаг для игнорирования isPro в тестовом режиме (чтобы админ мог пройти воронку как новый пользователь)
+let ignoreIsProEnabled = false;
+
 export function setTestMode(enabled: boolean) {
   testModeEnabled = enabled;
   logger.info({ testModeEnabled: enabled }, 'Club funnel test mode changed');
+}
+
+export function setIgnoreIsPro(enabled: boolean) {
+  ignoreIsProEnabled = enabled;
+  logger.info({ ignoreIsProEnabled: enabled }, 'Club funnel ignoreIsPro mode changed');
+}
+
+// Проверка isPro с учётом тестового режима
+export function shouldTreatAsIsPro(actualIsPro: boolean): boolean {
+  if (ignoreIsProEnabled) {
+    return false; // В тестовом режиме всегда считаем что isPro = false
+  }
+  return actualIsPro;
 }
 
 function getButtonTimeout(): number {
@@ -309,9 +325,11 @@ function getFinalTimeout(): number {
   return testModeEnabled ? TEST_FINAL_TIMEOUT : FINAL_TIMEOUT;
 }
 
-export async function startClubFunnel(userId: string, chatId: number, telegramId: number, isTestMode: boolean = false) {
+export async function startClubFunnel(userId: string, chatId: number, telegramId: number, isTestMode: boolean = false, ignoreIsPro: boolean = false) {
   // Устанавливаем или сбрасываем тестовый режим
   setTestMode(isTestMode);
+  // Устанавливаем флаг игнорирования isPro (для тестирования воронки админами)
+  setIgnoreIsPro(ignoreIsPro);
 
   await getOrCreateClubProgress(userId, telegramId);
 
@@ -1107,7 +1125,8 @@ export async function handleClubAutoProgress(userId: string, chatId: number, ste
         const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
         if (user.length) {
           // 🆕 Для импортированных пользователей (isPro=true) пропускаем подписку
-          if (user[0].isPro) {
+          // 🧪 В тестовом режиме ignoreIsPro=true всегда идём как новый пользователь
+          if (shouldTreatAsIsPro(user[0].isPro)) {
             logger.info({ userId, telegramId: user[0].telegramId }, 'Imported user - skipping channel subscription, showing archetype directly');
             await handleClubShowArchetype(userId, chatId);
           } else {
@@ -1132,8 +1151,9 @@ export async function handleClubAutoProgress(userId: string, chatId: number, ste
     case 'roadmap':
       if (currentStep === 'showing_scale') {
         // 🆕 Для импортированных пользователей (isPro=true) показываем версию без покупки
+        // 🧪 В тестовом режиме ignoreIsPro=true всегда идём как новый пользователь
         const userForRoadmap = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-        if (userForRoadmap.length && userForRoadmap[0].isPro) {
+        if (userForRoadmap.length && shouldTreatAsIsPro(userForRoadmap[0].isPro)) {
           logger.info({ userId }, 'Imported user - showing roadmap for imported');
           await handleClubGetRoadmapImported(userId, chatId);
         } else {
@@ -1146,7 +1166,8 @@ export async function handleClubAutoProgress(userId: string, chatId: number, ste
         const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
         if (user.length) {
           // 🆕 Для импортированных пользователей (isPro=true) показываем "Ключ принят"
-          if (user[0].isPro) {
+          // 🧪 В тестовом режиме ignoreIsPro=true всегда идём как новый пользователь
+          if (shouldTreatAsIsPro(user[0].isPro)) {
             logger.info({ userId }, 'Imported user - showing welcome instead of purchase');
             await handleClubStartRouteImported(userId, chatId);
           } else {

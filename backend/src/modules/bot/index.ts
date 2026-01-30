@@ -1430,8 +1430,9 @@ bot.command('start', async (ctx) => {
         .delete(clubFunnelProgress)
         .where(eq(clubFunnelProgress.userId, testUser.id));
 
-      // Запускаем club воронку с флагом тестового режима
-      await clubFunnel.startClubFunnel(testUser.id, chatId, userId, true);
+      // Запускаем club воронку с флагом тестового режима и ignoreIsPro=true
+      // чтобы оплаченные пользователи проходили как новые
+      await clubFunnel.startClubFunnel(testUser.id, chatId, userId, true, true);
       return;
     }
 
@@ -1469,7 +1470,8 @@ bot.command('start', async (ctx) => {
         .where(eq(clubFunnelProgress.userId, testUser.id));
 
       // Запускаем club воронку БЕЗ флага тестового режима (обычные таймеры)
-      await clubFunnel.startClubFunnel(testUser.id, chatId, userId, false);
+      // но с ignoreIsPro=true чтобы оплаченные пользователи проходили как новые
+      await clubFunnel.startClubFunnel(testUser.id, chatId, userId, false, true);
       return;
     }
 
