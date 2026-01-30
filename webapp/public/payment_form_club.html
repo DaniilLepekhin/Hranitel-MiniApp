@@ -634,6 +634,12 @@
     // Генерация ссылки на оплату
     async function generatePaymentLink(email, name, phone, paymentMethod, currency) {
       const tgId = getTGId();
+
+      // Защита: без telegram_id платёж не сможет быть обработан
+      if (!tgId) {
+        throw new Error('Откройте форму через Telegram');
+      }
+
       const params = getUrlParams();
 
       // Определяем payment_method для API
@@ -715,6 +721,13 @@
       const phone = document.getElementById('phone').value.trim();
       const email = document.getElementById('email').value.trim().toLowerCase();
       const tgId = getTGId();
+
+      // КРИТИЧЕСКАЯ ПРОВЕРКА: telegram_id обязателен для обработки платежа
+      if (!tgId) {
+        showNotification('Откройте форму через Telegram');
+        console.error('Missing telegram_id - form must be opened via Telegram Mini App');
+        return;
+      }
 
       // Валидация всех полей
       if (!name || !validateName(name)) {
