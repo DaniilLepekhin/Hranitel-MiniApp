@@ -2974,6 +2974,19 @@ bot.command('menu', async (ctx) => {
     const userId = ctx.from!.id;
     const chatId = ctx.chat.id;
 
+    // 🧪 Сбрасываем тестовый режим при вызове /menu
+    // Это позволяет выйти из тестового прохода воронки и вернуться к нормальному режиму
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.telegramId, userId))
+      .limit(1);
+
+    if (user) {
+      await clubFunnel.resetTestMode(user.id, userId);
+      logger.info({ userId }, '/menu - test mode reset');
+    }
+
     // Check if user has active subscription
     const hasPaid = await checkPaymentStatus(userId);
 

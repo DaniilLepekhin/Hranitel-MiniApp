@@ -331,6 +331,44 @@ export async function restoreTestModeFromProgress(userId: string): Promise<void>
   }
 }
 
+/**
+ * Полный сброс тестового режима - вызывается из /menu
+ * Сбрасывает глобальные флаги, очищает флаги в БД и отменяет запланированные задачи
+ */
+export async function resetTestMode(userId: string, telegramId: number): Promise<boolean> {
+  try {
+    // 1. Сбрасываем глобальные флаги
+    setTestMode(false);
+    setIgnoreIsPro(false);
+
+    // 2. Сбрасываем флаги в БД
+    await updateClubProgress(userId, {
+      isTestMode: false,
+      ignoreIsPro: false,
+    });
+
+    // 3. Отменяем все запланированные задачи тестовых воронок
+    await schedulerService.cancelUserTasksByTypes(telegramId, [
+      'club_auto_progress',
+      'start_reminder',
+      'five_min_reminder',
+      'burning_question_reminder',
+      'payment_reminder',
+      'final_reminder',
+      'day2_reminder',
+      'day3_reminder',
+      'day4_reminder',
+      'day5_final',
+    ]);
+
+    logger.info({ userId, telegramId }, 'Test mode reset - all flags cleared and tasks cancelled');
+    return true;
+  } catch (error) {
+    logger.error({ error, userId, telegramId }, 'Failed to reset test mode');
+    return false;
+  }
+}
+
 function getButtonTimeout(): number {
   return testModeEnabled ? TEST_BUTTON_TIMEOUT : BUTTON_TIMEOUT;
 }
