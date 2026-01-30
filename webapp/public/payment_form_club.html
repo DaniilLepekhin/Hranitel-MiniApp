@@ -663,24 +663,26 @@
         ...params
       };
 
-      // Log payment attempt
-      try {
-        await fetch('https://hranitel.daniillepekhin.com/api/analytics/payment-attempt', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            telegram_id: tgId ? tgId.toString() : null,
-            payment_method: apiPaymentMethod,
-            amount: apiPaymentMethod === 'RUB' ? '2000' : '26',
-            currency: apiPaymentMethod,
-            name: name,
-            email: email,
-            phone: phone,
-            ...params
-          })
-        });
-      } catch (error) {
-        console.error('Failed to log payment attempt:', error);
+      // Log payment attempt - КРИТИЧЕСКИ ВАЖНО для обработки webhook'а от Lava
+      // Без этой записи webhook не сможет найти пользователя
+      const attemptResponse = await fetch('https://hranitel.daniillepekhin.com/api/analytics/payment-attempt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegram_id: tgId ? tgId.toString() : null,
+          payment_method: apiPaymentMethod,
+          amount: apiPaymentMethod === 'RUB' ? '2000' : '26',
+          currency: apiPaymentMethod,
+          name: name,
+          email: email,
+          phone: phone,
+          ...params
+        })
+      });
+
+      if (!attemptResponse.ok) {
+        console.error('Failed to log payment attempt:', attemptResponse.status);
+        throw new Error('Ошибка сохранения данных. Попробуйте ещё раз.');
       }
 
       // Generate payment link - выбираем webhook в зависимости от метода оплаты
