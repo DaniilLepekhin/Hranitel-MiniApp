@@ -231,11 +231,12 @@ export default function BuddyTestPage() {
   // Тест недоступен если уже пройден ИЛИ квота исчерпана
   const isTestBlocked = testStatus?.alreadyCompleted || testStatus?.quotaExceeded;
 
+  // Редирект только ПОСЛЕ загрузки testStatus (не null)
   useEffect(() => {
-    if (!hasAccess && user) {
+    if (testStatus !== null && !hasAccess && user) {
       router.replace('/');
     }
-  }, [hasAccess, user, router]);
+  }, [testStatus, hasAccess, user, router]);
 
   const question = questions[currentQuestion];
   const selectedAnswers = answers[question?.id] || [];
