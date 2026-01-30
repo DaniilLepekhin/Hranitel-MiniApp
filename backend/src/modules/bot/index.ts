@@ -1326,6 +1326,13 @@ bot.command('start', async (ctx) => {
       // Отменяем все предыдущие задачи
       await schedulerService.cancelAllUserTasks(userId);
 
+      // 🔥 Сбрасываем onboardingStep и club_funnel_progress чтобы предыдущие тесты не мешали
+      const [testUser] = await db.select().from(users).where(eq(users.telegramId, userId)).limit(1);
+      if (testUser) {
+        await db.update(users).set({ onboardingStep: null }).where(eq(users.id, testUser.id));
+        await db.delete(clubFunnelProgress).where(eq(clubFunnelProgress.userId, testUser.id));
+      }
+
       // 📊 Получаем UTM из metadata и добавляем к URL оплаты
       const testUtmData = await getUtmFromUser(userId);
       const testWebAppUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', testUtmData);
@@ -1430,6 +1437,12 @@ bot.command('start', async (ctx) => {
         .delete(clubFunnelProgress)
         .where(eq(clubFunnelProgress.userId, testUser.id));
 
+      // 🔥 ВАЖНО: Сбрасываем onboardingStep чтобы предыдущие тесты не мешали
+      await db
+        .update(users)
+        .set({ onboardingStep: null })
+        .where(eq(users.id, testUser.id));
+
       // Запускаем club воронку с флагом тестового режима и ignoreIsPro=true
       // чтобы оплаченные пользователи проходили как новые
       await clubFunnel.startClubFunnel(testUser.id, chatId, userId, true, true);
@@ -1469,6 +1482,12 @@ bot.command('start', async (ctx) => {
         .delete(clubFunnelProgress)
         .where(eq(clubFunnelProgress.userId, testUser.id));
 
+      // 🔥 ВАЖНО: Сбрасываем onboardingStep чтобы предыдущие тесты не мешали
+      await db
+        .update(users)
+        .set({ onboardingStep: null })
+        .where(eq(users.id, testUser.id));
+
       // Запускаем club воронку БЕЗ флага тестового режима (обычные таймеры)
       // но с ignoreIsPro=true чтобы оплаченные пользователи проходили как новые
       await clubFunnel.startClubFunnel(testUser.id, chatId, userId, false, true);
@@ -1481,6 +1500,13 @@ bot.command('start', async (ctx) => {
 
       // Отменяем все предыдущие задачи
       await schedulerService.cancelAllUserTasks(userId);
+
+      // 🔥 Сбрасываем onboardingStep и club_funnel_progress чтобы предыдущие тесты не мешали
+      const [testStartUser] = await db.select().from(users).where(eq(users.telegramId, userId)).limit(1);
+      if (testStartUser) {
+        await db.update(users).set({ onboardingStep: null }).where(eq(users.id, testStartUser.id));
+        await db.delete(clubFunnelProgress).where(eq(clubFunnelProgress.userId, testStartUser.id));
+      }
 
       // 📊 Получаем UTM из metadata и добавляем к URL оплаты
       const testUtmData = await getUtmFromUser(userId);
