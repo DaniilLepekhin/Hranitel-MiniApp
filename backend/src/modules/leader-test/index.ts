@@ -88,17 +88,14 @@ export const leaderTestModule = new Elysia({ prefix: '/leader-test', tags: ['Lea
           return { success: true, hasCompleted: false, hasPassed: false, quotaExceeded: false, hasAccess: false };
         }
 
-        // Проверяем доступ: isPro и в клубе >= 3 месяцев (NOW - created_at >= 3 месяца)
-        // Используем created_at как дату входа в клуб (для импортированных) или first_purchase_date
+        // Проверяем доступ: isPro и в клубе >= 3 месяцев
+        // Используем created_at как дату регистрации в системе
         let hasAccess = false;
-        if (dbUser.isPro) {
-          const effectiveDate = dbUser.firstPurchaseDate || dbUser.createdAt;
-          if (effectiveDate) {
-            const memberSince = new Date(effectiveDate);
-            const now = new Date();
-            const diffMonths = (now.getTime() - memberSince.getTime()) / (30 * 24 * 60 * 60 * 1000);
-            hasAccess = diffMonths >= 3;
-          }
+        if (dbUser.isPro && dbUser.createdAt) {
+          const memberSince = new Date(dbUser.createdAt);
+          const now = new Date();
+          const diffMonths = (now.getTime() - memberSince.getTime()) / (30 * 24 * 60 * 60 * 1000);
+          hasAccess = diffMonths >= 3;
         }
 
         // Если нет доступа - возвращаем сразу
