@@ -653,6 +653,10 @@ export const clubFunnelProgress = pgTable('club_funnel_progress', {
   currentStep: clubFunnelStepEnum('current_step').default('start').notNull(),
   subscribedToChannel: boolean('subscribed_to_channel').default(false),
 
+  // Test mode flags
+  isTestMode: boolean('is_test_mode').default(false), // Ускоренные таймеры
+  ignoreIsPro: boolean('ignore_is_pro').default(false), // Игнорировать isPro для тестирования
+
   // Metadata
   starImageUrl: text('star_image_url'), // URL изображения звезды от webhook
 

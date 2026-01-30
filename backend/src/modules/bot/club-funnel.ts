@@ -317,6 +317,20 @@ export function shouldTreatAsIsPro(actualIsPro: boolean): boolean {
   return actualIsPro;
 }
 
+// 🧪 Восстановить флаги тестового режима из БД (для callback'ов)
+export async function restoreTestModeFromProgress(userId: string): Promise<void> {
+  const progress = await getClubProgress(userId);
+  if (progress) {
+    if (progress.isTestMode) {
+      setTestMode(true);
+    }
+    if (progress.ignoreIsPro) {
+      setIgnoreIsPro(true);
+    }
+    logger.info({ userId, isTestMode: progress.isTestMode, ignoreIsPro: progress.ignoreIsPro }, 'Restored test mode flags from progress');
+  }
+}
+
 function getButtonTimeout(): number {
   return testModeEnabled ? TEST_BUTTON_TIMEOUT : BUTTON_TIMEOUT;
 }
@@ -332,6 +346,12 @@ export async function startClubFunnel(userId: string, chatId: number, telegramId
   setIgnoreIsPro(ignoreIsPro);
 
   await getOrCreateClubProgress(userId, telegramId);
+
+  // 🧪 Сохраняем флаги тестового режима в БД для восстановления при callback'ах
+  await updateClubProgress(userId, {
+    isTestMode: isTestMode,
+    ignoreIsPro: ignoreIsPro,
+  });
 
   // 🧹 Очистка всех запланированных задач при перезапуске (club + обычная воронка)
   // ⚡ Используем batch метод для эффективности - один проход вместо 10 отдельных запросов
@@ -388,6 +408,9 @@ export async function startClubFunnel(userId: string, chatId: number, telegramId
 // ============================================================================
 
 export async function handleClubReady(userId: string, chatId: number) {
+  // 🧪 Восстанавливаем флаги тестового режима из БД
+  await restoreTestModeFromProgress(userId);
+
   // Сообщение 2: Эмодзи
   try {
     await getTelegramService().sendAnimation(chatId, VIDEO_NOTE_EMOJI);
@@ -454,6 +477,9 @@ export async function handleBirthDateInput(userId: string, chatId: number, birth
 }
 
 export async function handleBirthDateConfirmed(userId: string, chatId: number, birthDate: string) {
+  // 🧪 Восстанавливаем флаги тестового режима из БД
+  await restoreTestModeFromProgress(userId);
+
   const birthDay = getBirthDay(birthDate);
   const archetypeNumber = getArchetypeNumber(birthDay);
 
@@ -535,6 +561,9 @@ export async function handleBirthDateRejected(userId: string, chatId: number) {
 // ============================================================================
 
 export async function handleClubActivate(userId: string, chatId: number) {
+  // 🧪 Восстанавливаем флаги тестового режима из БД
+  await restoreTestModeFromProgress(userId);
+
   // После нажатия "хочу активировать" → подписка на канал
   const telegramUserId = await getTelegramUserId(userId);
   await handleClubSubscribeRequest(userId, chatId, telegramUserId);
@@ -545,6 +574,9 @@ export async function handleClubActivate(userId: string, chatId: number) {
 // ============================================================================
 
 export async function handleClubSubscribeRequest(userId: string, chatId: number, telegramUserId: number) {
+  // 🧪 Восстанавливаем флаги тестового режима из БД
+  await restoreTestModeFromProgress(userId);
+
   const keyboard = new InlineKeyboard()
     .url('подписаться 😍', 'https://t.me/kristina_egiazarovaaa1407')
     .row()
@@ -571,6 +603,9 @@ export async function handleClubSubscribeRequest(userId: string, chatId: number,
 // ============================================================================
 
 export async function handleClubShowArchetype(userId: string, chatId: number) {
+  // 🧪 Восстанавливаем флаги тестового режима из БД
+  await restoreTestModeFromProgress(userId);
+
   // Сообщение: Эмодзи
   try {
     await getTelegramService().sendAnimation(chatId, VIDEO_NOTE_EMOJI);
@@ -601,6 +636,9 @@ export async function handleClubShowArchetype(userId: string, chatId: number) {
 // ============================================================================
 
 export async function handleClubGetStyle(userId: string, chatId: number) {
+  // 🧪 Восстанавливаем флаги тестового режима из БД
+  await restoreTestModeFromProgress(userId);
+
   // Сообщение 7: Эмодзи
   try {
     await getTelegramService().sendAnimation(chatId, VIDEO_NOTE_EMOJI);
@@ -662,6 +700,9 @@ export async function handleClubGetStyle(userId: string, chatId: number) {
 // ============================================================================
 
 export async function handleClubGetScale(userId: string, chatId: number, telegramUserId: number) {
+  // 🧪 Восстанавливаем флаги тестового режима из БД
+  await restoreTestModeFromProgress(userId);
+
   // Эмодзи
   try {
     await getTelegramService().sendAnimation(chatId, VIDEO_NOTE_EMOJI);
@@ -678,6 +719,9 @@ export async function handleClubGetScale(userId: string, chatId: number, telegra
 // ============================================================================
 
 export async function handleClubCheckSubscription(userId: string, chatId: number, telegramUserId: number) {
+  // 🧪 Восстанавливаем флаги тестового режима из БД
+  await restoreTestModeFromProgress(userId);
+
   // Проверяем подписку на канал
   const isSubscribed = await checkChannelSubscription(telegramUserId);
 
@@ -751,6 +795,9 @@ async function sendScaleMessage(userId: string, chatId: number) {
 // ============================================================================
 
 export async function handleClubGetRoadmap(userId: string, chatId: number) {
+  // 🧪 Восстанавливаем флаги тестового режима из БД
+  await restoreTestModeFromProgress(userId);
+
   const keyboard12 = new InlineKeyboard().text('👉 Начать маршрут', 'club_start_route');
 
   // Получаем дату рождения из прогресса для генерации картинки
@@ -797,6 +844,9 @@ export async function handleClubGetRoadmap(userId: string, chatId: number) {
 // ============================================================================
 
 export async function handleClubStartRoute(userId: string, chatId: number, user: any) {
+  // 🧪 Восстанавливаем флаги тестового режима из БД
+  await restoreTestModeFromProgress(userId);
+
   logger.info({ userId, chatId, telegramId: user?.telegramId }, 'handleClubStartRoute: START');
 
   // Формируем URL с параметрами
