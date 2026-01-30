@@ -1186,14 +1186,18 @@ export async function handleClubAutoProgress(userId: string, chatId: number, ste
     return;
   }
 
-  // Восстанавливаем тестовый режим из данных задачи
+  // 🧪 КРИТИЧНО: Сначала восстанавливаем флаги из БД (более надежный источник)
+  await restoreTestModeFromProgress(userId);
+
+  // Затем также применяем флаги из данных задачи (для обратной совместимости)
   if (isTestMode) {
     setTestMode(true);
   }
-  // Восстанавливаем флаг ignoreIsPro из данных задачи
   if (ignoreIsPro) {
     setIgnoreIsPro(true);
   }
+
+  logger.info({ userId, step, isTestMode, ignoreIsPro }, 'handleClubAutoProgress: flags state');
 
   const progress = await getClubProgress(userId);
   if (!progress) return;
