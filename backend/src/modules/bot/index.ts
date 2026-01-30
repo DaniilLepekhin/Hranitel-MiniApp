@@ -119,7 +119,7 @@ function parseUtmFromPayload(payload: string | undefined): UtmData {
 
   // Зарезервированные payload'ы - НЕ парсим как UTM
   const reservedPayloads = [
-    'club', 'test_start_full', 'test_club_full', 'test'
+    'club', 'test_start_full', 'test_club_full', 'test_start', 'test_club', 'test'
   ];
 
   // Проверяем на зарезервированные префиксы
@@ -1432,6 +1432,113 @@ bot.command('start', async (ctx) => {
 
       // Запускаем club воронку с флагом тестового режима
       await clubFunnel.startClubFunnel(testUser.id, chatId, userId, true);
+      return;
+    }
+
+    // 🧪 Deep link для тестовой club воронки БЕЗ ускоренных таймеров (start=test_club)
+    if (startPayload === 'test_club') {
+      logger.info({ userId }, 'User testing club funnel via deep link (normal timers)');
+
+      // Get or create user in database
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.telegramId, userId))
+        .limit(1);
+
+      let testUser = existingUser;
+      if (!testUser) {
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            telegramId: userId,
+            username: ctx.from?.username || null,
+            firstName: ctx.from?.first_name || null,
+            lastName: ctx.from?.last_name || null,
+          })
+          .returning();
+        testUser = newUser;
+      }
+
+      // Отменяем все предыдущие задачи
+      await schedulerService.cancelAllUserTasks(userId);
+
+      // Сбрасываем прогресс club воронки
+      await db
+        .delete(clubFunnelProgress)
+        .where(eq(clubFunnelProgress.userId, testUser.id));
+
+      // Запускаем club воронку БЕЗ флага тестового режима (обычные таймеры)
+      await clubFunnel.startClubFunnel(testUser.id, chatId, userId, false);
+      return;
+    }
+
+    // 🧪 Deep link для тестовой обычной воронки БЕЗ ускоренных таймеров (start=test_start)
+    if (startPayload === 'test_start') {
+      logger.info({ userId }, 'User testing /start funnel via deep link (normal timers)');
+
+      // Отменяем все предыдущие задачи
+      await schedulerService.cancelAllUserTasks(userId);
+
+      // 📊 Получаем UTM из metadata и добавляем к URL оплаты
+      const testUtmData = await getUtmFromUser(userId);
+      const testWebAppUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', testUtmData);
+
+      const keyboard = new InlineKeyboard()
+        .webApp('Оплатить ❤️', testWebAppUrl)
+        .row()
+        .text('Что входит в оплату?', 'what_included');
+
+      // Отправляем видео без подписи (Telegram ограничивает caption до 1024 символов)
+      await telegramService.sendVideo(
+        chatId,
+        'https://t.me/mate_bot_open/9684',
+        {}
+      );
+
+      // Отправляем текст отдельным сообщением с кнопками
+      await telegramService.sendMessage(
+        chatId,
+        `<b>‼️Марафон «КОД ДЕНЕГ» прошло уже более 100.000 человек ⬇️</b>\n\n` +
+        `<b>30 дней марафона и 4 дня эфиров, в которых всё собирается в систему 👇</b>\n\n` +
+        `<b>День 1</b>\n` +
+        `Стиль, образ, позиционирование.\n` +
+        `Ты понимаешь:\n` +
+        `— как проявляться\n` +
+        `— как привлекать внимание и возможности\n` +
+        `— как через свой образ влиять на людей\n\n` +
+        `<b>День 2</b>\n` +
+        `Честный разбор слепых зон.\n` +
+        `Без обвинений и иллюзий:\n` +
+        `— что мешало раньше\n` +
+        `— куда утекают ресурсы и деньги\n` +
+        `— где именно стоит усилиться\n\n` +
+        `<b>День 3</b>\n` +
+        `Создание продукта.\n` +
+        `Ты собираешь конкретный продукт,\n` +
+        `на котором можно зарабатывать весь год,\n` +
+        `и понимаешь, как внедрять его в жизнь и работу.\n\n` +
+        `<b>День 4</b>\n` +
+        `Дорожная карта.\n` +
+        `План на месяц и маршрут на год вперёд.\n` +
+        `Плюс — деление на Десятки:\n` +
+        `мини-группы по 10 человек и включение в клуб с поддержкой.\n\n` +
+        `<b>💰 Стоимость</b>\n` +
+        `<s>3000 ₽</s>\n` +
+        `<b>2000 ₽ для тебя</b> — марафон + месяц в клубе + доступ к приложению ментального здоровья\n\n` +
+        `Если пойдешь с нами — у тебя появятся:\n` +
+        `— дорожная карта\n` +
+        `— структура\n` +
+        `— среда, где не дают слиться 🤝\n\n` +
+        `<b>Дальше — либо по-старому.\n` +
+        `Либо по-настоящему.</b>`,
+        {
+          reply_markup: keyboard,
+          parse_mode: 'HTML'
+        }
+      );
+
+      // БЕЗ ускоренных таймеров - обычные напоминания не запускаем для теста
       return;
     }
 
