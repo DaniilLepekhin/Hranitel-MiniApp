@@ -257,7 +257,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
 
     // 📊 Получаем UTM из metadata пользователя для добавления к URL оплаты
     const utmData = await getUtmFromUser(userId);
-    const paymentUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+    const paymentUrl = addUtmToPaymentUrl('https://app.successkod.com/payment_form_club.html', utmData);
 
     const keyboard = new InlineKeyboard()
       .webApp('Оформить подписку ❤️', paymentUrl)
@@ -1297,7 +1297,7 @@ bot.command('start', async (ctx) => {
 
       // 📊 Получаем UTM из metadata и добавляем к URL оплаты
       const testUtmData = await getUtmFromUser(userId);
-      const testWebAppUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', testUtmData);
+      const testWebAppUrl = addUtmToPaymentUrl('https://app.successkod.com/payment_form_club.html', testUtmData);
 
       const keyboard = new InlineKeyboard()
         .webApp('Оплатить ❤️', testWebAppUrl)
@@ -1472,7 +1472,7 @@ bot.command('start', async (ctx) => {
 
       // 📊 Получаем UTM из metadata и добавляем к URL оплаты
       const testUtmData = await getUtmFromUser(userId);
-      const testWebAppUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', testUtmData);
+      const testWebAppUrl = addUtmToPaymentUrl('https://app.successkod.com/payment_form_club.html', testUtmData);
 
       const keyboard = new InlineKeyboard()
         .webApp('Оплатить ❤️', testWebAppUrl)
@@ -1793,7 +1793,7 @@ bot.command('start', async (ctx) => {
 
     // 📊 Получаем UTM из metadata и добавляем к URL оплаты
     const userUtmData = await getUtmFromUser(userId);
-    const webAppUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', userUtmData);
+    const webAppUrl = addUtmToPaymentUrl('https://app.successkod.com/payment_form_club.html', userUtmData);
 
     const keyboard = new InlineKeyboard()
       .webApp('Оплатить ❤️', webAppUrl)
@@ -1875,7 +1875,7 @@ bot.callbackQuery('what_included', async (ctx) => {
 
     // 📊 Получаем UTM из metadata и добавляем к URL оплаты
     const utmData = await getUtmFromUser(userId);
-    const webAppUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+    const webAppUrl = addUtmToPaymentUrl('https://app.successkod.com/payment_form_club.html', utmData);
 
     const keyboard = new InlineKeyboard()
       .webApp('Оплатить ❤️', webAppUrl);
@@ -1926,7 +1926,7 @@ bot.callbackQuery('get_access', async (ctx) => {
 
     // 📊 Получаем UTM из metadata и добавляем к URL оплаты
     const utmData = await getUtmFromUser(userId);
-    const webAppUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+    const webAppUrl = addUtmToPaymentUrl('https://app.successkod.com/payment_form_club.html', utmData);
 
     // Cancel the 120-second start reminder since user clicked the button
     await schedulerService.cancelUserTasksByType(userId, 'start_reminder');
@@ -1985,7 +1985,7 @@ bot.callbackQuery('test_get_access_full', async (ctx) => {
 
     // 📊 Получаем UTM из metadata пользователя
     const utmData = await getUtmFromUser(userId);
-    const paymentUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+    const paymentUrl = addUtmToPaymentUrl('https://app.successkod.com/payment_form_club.html', utmData);
 
     const keyboard = new InlineKeyboard()
       .webApp('Оплатить ❤️', paymentUrl);
@@ -2079,7 +2079,7 @@ bot.callbackQuery('not_ready_3', async (ctx) => {
 
     // 📊 Получаем UTM из metadata пользователя
     const utmData = await getUtmFromUser(userId);
-    const paymentUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+    const paymentUrl = addUtmToPaymentUrl('https://app.successkod.com/payment_form_club.html', utmData);
 
     const keyboard = new InlineKeyboard()
       .webApp('Оформить подписку ❤️', paymentUrl);
@@ -2136,7 +2136,7 @@ bot.callbackQuery('topic_money_2026', async (ctx) => {
 
     // 📊 Получаем UTM из metadata пользователя
     const utmData = await getUtmFromUser(userId);
-    const paymentUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+    const paymentUrl = addUtmToPaymentUrl('https://app.successkod.com/payment_form_club.html', utmData);
 
     const keyboard = new InlineKeyboard()
       .webApp('Оформить подписку ❤️', paymentUrl);
@@ -2193,7 +2193,7 @@ bot.callbackQuery('topic_income', async (ctx) => {
 
     // 📊 Получаем UTM из metadata пользователя
     const utmData = await getUtmFromUser(userId);
-    const paymentUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+    const paymentUrl = addUtmToPaymentUrl('https://app.successkod.com/payment_form_club.html', utmData);
 
     const keyboard = new InlineKeyboard()
       .webApp('Оформить подписку ❤️', paymentUrl);
@@ -2246,7 +2246,7 @@ bot.callbackQuery('topic_state', async (ctx) => {
 
     // 📊 Получаем UTM из metadata пользователя
     const utmData = await getUtmFromUser(userId);
-    const paymentUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+    const paymentUrl = addUtmToPaymentUrl('https://app.successkod.com/payment_form_club.html', utmData);
 
     const keyboard = new InlineKeyboard()
       .webApp('Оформить подписку ❤️', paymentUrl);
@@ -2300,7 +2300,7 @@ bot.callbackQuery('topic_environment', async (ctx) => {
 
     // 📊 Получаем UTM из metadata пользователя
     const utmData = await getUtmFromUser(userId);
-    const paymentUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+    const paymentUrl = addUtmToPaymentUrl('https://app.successkod.com/payment_form_club.html', utmData);
 
     const keyboard = new InlineKeyboard()
       .webApp('Оформить подписку ❤️', paymentUrl);
@@ -2813,7 +2813,7 @@ bot.hears('🔮 где мои деньги в 2026 году', async (ctx) => {
 
     // 📊 Получаем UTM из metadata пользователя
     const utmData = await getUtmFromUser(userId);
-    const paymentUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+    const paymentUrl = addUtmToPaymentUrl('https://app.successkod.com/payment_form_club.html', utmData);
 
     const keyboard = new InlineKeyboard()
       .webApp('Оформить подписку ❤️', paymentUrl);
@@ -2857,7 +2857,7 @@ bot.hears('💰 почему доход не растет', async (ctx) => {
 
     // 📊 Получаем UTM из metadata пользователя
     const utmData = await getUtmFromUser(userId);
-    const paymentUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+    const paymentUrl = addUtmToPaymentUrl('https://app.successkod.com/payment_form_club.html', utmData);
 
     const keyboard = new InlineKeyboard()
       .webApp('Оформить подписку ❤️', paymentUrl);
@@ -2896,7 +2896,7 @@ bot.hears('🧠 состояние vs деньги', async (ctx) => {
 
     // 📊 Получаем UTM из metadata пользователя
     const utmData = await getUtmFromUser(userId);
-    const paymentUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+    const paymentUrl = addUtmToPaymentUrl('https://app.successkod.com/payment_form_club.html', utmData);
 
     const keyboard = new InlineKeyboard()
       .webApp('Оформить подписку ❤️', paymentUrl);
@@ -2937,7 +2937,7 @@ bot.hears('🌍 окружение', async (ctx) => {
 
     // 📊 Получаем UTM из metadata пользователя
     const utmData = await getUtmFromUser(userId);
-    const paymentUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
+    const paymentUrl = addUtmToPaymentUrl('https://app.successkod.com/payment_form_club.html', utmData);
 
     const keyboard = new InlineKeyboard()
       .webApp('Оформить подписку ❤️', paymentUrl);
@@ -3202,7 +3202,7 @@ bot.command('test_start', async (ctx) => {
 
     // 📊 Получаем UTM из metadata и добавляем к URL оплаты
     const adminUtmData = await getUtmFromUser(userId);
-    const adminWebAppUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', adminUtmData);
+    const adminWebAppUrl = addUtmToPaymentUrl('https://app.successkod.com/payment_form_club.html', adminUtmData);
 
     const keyboard = new InlineKeyboard()
       .webApp('Оплатить ❤️', adminWebAppUrl)
@@ -3350,7 +3350,7 @@ bot.command('test_start_full', async (ctx) => {
 
     // 📊 Получаем UTM из metadata и добавляем к URL оплаты
     const testFullUtmData = await getUtmFromUser(userId);
-    const webAppUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', testFullUtmData);
+    const webAppUrl = addUtmToPaymentUrl('https://app.successkod.com/payment_form_club.html', testFullUtmData);
 
     const keyboard = new InlineKeyboard()
       .webApp('Оплатить ❤️', webAppUrl)

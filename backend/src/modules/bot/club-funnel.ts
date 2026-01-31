@@ -42,7 +42,7 @@ const BUTTON_TIMEOUT = 300 * 1000; // 5 минут
 const FINAL_TIMEOUT = 120 * 1000; // 2 минуты
 
 // WebApp URL для покупки
-const WEBAPP_PURCHASE_URL = 'https://hranitel.daniillepekhin.com/payment_form_club.html';
+const WEBAPP_PURCHASE_URL = 'https://app.successkod.com/payment_form_club.html';
 
 // ============================================================================
 // HELPER FUNCTIONS
