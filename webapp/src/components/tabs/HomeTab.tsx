@@ -10,7 +10,18 @@ import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
 import { DailyAnnouncement } from '@/components/ui/DailyAnnouncement';
 import { useTelegram } from '@/hooks/useTelegram';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.hranitelkoda.ru';
+// Динамически определяем API URL на основе текущего домена
+const getApiUrl = (): string => {
+  if (typeof window === 'undefined') {
+    return process.env.NEXT_PUBLIC_API_URL || 'https://hranitel.daniillepekhin.com';
+  }
+  const hostname = window.location.hostname;
+  if (hostname.includes('successkod.com')) {
+    return `https://${hostname}`;
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'https://hranitel.daniillepekhin.com';
+};
+const API_URL = getApiUrl();
 
 interface HomeTabProps {
   onProfileClick?: () => void;

@@ -6,7 +6,18 @@ import { ArrowLeft, Check, ChevronRight, AlertCircle, Trophy, X } from 'lucide-r
 import { useAuthStore } from '@/store/auth';
 import { useTelegram } from '@/hooks/useTelegram';
 import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://hranitel.daniillepekhin.com';
+// Динамически определяем API URL на основе текущего домена
+const getApiUrl = (): string => {
+  if (typeof window === 'undefined') {
+    return process.env.NEXT_PUBLIC_API_URL || 'https://hranitel.daniillepekhin.com';
+  }
+  const hostname = window.location.hostname;
+  if (hostname.includes('successkod.com')) {
+    return `https://${hostname}`;
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'https://hranitel.daniillepekhin.com';
+};
+const API_URL = getApiUrl();
 
 // Типы
 interface Question {
