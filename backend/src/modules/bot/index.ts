@@ -307,23 +307,21 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
       const marathonKeyboard = new InlineKeyboard()
         .webApp('попасть на марафон ❤️', paymentUrl);
 
-      // Отправляем 9 видео-отзывов участников
-      const videoUrls = [
-        'https://t.me/mate_bot_open/9713',
-        'https://t.me/mate_bot_open/9714',
-        'https://t.me/mate_bot_open/9715',
-        'https://t.me/mate_bot_open/9716',
-        'https://t.me/mate_bot_open/9717',
-        'https://t.me/mate_bot_open/9718',
-        'https://t.me/mate_bot_open/9719',
-        'https://t.me/mate_bot_open/9720',
-        'https://t.me/mate_bot_open/9721',
+      // Отправляем 9 видео-отзывов участников альбомом (максимум 10 в одном альбоме)
+      const videoMedia = [
+        { type: 'video' as const, media: 'https://t.me/mate_bot_open/9713' },
+        { type: 'video' as const, media: 'https://t.me/mate_bot_open/9714' },
+        { type: 'video' as const, media: 'https://t.me/mate_bot_open/9715' },
+        { type: 'video' as const, media: 'https://t.me/mate_bot_open/9716' },
+        { type: 'video' as const, media: 'https://t.me/mate_bot_open/9717' },
+        { type: 'video' as const, media: 'https://t.me/mate_bot_open/9718' },
+        { type: 'video' as const, media: 'https://t.me/mate_bot_open/9719' },
+        { type: 'video' as const, media: 'https://t.me/mate_bot_open/9720' },
+        { type: 'video' as const, media: 'https://t.me/mate_bot_open/9721' },
       ];
 
-      // Отправляем видео последовательно
-      for (const videoUrl of videoUrls) {
-        await telegramService.sendVideo(chatId, videoUrl, {});
-      }
+      // Отправляем как альбом
+      await telegramService.sendMediaGroup(chatId, videoMedia);
 
       // Отправляем текст с кнопкой
       await telegramService.sendMessage(
@@ -1872,6 +1870,9 @@ bot.callbackQuery('what_included', async (ctx) => {
     const userId = ctx.from!.id;
     const chatId = ctx.chat!.id;
 
+    // ⚡ Отменяем start_reminder, т.к. пользователь уже увидит билет сейчас
+    await schedulerService.cancelUserTasksByType(userId, 'start_reminder');
+
     // 📊 Получаем UTM из metadata и добавляем к URL оплаты
     const utmData = await getUtmFromUser(userId);
     const webAppUrl = addUtmToPaymentUrl('https://hranitel.daniillepekhin.com/payment_form_club.html', utmData);
@@ -1896,6 +1897,19 @@ bot.callbackQuery('what_included', async (ctx) => {
         reply_markup: keyboard,
         parse_mode: 'HTML'
       }
+    );
+
+    // Mark user as awaiting payment
+    await stateService.setState(userId, 'awaiting_payment');
+
+    // Schedule видео-отзывы через 5 минут (если не оплатил)
+    await schedulerService.schedule(
+      {
+        type: 'start_marathon_5min',
+        userId,
+        chatId,
+      },
+      5 * 60 * 1000 // 5 minutes
     );
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in what_included handler');
