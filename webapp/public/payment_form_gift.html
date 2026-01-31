@@ -362,6 +362,16 @@
       };
     }
 
+    // Динамически определяем API URL на основе текущего домена
+    function getApiUrl() {
+      const hostname = window.location.hostname;
+      if (hostname.includes('successkod.com')) {
+        return 'https://' + hostname;
+      }
+      return 'https://hranitel.daniillepekhin.com';
+    }
+    const API_URL = getApiUrl();
+
     function getTGId() {
       const tg = window.Telegram?.WebApp;
       if (tg?.initDataUnsafe?.user?.id) {
@@ -476,7 +486,7 @@
       };
 
       // Создаём payment_attempt в базе (нужно для webhook)
-      await fetch('https://hranitel.daniillepekhin.com/api/analytics/payment-attempt', {
+      await fetch(API_URL + '/api/analytics/payment-attempt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -566,7 +576,7 @@
       const gifterTgId = getTGId();
 
       if (params.recipient_id && gifterTgId) {
-        fetch('https://hranitel.daniillepekhin.com/api/analytics/gift-attempt', {
+        fetch(API_URL + '/api/analytics/gift-attempt', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
