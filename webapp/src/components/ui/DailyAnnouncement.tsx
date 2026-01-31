@@ -8,6 +8,7 @@ import { useTelegram } from '@/hooks/useTelegram';
 const MARATHON_DAYS = [
   {
     date: '1 февраля',
+    time: '14:00',
     dayNumber: 1,
     title: 'Твой Персонаж 2026',
     points: [
@@ -20,6 +21,7 @@ const MARATHON_DAYS = [
   },
   {
     date: '2 февраля',
+    time: '19:00',
     dayNumber: 2,
     title: 'Новая версия тебя',
     points: [
@@ -31,6 +33,7 @@ const MARATHON_DAYS = [
   },
   {
     date: '3 февраля',
+    time: '19:00',
     dayNumber: 3,
     title: 'Самозванец — точка роста',
     points: [
@@ -42,6 +45,7 @@ const MARATHON_DAYS = [
   },
   {
     date: '4 февраля',
+    time: '19:00',
     dayNumber: 4,
     title: 'Как опереться на себя',
     points: [
@@ -106,19 +110,6 @@ export function DailyAnnouncement() {
 
       {/* Контент */}
       <div className="p-3">
-        <p
-          style={{
-            fontFamily: 'Gilroy, sans-serif',
-            fontWeight: 500,
-            fontSize: '12px',
-            color: '#6b5a4a',
-            marginBottom: '10px',
-            paddingLeft: '4px',
-          }}
-        >
-          Эфиры каждый день в 19:00 мск
-        </p>
-
         {/* Список дней - аккордеон */}
         <div className="space-y-2">
           {MARATHON_DAYS.map((day) => {
@@ -179,7 +170,7 @@ export function DailyAnnouncement() {
                           color: '#9c8b7a',
                         }}
                       >
-                        {day.date}
+                        {day.date} в {day.time} мск
                       </span>
                     </div>
                   </div>
