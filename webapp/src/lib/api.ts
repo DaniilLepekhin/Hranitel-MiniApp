@@ -1,6 +1,23 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL !== undefined
-  ? process.env.NEXT_PUBLIC_API_URL
-  : 'http://localhost:3001';
+// Динамически определяем API URL на основе текущего домена
+// Это нужно для работы через CDN из разных стран
+const getApiUrl = (): string => {
+  // На сервере (SSR) или при отсутствии window используем env переменную
+  if (typeof window === 'undefined') {
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  }
+
+  const hostname = window.location.hostname;
+
+  // Если открыто с successkod.com - используем API через тот же домен
+  if (hostname.includes('successkod.com')) {
+    return `https://${hostname}`;
+  }
+
+  // Иначе используем env переменную или дефолт
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+};
+
+const API_URL = getApiUrl();
 
 interface ApiOptions extends RequestInit {
   params?: Record<string, string | number | undefined>;
