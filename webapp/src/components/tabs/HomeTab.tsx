@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth';
 import { energiesApi } from '@/lib/api';
 import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
+import { DailyAnnouncement } from '@/components/ui/DailyAnnouncement';
 import { useTelegram } from '@/hooks/useTelegram';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.hranitelkoda.ru';
@@ -381,6 +382,9 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
           </div>
           {/* Линия */}
           <div className="w-full h-[1px] bg-[#2d2620]/20 mb-4" />
+
+          {/* 📅 Анонс дня - показывается только если есть анонс на текущую дату по МСК */}
+          <DailyAnnouncement />
 
           {/* Кнопка "Стать амбассадором" */}
           <div
