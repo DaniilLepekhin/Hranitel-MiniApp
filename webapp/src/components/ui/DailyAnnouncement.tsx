@@ -4,21 +4,8 @@ import { useState } from 'react';
 import { Calendar, ExternalLink, ChevronDown } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 
-// Все анонсы марафона «Код Денег»
+// Все анонсы марафона «Код Денег» (дни 2-4, день 1 перенесён в записи эфиров)
 const MARATHON_DAYS = [
-  {
-    date: '1 февраля',
-    time: '14:00',
-    dayNumber: 1,
-    title: 'Твой Персонаж 2026',
-    points: [
-      'почему деньги и реализация приходят к состоянию, а не к суете',
-      'кем ты являешься сейчас',
-      'кем тебе важно стать в 2026',
-      'как выглядит твоя новая версия',
-    ],
-    link: 'https://ishodniy-kod.com/pl/webinar/show?id=3243860',
-  },
   {
     date: '2 февраля',
     time: '19:00',
@@ -104,7 +91,7 @@ export function DailyAnnouncement() {
             letterSpacing: '0.5px',
           }}
         >
-          Марафон «Код Денег» • 1–4 февраля
+          Марафон «Код Денег» • 2–4 февраля
         </span>
       </div>
 
