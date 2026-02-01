@@ -1649,7 +1649,7 @@ bot.command('start', async (ctx) => {
     // - club_insta - utm_campaign=club, utm_medium=insta
     // - club_insta_shapka - utm_campaign=club, utm_medium=insta, utm_source=shapka
     // - club_insta_shapka_promo - utm_campaign=club, utm_medium=insta, utm_source=shapka, utm_content=promo
-    if (startPayload === 'club' || startPayload?.startsWith('club_')) {
+    if ((startPayload === 'club' || startPayload?.startsWith('club_')) && !(user && user.isPro)) {
       // Парсим UTM из payload: club_MEDIUM_SOURCE_CONTENT
       let utmMedium: string | null = null;
       let utmSource: string | null = null;
@@ -1736,6 +1736,21 @@ bot.command('start', async (ctx) => {
 
         logger.info({ userId, ...utmData }, 'Start funnel with UTM');
       }
+
+      // ✅ Если пользователь с подпиской перешёл по start_XXX ссылке - показываем меню
+      if (user && user.isPro) {
+        logger.info({ userId }, 'Paid user clicked start_ link - showing menu');
+        await funnels.sendMenuMessage(chatId);
+        return;
+      }
+    }
+
+    // ✅ Если пользователь с подпиской зашёл по обычному /start без параметров - показываем меню
+    // (обработка onboardingStep уже была выше, тут ловим случай когда onboarding_complete)
+    if (user && user.isPro && !startPayload) {
+      logger.info({ userId }, 'Paid user clicked /start without params - showing menu');
+      await funnels.sendMenuMessage(chatId);
+      return;
     }
 
     // 🧹 Очистка всех запланированных задач при перезапуске /start (обычная + club воронка)
