@@ -11,7 +11,7 @@ import { users } from '@/db/schema';
 import { errorHandler } from '@/middlewares/errorHandler';
 
 // 🆕 Professional middlewares (senior-level)
-import { authRateLimiter } from '@/middlewares/rate-limiter';
+import { authRateLimiter, paymentRateLimiter } from '@/middlewares/rate-limiter';
 import { securityHeaders, apiSecurityHeaders } from '@/middlewares/security-headers';
 import { auditLogger } from '@/middlewares/audit-logger';
 import { hotCache, userCache } from '@/middlewares/cache';
@@ -198,8 +198,8 @@ const app = new Elysia()
       .use(leaderTestModule)
       .use(decadesModule)
   )
-  // Analytics module (no auth required for tracking)
-  .group('/api', (app) => app.use(analyticsModule))
+  // Analytics module (no auth required for tracking, but rate limited)
+  .group('/api', (app) => app.use(paymentRateLimiter).use(analyticsModule))
   // Webhooks (no auth required)
   .group('/api', (app) => app.use(lavaPaymentWebhook))
   // Admin API (secret header auth)
