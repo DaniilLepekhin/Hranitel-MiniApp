@@ -3,6 +3,7 @@ import { db } from '@/db';
 import { paymentAnalytics, payments, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
+import { alertsService } from '@/services/alerts.service';
 
 export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analytics'] })
   // Track form open event
@@ -160,6 +161,16 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
         };
       } catch (error) {
         logger.error({ error, body }, 'Failed to track payment attempt');
+
+        // 🚨 КРИТИЧЕСКИЙ АЛЕРТ: данные оплаты не сохранились
+        await alertsService.paymentError(body.telegram_id, error, {
+          payment_method: body.payment_method,
+          amount: body.amount,
+          name: body.name,
+          email: body.email,
+          phone: body.phone,
+        });
+
         set.status = 500;
         return {
           success: false,

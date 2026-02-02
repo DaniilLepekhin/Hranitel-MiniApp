@@ -226,11 +226,30 @@ logger.info(
   `🚀 КОД ДЕНЕГ 4.0 Backend is running`
 );
 
-// Telegram webhook disabled - bot not needed for webapp-only deployment
+// Telegram webhook setup + health monitoring
+import { alertsService } from '@/services/alerts.service';
+
 if (!isDevelopment) {
-  setupWebhook().catch((error) => {
+  setupWebhook().catch(async (error) => {
     logger.error({ error }, "Failed to setup webhook on startup");
+    // Отправляем алерт о проблеме с webhook
+    await alertsService.webhookError(error);
   });
+
+  // 🏥 Периодическая проверка здоровья бота (каждые 10 минут)
+  const BOT_HEALTH_CHECK_INTERVAL = 10 * 60 * 1000; // 10 минут
+  setInterval(async () => {
+    try {
+      await alertsService.checkWebhookHealth();
+    } catch (error) {
+      logger.error({ error }, 'Bot health check failed');
+    }
+  }, BOT_HEALTH_CHECK_INTERVAL);
+
+  // Первая проверка через 1 минуту после старта
+  setTimeout(async () => {
+    await alertsService.checkWebhookHealth();
+  }, 60 * 1000);
 }
 
 // Graceful shutdown with timeout
