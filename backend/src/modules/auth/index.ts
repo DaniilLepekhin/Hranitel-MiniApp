@@ -123,11 +123,45 @@ export const authModule = new Elysia({ prefix: '/auth', tags: ['Auth'] })
           photoUrl = await getTelegramUserPhoto(telegramUser.id);
         }
 
+        // Parse start_param for UTM tracking (from MiniApp direct links)
+        // Format: https://t.me/SuccessKODBot/app?startapp=utm_source_medium_campaign
+        // or: https://t.me/SuccessKODBot/app?startapp=source_instagram
+        const startParam = initDataUnsafe?.start_param || null;
+        let utmData: { utm_source?: string; utm_medium?: string; utm_campaign?: string; raw_param?: string } = {};
+
+        if (startParam) {
+          utmData.raw_param = startParam;
+          // Parse different formats:
+          // 1. Simple: "instagram", "site", "landing"
+          // 2. With prefix: "utm_instagram_stories_feb2026"
+          // 3. Underscore separated: "source_medium_campaign"
+          const parts = startParam.split('_');
+
+          if (parts[0] === 'utm' && parts.length >= 2) {
+            // Format: utm_source_medium_campaign
+            utmData.utm_source = parts[1] || undefined;
+            utmData.utm_medium = parts[2] || undefined;
+            utmData.utm_campaign = parts[3] || undefined;
+          } else if (parts.length >= 2) {
+            // Format: source_medium or source_medium_campaign
+            utmData.utm_source = parts[0] || undefined;
+            utmData.utm_medium = parts[1] || undefined;
+            utmData.utm_campaign = parts[2] || undefined;
+          } else {
+            // Simple format: just source
+            utmData.utm_source = startParam;
+            utmData.utm_medium = 'miniapp';
+          }
+
+          logger.info({ telegramId: telegramUser.id, startParam, utmData }, 'Parsed UTM from start_param');
+        }
+
         logger.info({
           telegramId: telegramUser.id,
           firstName: telegramUser.first_name,
           username: telegramUser.username,
-          hasPhoto: !!photoUrl
+          hasPhoto: !!photoUrl,
+          startParam
         }, 'Processing auth for user');
 
         // Find or create user
@@ -156,8 +190,23 @@ export const authModule = new Elysia({ prefix: '/auth', tags: ['Auth'] })
 
           logger.info({ userId: user.id, photoUrl: user.photoUrl?.substring(0, 50) }, 'User updated (firstName/lastName preserved)');
         } else {
-          // Create new user
+          // Create new user with UTM data in metadata
           logger.debug({ telegramId: telegramUser.id }, 'DB: Creating new user');
+
+          // Build metadata with UTM info if available
+          const metadata: Record<string, any> = {};
+          if (startParam) {
+            metadata.registration_source = 'miniapp_direct';
+            metadata.start_param = startParam;
+            if (utmData.utm_source) metadata.utm_source = utmData.utm_source;
+            if (utmData.utm_medium) metadata.utm_medium = utmData.utm_medium;
+            if (utmData.utm_campaign) metadata.utm_campaign = utmData.utm_campaign;
+            metadata.registered_at = new Date().toISOString();
+          } else {
+            metadata.registration_source = 'miniapp';
+            metadata.registered_at = new Date().toISOString();
+          }
+
           [user] = await db
             .insert(users)
             .values({
@@ -167,10 +216,16 @@ export const authModule = new Elysia({ prefix: '/auth', tags: ['Auth'] })
               lastName: telegramUser.last_name,
               photoUrl: photoUrl,
               languageCode: telegramUser.language_code || 'ru',
+              metadata: metadata,
             })
             .returning();
 
-          logger.info({ telegramId: telegramUser.id, userId: user.id }, 'New user registered');
+          logger.info({
+            telegramId: telegramUser.id,
+            userId: user.id,
+            startParam,
+            utmSource: utmData.utm_source
+          }, 'New user registered via MiniApp');
         }
 
         // Generate JWT
