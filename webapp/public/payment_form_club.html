@@ -497,12 +497,8 @@
       return params;
     }
 
-    // Динамически определяем API URL на основе текущего домена
+    // API всегда на hranitel.daniillepekhin.com (CDN не проксирует /api/)
     function getApiUrl() {
-      const hostname = window.location.hostname;
-      if (hostname.includes('successkod.com')) {
-        return 'https://' + hostname;
-      }
       return 'https://hranitel.daniillepekhin.com';
     }
     const API_URL = getApiUrl();
