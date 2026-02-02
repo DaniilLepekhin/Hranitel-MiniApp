@@ -10,7 +10,7 @@ async function setupWebhook() {
 
     // Set webhook
     await bot.api.setWebhook(webhookUrl, {
-      allowed_updates: ['message', 'callback_query'],
+      allowed_updates: ['message', 'callback_query', 'inline_query', 'users_shared', 'chat_member', 'my_chat_member'],
       drop_pending_updates: false,
       secret_token: config.TELEGRAM_WEBHOOK_SECRET,
     });
