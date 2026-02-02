@@ -343,6 +343,7 @@
 
     let selectedPaymentMethod = 'bank-rf';
     let selectedCurrency = 'usd';
+    let isSubmitting = false; // 🛡️ Защита от двойного клика
 
     const prices = {
       'bank-rf': '2 000₽',
@@ -367,6 +368,37 @@
       return 'https://hranitel.daniillepekhin.com';
     }
     const API_URL = getApiUrl();
+
+    // 🛡️ Fetch с таймаутом и retry логикой
+    async function fetchWithTimeout(url, options, { timeout = 30000, retries = 2 } = {}) {
+      for (let attempt = 1; attempt <= retries; attempt++) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+        try {
+          const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          return response;
+        } catch (error) {
+          clearTimeout(timeoutId);
+          if (error.name === 'AbortError') {
+            if (attempt < retries) {
+              await new Promise(r => setTimeout(r, 1000 * attempt));
+              continue;
+            }
+            throw new Error('Превышено время ожидания. Проверьте интернет-соединение.');
+          }
+          if (attempt < retries) {
+            await new Promise(r => setTimeout(r, 1000 * attempt));
+            continue;
+          }
+          throw new Error('Ошибка сети. Проверьте интернет-соединение.');
+        }
+      }
+    }
 
     function getTGId() {
       const tg = window.Telegram?.WebApp;
@@ -455,6 +487,11 @@
         throw new Error('Не указан получатель подарка');
       }
 
+      // 🛡️ КРИТИЧНО: Проверяем gifter_id
+      if (!gifterTgId) {
+        throw new Error('Откройте форму через Telegram');
+      }
+
       // Email формируется как recipient_id_giftclub@mail.ru для идентификации в хуке
       const email = `${params.recipient_id}_giftclub@mail.ru`;
 
@@ -468,43 +505,51 @@
         apiPaymentMethod = currency === 'usd' ? 'USD' : 'EUR';
       }
 
+      // Правильный расчёт суммы
+      const amount = apiPaymentMethod === 'RUB' ? '2000' : (currency === 'eur' ? '22' : '26');
+
       const payload = {
         email: email,
         name: `Gift from ${gifterTgId}`,
         phone: '',
         payment_method: apiPaymentMethod,
-        telegram_id: gifterTgId ? gifterTgId.toString() : null,
+        telegram_id: gifterTgId.toString(),
         recipient_id: params.recipient_id,
-        gifter_id: gifterTgId ? gifterTgId.toString() : params.gifter_id,
+        gifter_id: gifterTgId.toString(),
         source: 'telegram_webapp_gift',
         tariff: 'club2000_gift',
         group_id: 'hranitel_kod_bot'
       };
 
-      // Создаём payment_attempt в базе (нужно для webhook)
-      await fetch(API_URL + '/api/analytics/payment-attempt', {
+      // 🛡️ КРИТИЧНО: Создаём payment_attempt в базе (нужно для webhook) - С ПРОВЕРКОЙ ОШИБКИ!
+      const attemptResponse = await fetchWithTimeout(API_URL + '/api/analytics/payment-attempt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          telegram_id: gifterTgId ? gifterTgId.toString() : params.gifter_id,
+          telegram_id: gifterTgId.toString(),
           payment_method: apiPaymentMethod,
-          amount: apiPaymentMethod === 'RUB' ? '2000' : '26',
+          amount: amount,
           email: email,
           name: `Gift from ${gifterTgId}`,
           metka: 'gift_payment'
         })
-      }).catch(err => console.error('payment-attempt error:', err));
+      }, { timeout: 15000, retries: 3 });
+
+      if (!attemptResponse.ok) {
+        console.error('Failed to log gift payment attempt:', attemptResponse.status);
+        throw new Error('Ошибка сохранения данных. Попробуйте ещё раз.');
+      }
 
       // Generate payment link - выбираем webhook в зависимости от метода оплаты
       const webhookUrl = currency === 'paypal'
         ? 'https://n8n4.daniillepekhin.ru/webhook/lava_club2_for_friends_paypal'
         : 'https://n8n4.daniillepekhin.ru/webhook/lava_club2';
 
-      const response = await fetch(webhookUrl, {
+      const response = await fetchWithTimeout(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
-      });
+      }, { timeout: 30000, retries: 2 });
 
       if (!response.ok) {
         throw new Error('Не удалось получить ссылку на оплату');
@@ -529,33 +574,96 @@
     document.getElementById('paymentForm').addEventListener('submit', async function(e) {
       e.preventDefault();
 
+      // 🛡️ Защита от двойного клика
+      if (isSubmitting) {
+        console.warn('Form submission already in progress');
+        return;
+      }
+
       const params = getUrlParams();
+      const gifterTgId = getTGId();
+      const submitBtn = this.querySelector('.submit-btn');
+
       if (!params.recipient_id) {
         showNotification('Ошибка: не указан получатель подарка');
         return;
       }
 
-      const submitBtn = this.querySelector('.submit-btn');
+      if (!gifterTgId) {
+        showNotification('Откройте форму через Telegram');
+        return;
+      }
+
+      // 🛡️ Блокируем форму
+      isSubmitting = true;
       submitBtn.disabled = true;
+      submitBtn.style.pointerEvents = 'none';
 
       try {
         showLoading(true, 'Генерируем ссылку на оплату...');
 
         const redirectUrl = await generatePaymentLink(selectedPaymentMethod, selectedCurrency);
 
-        if (redirectUrl) {
+        if (redirectUrl && redirectUrl.startsWith('http')) {
           showLoading(true, 'Переходим на страницу оплаты...');
           setTimeout(() => {
             window.location.href = redirectUrl;
           }, 500);
+        } else {
+          throw new Error('Не удалось получить ссылку на оплату');
         }
       } catch (error) {
         console.error('Ошибка:', error);
         showNotification(error.message || 'Произошла ошибка, попробуйте снова');
         showLoading(false);
-        submitBtn.disabled = false;
+      } finally {
+        // 🛡️ Разблокируем только при ошибке
+        if (!window.location.href.includes('lava') && !window.location.href.includes('pay')) {
+          isSubmitting = false;
+          submitBtn.disabled = false;
+          submitBtn.style.pointerEvents = 'auto';
+        }
       }
     });
+
+    // 🛡️ Блокировка формы если нет необходимых данных
+    function blockFormIfNoData() {
+      const params = getUrlParams();
+      const gifterTgId = getTGId();
+      const submitBtn = document.querySelector('.submit-btn');
+      const form = document.getElementById('paymentForm');
+
+      if (!gifterTgId) {
+        console.error('Нет telegram_id дарителя');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Откройте через Telegram';
+        submitBtn.style.background = '#999';
+        submitBtn.style.cursor = 'not-allowed';
+
+        // Добавляем предупреждение
+        const warning = document.createElement('div');
+        warning.style.cssText = 'margin-top: 10px; padding: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; font-size: 13px; text-align: center; color: #856404;';
+        warning.textContent = '⚠️ Форма должна быть открыта через Telegram-бота';
+        form.appendChild(warning);
+        return false;
+      }
+
+      if (!params.recipient_id) {
+        console.error('Нет recipient_id получателя');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Ошибка: получатель не указан';
+        submitBtn.style.background = '#999';
+        submitBtn.style.cursor = 'not-allowed';
+
+        const warning = document.createElement('div');
+        warning.style.cssText = 'margin-top: 10px; padding: 10px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 8px; font-size: 13px; text-align: center; color: #721c24;';
+        warning.textContent = '❌ Не указан получатель подарка. Вернитесь в бот и выберите друга.';
+        form.appendChild(warning);
+        return false;
+      }
+
+      return true;
+    }
 
     // Инициализация Telegram WebApp
     function initializeTelegramWebApp() {
@@ -587,11 +695,15 @@
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {
         initializeTelegramWebApp();
-        sendGiftAttempt();
+        if (blockFormIfNoData()) {
+          sendGiftAttempt();
+        }
       });
     } else {
       initializeTelegramWebApp();
-      sendGiftAttempt();
+      if (blockFormIfNoData()) {
+        sendGiftAttempt();
+      }
     }
   </script>
 </body>

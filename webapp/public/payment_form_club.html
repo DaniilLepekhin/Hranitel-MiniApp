@@ -443,6 +443,7 @@
 
     let selectedPaymentMethod = 'bank-rf';
     let selectedCurrency = 'usd';
+    let isSubmitting = false; // 🛡️ Защита от двойного клика
 
     const prices = {
       'bank-rf': '2 000₽',
@@ -502,6 +503,37 @@
       return 'https://hranitel.daniillepekhin.com';
     }
     const API_URL = getApiUrl();
+
+    // 🛡️ Fetch с таймаутом и retry логикой
+    async function fetchWithTimeout(url, options, { timeout = 30000, retries = 2 } = {}) {
+      for (let attempt = 1; attempt <= retries; attempt++) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+        try {
+          const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          return response;
+        } catch (error) {
+          clearTimeout(timeoutId);
+          if (error.name === 'AbortError') {
+            if (attempt < retries) {
+              await new Promise(r => setTimeout(r, 1000 * attempt));
+              continue;
+            }
+            throw new Error('Превышено время ожидания. Проверьте интернет-соединение.');
+          }
+          if (attempt < retries) {
+            await new Promise(r => setTimeout(r, 1000 * attempt));
+            continue;
+          }
+          throw new Error('Ошибка сети. Проверьте интернет-соединение.');
+        }
+      }
+    }
 
     function getTGId() {
       const tg = window.Telegram?.WebApp;
@@ -574,16 +606,25 @@
     }
 
     function validateEmail(email) {
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      // Улучшенная валидация email
+      const regex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+      return regex.test(email) && email.length <= 254;
     }
 
     function validateName(name) {
-      return name.trim().length >= 2;
+      const trimmed = name.trim();
+      // Минимум 2 символа, максимум 100, только буквы/пробелы/дефисы
+      return trimmed.length >= 2 && trimmed.length <= 100;
     }
 
     function validatePhone(phone) {
       const digits = phone.replace(/\D/g, '');
-      return digits.length >= 10;
+      return digits.length >= 10 && digits.length <= 15;
+    }
+
+    // Санитизация входных данных
+    function sanitizeInput(str, maxLength = 200) {
+      return str.trim().slice(0, maxLength).replace(/[<>]/g, '');
     }
 
     function setupFieldValidation(fieldId, validationFn) {
@@ -671,20 +712,20 @@
 
       // Log payment attempt - КРИТИЧЕСКИ ВАЖНО для обработки webhook'а от Lava
       // Без этой записи webhook не сможет найти пользователя
-      const attemptResponse = await fetch(API_URL + '/api/analytics/payment-attempt', {
+      const attemptResponse = await fetchWithTimeout(API_URL + '/api/analytics/payment-attempt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           telegram_id: tgId ? tgId.toString() : null,
           payment_method: apiPaymentMethod,
-          amount: apiPaymentMethod === 'RUB' ? '2000' : '26',
+          amount: apiPaymentMethod === 'RUB' ? '2000' : (currency === 'eur' ? '22' : '26'),
           currency: apiPaymentMethod,
           name: name,
           email: email,
           phone: phone,
           ...params
         })
-      });
+      }, { timeout: 15000, retries: 3 });
 
       if (!attemptResponse.ok) {
         console.error('Failed to log payment attempt:', attemptResponse.status);
@@ -696,11 +737,11 @@
         ? 'https://n8n4.daniillepekhin.ru/webhook/lava_club2_paypal'
         : 'https://n8n4.daniillepekhin.ru/webhook/lava_club2';
 
-      const response = await fetch(webhookUrl, {
+      const response = await fetchWithTimeout(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
-      });
+      }, { timeout: 30000, retries: 2 });
 
       if (!response.ok) {
         throw new Error('Не удалось получить ссылку на оплату');
@@ -725,9 +766,13 @@
     document.getElementById('paymentForm').addEventListener('submit', async function(e) {
       e.preventDefault();
 
-      const name = document.getElementById('name').value.trim();
-      const phone = document.getElementById('phone').value.trim();
-      const email = document.getElementById('email').value.trim().toLowerCase();
+      // 🛡️ Защита от двойного клика
+      if (isSubmitting) {
+        console.warn('Form submission already in progress');
+        return;
+      }
+
+      const submitBtn = this.querySelector('.submit-btn');
       const tgId = getTGId();
 
       // КРИТИЧЕСКАЯ ПРОВЕРКА: telegram_id обязателен для обработки платежа
@@ -737,7 +782,11 @@
         return;
       }
 
-      // Валидация всех полей
+      // Санитизация и валидация
+      const name = sanitizeInput(document.getElementById('name').value, 100);
+      const phone = sanitizeInput(document.getElementById('phone').value, 20);
+      const email = sanitizeInput(document.getElementById('email').value.toLowerCase(), 254);
+
       if (!name || !validateName(name)) {
         showNotification('Введите имя и фамилию (минимум 2 символа)');
         return;
@@ -753,25 +802,35 @@
         return;
       }
 
-      const submitBtn = this.querySelector('.submit-btn');
+      // 🛡️ Блокируем форму
+      isSubmitting = true;
       submitBtn.disabled = true;
+      submitBtn.style.pointerEvents = 'none';
 
       try {
         showLoading(true, 'Генерируем ссылку на оплату...');
 
         const redirectUrl = await generatePaymentLink(email, name, phone, selectedPaymentMethod, selectedCurrency);
 
-        if (redirectUrl) {
+        if (redirectUrl && redirectUrl.startsWith('http')) {
           showLoading(true, 'Переходим на страницу оплаты...');
           setTimeout(() => {
             window.location.href = redirectUrl;
           }, 500);
+        } else {
+          throw new Error('Не удалось получить ссылку на оплату');
         }
       } catch (error) {
         console.error('Ошибка:', error);
         showNotification(error.message || 'Произошла ошибка, попробуйте снова');
         showLoading(false);
-        submitBtn.disabled = false;
+      } finally {
+        // 🛡️ Разблокируем только при ошибке (при успехе идёт редирект)
+        if (!window.location.href.includes('lava') && !window.location.href.includes('pay')) {
+          isSubmitting = false;
+          submitBtn.disabled = false;
+          submitBtn.style.pointerEvents = 'auto';
+        }
       }
     });
 
@@ -783,6 +842,27 @@
         window.Telegram.WebApp.ready();
         window.Telegram.WebApp.expand();
         console.log('Telegram WebApp инициализирован');
+      }
+
+      // 🛡️ Проверяем telegram_id при загрузке и блокируем форму если нет
+      const tgId = getTGId();
+      if (!tgId) {
+        const submitBtn = document.querySelector('.submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Откройте через Telegram';
+        submitBtn.style.background = '#999';
+        submitBtn.style.cursor = 'not-allowed';
+
+        // Показываем предупреждение
+        const container = document.querySelector('.container');
+        const warning = document.createElement('div');
+        warning.className = 'feature-card';
+        warning.style.background = 'linear-gradient(135deg, rgba(255, 193, 7, 0.2) 0%, rgba(255, 255, 255, 0.6) 100%)';
+        warning.style.borderColor = '#ffc107';
+        warning.innerHTML = '<span class="feature-icon" style="background: #ffc107;">⚠</span><span>Откройте форму через Telegram бот для оформления подписки</span>';
+        container.insertBefore(warning, container.querySelector('.feature-card'));
+
+        console.warn('telegram_id not found - form disabled');
       }
     }
 
