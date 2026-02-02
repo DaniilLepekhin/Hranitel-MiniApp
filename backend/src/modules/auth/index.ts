@@ -203,8 +203,11 @@ export const authModule = new Elysia({ prefix: '/auth', tags: ['Auth'] })
             city: user.city,
             level: user.level,
             experience: user.experience,
+            energies: user.energies,
             streak: user.streak,
             isPro: user.isPro,
+            subscriptionExpires: user.subscriptionExpires,
+            createdAt: user.createdAt,
           },
           token,
         };
