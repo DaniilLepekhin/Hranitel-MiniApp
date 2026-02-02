@@ -722,6 +722,10 @@ export const leaderTestResults = pgTable('leader_test_results', {
   // User context at time of test
   city: text('city'),
 
+  // 🔟 Decades integration
+  canLeadDecade: boolean('can_lead_decade').default(false).notNull(), // Разрешено ли создавать десятку
+  decadeId: uuid('decade_id'), // Какую десятку ведёт (null если ещё не создал)
+
   // Timestamps
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
@@ -1028,3 +1032,111 @@ export type ClubFunnelProgress = typeof clubFunnelProgress.$inferSelect;
 export type NewClubFunnelProgress = typeof clubFunnelProgress.$inferInsert;
 export type SubscriptionHistory = typeof subscriptionHistory.$inferSelect;
 export type NewSubscriptionHistory = typeof subscriptionHistory.$inferInsert;
+
+// ============================================================================
+// DECADES SYSTEM (Десятки)
+// ============================================================================
+
+// Decades (Десятки) - чаты для групп участников по 10 человек + лидер
+export const decades = pgTable('decades', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  city: text('city').notNull(), // Город десятки
+  number: integer('number').notNull(), // Номер десятки в рамках города (1, 2, 3...)
+  tgChatId: bigint('tg_chat_id', { mode: 'number' }).unique(), // Telegram Chat ID
+  inviteLink: text('invite_link'), // Пригласительная ссылка
+  leaderUserId: uuid('leader_user_id').references(() => users.id), // UUID лидера
+  leaderTelegramId: bigint('leader_telegram_id', { mode: 'number' }).notNull(), // Telegram ID лидера
+  chatTitle: text('chat_title'), // Название чата (опционально)
+
+  // Счётчики участников
+  currentMembers: integer('current_members').default(1).notNull(), // Текущее кол-во (включая лидера)
+  maxMembers: integer('max_members').default(11).notNull(), // Макс участников (10 + лидер = 11)
+
+  // Статусы
+  isActive: boolean('is_active').default(true).notNull(), // Активна ли десятка
+  isFull: boolean('is_full').default(false).notNull(), // Заполнена ли (current >= max)
+
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('decades_city_number_unique').on(table.city, table.number),
+  index('decades_city_idx').on(table.city),
+  index('decades_leader_telegram_idx').on(table.leaderTelegramId),
+  index('decades_tg_chat_idx').on(table.tgChatId),
+]);
+
+// Decade Members (Участники десяток)
+export const decadeMembers = pgTable('decade_members', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  decadeId: uuid('decade_id').references(() => decades.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  telegramId: bigint('telegram_id', { mode: 'number' }).notNull(), // Для быстрых проверок без JOIN
+  isLeader: boolean('is_leader').default(false).notNull(),
+  joinedAt: timestamp('joined_at').defaultNow().notNull(),
+  leftAt: timestamp('left_at'), // NULL = активный участник
+}, (table) => [
+  index('decade_members_decade_idx').on(table.decadeId),
+  index('decade_members_user_idx').on(table.userId),
+  index('decade_members_telegram_idx').on(table.telegramId),
+]);
+
+// Leader Reports (Светофор) - еженедельные отчёты лидеров
+export const leaderReports = pgTable('leader_reports', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  leaderUserId: uuid('leader_user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  decadeId: uuid('decade_id').references(() => decades.id, { onDelete: 'cascade' }).notNull(),
+  weekStart: timestamp('week_start').notNull(), // Понедельник недели
+  weekNumber: integer('week_number').notNull(), // Номер недели в году
+  year: integer('year').notNull(), // Год
+
+  // Статус: green = всё ок, red = есть проблема
+  status: text('status').notNull(), // 'green' | 'red'
+  problemDescription: text('problem_description'), // Обязательно при status='red'
+
+  submittedAt: timestamp('submitted_at').defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('leader_reports_unique_weekly').on(table.decadeId, table.weekStart),
+  index('leader_reports_leader_idx').on(table.leaderUserId),
+  index('leader_reports_decade_idx').on(table.decadeId),
+  index('leader_reports_week_idx').on(table.year, table.weekNumber),
+]);
+
+// Relations для Decades System
+export const decadesRelations = relations(decades, ({ one, many }) => ({
+  leader: one(users, {
+    fields: [decades.leaderUserId],
+    references: [users.id],
+  }),
+  members: many(decadeMembers),
+  reports: many(leaderReports),
+}));
+
+export const decadeMembersRelations = relations(decadeMembers, ({ one }) => ({
+  decade: one(decades, {
+    fields: [decadeMembers.decadeId],
+    references: [decades.id],
+  }),
+  user: one(users, {
+    fields: [decadeMembers.userId],
+    references: [users.id],
+  }),
+}));
+
+export const leaderReportsRelations = relations(leaderReports, ({ one }) => ({
+  leader: one(users, {
+    fields: [leaderReports.leaderUserId],
+    references: [users.id],
+  }),
+  decade: one(decades, {
+    fields: [leaderReports.decadeId],
+    references: [decades.id],
+  }),
+}));
+
+// Decades Types
+export type Decade = typeof decades.$inferSelect;
+export type NewDecade = typeof decades.$inferInsert;
+export type DecadeMember = typeof decadeMembers.$inferSelect;
+export type NewDecadeMember = typeof decadeMembers.$inferInsert;
+export type LeaderReport = typeof leaderReports.$inferSelect;
+export type NewLeaderReport = typeof leaderReports.$inferInsert;

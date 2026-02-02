@@ -10,6 +10,7 @@ import { schedulerService, type ScheduledTask } from '@/services/scheduler.servi
 import { TelegramService } from '@/services/telegram.service';
 import { stateService } from '@/services/state.service';
 import { subscriptionGuardService } from '@/services/subscription-guard.service';
+import { decadesService } from '@/services/decades.service';
 // 🆕 Post-payment funnels
 import * as funnels from './post-payment-funnels';
 // 🆕 Club funnel (numerology-based pre-payment funnel)
@@ -44,6 +45,8 @@ funnels.initTelegramService(bot.api);
 clubFunnel.initClubFunnelTelegramService(bot.api);
 // Initialize subscription guard service
 subscriptionGuardService.init(bot.api);
+// Initialize decades service
+decadesService.init(bot.api);
 
 // 🚫 Helper to check if chat is a group/channel (negative ID)
 // Воронки работают только в личных чатах с ботом
@@ -3657,6 +3660,92 @@ bot.on('message:users_shared', async (ctx) => {
   }
 });
 
+// 🔟 My chat member handler - когда бота добавляют в чат (создание десятки)
+bot.on('my_chat_member', async (ctx) => {
+  try {
+    const update = ctx.myChatMember;
+    const chatId = update.chat.id;
+    const chatTitle = update.chat.title || 'Без названия';
+    const chatType = update.chat.type;
+    const fromUser = update.from;
+    const newStatus = update.new_chat_member.status;
+    const oldStatus = update.old_chat_member.status;
+
+    // Проверяем только случаи когда бота добавляют как админа в группу
+    const wasNotMember = ['left', 'kicked'].includes(oldStatus) || oldStatus === undefined;
+    const isAdminNow = newStatus === 'administrator';
+    const isGroup = chatType === 'group' || chatType === 'supergroup';
+
+    if (wasNotMember && isAdminNow && isGroup) {
+      logger.info(
+        { chatId, chatTitle, chatType, addedBy: fromUser.id, addedByUsername: fromUser.username },
+        'Bot added to group as admin - checking if this is a decade creation'
+      );
+
+      // Проверяем, может ли пользователь создать десятку
+      const canCreate = await decadesService.canCreateDecade(fromUser.id);
+
+      if (!canCreate.canCreate) {
+        // Не лидер - покидаем чат
+        logger.warn(
+          { chatId, chatTitle, fromUserId: fromUser.id, reason: canCreate.reason },
+          'User cannot create decade - leaving chat'
+        );
+
+        try {
+          await ctx.api.sendMessage(
+            chatId,
+            `⚠️ Извините, но я не могу создать десятку в этом чате.\n\n` +
+            `Причина: ${canCreate.reason || 'Вы не являетесь лидером или не выполнены условия создания десятки.'}\n\n` +
+            `Чтобы стать лидером десятки, нужно:\n` +
+            `1. Иметь активную подписку\n` +
+            `2. Пройти тест лидера\n` +
+            `3. Указать город в профиле`
+          );
+          await ctx.api.leaveChat(chatId);
+        } catch (leaveError) {
+          logger.error({ error: leaveError, chatId }, 'Failed to leave chat');
+        }
+        return;
+      }
+
+      // Создаём десятку
+      const result = await decadesService.createDecade(chatId, fromUser.id, chatTitle);
+
+      if (result.success && result.decade) {
+        logger.info(
+          { chatId, decadeId: result.decade.id, city: result.decade.city, number: result.decade.number },
+          'Decade created successfully'
+        );
+
+        await ctx.api.sendMessage(
+          chatId,
+          `🎉 Десятка №${result.decade.number} города ${result.decade.city} создана!\n\n` +
+          `👥 Максимум участников: 11 (включая лидера)\n` +
+          `📋 Участники будут распределяться автоматически\n\n` +
+          `Ваша ссылка-приглашение:\n${result.decade.inviteLink || 'Будет создана позже'}\n\n` +
+          `⚠️ Не забывайте отправлять еженедельный отчёт (светофор) по пятницам!`
+        );
+      } else {
+        logger.error({ chatId, error: result.error }, 'Failed to create decade');
+        await ctx.api.sendMessage(
+          chatId,
+          `❌ Ошибка при создании десятки: ${result.error}\n\nПопробуйте снова или обратитесь к администратору.`
+        );
+        await ctx.api.leaveChat(chatId);
+      }
+    }
+
+    // Если бота удалили из группы
+    if (newStatus === 'left' || newStatus === 'kicked') {
+      logger.info({ chatId, chatTitle }, 'Bot removed from chat');
+      // Можно добавить логику деактивации десятки
+    }
+  } catch (error) {
+    logger.error({ error }, 'Error in my_chat_member handler');
+  }
+});
+
 // 🛡️ Chat member update handler - проверка подписки при вступлении в канал/чаты
 bot.on('chat_member', async (ctx) => {
   try {
@@ -3671,7 +3760,20 @@ bot.on('chat_member', async (ctx) => {
     const isMemberNow = ['member', 'administrator', 'creator'].includes(newStatus);
 
     if (wasNotMember && isMemberNow) {
-      logger.info({ chatId, userId, oldStatus, newStatus }, 'User joining chat, checking subscription...');
+      logger.info({ chatId, userId, oldStatus, newStatus }, 'User joining chat, checking access...');
+
+      // 🔟 Сначала проверяем десятки
+      const decadeResult = await decadesService.handleDecadeJoinAttempt(chatId, userId);
+      if (decadeResult.isDecadeChat) {
+        // Это чат десятки - decadesService уже обработал (ban+unban если не разрешено)
+        logger.info(
+          { chatId, userId, allowed: decadeResult.allowed },
+          'Decade chat join attempt handled'
+        );
+        return; // Не проверяем дальше - десятки имеют свою логику
+      }
+
+      // 🛡️ Обычная проверка подписки для каналов/чатов города
       await subscriptionGuardService.handleJoinAttempt(chatId, userId);
     }
   } catch (error) {
@@ -3749,7 +3851,7 @@ export const botModule = new Elysia({ prefix: '/bot', tags: ['Bot'] })
       try {
         await bot.api.setWebhook(url, {
           secret_token: config.TELEGRAM_WEBHOOK_SECRET,
-          allowed_updates: ['message', 'callback_query', 'inline_query', 'users_shared'],
+          allowed_updates: ['message', 'callback_query', 'inline_query', 'users_shared', 'chat_member', 'my_chat_member'],
         });
 
         logger.info({ url }, 'Webhook set');

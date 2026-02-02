@@ -41,6 +41,7 @@ import { analyticsModule } from '@/modules/analytics';
 import { lavaPaymentWebhook } from '@/modules/webhooks/lava-payment';
 import { adminRoutes } from '@/modules/admin';
 import { leaderTestModule } from '@/modules/leader-test';
+import { decadesModule } from '@/modules/decades';
 
 const app = new Elysia()
   // 🔒 Security middlewares (first - before anything else)
@@ -195,6 +196,7 @@ const app = new Elysia()
       // .use(aiModule) - disabled
       .use(botModule)
       .use(leaderTestModule)
+      .use(decadesModule)
   )
   // Analytics module (no auth required for tracking)
   .group('/api', (app) => app.use(analyticsModule))

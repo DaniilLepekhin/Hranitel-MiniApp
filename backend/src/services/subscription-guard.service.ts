@@ -9,6 +9,7 @@ import { users } from '@/db/schema';
 import { eq, lt, and, isNotNull } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import postgres from 'postgres';
+import { decadesService } from '@/services/decades.service';
 
 // Защищённые каналы клуба
 const PROTECTED_CHANNEL_IDS = [
@@ -260,6 +261,13 @@ class SubscriptionGuardService {
 
       for (const user of expiredUsers) {
         try {
+          // 🔟 Сначала удаляем из десятки (если состоит)
+          try {
+            await decadesService.removeUserFromDecade(user.telegramId);
+          } catch (decadeError) {
+            logger.warn({ error: decadeError, telegramId: user.telegramId }, 'Error removing user from decade');
+          }
+
           // Удаляем из всех чатов
           await this.removeUserFromAllChats(user.telegramId);
 
