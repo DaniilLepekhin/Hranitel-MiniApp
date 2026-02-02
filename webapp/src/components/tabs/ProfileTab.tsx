@@ -40,13 +40,13 @@ export function ProfileTab() {
   // 📅 Подписка: расчет статуса и дат
   const subscriptionInfo = useMemo(() => {
     if (!user?.subscriptionExpires) {
-      // Если нет даты окончания, но isPro=true, значит бессрочная подписка
+      // Если нет даты окончания - показываем что дата не указана
       return {
         isActive: user?.isPro || false,
         expiresDate: null,
-        daysRemaining: 999999,
+        daysRemaining: 0,
         isExpiredRecently: false,
-        formattedDate: 'Бессрочно',
+        formattedDate: 'Не указана',
       };
     }
 
@@ -58,16 +58,17 @@ export function ProfileTab() {
     // Проверяем, истекла ли подписка сегодня или вчера
     const isExpiredRecently = diffDays >= -1 && diffDays <= 0;
 
+    // Форматируем дату как ДД.ММ.ГГГГ
+    const day = expiresDate.getDate().toString().padStart(2, '0');
+    const month = (expiresDate.getMonth() + 1).toString().padStart(2, '0');
+    const year = expiresDate.getFullYear();
+
     return {
       isActive: user.isPro && diffDays > 0,
       expiresDate,
       daysRemaining: diffDays,
       isExpiredRecently,
-      formattedDate: expiresDate.toLocaleDateString('ru-RU', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      }),
+      formattedDate: `${day}.${month}.${year}`,
     };
   }, [user?.subscriptionExpires, user?.isPro]);
 
@@ -492,7 +493,7 @@ export function ProfileTab() {
             </div>
 
             {/* Количество дней до окончания */}
-            {subscriptionInfo.isActive && subscriptionInfo.daysRemaining > 0 && subscriptionInfo.daysRemaining < 999999 && (
+            {subscriptionInfo.isActive && subscriptionInfo.daysRemaining > 0 && (
               <p
                 className="mb-4"
                 style={{
