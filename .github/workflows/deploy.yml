@@ -91,7 +91,7 @@ jobs:
             export PORT="3002"
             export NODE_ENV="production"
             export WEBAPP_URL="https://hranitel.daniillepekhin.com"
-            export CORS_ORIGIN="https://hranitel.daniillepekhin.com"
+            export CORS_ORIGIN="${{ secrets.CORS_ORIGIN }}"
             export TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}"
             export API_URL="https://hranitel.daniillepekhin.com"
             export TELEGRAM_WEBHOOK_SECRET="${{ secrets.TELEGRAM_WEBHOOK_SECRET }}"
