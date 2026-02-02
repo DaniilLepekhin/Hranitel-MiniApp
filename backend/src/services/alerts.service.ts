@@ -185,14 +185,24 @@ class AlertsService {
         const errorAge = Date.now() / 1000 - webhookInfo.last_error_date;
         // Если ошибка была менее 10 минут назад
         if (errorAge < 600) {
+          // Определяем тип ошибки и рекомендацию
+          const errorMsg = webhookInfo.last_error_message || '';
+          let recommendation = '';
+          if (errorMsg.includes('SSL') || errorMsg.includes('certificate')) {
+            recommendation = '\n\n💡 Решение: обновить SSL сертификат\ncertbot renew --force-renewal && systemctl reload nginx';
+          } else if (errorMsg.includes('timeout')) {
+            recommendation = '\n\n💡 Возможно бэкенд перегружен. Проверить: pm2 status';
+          } else if (errorMsg.includes('Connection refused')) {
+            recommendation = '\n\n💡 Бэкенд не запущен! Проверить: pm2 restart hranitel-backend';
+          }
+
           await this.sendAlert({
             type: 'webhook_error',
-            title: 'Ошибка Webhook',
-            message: `Последняя ошибка: ${webhookInfo.last_error_message}`,
+            title: 'Ошибка Webhook бота',
+            message: `Telegram не может достучаться до бота!\n\nОшибка: ${webhookInfo.last_error_message}${recommendation}`,
             details: {
               url: webhookInfo.url,
               pending_update_count: webhookInfo.pending_update_count,
-              last_error_message: webhookInfo.last_error_message,
               error_age_seconds: Math.round(errorAge),
             },
           });
