@@ -114,7 +114,6 @@ export function DualVideoPlayer({
                 <YouTubeIcon />
               </div>
               <span className="font-semibold text-[#2b2520]">YouTube</span>
-              <span className="text-xs text-[#6b5a4a]">Для зарубежья</span>
             </button>
 
             {/* RuTube Button */}
@@ -126,7 +125,6 @@ export function DualVideoPlayer({
                 <RuTubeIcon />
               </div>
               <span className="font-semibold text-[#2b2520]">RuTube</span>
-              <span className="text-xs text-[#6b5a4a]">Для России</span>
             </button>
           </div>
         </div>
