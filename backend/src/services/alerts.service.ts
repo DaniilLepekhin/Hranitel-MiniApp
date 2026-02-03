@@ -85,15 +85,19 @@ class AlertsService {
 
   /**
    * Алерт об ошибке сохранения данных оплаты
+   * КРИТИЧНО: Каждая ошибка отправляется без кулдауна!
    */
   async paymentError(
     telegramId: string | number | null,
     error: any,
     context?: Record<string, any>
   ): Promise<void> {
+    // Уникальный title с telegram_id чтобы обойти кулдаун для разных пользователей
+    const title = `Ошибка оплаты [${telegramId || 'unknown'}]`;
+
     await this.sendAlert({
       type: 'payment_error',
-      title: 'Ошибка сохранения данных оплаты',
+      title,
       message: `Не удалось сохранить данные из формы оплаты.\nПользователь может оплатить, но данные не будут связаны!`,
       details: {
         telegram_id: telegramId,
@@ -116,6 +120,7 @@ class AlertsService {
         webhook_url: webhookUrl,
         error: error?.message || String(error),
       },
+      forceAlert: true, // Каждая ошибка важна
     });
   }
 
@@ -130,6 +135,7 @@ class AlertsService {
       details: {
         error: error?.message || String(error),
       },
+      forceAlert: true, // Каждая ошибка важна
     });
   }
 
@@ -145,6 +151,7 @@ class AlertsService {
         operation,
         error: error?.message || String(error),
       },
+      forceAlert: true, // Каждая ошибка важна
     });
   }
 
