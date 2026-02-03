@@ -205,7 +205,17 @@ export default function ContentDetailPage() {
       {/* Podcasts/Streams - Play button (compact version) */}
       {(item.type === 'podcast' || item.type === 'stream_record') && videos.length > 0 && (
         <button
-          onClick={handlePlayMedia}
+          onClick={() => {
+            haptic.impact('light');
+            const firstVideo = videos[0];
+            // Если есть RuTube URL - переходим на страницу видео с выбором плеера
+            if (firstVideo?.rutubeUrl) {
+              router.push(`/video/${firstVideo.id}`);
+            } else {
+              // Иначе открываем в медиаплеере
+              handlePlayMedia();
+            }
+          }}
           className="w-full mb-4 px-4 py-3 rounded-xl bg-gradient-to-r from-[#d93547] to-[#9c1723] hover:shadow-lg transition-all flex items-center justify-center gap-3"
         >
           <Play className="w-5 h-5 text-white" fill="white" />
