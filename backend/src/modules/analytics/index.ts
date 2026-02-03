@@ -144,7 +144,7 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
           eventType: 'payment_attempt',
           paymentMethod: payment_method,
           amount: amount,
-          currency: currency || payment_method, // Use payment_method as currency if not provided
+          currency: currency ? currency.substring(0, 3).toUpperCase() : null, // varchar(3) limit
           utmCampaign: utm_campaign || null,
           utmMedium: utm_medium || null,
           utmSource: utm_source || null,
@@ -246,7 +246,7 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
           paymentId: payment_id || null,
           paymentMethod: payment_method,
           amount: amount,
-          currency: currency || payment_method,
+          currency: currency ? currency.substring(0, 3).toUpperCase() : null, // varchar(3) limit
           utmCampaign: utm_campaign || null,
           utmMedium: utm_medium || null,
           utmSource: utm_source || null,
