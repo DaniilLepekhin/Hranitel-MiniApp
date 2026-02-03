@@ -214,6 +214,28 @@ export const leaderTestModule = new Elysia({ prefix: '/leader-test', tags: ['Lea
           return { success: false, error: 'User not found' };
         }
 
+        // 🏙️ Проверяем, выбран ли городской чат - без него нельзя проходить тест
+        if (!dbUser.cityChatId) {
+          logger.warn({ telegramId: tgUser.id }, 'Leader test submit rejected: no city chat selected');
+          set.status = 400;
+          return {
+            success: false,
+            error: 'City chat required',
+            message: 'Выберите чат города в профиле перед прохождением теста'
+          };
+        }
+
+        // Проверяем, указан ли город
+        if (!dbUser.city || dbUser.city.trim() === '') {
+          logger.warn({ telegramId: tgUser.id }, 'Leader test submit rejected: no city');
+          set.status = 400;
+          return {
+            success: false,
+            error: 'City required',
+            message: 'Укажите город в профиле перед прохождением теста'
+          };
+        }
+
         // Сохраняем результат
         const [result] = await db
           .insert(leaderTestResults)
@@ -225,7 +247,7 @@ export const leaderTestModule = new Elysia({ prefix: '/leader-test', tags: ['Lea
             totalQuestions,
             stopReason: stopReason || null,
             answers,
-            city: dbUser.city || null,
+            city: dbUser.city,
           })
           .returning();
 
@@ -391,12 +413,35 @@ export const leaderTestModule = new Elysia({ prefix: '/leader-test', tags: ['Lea
       const { passed, score, totalQuestions, stopReason, answers } = body;
 
       try {
-        // Получаем город пользователя
+        // Получаем данные пользователя (город и cityChatId)
         const [userData] = await db
-          .select({ city: users.city })
+          .select({ city: users.city, cityChatId: users.cityChatId })
           .from(users)
           .where(eq(users.id, user.id))
           .limit(1);
+
+        // 🏙️ Проверяем, выбран ли городской чат - без него нельзя проходить тест
+        if (!userData?.cityChatId) {
+          logger.warn({ userId: user.id, telegramId: user.telegramId }, 'Leader test submit rejected: no city chat selected');
+          set.status = 400;
+          return {
+            success: false,
+            error: 'City chat required',
+            message: 'Выберите чат города в профиле перед прохождением теста'
+          };
+        }
+
+        // Проверяем, указан ли город
+        const userCity = userData?.city?.trim();
+        if (!userCity) {
+          logger.warn({ userId: user.id, telegramId: user.telegramId }, 'Leader test submit rejected: no city');
+          set.status = 400;
+          return {
+            success: false,
+            error: 'City required',
+            message: 'Укажите город в профиле перед прохождением теста'
+          };
+        }
 
         // Сохраняем результат
         const [result] = await db
@@ -409,7 +454,7 @@ export const leaderTestModule = new Elysia({ prefix: '/leader-test', tags: ['Lea
             totalQuestions,
             stopReason: stopReason || null,
             answers,
-            city: userData?.city || null,
+            city: userCity,
           })
           .returning();
 
@@ -419,7 +464,7 @@ export const leaderTestModule = new Elysia({ prefix: '/leader-test', tags: ['Lea
           passed,
           score,
           totalQuestions,
-          city: userData?.city,
+          city: userCity,
         }, 'Leader test result saved');
 
         return {
