@@ -230,6 +230,19 @@ export default function ContentDetailPage() {
         </button>
       )}
 
+      {/* PDF Download Button - для stream_record с PDF */}
+      {item.type === 'stream_record' && videos.length > 0 && videos[0]?.pdfUrl && (
+        <a
+          href={videos[0].pdfUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full mb-4 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#d93547]/10 text-[#d93547] font-semibold hover:bg-[#d93547]/20 transition-all"
+        >
+          <Download className="w-5 h-5" />
+          Скачать презентацию (PDF)
+        </a>
+      )}
+
       {/* Description */}
       {item.description && (
         <Card className="p-4 mb-6 bg-gradient-to-br from-[#d93547]/5 to-[#9c1723]/5">
