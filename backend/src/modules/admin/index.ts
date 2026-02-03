@@ -539,4 +539,67 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         description: 'Выдает подписку И отправляет сообщение с видео о правилах и кодовом слове (как после реальной оплаты). Пользователь будет поставлен на шаг awaiting_keyword.',
       },
     }
+  )
+
+  /**
+   * 🎯 Запуск онбординга (только отправка воронки, без изменения подписки)
+   */
+  .post(
+    '/trigger-onboarding',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { telegram_id: rawTelegramId } = body;
+      const telegram_id = typeof rawTelegramId === 'string' ? parseInt(rawTelegramId, 10) : rawTelegramId;
+
+      // Находим пользователя
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.telegramId, telegram_id))
+        .limit(1);
+
+      if (!user) {
+        set.status = 404;
+        return {
+          success: false,
+          error: 'Пользователь не найден',
+        };
+      }
+
+      // Запускаем воронку
+      try {
+        await startOnboardingAfterPayment(user.id, telegram_id);
+        logger.info({ telegram_id, userId: user.id }, 'Admin triggered onboarding');
+
+        return {
+          success: true,
+          message: `Воронка запущена для ${telegram_id}. Сообщение с видео отправлено.`,
+          user: {
+            id: user.id,
+            telegram_id: user.telegramId,
+            is_pro: user.isPro,
+          },
+        };
+      } catch (error) {
+        logger.error({ error, telegram_id }, 'Failed to trigger onboarding');
+        set.status = 500;
+        return {
+          success: false,
+          error: 'Не удалось отправить сообщение (возможно бот заблокирован)',
+        };
+      }
+    },
+    {
+      body: t.Object({
+        telegram_id: t.Union([t.Number(), t.String()], { description: 'Telegram ID пользователя' }),
+      }),
+      detail: {
+        summary: 'Запуск воронки онбординга',
+        description: 'Отправляет сообщение с видео о правилах и кодовом слове. НЕ изменяет статус подписки. Используется для повторной отправки воронки.',
+      },
+    }
   );
