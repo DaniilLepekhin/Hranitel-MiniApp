@@ -471,6 +471,8 @@ export const videos = pgTable('videos', {
   title: text('title').notNull(),
   description: text('description'),
   videoUrl: text('video_url').notNull(), // URL видео (YouTube, Vimeo, S3, etc.)
+  rutubeUrl: text('rutube_url'), // RuTube альтернатива для России
+  pdfUrl: text('pdf_url'), // Ссылка на презентацию/материалы
   durationSeconds: integer('duration_seconds'),
   thumbnailUrl: text('thumbnail_url'),
   orderIndex: integer('order_index').default(0).notNull(),

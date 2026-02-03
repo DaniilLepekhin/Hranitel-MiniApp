@@ -8,6 +8,7 @@ import { contentApi } from '@/lib/api';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { VideoPlayer } from '@/components/video/VideoPlayer';
+import { DualVideoPlayer } from '@/components/video/DualVideoPlayer';
 import { Card } from '@/components/ui/Card';
 
 export default function VideoPage() {
@@ -77,6 +78,9 @@ export default function VideoPage() {
 
   const { video, timecodes } = videoData;
 
+  // Если есть и YouTube и RuTube URL - показываем dual player
+  const hasDualSource = video.videoUrl && video.rutubeUrl;
+
   return (
     <div className="px-4 pt-6 pb-24">
       {/* Header */}
@@ -90,45 +94,60 @@ export default function VideoPage() {
         <h1 className="flex-1 text-xl font-bold text-[#2b2520] line-clamp-1">{video.title}</h1>
       </div>
 
-      {/* Video Player */}
-      <VideoPlayer
-        video={video}
-        timecodes={timecodes}
-        onComplete={handleComplete}
-        onTimeUpdate={handleTimeUpdate}
-      />
+      {/* Video Player - выбор между обычным и dual */}
+      {hasDualSource ? (
+        <DualVideoPlayer
+          youtubeUrl={video.videoUrl}
+          rutubeUrl={video.rutubeUrl!}
+          title={video.title}
+          description={video.description || undefined}
+          pdfUrl={video.pdfUrl || undefined}
+          onComplete={handleComplete}
+        />
+      ) : (
+        <>
+          <VideoPlayer
+            video={video}
+            timecodes={timecodes}
+            onComplete={handleComplete}
+            onTimeUpdate={handleTimeUpdate}
+          />
 
-      {/* Video Info */}
-      <Card className="mt-6 p-4 bg-gradient-to-br from-[#d93547]/5 to-[#9c1723]/5">
-        <h2 className="font-bold text-[#2b2520] mb-2">{video.title}</h2>
-        {video.description && (
-          <p className="text-[#6b5a4a] leading-relaxed">{video.description}</p>
-        )}
+          {/* Video Info */}
+          <Card className="mt-6 p-4 bg-gradient-to-br from-[#d93547]/5 to-[#9c1723]/5">
+            <h2 className="font-bold text-[#2b2520] mb-2">{video.title}</h2>
+            {video.description && (
+              <p className="text-[#6b5a4a] leading-relaxed">{video.description}</p>
+            )}
 
-        {video.durationSeconds && (
-          <div className="mt-4 flex items-center gap-2 text-sm">
-            <span className="text-[#6b5a4a]">Длительность:</span>
-            <span className="text-[#2b2520] font-semibold">
-              {Math.floor(video.durationSeconds / 60)} мин
-            </span>
-          </div>
-        )}
-      </Card>
+            {video.durationSeconds && (
+              <div className="mt-4 flex items-center gap-2 text-sm">
+                <span className="text-[#6b5a4a]">Длительность:</span>
+                <span className="text-[#2b2520] font-semibold">
+                  {Math.floor(video.durationSeconds / 60)} мин
+                </span>
+              </div>
+            )}
+          </Card>
+        </>
+      )}
 
-      {/* EP Info */}
-      <Card className="mt-4 p-4 bg-gradient-to-r from-[#d93547]/10 to-[#9c1723]/10 border-[#9c1723]/30">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#d93547] to-[#9c1723] flex items-center justify-center shadow-lg flex-shrink-0">
-            <Zap className="w-6 h-6 text-white" />
+      {/* EP Info - показываем только для обычного плеера */}
+      {!hasDualSource && (
+        <Card className="mt-4 p-4 bg-gradient-to-r from-[#d93547]/10 to-[#9c1723]/10 border-[#9c1723]/30">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#d93547] to-[#9c1723] flex items-center justify-center shadow-lg flex-shrink-0">
+              <Zap className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className="font-semibold text-[#2b2520]">Награда за просмотр</p>
+              <p className="text-[#6b5a4a] text-sm">
+                Получите Энергии за просмотр этого видео
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="font-semibold text-[#2b2520]">Награда за просмотр</p>
-            <p className="text-[#6b5a4a] text-sm">
-              Получите Энергии за просмотр этого видео
-            </p>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      )}
     </div>
   );
 }

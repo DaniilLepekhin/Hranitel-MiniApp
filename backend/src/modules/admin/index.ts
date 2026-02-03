@@ -11,7 +11,7 @@
 
 import { Elysia, t } from 'elysia';
 import { db } from '@/db';
-import { users, paymentAnalytics, clubFunnelProgress } from '@/db/schema';
+import { users, paymentAnalytics, clubFunnelProgress, videos, contentItems } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { startOnboardingAfterPayment } from '@/modules/bot/post-payment-funnels';
@@ -600,6 +600,174 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       detail: {
         summary: 'Запуск воронки онбординга',
         description: 'Отправляет сообщение с видео о правилах и кодовом слове. НЕ изменяет статус подписки. Используется для повторной отправки воронки.',
+      },
+    }
+  )
+
+  /**
+   * 🎬 Обновить видео (добавить RuTube URL и PDF)
+   */
+  .post(
+    '/update-video',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { video_id, video_url, rutube_url, pdf_url, title, description } = body;
+
+      // Проверяем существование видео
+      const [existingVideo] = await db
+        .select()
+        .from(videos)
+        .where(eq(videos.id, video_id))
+        .limit(1);
+
+      if (!existingVideo) {
+        set.status = 404;
+        return { success: false, error: 'Видео не найдено' };
+      }
+
+      const updateData: any = {};
+      if (video_url !== undefined) updateData.videoUrl = video_url;
+      if (rutube_url !== undefined) updateData.rutubeUrl = rutube_url;
+      if (pdf_url !== undefined) updateData.pdfUrl = pdf_url;
+      if (title !== undefined) updateData.title = title;
+      if (description !== undefined) updateData.description = description;
+
+      const [updated] = await db
+        .update(videos)
+        .set(updateData)
+        .where(eq(videos.id, video_id))
+        .returning();
+
+      logger.info({ video_id, updateData }, 'Admin updated video');
+
+      return {
+        success: true,
+        message: `Видео обновлено: ${updated.title}`,
+        video: updated,
+      };
+    },
+    {
+      body: t.Object({
+        video_id: t.String({ description: 'UUID видео' }),
+        video_url: t.Optional(t.String({ description: 'YouTube URL' })),
+        rutube_url: t.Optional(t.String({ description: 'RuTube URL' })),
+        pdf_url: t.Optional(t.String({ description: 'URL презентации' })),
+        title: t.Optional(t.String({ description: 'Название' })),
+        description: t.Optional(t.String({ description: 'Описание' })),
+      }),
+      detail: {
+        summary: 'Обновить видео',
+        description: 'Обновляет URL-адреса и метаданные существующего видео',
+      },
+    }
+  )
+
+  /**
+   * 🎬 Создать видео для контента
+   */
+  .post(
+    '/create-video',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { content_item_id, title, description, video_url, rutube_url, pdf_url, duration_seconds } = body;
+
+      // Проверяем существование контент-айтема
+      const [contentItem] = await db
+        .select()
+        .from(contentItems)
+        .where(eq(contentItems.id, content_item_id))
+        .limit(1);
+
+      if (!contentItem) {
+        set.status = 404;
+        return { success: false, error: 'Content item не найден' };
+      }
+
+      const [created] = await db
+        .insert(videos)
+        .values({
+          contentItemId: content_item_id,
+          title,
+          description: description || null,
+          videoUrl: video_url,
+          rutubeUrl: rutube_url || null,
+          pdfUrl: pdf_url || null,
+          durationSeconds: duration_seconds || null,
+          orderIndex: 0,
+        })
+        .returning();
+
+      logger.info({ content_item_id, video_id: created.id, title }, 'Admin created video');
+
+      return {
+        success: true,
+        message: `Видео создано: ${created.title}`,
+        video: created,
+      };
+    },
+    {
+      body: t.Object({
+        content_item_id: t.String({ description: 'UUID контент-айтема' }),
+        title: t.String({ description: 'Название видео' }),
+        description: t.Optional(t.String({ description: 'Описание' })),
+        video_url: t.String({ description: 'YouTube URL' }),
+        rutube_url: t.Optional(t.String({ description: 'RuTube URL' })),
+        pdf_url: t.Optional(t.String({ description: 'URL презентации' })),
+        duration_seconds: t.Optional(t.Number({ description: 'Длительность в секундах' })),
+      }),
+      detail: {
+        summary: 'Создать видео',
+        description: 'Создает новое видео и привязывает к контент-айтему (эфиру)',
+      },
+    }
+  )
+
+  /**
+   * 🗑️ Выполнить SQL (только для миграций)
+   */
+  .post(
+    '/exec-sql',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { sql: sqlQuery } = body;
+
+      // Разрешаем только безопасные ALTER TABLE операции
+      const safePrefixes = ['ALTER TABLE', 'SELECT'];
+      const isSafe = safePrefixes.some(prefix => sqlQuery.toUpperCase().trim().startsWith(prefix));
+
+      if (!isSafe) {
+        set.status = 400;
+        return { success: false, error: 'Только ALTER TABLE и SELECT запросы разрешены' };
+      }
+
+      try {
+        const result = await db.execute(sqlQuery);
+        logger.info({ sql: sqlQuery }, 'Admin executed SQL');
+        return { success: true, result };
+      } catch (error: any) {
+        logger.error({ error, sql: sqlQuery }, 'Admin SQL execution failed');
+        return { success: false, error: error.message };
+      }
+    },
+    {
+      body: t.Object({
+        sql: t.String({ description: 'SQL запрос (только ALTER TABLE или SELECT)' }),
+      }),
+      detail: {
+        summary: 'Выполнить SQL',
+        description: 'Выполняет безопасный SQL запрос (только ALTER TABLE и SELECT)',
       },
     }
   );

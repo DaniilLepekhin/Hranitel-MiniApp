@@ -773,6 +773,8 @@ export interface Video {
   title: string;
   description?: string | null;
   videoUrl: string; // YouTube, Vimeo, S3, etc.
+  rutubeUrl?: string | null; // RuTube альтернатива для России
+  pdfUrl?: string | null; // Ссылка на презентацию
   durationSeconds?: number | null;
   thumbnailUrl?: string | null;
   orderIndex: number;
