@@ -250,10 +250,16 @@ jobs:
             # Remove .env.local to use .env.production from repo
             rm -f .env.local
 
-            # Clean npm cache and node_modules
+            # Clean npm cache and node_modules (force remove)
             echo "🧹 Cleaning npm cache..."
-            rm -rf node_modules .next
+            rm -rf node_modules .next package-lock.json
             npm cache clean --force
+
+            # Ensure node_modules is completely removed
+            if [ -d "node_modules" ]; then
+              find node_modules -type d -exec chmod 755 {} \; 2>/dev/null || true
+              rm -rf node_modules
+            fi
 
             # Install dependencies (including devDependencies for TypeScript)
             npm install --include=dev
