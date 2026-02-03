@@ -52,8 +52,14 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
         // Create metka if not provided
         const finalMetka = metka || [utm_campaign, utm_medium].filter(p => p).join('_');
 
+        // Конвертируем telegram_id в число для bigint поля
+        const tgIdNum = parseInt(telegram_id, 10);
+        if (isNaN(tgIdNum)) {
+          throw new Error('Invalid telegram_id');
+        }
+
         await db.insert(paymentAnalytics).values({
-          telegramId: telegram_id,
+          telegramId: tgIdNum,
           eventType: 'form_open',
           utmCampaign: utm_campaign || null,
           utmMedium: utm_medium || null,
@@ -127,8 +133,14 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
         // Create metka if not provided
         const finalMetka = metka || [utm_campaign, utm_medium].filter(p => p).join('_');
 
+        // Конвертируем telegram_id в число для bigint поля
+        const tgIdNum = parseInt(telegram_id, 10);
+        if (isNaN(tgIdNum)) {
+          throw new Error('Invalid telegram_id');
+        }
+
         await db.insert(paymentAnalytics).values({
-          telegramId: telegram_id,
+          telegramId: tgIdNum,
           eventType: 'payment_attempt',
           paymentMethod: payment_method,
           amount: amount,
@@ -222,8 +234,14 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
         // Create metka if not provided
         const finalMetka = metka || [utm_campaign, utm_medium].filter(p => p).join('_');
 
+        // Конвертируем telegram_id в число для bigint поля
+        const tgIdNum = parseInt(telegram_id, 10);
+        if (isNaN(tgIdNum)) {
+          throw new Error('Invalid telegram_id');
+        }
+
         await db.insert(paymentAnalytics).values({
-          telegramId: telegram_id,
+          telegramId: tgIdNum,
           eventType: 'payment_success',
           paymentId: payment_id || null,
           paymentMethod: payment_method,
@@ -289,8 +307,14 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
       try {
         const { gifter_id, recipient_id } = body;
 
+        // Конвертируем gifter_id в число для bigint поля
+        const gifterIdNum = parseInt(gifter_id, 10);
+        if (isNaN(gifterIdNum)) {
+          throw new Error('Invalid gifter_id');
+        }
+
         await db.insert(paymentAnalytics).values({
-          telegramId: gifter_id,
+          telegramId: gifterIdNum,
           eventType: 'gift_attempt',
           metadata: {
             recipient_id,
