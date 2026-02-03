@@ -529,6 +529,7 @@
           telegram_id: gifterTgId.toString(),
           payment_method: apiPaymentMethod,
           amount: amount,
+          currency: apiPaymentMethod === 'PAYPAL' ? 'USD' : apiPaymentMethod, // Правильная валюта для БД
           email: email,
           name: `Gift from ${gifterTgId}`,
           metka: 'gift_payment'
