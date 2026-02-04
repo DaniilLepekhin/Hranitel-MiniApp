@@ -14,7 +14,7 @@ import {
   type Decade,
   type DecadeMember,
 } from '@/db/schema';
-import { eq, and, isNull, sql, desc } from 'drizzle-orm';
+import { eq, and, isNull, sql, desc, lt } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 
 class DecadesService {
@@ -86,13 +86,19 @@ class DecadesService {
 
   /**
    * Создать десятку при добавлении бота в чат
+   *
+   * ⚠️ RACE CONDITION PROTECTED:
+   * - Номер вычисляется внутри транзакции с FOR UPDATE
+   * - Unique constraint (city, number) защищает от дубликатов
+   * - Unique constraint на leader_telegram_id WHERE is_active = true защищает от двойного лидерства
+   * - При конфликте - retry до 3 раз
    */
   async createDecade(
     tgChatId: number,
     leaderTelegramId: number,
     chatTitle?: string
   ): Promise<{ success: boolean; decade?: Decade; error?: string }> {
-    // Проверка прав
+    // Проверка прав (вне транзакции - только чтение)
     const canCreate = await this.canCreateDecade(leaderTelegramId);
     if (!canCreate.canCreate) {
       return { success: false, error: canCreate.reason };
@@ -101,15 +107,7 @@ class DecadesService {
     const city = canCreate.city!;
     const userId = canCreate.userId!;
 
-    // Получить следующий номер для города
-    const [maxNumber] = await db
-      .select({ max: sql<number>`COALESCE(MAX(${decades.number}), 0)` })
-      .from(decades)
-      .where(eq(decades.city, city));
-
-    const nextNumber = (maxNumber?.max || 0) + 1;
-
-    // Создать invite link
+    // Создать invite link ДО транзакции (внешний API)
     let inviteLink: string | null = null;
     if (this.api) {
       try {
@@ -122,55 +120,105 @@ class DecadesService {
       }
     }
 
-    // Создать десятку в транзакции
-    const [newDecade] = await db.transaction(async tx => {
-      // Создать десятку
-      const [decade] = await tx
-        .insert(decades)
-        .values({
-          city,
-          number: nextNumber,
-          tgChatId,
-          inviteLink,
-          leaderUserId: userId,
-          leaderTelegramId,
-          chatTitle: chatTitle || `Десятка №${nextNumber} ${city}`,
-          currentMembers: 1,
-        })
-        .returning();
+    // Retry loop для race condition на unique constraint
+    const MAX_RETRIES = 3;
+    let lastError: Error | null = null;
 
-      // Добавить лидера как участника
-      await tx.insert(decadeMembers).values({
-        decadeId: decade.id,
-        userId: userId,
-        telegramId: leaderTelegramId,
-        isLeader: true,
-      });
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        // Вся логика в транзакции
+        const [newDecade] = await db.transaction(async tx => {
+          // 🔒 Получить следующий номер С БЛОКИРОВКОЙ строк города
+          // FOR UPDATE блокирует все строки этого города от параллельных изменений
+          const [maxNumber] = await tx
+            .select({ max: sql<number>`COALESCE(MAX(${decades.number}), 0)` })
+            .from(decades)
+            .where(eq(decades.city, city))
+            .for('update');
 
-      // Обновить результат теста - указать десятку
-      await tx
-        .update(leaderTestResults)
-        .set({
-          canLeadDecade: true,
-          decadeId: decade.id,
-        })
-        .where(and(eq(leaderTestResults.userId, userId), eq(leaderTestResults.passed, true)));
+          const nextNumber = (maxNumber?.max || 0) + 1;
 
-      return [decade];
-    });
+          // Создать десятку
+          const [decade] = await tx
+            .insert(decades)
+            .values({
+              city,
+              number: nextNumber,
+              tgChatId,
+              inviteLink,
+              leaderUserId: userId,
+              leaderTelegramId,
+              chatTitle: chatTitle || `Десятка №${nextNumber} ${city}`,
+              currentMembers: 1,
+            })
+            .returning();
 
-    logger.info(
-      {
-        decadeId: newDecade.id,
-        city,
-        number: nextNumber,
-        leaderTelegramId,
-        tgChatId,
-      },
-      'Decade created'
-    );
+          // Добавить лидера как участника
+          await tx.insert(decadeMembers).values({
+            decadeId: decade.id,
+            userId: userId,
+            telegramId: leaderTelegramId,
+            isLeader: true,
+          });
 
-    return { success: true, decade: newDecade };
+          // Обновить результат теста - указать десятку
+          await tx
+            .update(leaderTestResults)
+            .set({
+              canLeadDecade: true,
+              decadeId: decade.id,
+            })
+            .where(and(eq(leaderTestResults.userId, userId), eq(leaderTestResults.passed, true)));
+
+          return [decade];
+        });
+
+        logger.info(
+          {
+            decadeId: newDecade.id,
+            city,
+            number: newDecade.number,
+            leaderTelegramId,
+            tgChatId,
+            attempt,
+          },
+          'Decade created'
+        );
+
+        return { success: true, decade: newDecade };
+      } catch (error: any) {
+        lastError = error;
+
+        // Проверяем unique constraint violation (23505 - PostgreSQL)
+        const isUniqueViolation =
+          error?.code === '23505' ||
+          error?.message?.includes('unique constraint') ||
+          error?.message?.includes('duplicate key');
+
+        if (isUniqueViolation && attempt < MAX_RETRIES) {
+          logger.warn(
+            { city, leaderTelegramId, attempt, error: error?.message },
+            'Decade creation race condition, retrying...'
+          );
+          // Небольшая случайная задержка перед retry
+          await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100));
+          continue;
+        }
+
+        // Критическая ошибка или исчерпаны попытки
+        logger.error(
+          { error, city, leaderTelegramId, attempt },
+          'Failed to create decade'
+        );
+
+        // ⚠️ Compensation: если invite link создан но БД failed - оставляем как есть
+        // (link станет невалидным если бот покинет чат)
+
+        throw error;
+      }
+    }
+
+    return { success: false, error: lastError?.message || 'Failed to create decade' };
   }
 
   // ============================================================================
@@ -208,6 +256,12 @@ class DecadesService {
 
   /**
    * Записать участника в десятку (WebApp endpoint)
+   *
+   * ⚠️ RACE CONDITION PROTECTED:
+   * - Вся логика в одной транзакции
+   * - FOR UPDATE блокирует десятку от параллельных записей
+   * - Проверка currentMembers < maxMembers внутри транзакции
+   * - При переполнении - откат и поиск другой десятки
    */
   async assignUserToDecade(
     telegramId: number,
@@ -218,7 +272,7 @@ class DecadesService {
     decadeName?: string;
     error?: string;
   }> {
-    // Найти пользователя
+    // Найти пользователя (вне транзакции - только чтение)
     const [user] = await db
       .select()
       .from(users)
@@ -237,89 +291,168 @@ class DecadesService {
       return { success: false, error: 'Для вступления в десятку нужна активная подписка' };
     }
 
-    // Проверить, не состоит ли уже в десятке
-    const [existingMembership] = await db
-      .select()
-      .from(decadeMembers)
-      .where(and(eq(decadeMembers.userId, user.id), isNull(decadeMembers.leftAt)))
-      .limit(1);
+    // Retry loop для случая когда десятка заполнилась между поиском и записью
+    const MAX_RETRIES = 3;
 
-    if (existingMembership) {
-      // Вернуть инфо о текущей десятке
-      const [currentDecade] = await db
-        .select()
-        .from(decades)
-        .where(eq(decades.id, existingMembership.decadeId))
-        .limit(1);
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const result = await db.transaction(async tx => {
+          // 🔒 Проверить существующее членство С БЛОКИРОВКОЙ
+          const [existingMembership] = await tx
+            .select()
+            .from(decadeMembers)
+            .where(and(eq(decadeMembers.userId, user.id), isNull(decadeMembers.leftAt)))
+            .for('update')
+            .limit(1);
 
-      return {
-        success: true,
-        inviteLink: currentDecade?.inviteLink || undefined,
-        decadeName: `Десятка №${currentDecade?.number} ${currentDecade?.city}`,
-      };
-    }
+          if (existingMembership) {
+            // Уже состоит - вернуть инфо о текущей десятке
+            const [currentDecade] = await tx
+              .select()
+              .from(decades)
+              .where(eq(decades.id, existingMembership.decadeId))
+              .limit(1);
 
-    // Найти или использовать указанную десятку
-    let decade: Decade | undefined;
-    if (decadeId) {
-      const [specified] = await db
-        .select()
-        .from(decades)
-        .where(and(eq(decades.id, decadeId), eq(decades.isActive, true), eq(decades.isFull, false)))
-        .limit(1);
-      decade = specified;
-    } else {
-      const result = await this.findAvailableDecade(user.city);
-      if (!result.found) {
+            return {
+              success: true,
+              inviteLink: currentDecade?.inviteLink || undefined,
+              decadeName: `Десятка №${currentDecade?.number} ${currentDecade?.city}`,
+              alreadyMember: true,
+            };
+          }
+
+          // 🔒 Найти и заблокировать подходящую десятку
+          let decade: Decade | undefined;
+
+          if (decadeId) {
+            // Конкретная десятка
+            const [specified] = await tx
+              .select()
+              .from(decades)
+              .where(
+                and(
+                  eq(decades.id, decadeId),
+                  eq(decades.isActive, true),
+                  eq(decades.isFull, false),
+                  lt(decades.currentMembers, decades.maxMembers) // Явная проверка
+                )
+              )
+              .for('update')
+              .limit(1);
+            decade = specified;
+          } else {
+            // Автоматический подбор - первая свободная в городе
+            const [available] = await tx
+              .select()
+              .from(decades)
+              .where(
+                and(
+                  eq(decades.city, user.city!),
+                  eq(decades.isActive, true),
+                  eq(decades.isFull, false),
+                  lt(decades.currentMembers, decades.maxMembers) // Явная проверка
+                )
+              )
+              .orderBy(decades.number)
+              .for('update')
+              .limit(1);
+            decade = available;
+          }
+
+          if (!decade) {
+            // Нет доступных десяток
+            return {
+              success: false,
+              error: decadeId
+                ? 'Десятка не найдена или заполнена'
+                : `В городе ${user.city} пока нет доступных десяток`,
+              noDecadeAvailable: true,
+            };
+          }
+
+          // Финальная проверка (paranoid check после блокировки)
+          if (decade.currentMembers >= decade.maxMembers) {
+            return {
+              success: false,
+              error: 'Десятка заполнилась',
+              retryNeeded: true,
+            };
+          }
+
+          // ✅ Добавить участника
+          await tx.insert(decadeMembers).values({
+            decadeId: decade.id,
+            userId: user.id,
+            telegramId,
+            isLeader: false,
+          });
+
+          // ✅ Обновить счётчик атомарно
+          const newCount = decade.currentMembers + 1;
+          await tx
+            .update(decades)
+            .set({
+              currentMembers: newCount,
+              isFull: newCount >= decade.maxMembers,
+              updatedAt: new Date(),
+            })
+            .where(eq(decades.id, decade.id));
+
+          return {
+            success: true,
+            inviteLink: decade.inviteLink || undefined,
+            decadeName: `Десятка №${decade.number} ${decade.city}`,
+            decadeId: decade.id,
+            city: decade.city,
+          };
+        });
+
+        // Обработка результата транзакции
+        if (result.retryNeeded && attempt < MAX_RETRIES) {
+          logger.warn({ telegramId, attempt }, 'Decade filled during assignment, retrying...');
+          await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100));
+          continue;
+        }
+
+        if (result.success && !result.alreadyMember) {
+          logger.info(
+            {
+              userId: user.id,
+              telegramId,
+              decadeId: result.decadeId,
+              city: result.city,
+              attempt,
+            },
+            'User assigned to decade'
+          );
+        }
+
         return {
-          success: false,
-          error: `В городе ${user.city} пока нет доступных десяток`,
+          success: result.success,
+          inviteLink: result.inviteLink,
+          decadeName: result.decadeName,
+          error: result.error,
         };
+      } catch (error: any) {
+        // Проверяем serialization failure (40001) или deadlock (40P01)
+        const isRetryable =
+          error?.code === '40001' ||
+          error?.code === '40P01' ||
+          error?.message?.includes('could not serialize') ||
+          error?.message?.includes('deadlock');
+
+        if (isRetryable && attempt < MAX_RETRIES) {
+          logger.warn({ telegramId, attempt, error: error?.message }, 'Transaction conflict, retrying...');
+          await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200));
+          continue;
+        }
+
+        logger.error({ error, telegramId, attempt }, 'Failed to assign user to decade');
+        throw error;
       }
-      decade = result.decade;
     }
 
-    if (!decade) {
-      return { success: false, error: 'Десятка не найдена или заполнена' };
-    }
-
-    // Записать в десятку
-    await db.transaction(async tx => {
-      // Добавить участника
-      await tx.insert(decadeMembers).values({
-        decadeId: decade!.id,
-        userId: user.id,
-        telegramId,
-        isLeader: false,
-      });
-
-      // Обновить счётчик
-      const newCount = decade!.currentMembers + 1;
-      await tx
-        .update(decades)
-        .set({
-          currentMembers: newCount,
-          isFull: newCount >= decade!.maxMembers,
-          updatedAt: new Date(),
-        })
-        .where(eq(decades.id, decade!.id));
-    });
-
-    logger.info(
-      {
-        userId: user.id,
-        telegramId,
-        decadeId: decade.id,
-        city: decade.city,
-      },
-      'User assigned to decade'
-    );
-
-    return {
-      success: true,
-      inviteLink: decade.inviteLink || undefined,
-      decadeName: `Десятка №${decade.number} ${decade.city}`,
-    };
+    return { success: false, error: 'Не удалось записаться в десятку, попробуйте позже' };
   }
 
   /**
@@ -514,6 +647,39 @@ class DecadesService {
     }
 
     logger.info({ telegramId, decadeId: decade.id }, 'User removed from decade');
+  }
+
+  /**
+   * Деактивировать десятку (когда бот удалён из чата)
+   */
+  async deactivateDecade(tgChatId: number): Promise<void> {
+    const [decade] = await db
+      .select()
+      .from(decades)
+      .where(eq(decades.tgChatId, tgChatId))
+      .limit(1);
+
+    if (!decade) return;
+
+    // Деактивировать
+    await db
+      .update(decades)
+      .set({
+        isActive: false,
+        updatedAt: new Date(),
+      })
+      .where(eq(decades.id, decade.id));
+
+    // Отметить всех участников как вышедших
+    await db
+      .update(decadeMembers)
+      .set({ leftAt: new Date() })
+      .where(and(eq(decadeMembers.decadeId, decade.id), isNull(decadeMembers.leftAt)));
+
+    logger.info(
+      { decadeId: decade.id, city: decade.city, number: decade.number },
+      'Decade deactivated'
+    );
   }
 
   // ============================================================================

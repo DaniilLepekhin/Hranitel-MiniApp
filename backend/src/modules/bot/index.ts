@@ -3682,6 +3682,32 @@ bot.on('my_chat_member', async (ctx) => {
         'Bot added to group as admin - checking if this is a decade creation'
       );
 
+      // 🛡️ Проверяем права администратора бота
+      const botMember = update.new_chat_member;
+      const canRestrictMembers = 'can_restrict_members' in botMember && botMember.can_restrict_members;
+      const canInviteUsers = 'can_invite_users' in botMember && botMember.can_invite_users;
+
+      if (!canRestrictMembers || !canInviteUsers) {
+        logger.warn(
+          { chatId, chatTitle, canRestrictMembers, canInviteUsers },
+          'Bot does not have required admin permissions'
+        );
+        try {
+          await ctx.api.sendMessage(
+            chatId,
+            `⚠️ У бота недостаточно прав для управления десяткой.\n\n` +
+            `Необходимые права:\n` +
+            `✅ Блокировка пользователей (${canRestrictMembers ? 'есть' : '❌ нет'})\n` +
+            `✅ Приглашение по ссылке (${canInviteUsers ? 'есть' : '❌ нет'})\n\n` +
+            `Пожалуйста, дайте боту эти права и добавьте снова.`
+          );
+          await ctx.api.leaveChat(chatId);
+        } catch (leaveError) {
+          logger.error({ error: leaveError, chatId }, 'Failed to leave chat after permission check');
+        }
+        return;
+      }
+
       // Проверяем, может ли пользователь создать десятку
       const canCreate = await decadesService.canCreateDecade(fromUser.id);
 
@@ -3736,10 +3762,20 @@ bot.on('my_chat_member', async (ctx) => {
       }
     }
 
-    // Если бота удалили из группы
+    // Если бота удалили из группы - деактивировать десятку
     if (newStatus === 'left' || newStatus === 'kicked') {
       logger.info({ chatId, chatTitle }, 'Bot removed from chat');
-      // Можно добавить логику деактивации десятки
+
+      // Деактивировать десятку если это была десятка
+      try {
+        const isDecade = await decadesService.isDecadeChat(chatId);
+        if (isDecade) {
+          await decadesService.deactivateDecade(chatId);
+          logger.info({ chatId, chatTitle }, 'Decade deactivated after bot removal');
+        }
+      } catch (deactivateError) {
+        logger.error({ error: deactivateError, chatId }, 'Failed to deactivate decade');
+      }
     }
   } catch (error) {
     logger.error({ error }, 'Error in my_chat_member handler');
