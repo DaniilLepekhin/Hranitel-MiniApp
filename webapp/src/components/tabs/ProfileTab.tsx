@@ -7,6 +7,7 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { energiesApi, usersApi } from '@/lib/api';
 import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Edit2, X, Check } from 'lucide-react';
 
 export function ProfileTab() {
@@ -19,6 +20,7 @@ export function ProfileTab() {
   const [editFirstName, setEditFirstName] = useState('');
   const [editLastName, setEditLastName] = useState('');
   const [isCancellingSubscription, setIsCancellingSubscription] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем баланс энергий пользователя
   const { data: balanceData } = useQuery({
@@ -518,33 +520,11 @@ export function ProfileTab() {
               <div className="space-y-2">
                 {subscriptionInfo.isActive ? (
                   <button
-                    onClick={async () => {
+                    onClick={() => {
                       haptic.impact('medium');
-
-                      // Подтверждение через showConfirm
-                      webApp?.showConfirm(
-                        'Вы уверены, что хотите отменить подписку? Доступ к клубу будет прекращён.',
-                        async (confirmed) => {
-                          if (!confirmed) return;
-
-                          setIsCancellingSubscription(true);
-                          try {
-                            const result = await usersApi.cancelSubscription();
-                            if (result.success) {
-                              webApp?.showAlert(result.message || 'Подписка успешно отменена');
-                            } else {
-                              webApp?.showAlert(result.error || 'Ошибка при отмене подписки');
-                            }
-                          } catch {
-                            webApp?.showAlert('Ошибка при отмене подписки. Попробуйте позже.');
-                          } finally {
-                            setIsCancellingSubscription(false);
-                          }
-                        }
-                      );
+                      setShowCancelModal(true);
                     }}
-                    disabled={isCancellingSubscription}
-                    className="w-full py-3 rounded-lg transition-all active:scale-95 disabled:opacity-50"
+                    className="w-full py-3 rounded-lg transition-all active:scale-95"
                     style={{
                       fontFamily: 'Gilroy, sans-serif',
                       fontWeight: 600,
@@ -554,7 +534,7 @@ export function ProfileTab() {
                       border: 'none',
                     }}
                   >
-                    {isCancellingSubscription ? 'Отмена...' : 'Отменить подписку'}
+                    Отменить подписку
                   </button>
                 ) : (
                   <button
@@ -786,6 +766,35 @@ export function ProfileTab() {
           </div>
         </div>
       )}
+
+      {/* ===== МОДАЛЬНОЕ ОКНО ОТМЕНЫ ПОДПИСКИ ===== */}
+      <ConfirmModal
+        isOpen={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onConfirm={async () => {
+          setIsCancellingSubscription(true);
+          try {
+            const result = await usersApi.cancelSubscription();
+            setShowCancelModal(false);
+            if (result.success) {
+              webApp?.showAlert(result.message || 'Подписка успешно отменена');
+            } else {
+              webApp?.showAlert(result.error || 'Ошибка при отмене подписки');
+            }
+          } catch {
+            setShowCancelModal(false);
+            webApp?.showAlert('Ошибка при отмене подписки. Попробуйте позже.');
+          } finally {
+            setIsCancellingSubscription(false);
+          }
+        }}
+        title="Отмена подписки"
+        message="Вы уверены, что хотите отменить подписку? После отмены доступ к материалам клуба будет прекращён."
+        confirmText="Отменить подписку"
+        cancelText="Оставить"
+        isLoading={isCancellingSubscription}
+        variant="danger"
+      />
     </div>
   );
 }
