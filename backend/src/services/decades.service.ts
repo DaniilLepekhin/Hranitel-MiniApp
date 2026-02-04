@@ -220,13 +220,13 @@ class DecadesService {
       try {
         // Вся логика в транзакции
         const [newDecade] = await db.transaction(async tx => {
-          // 🔒 Получить следующий номер С БЛОКИРОВКОЙ строк города
-          // FOR UPDATE блокирует все строки этого города от параллельных изменений
+          // 🔒 Получить следующий номер
+          // Используем SERIALIZABLE или полагаемся на unique constraint (city, number)
+          // FOR UPDATE не работает с агрегатами, поэтому просто читаем MAX
           const [maxNumber] = await tx
             .select({ max: sql<number>`COALESCE(MAX(${decades.number}), 0)` })
             .from(decades)
-            .where(eq(decades.city, city))
-            .for('update');
+            .where(eq(decades.city, city));
 
           const nextNumber = (maxNumber?.max || 0) + 1;
 
