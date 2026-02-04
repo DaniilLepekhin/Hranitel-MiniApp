@@ -33,6 +33,98 @@ class DecadesService {
   // ============================================================================
 
   /**
+   * Проверить статус лидера при добавлении бота в чат
+   * Возвращает детальную информацию для обработки 3-х сценариев:
+   * - CLEAN: можно создать новую десятку
+   * - BETRAYAL: лидер пытается создать вторую десятку (бот должен выйти)
+   * - RETURN: лидер вернул бота в тот же чат (реактивация)
+   */
+  async checkLeaderDecadeStatus(
+    telegramId: number,
+    currentChatId: number
+  ): Promise<{
+    status: 'clean' | 'betrayal' | 'return' | 'not_leader';
+    reason?: string;
+    city?: string;
+    userId?: string;
+    existingDecade?: Decade;
+  }> {
+    // 1. Найти пользователя
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.telegramId, telegramId))
+      .limit(1);
+
+    if (!user) {
+      return { status: 'not_leader', reason: 'Пользователь не найден' };
+    }
+
+    if (!user.city) {
+      return { status: 'not_leader', reason: 'Не указан город в профиле' };
+    }
+
+    // 2. Проверить результат теста лидера
+    const [testResult] = await db
+      .select()
+      .from(leaderTestResults)
+      .where(
+        and(eq(leaderTestResults.userId, user.id), eq(leaderTestResults.passed, true))
+      )
+      .orderBy(desc(leaderTestResults.createdAt))
+      .limit(1);
+
+    if (!testResult) {
+      return { status: 'not_leader', reason: 'Тест на лидера не пройден' };
+    }
+
+    // 3. Проверить, есть ли активная десятка
+    const [existingDecade] = await db
+      .select()
+      .from(decades)
+      .where(and(eq(decades.leaderTelegramId, telegramId), eq(decades.isActive, true)))
+      .limit(1);
+
+    if (existingDecade) {
+      // Сравниваем chat_id
+      if (existingDecade.tgChatId === currentChatId) {
+        // RETURN: бот вернулся в тот же чат
+        return {
+          status: 'return',
+          city: user.city,
+          userId: user.id,
+          existingDecade,
+        };
+      } else {
+        // BETRAYAL: лидер пытается создать вторую десятку
+        return {
+          status: 'betrayal',
+          reason: `У вас уже есть активная Десятка №${existingDecade.number} в городе ${existingDecade.city}`,
+          existingDecade,
+        };
+      }
+    }
+
+    // CLEAN: можно создать новую десятку
+    return { status: 'clean', city: user.city, userId: user.id };
+  }
+
+  /**
+   * Реактивировать десятку (когда бот вернулся в тот же чат)
+   */
+  async reactivateDecade(decadeId: string): Promise<void> {
+    await db
+      .update(decades)
+      .set({
+        isActive: true,
+        updatedAt: new Date(),
+      })
+      .where(eq(decades.id, decadeId));
+
+    logger.info({ decadeId }, 'Decade reactivated');
+  }
+
+  /**
    * Проверить, может ли пользователь создать десятку
    */
   async canCreateDecade(telegramId: number): Promise<{

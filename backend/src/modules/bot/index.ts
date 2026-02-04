@@ -3708,21 +3708,21 @@ bot.on('my_chat_member', async (ctx) => {
         return;
       }
 
-      // Проверяем, может ли пользователь создать десятку
-      const canCreate = await decadesService.canCreateDecade(fromUser.id);
+      // 🔍 Проверяем статус лидера (3 сценария: clean/betrayal/return)
+      const leaderStatus = await decadesService.checkLeaderDecadeStatus(fromUser.id, chatId);
 
-      if (!canCreate.canCreate) {
-        // Не лидер - покидаем чат
+      // Сценарий: NOT_LEADER - не лидер, покидаем чат
+      if (leaderStatus.status === 'not_leader') {
         logger.warn(
-          { chatId, chatTitle, fromUserId: fromUser.id, reason: canCreate.reason },
-          'User cannot create decade - leaving chat'
+          { chatId, chatTitle, fromUserId: fromUser.id, reason: leaderStatus.reason },
+          'User is not a leader - leaving chat'
         );
 
         try {
           await ctx.api.sendMessage(
             chatId,
             `⚠️ Извините, но я не могу создать десятку в этом чате.\n\n` +
-            `Причина: ${canCreate.reason || 'Вы не являетесь лидером или не выполнены условия создания десятки.'}\n\n` +
+            `Причина: ${leaderStatus.reason || 'Вы не являетесь лидером или не выполнены условия создания десятки.'}\n\n` +
             `Чтобы стать лидером десятки, нужно:\n` +
             `1. Иметь активную подписку\n` +
             `2. Пройти тест лидера\n` +
@@ -3735,7 +3735,64 @@ bot.on('my_chat_member', async (ctx) => {
         return;
       }
 
-      // Создаём десятку
+      // Сценарий: BETRAYAL - лидер пытается создать вторую десятку
+      if (leaderStatus.status === 'betrayal') {
+        logger.warn(
+          {
+            chatId,
+            chatTitle,
+            fromUserId: fromUser.id,
+            existingDecade: leaderStatus.existingDecade?.id,
+            existingChatId: leaderStatus.existingDecade?.tgChatId,
+          },
+          'Leader betrayal detected - already has active decade in another chat'
+        );
+
+        try {
+          await ctx.api.sendMessage(
+            chatId,
+            `🚫 Ошибка! @${fromUser.username || fromUser.first_name}, ${leaderStatus.reason}.\n\n` +
+            `Правило системы: 1 Лидер = 1 Чат.\n\n` +
+            `Если вы хотите сменить чат десятки, сначала расформируйте текущую через поддержку.\n\n` +
+            `Я покидаю эту группу.`
+          );
+          await ctx.api.leaveChat(chatId);
+        } catch (leaveError) {
+          logger.error({ error: leaveError, chatId }, 'Failed to leave chat after betrayal detection');
+        }
+        return;
+      }
+
+      // Сценарий: RETURN - лидер вернул бота в тот же чат (реактивация)
+      if (leaderStatus.status === 'return' && leaderStatus.existingDecade) {
+        logger.info(
+          {
+            chatId,
+            chatTitle,
+            fromUserId: fromUser.id,
+            decadeId: leaderStatus.existingDecade.id,
+          },
+          'Leader returned bot to existing decade chat - reactivating'
+        );
+
+        try {
+          // Реактивируем десятку если она была деактивирована
+          if (!leaderStatus.existingDecade.isActive) {
+            await decadesService.reactivateDecade(leaderStatus.existingDecade.id);
+          }
+
+          await ctx.api.sendMessage(
+            chatId,
+            `🤖 Я снова с вами! Продолжаем вести Десятку №${leaderStatus.existingDecade.number} города ${leaderStatus.existingDecade.city}.\n\n` +
+            `👥 Участников: ${leaderStatus.existingDecade.currentMembers}/${leaderStatus.existingDecade.maxMembers}`
+          );
+        } catch (returnError) {
+          logger.error({ error: returnError, chatId }, 'Failed to handle return scenario');
+        }
+        return;
+      }
+
+      // Сценарий: CLEAN - создаём новую десятку
       const result = await decadesService.createDecade(chatId, fromUser.id, chatTitle);
 
       if (result.success && result.decade) {
