@@ -27,10 +27,17 @@ await bot.api.setMyCommands([]);
 
 // 🚫 MIDDLEWARE: Игнорируем все сообщения из групповых чатов и каналов (chatId < 0)
 // Воронки работают ТОЛЬКО в личных чатах с ботом
+// ИСКЛЮЧЕНИЕ: команда /create_decade должна работать в группах
 bot.use(async (ctx, next) => {
   const chatId = ctx.chat?.id;
   if (chatId && chatId < 0) {
-    // Молча игнорируем - не логируем каждое сообщение чтобы не спамить
+    // Пропускаем команду /create_decade для групп
+    const text = ctx.message?.text || '';
+    if (text.startsWith('/create_decade')) {
+      await next();
+      return;
+    }
+    // Молча игнорируем остальные сообщения - не логируем каждое сообщение чтобы не спамить
     return;
   }
   await next();
@@ -3531,6 +3538,167 @@ bot.command('getmyid', async (ctx) => {
     );
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in /getmyid command');
+  }
+});
+
+// /create_decade - создать десятку в текущем чате (только для лидеров, работает в группах)
+bot.command('create_decade', async (ctx) => {
+  try {
+    const chatId = ctx.chat.id;
+    const chatType = ctx.chat.type;
+    const chatTitle = 'title' in ctx.chat ? ctx.chat.title : 'Без названия';
+    const fromUser = ctx.from;
+
+    if (!fromUser) {
+      await ctx.reply('❌ Не удалось определить отправителя команды.');
+      return;
+    }
+
+    // Проверяем что это группа
+    if (chatType !== 'group' && chatType !== 'supergroup') {
+      await ctx.reply('❌ Эта команда работает только в группах.\n\nДобавьте бота в группу и выполните команду там.');
+      return;
+    }
+
+    logger.info(
+      { chatId, chatTitle, chatType, userId: fromUser.id, username: fromUser.username },
+      '/create_decade command received'
+    );
+
+    // 🛡️ Проверяем права бота в чате
+    try {
+      const botMember = await ctx.api.getChatMember(chatId, ctx.me.id);
+
+      if (botMember.status !== 'administrator') {
+        await ctx.reply(
+          `⚠️ Бот должен быть администратором чата для создания десятки.\n\n` +
+          `Пожалуйста, назначьте бота администратором с правами:\n` +
+          `✅ Блокировка пользователей\n` +
+          `✅ Приглашение по ссылке`
+        );
+        return;
+      }
+
+      const canRestrictMembers = 'can_restrict_members' in botMember && botMember.can_restrict_members;
+      const canInviteUsers = 'can_invite_users' in botMember && botMember.can_invite_users;
+
+      if (!canRestrictMembers || !canInviteUsers) {
+        await ctx.reply(
+          `⚠️ У бота недостаточно прав для управления десяткой.\n\n` +
+          `Необходимые права:\n` +
+          `${canRestrictMembers ? '✅' : '❌'} Блокировка пользователей\n` +
+          `${canInviteUsers ? '✅' : '❌'} Приглашение по ссылке\n\n` +
+          `Пожалуйста, дайте боту эти права.`
+        );
+        return;
+      }
+    } catch (permError) {
+      logger.error({ error: permError, chatId }, 'Failed to check bot permissions');
+      await ctx.reply('❌ Не удалось проверить права бота. Убедитесь, что бот является администратором.');
+      return;
+    }
+
+    // 🔍 Проверяем статус лидера (3 сценария: clean/betrayal/return)
+    const leaderStatus = await decadesService.checkLeaderDecadeStatus(fromUser.id, chatId);
+
+    // Сценарий: NOT_LEADER - не лидер
+    if (leaderStatus.status === 'not_leader') {
+      logger.warn(
+        { chatId, chatTitle, fromUserId: fromUser.id, reason: leaderStatus.reason },
+        'User is not a leader - cannot create decade'
+      );
+
+      await ctx.reply(
+        `⚠️ Вы не можете создать десятку.\n\n` +
+        `Причина: ${leaderStatus.reason || 'Вы не являетесь лидером или не выполнены условия создания десятки.'}\n\n` +
+        `Чтобы стать лидером десятки, нужно:\n` +
+        `1. Иметь активную подписку\n` +
+        `2. Пройти тест лидера\n` +
+        `3. Указать город в профиле`
+      );
+      return;
+    }
+
+    // Сценарий: BETRAYAL - лидер пытается создать вторую десятку
+    if (leaderStatus.status === 'betrayal') {
+      logger.warn(
+        {
+          chatId,
+          chatTitle,
+          fromUserId: fromUser.id,
+          existingDecade: leaderStatus.existingDecade?.id,
+          existingChatId: leaderStatus.existingDecade?.tgChatId,
+        },
+        'Leader betrayal detected - already has active decade in another chat'
+      );
+
+      await ctx.reply(
+        `🚫 Ошибка! @${fromUser.username || fromUser.first_name}, ${leaderStatus.reason}.\n\n` +
+        `Правило системы: 1 Лидер = 1 Чат.\n\n` +
+        `Если вы хотите сменить чат десятки, сначала расформируйте текущую через поддержку.`
+      );
+      return;
+    }
+
+    // Сценарий: RETURN - лидер вернулся в тот же чат (реактивация)
+    if (leaderStatus.status === 'return' && leaderStatus.existingDecade) {
+      logger.info(
+        {
+          chatId,
+          chatTitle,
+          fromUserId: fromUser.id,
+          decadeId: leaderStatus.existingDecade.id,
+        },
+        'Leader using create_decade in existing decade chat - reactivating'
+      );
+
+      try {
+        // Реактивируем десятку если она была деактивирована
+        if (!leaderStatus.existingDecade.isActive) {
+          await decadesService.reactivateDecade(leaderStatus.existingDecade.id);
+        }
+
+        await ctx.reply(
+          `🤖 Десятка №${leaderStatus.existingDecade.number} города ${leaderStatus.existingDecade.city} уже существует в этом чате!\n\n` +
+          `👥 Участников: ${leaderStatus.existingDecade.currentMembers}/${leaderStatus.existingDecade.maxMembers}\n\n` +
+          `Статус: ${leaderStatus.existingDecade.isActive ? '✅ Активна' : '✅ Реактивирована'}`
+        );
+      } catch (returnError) {
+        logger.error({ error: returnError, chatId }, 'Failed to handle return scenario');
+        await ctx.reply('❌ Произошла ошибка при обработке. Попробуйте снова.');
+      }
+      return;
+    }
+
+    // Сценарий: CLEAN - создаём новую десятку
+    const result = await decadesService.createDecade(chatId, fromUser.id, chatTitle);
+
+    if (result.success && result.decade) {
+      logger.info(
+        { chatId, decadeId: result.decade.id, city: result.decade.city, number: result.decade.number },
+        'Decade created successfully via /create_decade'
+      );
+
+      await ctx.reply(
+        `🎉 Десятка №${result.decade.number} города ${result.decade.city} создана!\n\n` +
+        `👥 Максимум участников: 11 (включая лидера)\n` +
+        `📋 Участники будут распределяться автоматически\n\n` +
+        `Ваша ссылка-приглашение:\n${result.decade.inviteLink || 'Будет создана позже'}\n\n` +
+        `⚠️ Не забывайте отправлять еженедельный отчёт (светофор) по пятницам!`
+      );
+    } else {
+      logger.error({ chatId, error: result.error }, 'Failed to create decade via /create_decade');
+      await ctx.reply(
+        `❌ Ошибка при создании десятки: ${result.error}\n\nПопробуйте снова или обратитесь к администратору.`
+      );
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id, chatId: ctx.chat?.id }, 'Error in /create_decade command');
+    try {
+      await ctx.reply('❌ Произошла ошибка. Попробуйте снова позже.');
+    } catch {
+      // ignore
+    }
   }
 });
 
