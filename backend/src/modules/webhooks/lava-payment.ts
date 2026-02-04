@@ -1,12 +1,13 @@
 import { Elysia, t } from 'elysia';
 import { db } from '@/db';
-import { users, payments, paymentAnalytics } from '@/db/schema';
+import { users, payments, paymentAnalytics, giftSubscriptions } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { startOnboardingAfterPayment, handleGiftPaymentSuccess } from '@/modules/bot/post-payment-funnels';
 import { subscriptionGuardService } from '@/services/subscription-guard.service';
 import { withLock } from '@/utils/distributed-lock';
 import { getcourseService } from '@/services/getcourse.service';
+import { nanoid } from 'nanoid';
 
 export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
   // Lava payment success webhook
@@ -123,6 +124,18 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
               activated: false,
             },
           });
+
+          // 🆕 Создаём запись в gift_subscriptions для надёжной активации
+          const activationToken = nanoid(16);
+          await db.insert(giftSubscriptions).values({
+            gifterUserId: gifter.id,
+            recipientTgId: parseInt(recipientTgId),
+            paymentId: payment.id,
+            activated: false,
+            activationToken,
+          });
+
+          logger.info({ recipientTgId, activationToken }, 'Gift subscription record created');
 
           logger.info(
             {
