@@ -262,6 +262,7 @@ export const authModule = new Elysia({ prefix: '/auth', tags: ['Auth'] })
             streak: user.streak,
             isPro: user.isPro,
             subscriptionExpires: user.subscriptionExpires,
+            autoRenewalEnabled: user.autoRenewalEnabled,
             createdAt: user.createdAt,
           },
           token,
@@ -382,6 +383,7 @@ export const authModule = new Elysia({ prefix: '/auth', tags: ['Auth'] })
           streak: user!.streak,
           isPro: user!.isPro,
           subscriptionExpires: user!.subscriptionExpires,
+          autoRenewalEnabled: user!.autoRenewalEnabled,
           createdAt: user!.createdAt,
         },
       };
