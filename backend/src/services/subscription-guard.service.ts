@@ -29,7 +29,7 @@ const oldDbConnection = postgres({
 
 interface CityChat {
   id: number;
-  chat_id: string | null;
+  platform_id: number | null;
   country: string;
   city: string;
 }
@@ -53,7 +53,7 @@ class SubscriptionGuardService {
   }
 
   /**
-   * Получить все chat_id из city_chats_ik (с кэшированием)
+   * Получить все platform_id из city_chats_ik (с кэшированием)
    */
   async getCityChatIds(): Promise<number[]> {
     // Проверяем кэш
@@ -63,18 +63,14 @@ class SubscriptionGuardService {
     }
 
     try {
-      const result = await oldDbConnection<{ chat_id: string | null }[]>`
-        SELECT chat_id
+      const result = await oldDbConnection<{ platform_id: number | null }[]>`
+        SELECT platform_id
         FROM city_chats_ik
-        WHERE chat_id IS NOT NULL AND chat_id != ''
+        WHERE platform_id IS NOT NULL
       `;
 
       const chatIds = result
-        .map(row => {
-          // chat_id может быть в формате "-100123456" или просто "123456"
-          const id = parseInt(row.chat_id || '', 10);
-          return isNaN(id) ? null : id;
-        })
+        .map(row => row.platform_id)
         .filter((id): id is number => id !== null);
 
       // Сохраняем в кэш
