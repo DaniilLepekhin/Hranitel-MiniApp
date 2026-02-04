@@ -27,13 +27,18 @@ await bot.api.setMyCommands([]);
 
 // 🚫 MIDDLEWARE: Игнорируем все сообщения из групповых чатов и каналов (chatId < 0)
 // Воронки работают ТОЛЬКО в личных чатах с ботом
-// ИСКЛЮЧЕНИЕ: команда /create_decade должна работать в группах
+// ИСКЛЮЧЕНИЯ: команда /create_decade и системные сообщения (new_chat_title) должны работать в группах
 bot.use(async (ctx, next) => {
   const chatId = ctx.chat?.id;
   if (chatId && chatId < 0) {
     // Пропускаем команду /create_decade для групп
     const text = ctx.message?.text || '';
     if (text.startsWith('/create_decade')) {
+      await next();
+      return;
+    }
+    // Пропускаем системные сообщения (изменение названия чата и т.д.)
+    if (ctx.message?.new_chat_title) {
       await next();
       return;
     }
@@ -4006,6 +4011,23 @@ bot.on('my_chat_member', async (ctx) => {
     }
   } catch (error) {
     logger.error({ error }, 'Error in my_chat_member handler');
+  }
+});
+
+// 📝 Обработчик изменения названия чата - обновляем в БД для десяток
+bot.on('message:new_chat_title', async (ctx) => {
+  try {
+    const chatId = ctx.chat.id;
+    const newTitle = ctx.message.new_chat_title;
+
+    if (!newTitle) return;
+
+    logger.info({ chatId, newTitle }, 'Chat title changed');
+
+    // Обновить название в БД если это десятка
+    await decadesService.updateChatTitle(chatId, newTitle);
+  } catch (error) {
+    logger.error({ error, chatId: ctx.chat?.id }, 'Error handling new_chat_title');
   }
 });
 

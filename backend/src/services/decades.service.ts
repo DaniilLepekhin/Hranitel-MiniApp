@@ -774,6 +774,32 @@ class DecadesService {
     );
   }
 
+  /**
+   * Обновить название чата десятки
+   */
+  async updateChatTitle(tgChatId: number, newTitle: string): Promise<void> {
+    const [decade] = await db
+      .select()
+      .from(decades)
+      .where(eq(decades.tgChatId, tgChatId))
+      .limit(1);
+
+    if (!decade) return;
+
+    await db
+      .update(decades)
+      .set({
+        chatTitle: newTitle,
+        updatedAt: new Date(),
+      })
+      .where(eq(decades.id, decade.id));
+
+    logger.info(
+      { decadeId: decade.id, oldTitle: decade.chatTitle, newTitle },
+      'Decade chat title updated'
+    );
+  }
+
   // ============================================================================
   // СВЕТОФОР (LEADER REPORTS)
   // ============================================================================
