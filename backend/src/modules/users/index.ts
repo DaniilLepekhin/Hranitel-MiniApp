@@ -179,11 +179,6 @@ export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
         return { success: false, error: 'Email не указан. Обратитесь в службу поддержки.' };
       }
 
-      if (!user.lavaContactId) {
-        set.status = 400;
-        return { success: false, error: 'Данные подписки не найдены. Обратитесь в службу поддержки.' };
-      }
-
       try {
         // Call N8N webhook to cancel subscription in Lava
         const response = await fetch(CANCEL_SUBSCRIPTION_WEBHOOK, {
@@ -193,7 +188,7 @@ export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
           },
           body: JSON.stringify({
             email: user.email.toLowerCase(),
-            contactid: user.lavaContactId,
+            contactid: user.lavaContactId || '',
           }),
         });
 
