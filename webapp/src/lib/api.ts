@@ -187,6 +187,8 @@ export const authApi = {
 export const usersApi = {
   updateProfile: (data: { firstName?: string; lastName?: string; city?: string }) =>
     api.patch<{ success: boolean; user: Partial<User> }>('/users/me', data),
+  cancelSubscription: () =>
+    api.post<{ success: boolean; message?: string; error?: string }>('/users/cancel-subscription'),
 };
 
 // Courses

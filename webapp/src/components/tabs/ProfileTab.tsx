@@ -18,6 +18,7 @@ export function ProfileTab() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editFirstName, setEditFirstName] = useState('');
   const [editLastName, setEditLastName] = useState('');
+  const [isCancellingSubscription, setIsCancellingSubscription] = useState(false);
 
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем баланс энергий пользователя
   const { data: balanceData } = useQuery({
@@ -517,13 +518,33 @@ export function ProfileTab() {
               <div className="space-y-2">
                 {subscriptionInfo.isActive ? (
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       haptic.impact('medium');
-                      webApp?.showAlert(
-                        'Для отмены подписки обратитесь в службу заботы @Egiazarova_support_bot'
+
+                      // Подтверждение через showConfirm
+                      webApp?.showConfirm(
+                        'Вы уверены, что хотите отменить подписку? Доступ к клубу будет прекращён.',
+                        async (confirmed) => {
+                          if (!confirmed) return;
+
+                          setIsCancellingSubscription(true);
+                          try {
+                            const result = await usersApi.cancelSubscription();
+                            if (result.success) {
+                              webApp?.showAlert(result.message || 'Подписка успешно отменена');
+                            } else {
+                              webApp?.showAlert(result.error || 'Ошибка при отмене подписки');
+                            }
+                          } catch {
+                            webApp?.showAlert('Ошибка при отмене подписки. Попробуйте позже.');
+                          } finally {
+                            setIsCancellingSubscription(false);
+                          }
+                        }
                       );
                     }}
-                    className="w-full py-3 rounded-lg transition-all active:scale-95"
+                    disabled={isCancellingSubscription}
+                    className="w-full py-3 rounded-lg transition-all active:scale-95 disabled:opacity-50"
                     style={{
                       fontFamily: 'Gilroy, sans-serif',
                       fontWeight: 600,
@@ -533,7 +554,7 @@ export function ProfileTab() {
                       border: 'none',
                     }}
                   >
-                    Отменить подписку
+                    {isCancellingSubscription ? 'Отмена...' : 'Отменить подписку'}
                   </button>
                 ) : (
                   <button

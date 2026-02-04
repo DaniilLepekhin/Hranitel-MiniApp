@@ -4,6 +4,9 @@ import { db, users } from '@/db';
 import { authMiddleware, getUserFromToken } from '@/middlewares/auth';
 import { logger } from '@/utils/logger';
 
+// N8N webhook for subscription cancellation
+const CANCEL_SUBSCRIPTION_WEBHOOK = 'https://n8n4.daniillepekhin.ru/webhook/deletelava_miniapp';
+
 export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
   .use(authMiddleware)
   // Get current user profile
@@ -151,6 +154,79 @@ export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
       }),
       detail: {
         summary: 'Get user public profile',
+      },
+    }
+  )
+  // Cancel subscription
+  .post(
+    '/cancel-subscription',
+    async ({ headers, set }) => {
+      const user = await getUserFromToken(headers.authorization);
+
+      if (!user) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
+      if (!user.isPro) {
+        set.status = 400;
+        return { success: false, error: 'У вас нет активной подписки' };
+      }
+
+      if (!user.email) {
+        set.status = 400;
+        return { success: false, error: 'Email не указан. Обратитесь в службу поддержки.' };
+      }
+
+      if (!user.lavaContactId) {
+        set.status = 400;
+        return { success: false, error: 'Данные подписки не найдены. Обратитесь в службу поддержки.' };
+      }
+
+      try {
+        // Call N8N webhook to cancel subscription in Lava
+        const response = await fetch(CANCEL_SUBSCRIPTION_WEBHOOK, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: user.email.toLowerCase(),
+            contactid: user.lavaContactId,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          logger.error(
+            { userId: user.id, telegramId: user.telegramId, status: response.status, error: errorText },
+            'Failed to cancel subscription via webhook'
+          );
+          set.status = 500;
+          return { success: false, error: 'Ошибка при отмене подписки. Попробуйте позже.' };
+        }
+
+        logger.info(
+          { userId: user.id, telegramId: user.telegramId, email: user.email },
+          'Subscription cancellation requested'
+        );
+
+        return {
+          success: true,
+          message: 'Запрос на отмену подписки отправлен. Подписка будет отменена в течение нескольких минут.',
+        };
+      } catch (error) {
+        logger.error(
+          { error, userId: user.id, telegramId: user.telegramId },
+          'Error cancelling subscription'
+        );
+        set.status = 500;
+        return { success: false, error: 'Ошибка при отмене подписки. Попробуйте позже.' };
+      }
+    },
+    {
+      detail: {
+        summary: 'Cancel user subscription',
       },
     }
   );
