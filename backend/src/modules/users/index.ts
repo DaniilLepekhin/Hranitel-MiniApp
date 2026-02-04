@@ -29,6 +29,7 @@ export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
           lastActiveDate: user!.lastActiveDate,
           isPro: user!.isPro,
           subscriptionExpires: user!.subscriptionExpires,
+          autoRenewalEnabled: user!.autoRenewalEnabled,
           settings: user!.settings,
           createdAt: user!.createdAt,
           updatedAt: user!.updatedAt,
@@ -206,6 +207,12 @@ export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
           return { success: false, error: 'Ошибка при отмене подписки. Попробуйте позже.' };
         }
 
+        // Update autoRenewalEnabled in database
+        await db
+          .update(users)
+          .set({ autoRenewalEnabled: false, updatedAt: new Date() })
+          .where(eq(users.id, user.id));
+
         logger.info(
           { userId: user.id, telegramId: user.telegramId, email: user.email },
           'Subscription cancellation requested'
@@ -213,7 +220,6 @@ export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
 
         return {
           success: true,
-          message: 'Запрос на отмену подписки отправлен. Подписка будет отменена в течение нескольких минут.',
         };
       } catch (error) {
         logger.error(

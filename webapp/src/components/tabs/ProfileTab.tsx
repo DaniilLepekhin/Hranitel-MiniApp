@@ -21,7 +21,6 @@ export function ProfileTab() {
   const [editLastName, setEditLastName] = useState('');
   const [isCancellingSubscription, setIsCancellingSubscription] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [subscriptionCancelled, setSubscriptionCancelled] = useState(false);
 
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем баланс энергий пользователя
   const { data: balanceData } = useQuery({
@@ -519,7 +518,7 @@ export function ProfileTab() {
             {/* Кнопки управления подпиской - показываем только если есть дата окончания и не истекла недавно */}
             {user?.subscriptionExpires && !subscriptionInfo.isExpiredRecently && (
               <div className="space-y-2">
-                {subscriptionCancelled ? (
+                {user?.autoRenewalEnabled === false ? (
                   <p
                     className="text-center py-3"
                     style={{
@@ -790,7 +789,10 @@ export function ProfileTab() {
             const result = await usersApi.cancelSubscription();
             setShowCancelModal(false);
             if (result.success) {
-              setSubscriptionCancelled(true);
+              // Update user in store
+              if (user) {
+                setUser({ ...user, autoRenewalEnabled: false });
+              }
             } else {
               webApp?.showAlert(result.error || 'Ошибка при отмене подписки');
             }

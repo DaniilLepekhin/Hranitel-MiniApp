@@ -463,6 +463,7 @@ export interface User {
   streak: number;
   isPro: boolean;
   subscriptionExpires?: string;
+  autoRenewalEnabled?: boolean;
   createdAt: string;
 }
 

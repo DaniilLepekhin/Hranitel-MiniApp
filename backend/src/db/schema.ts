@@ -65,6 +65,7 @@ export const users = pgTable('users', {
   isPro: boolean('is_pro').default(false).notNull(),
   subscriptionExpires: timestamp('subscription_expires'),
   lavaContactId: text('lava_contact_id'), // Lava contact_id for subscription management
+  autoRenewalEnabled: boolean('auto_renewal_enabled').default(true).notNull(), // Автопродление включено
 
   // 🆕 Onboarding & Gift subscription fields
   firstPurchaseDate: timestamp('first_purchase_date'), // Дата первой успешной покупки
