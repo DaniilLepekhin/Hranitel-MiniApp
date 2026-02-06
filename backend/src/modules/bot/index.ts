@@ -862,6 +862,185 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
     else if (type === 'women_dogrev_20m') {
       const utmData = task.data?.utmData || {};
       await womenFunnel.sendWomenDogrev(String(userId), chatId, utmData);
+
+      // Через 5 минут - нумерологический гайд (или 1 минуту для теста)
+      await schedulerService.schedule(
+        {
+          type: 'women_guide_5min',
+          userId,
+          chatId,
+          data: { utmData },
+        },
+        1 * 60 * 1000 // 1 минута для тестирования
+      );
+    }
+    else if (type === 'women_guide_5min') {
+      // Нумерологический гайд через 5 минут после марафона (если не оплатил)
+      const utmData = task.data?.utmData || {};
+      let paymentUrl = 'https://app.successkod.com/payment_form_club.html';
+      if (utmData && Object.keys(utmData).length > 0) {
+        const params = new URLSearchParams(utmData as Record<string, string>);
+        paymentUrl = `${paymentUrl}?${params.toString()}`;
+      }
+
+      const guideKeyboard = new InlineKeyboard()
+        .url('Скачать гайд ❤️', 'https://t.me/kristina_egiazarova_bot?start=leadmagnit180126');
+
+      await telegramService.sendPhoto(
+        chatId,
+        'https://t.me/mate_bot_open/9370',
+        {
+          caption:
+            `<b>Хотите узнать, что скрывает ваше число рождения? ✨</b>\n\n` +
+            `Кем вам <b>выгодно быть?</b>\n` +
+            `Где заложен <b>ваш масштаб? </b>\n` +
+            `Почему, едва почувствовав потолок —\n` +
+            `<b>что мешает раскрыть потенциал? </b>\n\n` +
+            `У каждого числа — <b>свой стиль, сила и слабости.</b>\n` +
+            `Гайд покажет, как раскрывается ваш <b>характер</b>\n` +
+            `в контексте <b>бизнеса и жизни </b>\n\n` +
+            `<b>31 ключ к себе</b> внутри гайда ⬇️`,
+          parse_mode: 'HTML',
+          reply_markup: guideKeyboard
+        }
+      );
+
+      // Через 5 минут после гайда отправляем результаты участников (или 1 минуту для теста)
+      await schedulerService.schedule(
+        {
+          type: 'women_results_10min',
+          userId,
+          chatId,
+          data: { utmData },
+        },
+        1 * 60 * 1000 // 1 минута для тестирования
+      );
+    }
+    else if (type === 'women_results_10min') {
+      // Результаты участников марафона через 5 минут после гайда
+      const utmData = task.data?.utmData || {};
+      let paymentUrl = 'https://app.successkod.com/payment_form_club.html';
+      if (utmData && Object.keys(utmData).length > 0) {
+        const params = new URLSearchParams(utmData as Record<string, string>);
+        paymentUrl = `${paymentUrl}?${params.toString()}`;
+      }
+
+      const resultsKeyboard = new InlineKeyboard()
+        .webApp('💫 хочу на марафон', paymentUrl);
+
+      // Отправляем видео без подписи
+      await telegramService.sendVideo(
+        chatId,
+        'https://t.me/mate_bot_open/9677',
+        {}
+      );
+
+      // Отправляем текст отдельным сообщением
+      await telegramService.sendMessage(
+        chatId,
+        `<b>🔥 РЕЗУЛЬТАТЫ УЧАСТНИКОВ МАРАФОНА «КОД ДЕНЕГ» 🔥</b>\n\n` +
+        `Ты можешь продолжать думать, что «это просто не твоё время»…А можешь — как эти девушки — зайти в свой код и изменить всё.\n\n` +
+        `📍 <b>Была "проклятым ребёнком", которую не принимали в семье</b>— Через 3 недели после марафона: доход вырос в 2,5 раза, мама впервые за много лет поздравила с днём рождения и подарила подарок.\n\n` +
+        `📍 <b>Осталась без работы, с тревогой, страхом и денежным потолком</b>— Сейчас: стабильный доход от 100.000 ₽, работает с удовольствием и спит спокойно.\n\n` +
+        `📍 <b>Чувствовала себя "зажатой", лишний вес, страх перед деньгами</b>— Итог: минус 8 кг, новая энергия и доход 550.000 ₽\n\n` +
+        `❗ Эти девушки не получили «волшебную таблетку». Они просто нашли себя.\n\n` +
+        `На марафоне <b>«Код денег»</b> ты:\n` +
+        `🔓 Расшифруешь, что мешает тебе расти\n` +
+        `💎 Узнаешь, в чём твоя сила и путь\n` +
+        `📈 Получишь личный план выхода на новый уровень\n\n` +
+        `✨ Энергия. Деньги. Уважение. Спокойствие.\n` +
+        `Всё начинается <b>с тебя и твоего кода 🔽</b>`,
+        {
+          parse_mode: 'HTML',
+          reply_markup: resultsKeyboard
+        }
+      );
+
+      // Через 5 минут - картинки 2026 (или 1 минуту для теста)
+      await schedulerService.schedule(
+        {
+          type: 'women_images_15min',
+          userId,
+          chatId,
+          data: { utmData },
+        },
+        1 * 60 * 1000 // 1 минута для тестирования
+      );
+    }
+    else if (type === 'women_images_15min') {
+      // Картинки 2026 через 5 минут после результатов
+      const utmData = task.data?.utmData || {};
+      let paymentUrl = 'https://app.successkod.com/payment_form_club.html';
+      if (utmData && Object.keys(utmData).length > 0) {
+        const params = new URLSearchParams(utmData as Record<string, string>);
+        paymentUrl = `${paymentUrl}?${params.toString()}`;
+      }
+
+      const images2026Keyboard = new InlineKeyboard()
+        .webApp('иду с вами 😍', paymentUrl);
+
+      // Отправляем медиа-группу (6 картинок)
+      await telegramService.sendMediaGroup(chatId, [
+        { type: 'photo', media: 'https://t.me/mate_bot_open/9666' },
+        { type: 'photo', media: 'https://t.me/mate_bot_open/9667' },
+        { type: 'photo', media: 'https://t.me/mate_bot_open/9668' },
+        { type: 'photo', media: 'https://t.me/mate_bot_open/9669' },
+        { type: 'photo', media: 'https://t.me/mate_bot_open/9670' },
+        { type: 'photo', media: 'https://t.me/mate_bot_open/9671' }
+      ]);
+
+      // Отправляем текст с кнопкой
+      await telegramService.sendMessage(
+        chatId,
+        `<b>Вот так выглядит закрытый клуб внутри.</b>\n\n` +
+        `Это не чат и не курс.\n` +
+        `Это — <b>живая среда</b>, где ты перестаёшь быть одна.\n\n` +
+        `<b>2026 год будет решающим.</b>\n` +
+        `Ты либо войдёшь в свою силу.\n` +
+        `Либо останешься там же, где сейчас.\n\n` +
+        `Готова идти? 🔽`,
+        {
+          parse_mode: 'HTML',
+          reply_markup: images2026Keyboard
+        }
+      );
+
+      // Через 10 минут - история Кристины (или 1 минуту для теста)
+      await schedulerService.schedule(
+        {
+          type: 'women_kristina_25min',
+          userId,
+          chatId,
+          data: { utmData },
+        },
+        1 * 60 * 1000 // 1 минута для тестирования
+      );
+    }
+    else if (type === 'women_kristina_25min') {
+      // История Кристины через 10 минут после картинок
+      const utmData = task.data?.utmData || {};
+      let paymentUrl = 'https://app.successkod.com/payment_form_club.html';
+      if (utmData && Object.keys(utmData).length > 0) {
+        const params = new URLSearchParams(utmData as Record<string, string>);
+        paymentUrl = `${paymentUrl}?${params.toString()}`;
+      }
+
+      const kristinaKeyboard = new InlineKeyboard()
+        .webApp('Хочу на марафон ❤️', paymentUrl);
+
+      // Отправляем видео
+      await telegramService.sendVideo(
+        chatId,
+        'https://t.me/mate_bot_open/9655',
+        {
+          caption:
+            `<b>Личная история Кристины Егиазаровой.</b>\n\n` +
+            `Основательница самого большого клуба предназначения в России — рассказывает, как нашла свой путь.\n\n` +
+            `Смотри и чувствуй, кто она на самом деле 🤍`,
+          parse_mode: 'HTML',
+          reply_markup: kristinaKeyboard
+        }
+      );
     }
     // 🧪 TEST: Ускоренная тестовая воронка /start (ПОЛНЫЕ тексты, ускоренные таймеры)
     else if (type === 'test_start_reminder') {
