@@ -15,6 +15,8 @@ import { decadesService } from '@/services/decades.service';
 import * as funnels from './post-payment-funnels';
 // 🆕 Club funnel (numerology-based pre-payment funnel)
 import * as clubFunnel from './club-funnel';
+// 🆕 Women funnel (women empowerment pre-payment funnel)
+import * as womenFunnel from './women-funnel';
 
 // Initialize bot
 export const bot = new Bot(config.TELEGRAM_BOT_TOKEN);
@@ -55,6 +57,8 @@ const telegramService = new TelegramService(bot.api);
 funnels.initTelegramService(bot.api);
 // Initialize telegram service for club funnel
 clubFunnel.initClubFunnelTelegramService(bot.api);
+// Initialize telegram service for women funnel
+womenFunnel.initWomenFunnelTelegramService(bot.api);
 // Initialize subscription guard service
 subscriptionGuardService.init(bot.api);
 // Initialize decades service
@@ -134,7 +138,7 @@ function parseUtmFromPayload(payload: string | undefined): UtmData {
 
   // Зарезервированные payload'ы - НЕ парсим как UTM
   const reservedPayloads = [
-    'club', 'test_start_full', 'test_club_full', 'test_start', 'test_club', 'test'
+    'club', 'women', 'test_start_full', 'test_club_full', 'test_start', 'test_club', 'test_women', 'test'
   ];
 
   // Проверяем на зарезервированные префиксы
@@ -1673,6 +1677,64 @@ bot.command('start', async (ctx) => {
         );
         return;
       }
+    }
+
+    // 🆕 Check for women funnel link (start=women or start=women_XXX) - only for non-paying users
+    // Поддерживаемые форматы (utm_campaign utm_medium utm_source utm_content):
+    // - women - без метки (utm_campaign=women)
+    // - women_insta - utm_campaign=women, utm_medium=insta
+    // - women_insta_shapka - utm_campaign=women, utm_medium=insta, utm_source=shapka
+    // - women_insta_shapka_promo - utm_campaign=women, utm_medium=insta, utm_source=shapka, utm_content=promo
+    if ((startPayload === 'women' || startPayload?.startsWith('women_')) && !(user && user.isPro)) {
+      // Парсим UTM из payload: women_MEDIUM_SOURCE_CONTENT
+      let utmMedium: string | null = null;
+      let utmSource: string | null = null;
+      let utmContent: string | null = null;
+
+      if (startPayload !== 'women') {
+        const parts = startPayload.substring(6).split('_'); // убираем "women_" и разбиваем по "_"
+        utmMedium = parts[0] || null; // первая часть = medium (insta, tgchannel, etc.)
+        utmSource = parts[1] || null; // вторая часть = source (shapka, stories, etc.)
+        utmContent = parts.slice(2).join('_') || null; // остальное = content
+      }
+
+      // Get or create user in database
+      let womenUser = user; // Reuse user from above query
+      if (!womenUser) {
+        // Create new user
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            telegramId: userId,
+            username: ctx.from?.username || null,
+            firstName: ctx.from?.first_name || null,
+            lastName: ctx.from?.last_name || null,
+          })
+          .returning();
+        womenUser = newUser;
+      }
+
+      // Сохраняем UTM-метки в metadata пользователя (только непустые)
+      const currentMetadata = (womenUser.metadata as Record<string, unknown>) || {};
+      const utmData: Record<string, string> = { utm_campaign: 'women' };
+      if (utmMedium) utmData.utm_medium = utmMedium;
+      if (utmSource) utmData.utm_source = utmSource;
+      if (utmContent) utmData.utm_content = utmContent;
+
+      await db
+        .update(users)
+        .set({
+          metadata: {
+            ...currentMetadata,
+            ...utmData,
+          },
+        })
+        .where(eq(users.telegramId, userId));
+
+      logger.info({ userId, ...utmData }, 'Women funnel started with UTM');
+
+      await womenFunnel.startWomenFunnel(womenUser.id, chatId, utmData);
+      return;
     }
 
     // 🆕 Check for club funnel link (start=club or start=club_XXX) - only for non-paying users
@@ -3495,6 +3557,46 @@ bot.command('test_club_full', async (ctx) => {
   }
 });
 
+// /test_women - ТЕСТ women воронки (только первое сообщение)
+bot.command('test_women', async (ctx) => {
+  try {
+    const userId = ctx.from!.id;
+    const chatId = ctx.chat.id;
+
+    logger.info({ userId }, 'User testing women funnel (first message only)');
+
+    // Получаем или создаем пользователя
+    let [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.telegramId, userId))
+      .limit(1);
+
+    if (!user) {
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          telegramId: userId,
+          username: ctx.from?.username || null,
+          firstName: ctx.from?.first_name || null,
+          lastName: ctx.from?.last_name || null,
+        })
+        .returning();
+      user = newUser;
+    }
+
+    // Отменяем все предыдущие задачи
+    await schedulerService.cancelAllUserTasks(userId);
+
+    // Запускаем women воронку БЕЗ догрева (только первое сообщение)
+    await womenFunnel.startWomenFunnel(user.id, chatId, { utm_campaign: 'test' });
+
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in /test_women command');
+    await ctx.reply('❌ Ошибка при тестировании women воронки');
+  }
+});
+
 // /admin - показать список тестовых команд
 bot.command('admin', async (ctx) => {
   try {
@@ -3509,13 +3611,15 @@ bot.command('admin', async (ctx) => {
       '🔧 <b>Админ-панель тестирования</b>\n\n' +
       '<b>Быстрый просмотр (без таймеров):</b>\n' +
       '/test_start - первое сообщение воронки /start\n' +
-      '/test_club - первое сообщение club воронки\n\n' +
+      '/test_club - первое сообщение club воронки\n' +
+      '/test_women - первое сообщение women воронки\n\n' +
       '<b>Полный тест (ускоренные таймеры):</b>\n' +
       '/test_start_full - вся воронка /start (таймеры 10-35 сек)\n' +
       '/test_club_full - вся club воронка (таймеры 10-15 сек)\n\n' +
       '<b>Ссылки для реального теста:</b>\n' +
       '• Обычная: t.me/hranitelkodbot?start=test\n' +
-      '• Club: t.me/hranitelkodbot?start=club\n\n' +
+      '• Club: t.me/hranitelkodbot?start=club\n' +
+      '• Women: t.me/hranitelkodbot?start=women\n\n' +
       '<i>⚠️ Тесты не влияют на ваш статус оплаты</i>',
       { parse_mode: 'HTML' }
     );
