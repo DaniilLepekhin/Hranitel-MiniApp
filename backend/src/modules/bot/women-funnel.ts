@@ -148,20 +148,21 @@ async function scheduleWomenDogrev(userId: string, chatId: number, utmData?: Rec
 
     // Планируем новый догрев через 20 минут (или 10 сек в тестовом режиме)
     const timeout = isTestMode ? DOGREV_TIMEOUT_TEST : DOGREV_TIMEOUT;
-    const scheduledFor = new Date(Date.now() + timeout);
 
-    await schedulerService.scheduleTask({
-      userId: parseInt(userId),
-      taskType: 'women_dogrev_20m',
-      scheduledFor,
-      payload: {
+    await schedulerService.schedule(
+      {
+        type: 'women_dogrev_20m',
+        userId: parseInt(userId),
         chatId,
-        utmData: utmData || {},
-        isTestMode,
+        data: {
+          utmData: utmData || {},
+          isTestMode,
+        },
       },
-    });
+      timeout
+    );
 
-    logger.info({ userId, chatId, scheduledFor, isTestMode }, 'Women dogrev scheduled');
+    logger.info({ userId, chatId, timeout, isTestMode }, 'Women dogrev scheduled');
   } catch (error) {
     logger.error({ error, userId }, 'Error scheduling women dogrev');
   }
