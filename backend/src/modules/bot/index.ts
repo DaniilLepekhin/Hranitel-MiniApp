@@ -871,7 +871,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        5 * 60 * 1000 // 5 минут
+        1 * 60 * 1000 // 1 минута для теста (обычно 5 минут)
       );
     }
     else if (type === 'women_guide_5min') {
@@ -913,7 +913,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        5 * 60 * 1000 // 5 минут
+        1 * 60 * 1000 // 1 минута для теста (обычно 5 минут)
       );
     }
     else if (type === 'women_results_10min') {
@@ -964,7 +964,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        5 * 60 * 1000 // 5 минут
+        1 * 60 * 1000 // 1 минута для теста (обычно 5 минут)
       );
     }
     else if (type === 'women_images_15min') {
@@ -1013,7 +1013,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        5 * 60 * 1000 // 5 минут
+        1 * 60 * 1000 // 1 минута для теста (обычно 5 минут)
       );
     }
     else if (type === 'women_kristina_25min') {
@@ -1050,7 +1050,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        5 * 60 * 1000 // 5 минут
+        1 * 60 * 1000 // 1 минута для теста (обычно 5 минут)
       );
     }
     else if (type === 'women_success_story') {
@@ -1092,7 +1092,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        5 * 60 * 1000 // 5 минут
+        1 * 60 * 1000 // 1 минута для теста (обычно 5 минут)
       );
     }
     else if (type === 'women_traps_20min') {
@@ -1140,7 +1140,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        5 * 60 * 1000 // 5 минут
+        1 * 60 * 1000 // 1 минута для теста (обычно 5 минут)
       );
     }
     else if (type === 'women_burning_topics') {
@@ -1176,7 +1176,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        60 * 60 * 1000 // 60 минут
+        1 * 60 * 1000 // 1 минута для теста (обычно 60 минут)
       );
     }
     else if (type === 'women_energy_tatiana') {
@@ -1221,7 +1221,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        60 * 60 * 1000 // 60 минут
+        1 * 60 * 1000 // 1 минута для теста (обычно 60 минут)
       );
     }
     else if (type === 'women_payment_reminder') {
@@ -1271,8 +1271,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
 
-      // Планируем день 2 на следующий день в 10:00 МСК
-      const delayToDay2 = getDelayUntilMoscowTime(10, 0);
+      // Планируем день 2 через 1 минуту (обычно на следующий день в 10:00 МСК)
       await schedulerService.schedule(
         {
           type: 'women_day2_reminder',
@@ -1280,7 +1279,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        delayToDay2
+        1 * 60 * 1000 // 1 минута для теста (обычно getDelayUntilMoscowTime(10, 0))
       );
     }
     else if (type === 'women_day2_reminder') {
@@ -1326,7 +1325,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        25 * 60 * 60 * 1000 // 25 часов
+        1 * 60 * 1000 // 1 минута для теста (обычно 25 часов)
       );
     }
     else if (type === 'women_day3_reminder') {
@@ -1368,7 +1367,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        24 * 60 * 60 * 1000 // 24 часа
+        1 * 60 * 1000 // 1 минута для теста (обычно 24 часа)
       );
     }
     else if (type === 'women_day4_reminder') {
@@ -1412,7 +1411,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        24 * 60 * 60 * 1000 // 24 часа
+        1 * 60 * 1000 // 1 минута для теста (обычно 24 часа)
       );
     }
     else if (type === 'women_day5_final') {
