@@ -39,6 +39,7 @@ const WEBAPP_PURCHASE_URL = 'https://app.successkod.com/payment_form_club.html';
 
 // Таймауты в миллисекундах
 const DOGREV_TIMEOUT = 20 * 60 * 1000; // 20 минут
+const DOGREV_TIMEOUT_TEST = 10 * 1000; // 10 секунд для тестового режима
 
 // Redis key для хранения типа воронки
 const FUNNEL_TYPE_PREFIX = 'funnel:type:';
@@ -71,9 +72,9 @@ export async function getFunnelType(telegramId: number): Promise<string | null> 
 /**
  * ШАГ 1: Начало воронки "Женские деньги"
  */
-export async function startWomenFunnel(userId: string, chatId: number, utmData?: Record<string, string>): Promise<void> {
+export async function startWomenFunnel(userId: string, chatId: number, utmData?: Record<string, string>, isTestMode: boolean = false): Promise<void> {
   try {
-    logger.info({ userId, chatId }, 'Starting women funnel');
+    logger.info({ userId, chatId, isTestMode }, 'Starting women funnel');
 
     // Получаем пользователя
     const [user] = await db.select().from(users).where(eq(users.telegramId, parseInt(userId))).limit(1);
@@ -126,10 +127,10 @@ export async function startWomenFunnel(userId: string, chatId: number, utmData?:
       }
     );
 
-    // Запланировать догрев через 20 минут (если не купил)
-    await scheduleWomenDogrev(user.id, chatId, utmData);
+    // Запланировать догрев через 20 минут (если не купил) или 10 сек в тестовом режиме
+    await scheduleWomenDogrev(user.id, chatId, utmData, isTestMode);
 
-    logger.info({ userId, chatId }, 'Women funnel started successfully');
+    logger.info({ userId, chatId, isTestMode }, 'Women funnel started successfully');
   } catch (error) {
     logger.error({ error, userId, chatId }, 'Error starting women funnel');
     throw error;
@@ -140,13 +141,14 @@ export async function startWomenFunnel(userId: string, chatId: number, utmData?:
  * ШАГ 2: Догрев через 20 минут (если не купил)
  * Отправляет информацию о марафоне КОД ДЕНЕГ
  */
-async function scheduleWomenDogrev(userId: string, chatId: number, utmData?: Record<string, string>): Promise<void> {
+async function scheduleWomenDogrev(userId: string, chatId: number, utmData?: Record<string, string>, isTestMode: boolean = false): Promise<void> {
   try {
     // Отменяем предыдущие догревы women воронки
     await schedulerService.cancelUserTasksByTypes(parseInt(userId), ['women_dogrev_20m']);
 
-    // Планируем новый догрев через 20 минут
-    const scheduledFor = new Date(Date.now() + DOGREV_TIMEOUT);
+    // Планируем новый догрев через 20 минут (или 10 сек в тестовом режиме)
+    const timeout = isTestMode ? DOGREV_TIMEOUT_TEST : DOGREV_TIMEOUT;
+    const scheduledFor = new Date(Date.now() + timeout);
 
     await schedulerService.scheduleTask({
       userId: parseInt(userId),
@@ -155,10 +157,11 @@ async function scheduleWomenDogrev(userId: string, chatId: number, utmData?: Rec
       payload: {
         chatId,
         utmData: utmData || {},
+        isTestMode,
       },
     });
 
-    logger.info({ userId, chatId, scheduledFor }, 'Women dogrev scheduled');
+    logger.info({ userId, chatId, scheduledFor, isTestMode }, 'Women dogrev scheduled');
   } catch (error) {
     logger.error({ error, userId }, 'Error scheduling women dogrev');
   }

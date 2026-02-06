@@ -138,7 +138,7 @@ function parseUtmFromPayload(payload: string | undefined): UtmData {
 
   // Зарезервированные payload'ы - НЕ парсим как UTM
   const reservedPayloads = [
-    'club', 'women', 'test_start_full', 'test_club_full', 'test_start', 'test_club', 'test_women', 'test'
+    'club', 'women', 'test_start_full', 'test_club_full', 'test_women_full', 'test_start', 'test_club', 'test_women', 'test'
   ];
 
   // Проверяем на зарезервированные префиксы
@@ -858,6 +858,11 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         await clubFunnel.handleClubAutoProgress(odUserId, chatId, step, isTestMode, ignoreIsPro);
       }
     }
+    // 🆕 Women funnel dogrev (20 minutes after first message)
+    else if (type === 'women_dogrev_20m') {
+      const utmData = task.data?.utmData || {};
+      await womenFunnel.sendWomenDogrev(String(userId), chatId, utmData);
+    }
     // 🧪 TEST: Ускоренная тестовая воронка /start (ПОЛНЫЕ тексты, ускоренные таймеры)
     else if (type === 'test_start_reminder') {
       // СООБЩЕНИЕ 2 - Тестовое напоминание (10 сек вместо 120)
@@ -1427,6 +1432,46 @@ bot.command('start', async (ctx) => {
       // Запускаем club воронку с флагом тестового режима и ignoreIsPro=true
       // чтобы оплаченные пользователи проходили как новые
       await clubFunnel.startClubFunnel(testUser.id, chatId, userId, true, true);
+      return;
+    }
+
+    // 🧪 Deep link для тестовой women воронки (start=test_women_full)
+    // ВАЖНО: Проверяем ДО isPro, чтобы оплаченные пользователи тоже могли тестировать
+    if (startPayload === 'test_women_full') {
+      logger.info({ userId }, 'User testing FULL women funnel via deep link');
+
+      // Get or create user in database
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.telegramId, userId))
+        .limit(1);
+
+      let testUser = existingUser;
+      if (!testUser) {
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            telegramId: userId,
+            username: ctx.from?.username || null,
+            firstName: ctx.from?.first_name || null,
+            lastName: ctx.from?.last_name || null,
+          })
+          .returning();
+        testUser = newUser;
+      }
+
+      // Отменяем все предыдущие задачи
+      await schedulerService.cancelAllUserTasks(userId);
+
+      // 🔥 ВАЖНО: Сбрасываем onboardingStep чтобы предыдущие тесты не мешали
+      await db
+        .update(users)
+        .set({ onboardingStep: null })
+        .where(eq(users.id, testUser.id));
+
+      // Запускаем women воронку с флагом тестового режима (ускоренные таймеры)
+      await womenFunnel.startWomenFunnel(testUser.id, chatId, { utm_campaign: 'test_women_full' }, true);
       return;
     }
 
@@ -3597,6 +3642,46 @@ bot.command('test_women', async (ctx) => {
   }
 });
 
+// /test_women_full - ПОЛНЫЙ тест women воронки с ускоренными таймерами
+bot.command('test_women_full', async (ctx) => {
+  try {
+    const userId = ctx.from!.id;
+    const chatId = ctx.chat.id;
+
+    logger.info({ userId }, 'User testing FULL women funnel with fast timers');
+
+    // Получаем или создаем пользователя
+    let [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.telegramId, userId))
+      .limit(1);
+
+    if (!user) {
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          telegramId: userId,
+          username: ctx.from?.username || null,
+          firstName: ctx.from?.first_name || null,
+          lastName: ctx.from?.last_name || null,
+        })
+        .returning();
+      user = newUser;
+    }
+
+    // Отменяем все предыдущие задачи
+    await schedulerService.cancelAllUserTasks(userId);
+
+    // Запускаем women воронку с флагом тестового режима (ускоренные таймеры)
+    await womenFunnel.startWomenFunnel(user.id, chatId, { utm_campaign: 'test' }, true);
+
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in /test_women_full command');
+    await ctx.reply('❌ Ошибка при тестировании women воронки');
+  }
+});
+
 // /admin - показать список тестовых команд
 bot.command('admin', async (ctx) => {
   try {
@@ -3615,7 +3700,8 @@ bot.command('admin', async (ctx) => {
       '/test_women - первое сообщение women воронки\n\n' +
       '<b>Полный тест (ускоренные таймеры):</b>\n' +
       '/test_start_full - вся воронка /start (таймеры 10-35 сек)\n' +
-      '/test_club_full - вся club воронка (таймеры 10-15 сек)\n\n' +
+      '/test_club_full - вся club воронка (таймеры 10-15 сек)\n' +
+      '/test_women_full - вся women воронка (таймер 10 сек)\n\n' +
       '<b>Ссылки для реального теста:</b>\n' +
       '• Обычная: t.me/hranitelkodbot?start=test\n' +
       '• Club: t.me/hranitelkodbot?start=club\n' +
