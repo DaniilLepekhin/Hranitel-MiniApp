@@ -38,7 +38,7 @@ const MARATHON_VIDEO_URL = 'https://t.me/mate_bot_open/9684'; // То же ви�
 const WEBAPP_PURCHASE_URL = 'https://app.successkod.com/payment_form_club.html';
 
 // Таймауты в миллисекундах
-const DOGREV_TIMEOUT = 1 * 60 * 1000; // 1 минута для тестирования (было 20 минут)
+const DOGREV_TIMEOUT = 20 * 60 * 1000; // 20 минут
 const DOGREV_TIMEOUT_TEST = 10 * 1000; // 10 секунд для тестового режима
 
 // Redis key для хранения типа воронки

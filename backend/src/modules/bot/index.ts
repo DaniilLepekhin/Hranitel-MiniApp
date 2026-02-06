@@ -871,7 +871,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        1 * 60 * 1000 // 1 минута для тестирования
+        5 * 60 * 1000 // 5 минут
       );
     }
     else if (type === 'women_guide_5min') {
@@ -913,7 +913,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        1 * 60 * 1000 // 1 минута для тестирования
+        5 * 60 * 1000 // 5 минут
       );
     }
     else if (type === 'women_results_10min') {
@@ -964,7 +964,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        1 * 60 * 1000 // 1 минута для тестирования
+        5 * 60 * 1000 // 5 минут
       );
     }
     else if (type === 'women_images_15min') {
@@ -1013,7 +1013,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        1 * 60 * 1000 // 1 минута для тестирования
+        5 * 60 * 1000 // 5 минут
       );
     }
     else if (type === 'women_kristina_25min') {
@@ -1050,7 +1050,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        1 * 60 * 1000 // 1 минута для тестирования
+        5 * 60 * 1000 // 5 минут
       );
     }
     else if (type === 'women_success_story') {
@@ -1092,7 +1092,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        1 * 60 * 1000 // 1 минута для тестирования
+        5 * 60 * 1000 // 5 минут
       );
     }
     else if (type === 'women_traps_20min') {
@@ -1140,7 +1140,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        1 * 60 * 1000 // 1 минута для тестирования
+        5 * 60 * 1000 // 5 минут
       );
     }
     else if (type === 'women_burning_topics') {
@@ -1167,7 +1167,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
 
-      // Через 60 минут (или 1 минуту для теста) - видео об энергии (Татьяна)
+      // Через 60 минут - видео об энергии (Татьяна)
       const utmData = task.data?.utmData || {};
       await schedulerService.schedule(
         {
@@ -1176,7 +1176,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        1 * 60 * 1000 // 1 минута для тестирования (в проде будет 60 * 60 * 1000)
+        60 * 60 * 1000 // 60 минут
       );
     }
     else if (type === 'women_energy_tatiana') {
@@ -1213,7 +1213,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
 
-      // Через 60 минут (или 1 минуту для теста) - payment reminder
+      // Через 60 минут - payment reminder
       await schedulerService.schedule(
         {
           type: 'women_payment_reminder',
@@ -1221,7 +1221,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        1 * 60 * 1000 // 1 минута для тестирования (в проде будет 60 * 60 * 1000)
+        60 * 60 * 1000 // 60 минут
       );
     }
     else if (type === 'women_payment_reminder') {
@@ -1271,7 +1271,8 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
 
-      // Планируем день 2 (или 1 минуту для теста)
+      // Планируем день 2 на следующий день в 10:00 МСК
+      const delayToDay2 = getDelayUntilMoscowTime(10, 0);
       await schedulerService.schedule(
         {
           type: 'women_day2_reminder',
@@ -1279,7 +1280,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        1 * 60 * 1000 // 1 минута для тестирования (в проде будет расчет до 10:00 МСК следующего дня)
+        delayToDay2
       );
     }
     else if (type === 'women_day2_reminder') {
@@ -1317,7 +1318,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
 
-      // Планируем день 3 через 25 часов (или 1 минуту для теста)
+      // Планируем день 3 через 25 часов в 11:00 МСК
       await schedulerService.schedule(
         {
           type: 'women_day3_reminder',
@@ -1325,7 +1326,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        1 * 60 * 1000 // 1 минута для тестирования (в проде будет 25 * 60 * 60 * 1000)
+        25 * 60 * 60 * 1000 // 25 часов
       );
     }
     else if (type === 'women_day3_reminder') {
@@ -1359,7 +1360,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
 
-      // Планируем день 4 через 24 часа (или 1 минуту для теста)
+      // Планируем день 4 через 24 часа в 11:00 МСК
       await schedulerService.schedule(
         {
           type: 'women_day4_reminder',
@@ -1367,7 +1368,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        1 * 60 * 1000 // 1 минута для тестирования (в проде будет 24 * 60 * 60 * 1000)
+        24 * 60 * 60 * 1000 // 24 часа
       );
     }
     else if (type === 'women_day4_reminder') {
@@ -1403,7 +1404,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
 
-      // Планируем день 5 (финальное) через 24 часа (или 1 минуту для теста)
+      // Планируем день 5 (финальное) через 24 часа в 11:00 МСК
       await schedulerService.schedule(
         {
           type: 'women_day5_final',
@@ -1411,7 +1412,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
           chatId,
           data: { utmData },
         },
-        1 * 60 * 1000 // 1 минута для тестирования (в проде будет 24 * 60 * 60 * 1000)
+        24 * 60 * 60 * 1000 // 24 часа
       );
     }
     else if (type === 'women_day5_final') {
