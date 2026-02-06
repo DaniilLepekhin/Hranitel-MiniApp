@@ -128,7 +128,7 @@ export async function startWomenFunnel(userId: string, chatId: number, utmData?:
     );
 
     // Запланировать догрев через 20 минут (если не купил) или 10 сек в тестовом режиме
-    await scheduleWomenDogrev(user.id, chatId, utmData, isTestMode);
+    await scheduleWomenDogrev(String(user.telegramId), chatId, utmData, isTestMode);
 
     logger.info({ userId, chatId, isTestMode }, 'Women funnel started successfully');
   } catch (error) {
@@ -177,8 +177,11 @@ export async function sendWomenDogrev(userId: string, chatId: number, utmData?: 
     logger.info({ userId, chatId }, 'Sending women dogrev (marathon info)');
 
     // Проверяем что пользователь еще не купил
-    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-    if (!user) return;
+    const [user] = await db.select().from(users).where(eq(users.telegramId, parseInt(userId))).limit(1);
+    if (!user) {
+      logger.error({ userId }, 'User not found for women dogrev');
+      return;
+    }
 
     if (user.isPro) {
       logger.info({ userId }, 'User already has subscription, skipping women dogrev');
