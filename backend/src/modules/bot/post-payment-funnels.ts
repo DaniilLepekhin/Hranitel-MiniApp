@@ -285,7 +285,15 @@ export async function completeOnboarding(userId: string, chatId: number) {
     }
   );
 
-  // 4. Запланировать воронку вовлечения
+  // 5. Еще раз установить кнопку меню (на случай если предыдущая попытка не сработала)
+  try {
+    await getTelegramService().setChatMenuButton(chatId, { type: 'commands' });
+    logger.info({ chatId }, 'Menu button re-set after video instruction');
+  } catch (error) {
+    logger.error({ error, chatId }, 'Failed to re-set menu button after video');
+  }
+
+  // 6. Запланировать воронку вовлечения
   await scheduleEngagementFunnel(userId, chatId);
 }
 
