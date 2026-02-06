@@ -2230,7 +2230,7 @@ bot.command('start', async (ctx) => {
 
         await bot.api.sendVideo(
           chatId,
-          'https://t.me/mate_bot_open/9811',
+          'https://t.me/mate_bot_open/9813',
           {
             caption:
               `Женские деньги — <b>не про гонку и давление.</b>\n` +

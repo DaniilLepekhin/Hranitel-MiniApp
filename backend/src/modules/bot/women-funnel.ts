@@ -31,7 +31,7 @@ function getTelegramService(): TelegramService {
 // ============================================================================
 
 // Видео и тексты
-const FIRST_VIDEO_URL = 'https://t.me/mate_bot_open/9811';
+const FIRST_VIDEO_URL = 'https://t.me/mate_bot_open/9813';
 const MARATHON_VIDEO_URL = 'https://t.me/mate_bot_open/9684'; // То же видео что в club воронке
 
 // WebApp URL для покупки (тот же что в club)
