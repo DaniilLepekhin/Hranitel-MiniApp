@@ -2750,6 +2750,45 @@ bot.callbackQuery('get_access', async (ctx) => {
   }
 });
 
+// 📱 Open menu callback - для пользователей с подпиской
+bot.callbackQuery('open_menu', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+
+    const userId = ctx.from!.id;
+    const chatId = ctx.chat!.id;
+
+    logger.info({ userId }, 'open_menu callback triggered');
+
+    // Check if user has active subscription
+    const hasPaid = await checkPaymentStatus(userId);
+
+    if (!hasPaid) {
+      // User doesn't have subscription - redirect to payment funnel
+      logger.info({ userId }, 'open_menu called by non-paid user, redirecting to payment');
+
+      const keyboard = new InlineKeyboard()
+        .text('Получить доступ', 'get_access');
+
+      await telegramService.sendMessage(
+        chatId,
+        `<b>Меню доступно только участникам клуба 🔒</b>\n\n` +
+        `Чтобы получить доступ к клубу «КОД УСПЕХА», нажми кнопку ниже 👇`,
+        {
+          parse_mode: 'HTML',
+          reply_markup: keyboard
+        }
+      );
+      return;
+    }
+
+    // User has subscription - show menu
+    await funnels.sendMenuMessage(chatId);
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in open_menu callback');
+  }
+});
+
 // 🧪 TEST: Handle "Получить доступ" для тестовой воронки с ускоренными таймерами
 bot.callbackQuery('test_get_access_full', async (ctx) => {
   try {
