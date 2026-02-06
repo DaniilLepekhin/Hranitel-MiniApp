@@ -1471,7 +1471,7 @@ bot.command('start', async (ctx) => {
         .where(eq(users.id, testUser.id));
 
       // Запускаем women воронку с флагом тестового режима (ускоренные таймеры)
-      await womenFunnel.startWomenFunnel(testUser.id, chatId, { utm_campaign: 'test_women_full' }, true);
+      await womenFunnel.startWomenFunnel(String(userId), chatId, { utm_campaign: 'test_women_full' }, true);
       return;
     }
 
@@ -1778,7 +1778,7 @@ bot.command('start', async (ctx) => {
 
       logger.info({ userId, ...utmData }, 'Women funnel started with UTM');
 
-      await womenFunnel.startWomenFunnel(womenUser.id, chatId, utmData);
+      await womenFunnel.startWomenFunnel(String(userId), chatId, utmData);
       return;
     }
 
@@ -3634,7 +3634,7 @@ bot.command('test_women', async (ctx) => {
     await schedulerService.cancelAllUserTasks(userId);
 
     // Запускаем women воронку БЕЗ догрева (только первое сообщение)
-    await womenFunnel.startWomenFunnel(user.id, chatId, { utm_campaign: 'test' });
+    await womenFunnel.startWomenFunnel(String(userId), chatId, { utm_campaign: 'test' });
 
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in /test_women command');
@@ -3674,7 +3674,7 @@ bot.command('test_women_full', async (ctx) => {
     await schedulerService.cancelAllUserTasks(userId);
 
     // Запускаем women воронку с флагом тестового режима (ускоренные таймеры)
-    await womenFunnel.startWomenFunnel(user.id, chatId, { utm_campaign: 'test' }, true);
+    await womenFunnel.startWomenFunnel(String(userId), chatId, { utm_campaign: 'test' }, true);
 
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in /test_women_full command');
