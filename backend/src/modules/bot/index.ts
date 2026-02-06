@@ -2220,6 +2220,100 @@ bot.command('start', async (ctx) => {
       .where(eq(users.telegramId, userId))
       .limit(1);
 
+    // 🆕 IMPORTANT: Check women funnel BEFORE general isPro logic
+    // Women funnel должна обрабатываться даже для isPro пользователей
+    if (startPayload === 'women' || startPayload?.startsWith('women_')) {
+      // Women funnel для пользователей С подпиской - показываем первое видео с кнопкой Меню
+      if (user && user.isPro) {
+        const menuKeyboard = new InlineKeyboard()
+          .text('📱 Меню', 'open_menu');
+
+        await bot.api.sendVideo(
+          chatId,
+          'https://t.me/mate_bot_open/9811',
+          {
+            caption:
+              `Женские деньги — <b>не про гонку и давление.</b>\n` +
+              `Они приходят иначе.\n\n` +
+              `Когда женщина пытается зарабатывать по «мужской схеме» —\n` +
+              `через усилие, контроль и постоянное «надо»,\n` +
+              `часто включается <b>выгорание</b>, потеря вкуса и ощущение, что жизнь проходит мимо.\n\n` +
+              `💭 Деньги начинают идти тяжело,\n` +
+              `💭 реализация перестаёт радовать,\n` +
+              `💭 а внутренняя лёгкость исчезает.\n\n` +
+              `В этом видео я рассказываю, как <b>через цифровую психологию:</b>\n` +
+              `— найти своё настоящее призвание\n` +
+              `— сохранить женственность и чувствительность\n` +
+              `— выстроить реализацию <b>без надрыва</b>\n` +
+              `— и понять, <i>в чём именно твоё предназначение</i>\n\n` +
+              `Чтобы деньги приходили\n` +
+              `✨ легко\n` +
+              `✨ в удовольствии\n` +
+              `✨ и с любовью — к себе и к жизни.\n\n` +
+              `Смотри видео и почувствуй, как может быть по-другому 🤍`,
+            parse_mode: 'HTML',
+            reply_markup: menuKeyboard,
+          }
+        );
+
+        logger.info({ userId }, 'Women funnel video sent to subscribed user');
+        return;
+      }
+
+      // Women funnel для пользователей БЕЗ подписки - запускаем полную воронку
+      // Парсим UTM из payload: women_MEDIUM_SOURCE_CONTENT
+      let utmMedium: string | null = null;
+      let utmSource: string | null = null;
+      let utmContent: string | null = null;
+
+      if (startPayload !== 'women') {
+        const parts = startPayload.substring(6).split('_'); // убираем "women_" и разбиваем по "_"
+        utmMedium = parts[0] || null; // первая часть = medium (insta, tgchannel, etc.)
+        utmSource = parts[1] || null; // вторая часть = source (shapka, stories, etc.)
+        utmContent = parts.slice(2).join('_') || null; // остальное = content
+      }
+
+      // Get or create user in database
+      let womenUser = user; // Reuse user from above query
+      if (!womenUser) {
+        // Create new user
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            telegramId: userId,
+            username: ctx.from?.username || null,
+            firstName: ctx.from?.first_name || null,
+            lastName: ctx.from?.last_name || null,
+          })
+          .returning();
+        womenUser = newUser;
+      }
+
+      // Сохраняем utm_campaign для women воронки
+      const womenUtmData = {
+        utm_campaign: 'women',
+        utm_medium: utmMedium,
+        utm_source: utmSource,
+        utm_content: utmContent,
+      };
+
+      await db
+        .update(users)
+        .set({
+          utmCampaign: womenUtmData.utm_campaign,
+          utmMedium: womenUtmData.utm_medium,
+          utmSource: womenUtmData.utm_source,
+          utmContent: womenUtmData.utm_content,
+        })
+        .where(eq(users.telegramId, userId));
+
+      logger.info({ userId, utm: womenUtmData }, 'Starting women funnel for non-subscribed user');
+
+      // Запускаем women воронку
+      await womenFunnel.startWomenFunnel(String(userId), chatId, womenUtmData);
+      return;
+    }
+
     // ✅ If user has PAID (isPro = true), return to current onboarding step
     // Don't redirect them to club funnel or sales funnel
     if (user && user.isPro) {
@@ -2309,102 +2403,6 @@ bot.command('start', async (ctx) => {
         );
         return;
       }
-    }
-
-    // 🆕 Check for women funnel link (start=women or start=women_XXX) - only for non-paying users
-    // Поддерживаемые форматы (utm_campaign utm_medium utm_source utm_content):
-    // - women - без метки (utm_campaign=women)
-    // - women_insta - utm_campaign=women, utm_medium=insta
-    // - women_insta_shapka - utm_campaign=women, utm_medium=insta, utm_source=shapka
-    // - women_insta_shapka_promo - utm_campaign=women, utm_medium=insta, utm_source=shapka, utm_content=promo
-    // 🆕 Women funnel для пользователей С подпиской - просто показываем первое сообщение с кнопкой Меню
-    if ((startPayload === 'women' || startPayload?.startsWith('women_')) && user && user.isPro) {
-      const menuKeyboard = new InlineKeyboard()
-        .text('📱 Меню', 'open_menu');
-
-      await bot.api.sendVideo(
-        chatId,
-        'https://t.me/mate_bot_open/9811',
-        {
-          caption:
-            `Женские деньги — <b>не про гонку и давление.</b>\n` +
-            `Они приходят иначе.\n\n` +
-            `Когда женщина пытается зарабатывать по «мужской схеме» —\n` +
-            `через усилие, контроль и постоянное «надо»,\n` +
-            `часто включается <b>выгорание</b>, потеря вкуса и ощущение, что жизнь проходит мимо.\n\n` +
-            `💭 Деньги начинают идти тяжело,\n` +
-            `💭 реализация перестаёт радовать,\n` +
-            `💭 а внутренняя лёгкость исчезает.\n\n` +
-            `В этом видео я рассказываю, как <b>через цифровую психологию:</b>\n` +
-            `— найти своё настоящее призвание\n` +
-            `— сохранить женственность и чувствительность\n` +
-            `— выстроить реализацию <b>без надрыва</b>\n` +
-            `— и понять, <i>в чём именно твоё предназначение</i>\n\n` +
-            `Чтобы деньги приходили\n` +
-            `✨ легко\n` +
-            `✨ в удовольствии\n` +
-            `✨ и с любовью — к себе и к жизни.\n\n` +
-            `Смотри видео и почувствуй, как может быть по-другому 🤍`,
-          parse_mode: 'HTML',
-          reply_markup: menuKeyboard,
-        }
-      );
-
-      logger.info({ userId }, 'Women funnel video sent to subscribed user');
-      return;
-    }
-
-    // 🆕 Women funnel для пользователей БЕЗ подписки - запускаем полную воронку
-    if ((startPayload === 'women' || startPayload?.startsWith('women_')) && !(user && user.isPro)) {
-      // Парсим UTM из payload: women_MEDIUM_SOURCE_CONTENT
-      let utmMedium: string | null = null;
-      let utmSource: string | null = null;
-      let utmContent: string | null = null;
-
-      if (startPayload !== 'women') {
-        const parts = startPayload.substring(6).split('_'); // убираем "women_" и разбиваем по "_"
-        utmMedium = parts[0] || null; // первая часть = medium (insta, tgchannel, etc.)
-        utmSource = parts[1] || null; // вторая часть = source (shapka, stories, etc.)
-        utmContent = parts.slice(2).join('_') || null; // остальное = content
-      }
-
-      // Get or create user in database
-      let womenUser = user; // Reuse user from above query
-      if (!womenUser) {
-        // Create new user
-        const [newUser] = await db
-          .insert(users)
-          .values({
-            telegramId: userId,
-            username: ctx.from?.username || null,
-            firstName: ctx.from?.first_name || null,
-            lastName: ctx.from?.last_name || null,
-          })
-          .returning();
-        womenUser = newUser;
-      }
-
-      // Сохраняем UTM-метки в metadata пользователя (только непустые)
-      const currentMetadata = (womenUser.metadata as Record<string, unknown>) || {};
-      const utmData: Record<string, string> = { utm_campaign: 'women' };
-      if (utmMedium) utmData.utm_medium = utmMedium;
-      if (utmSource) utmData.utm_source = utmSource;
-      if (utmContent) utmData.utm_content = utmContent;
-
-      await db
-        .update(users)
-        .set({
-          metadata: {
-            ...currentMetadata,
-            ...utmData,
-          },
-        })
-        .where(eq(users.telegramId, userId));
-
-      logger.info({ userId, ...utmData }, 'Women funnel started with UTM');
-
-      await womenFunnel.startWomenFunnel(String(userId), chatId, utmData);
-      return;
     }
 
     // 🆕 Check for club funnel link (start=club or start=club_XXX) - only for non-paying users
