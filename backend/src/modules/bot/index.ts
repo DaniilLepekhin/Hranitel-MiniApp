@@ -2289,7 +2289,7 @@ bot.command('start', async (ctx) => {
         womenUser = newUser;
       }
 
-      // Сохраняем utm_campaign для women воронки
+      // Сохраняем utm_campaign для women воронки в metadata
       const womenUtmData = {
         utm_campaign: 'women',
         utm_medium: utmMedium,
@@ -2297,13 +2297,21 @@ bot.command('start', async (ctx) => {
         utm_content: utmContent,
       };
 
+      // Получаем текущий metadata и добавляем UTM
+      const currentMetadata = (womenUser.metadata as Record<string, unknown>) || {};
+      const updatedMetadata = {
+        ...currentMetadata,
+        utm_campaign: womenUtmData.utm_campaign,
+        utm_medium: womenUtmData.utm_medium,
+        utm_source: womenUtmData.utm_source,
+        utm_content: womenUtmData.utm_content,
+        women_funnel_started_at: new Date().toISOString(),
+      };
+
       await db
         .update(users)
         .set({
-          utmCampaign: womenUtmData.utm_campaign,
-          utmMedium: womenUtmData.utm_medium,
-          utmSource: womenUtmData.utm_source,
-          utmContent: womenUtmData.utm_content,
+          metadata: updatedMetadata,
         })
         .where(eq(users.telegramId, userId));
 
