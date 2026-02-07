@@ -695,7 +695,7 @@ export async function handleUserShared(gifterTgId: number, recipientTgId: number
 
   // Отправить форму оплаты (без полей - email формируется автоматически как recipientTgId@gift.local)
   const keyboard = new InlineKeyboard()
-    .webApp('Оплатить', `https://hranitel.daniillepekhin.com/payment_form_gift.html?recipient_id=${recipientTgId}&gifter_id=${gifterTgId}`);
+    .webApp('Оплатить', `https://app.successkod.com/payment_form_gift.html?recipient_id=${recipientTgId}&gifter_id=${gifterTgId}`);
 
   await getTelegramService().sendPhoto(
     chatId,
