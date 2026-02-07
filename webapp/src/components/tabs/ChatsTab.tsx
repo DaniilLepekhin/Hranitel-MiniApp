@@ -822,7 +822,7 @@ export function ChatsTab() {
                       onClick={() => {
                         haptic.impact('medium');
                         setDecadeError('');
-                        joinDecadeMutation.mutate();
+                        joinDecadeMutation.mutate(undefined);
                       }}
                       disabled={joinDecadeMutation.isPending}
                       className="w-full py-3 rounded-lg text-center active:scale-[0.98] transition-transform disabled:opacity-50"
