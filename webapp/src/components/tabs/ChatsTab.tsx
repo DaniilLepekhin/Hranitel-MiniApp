@@ -21,8 +21,9 @@ export function ChatsTab() {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
 
-  // 🔒 Проверка доступа к разделу "Десятки" - только для telegram_id 389209990
-  const canAccessDecades = String(user?.telegramId) === '389209990';
+  // 🔒 Проверка доступа к разделу "Десятки"
+  const allowedDecadesUsers = ['389209990', '709347866', '7353667659'];
+  const canAccessDecades = user?.telegramId && allowedDecadesUsers.includes(String(user.telegramId));
 
   // City chat selection state
   const [selectedCountry, setSelectedCountry] = useState<string>('');
