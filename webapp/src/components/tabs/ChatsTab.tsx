@@ -31,23 +31,23 @@ export function ChatsTab() {
 
   // Decade selection state
   const [showDecadeFlow, setShowDecadeFlow] = useState(false);
-  const [selectedDecadeCity, setSelectedDecadeCity] = useState<string>(user?.city || '');
+  const [selectedDecadeCity, setSelectedDecadeCity] = useState<string>('');
   const [decadeError, setDecadeError] = useState<string>('');
-  const [forceShowCitySelector, setForceShowCitySelector] = useState(false);
 
-  // Fetch my decade info
+  // Fetch my decade info - запрашиваем сразу при загрузке если есть доступ
   const { data: myDecadeData } = useQuery<{ success: boolean; decade: any | null }>({
     queryKey: ['decades', 'my', user?.id],
     queryFn: () => decadesApi.getMy(initData || ''),
     enabled: !!user && !!initData && canAccessDecades,
     placeholderData: { success: true, decade: null },
+    staleTime: 30 * 1000, // 30 секунд кеш
   });
 
-  // Fetch available cities for decades
+  // Fetch available cities for decades - только если нет города
   const { data: decadeCitiesData, isLoading: isLoadingDecadeCities } = useQuery<{ success: boolean; cities: string[] }>({
     queryKey: ['decades', 'cities'],
     queryFn: () => decadesApi.getCities(initData || ''),
-    enabled: showDecadeFlow && canAccessDecades && !!initData,
+    enabled: !user?.city && showDecadeFlow && canAccessDecades && !!initData,
     staleTime: 5 * 60 * 1000,
     placeholderData: { success: true, cities: [] },
   });
@@ -57,13 +57,17 @@ export function ChatsTab() {
     mutationFn: (city?: string) => decadesApi.join(initData || '', city),
     onSuccess: (data: any) => {
       if (data.success) {
+        // Обновить кеш о моей десятке
         queryClient.invalidateQueries({ queryKey: ['decades', 'my'] });
-        setShowDecadeFlow(false);
-        setForceShowCitySelector(false);
-        setDecadeError('');
+
+        // Открыть чат десятки
         if (data.inviteLink && webApp?.openTelegramLink) {
           webApp.openTelegramLink(data.inviteLink);
         }
+
+        // Закрыть форму если была открыта
+        setShowDecadeFlow(false);
+        setDecadeError('');
       } else {
         setDecadeError(data.message || 'Ошибка при распределении');
       }
@@ -672,15 +676,29 @@ export function ChatsTab() {
             <div
               className={`relative overflow-hidden ${!canAccessDecades ? 'opacity-60' : 'cursor-pointer active:scale-[0.99] transition-transform'}`}
               onClick={() => {
-                if (canAccessDecades) {
-                  haptic.impact('light');
-                  const newShowState = !showDecadeFlow;
-                  setShowDecadeFlow(newShowState);
-                  // Сбросить forceShowCitySelector при закрытии формы
-                  if (!newShowState) {
-                    setForceShowCitySelector(false);
-                    setDecadeError('');
-                  }
+                if (!canAccessDecades) return;
+
+                haptic.impact('medium');
+
+                // Сценарий 1: Пользователь уже в десятке → открыть чат
+                if (myDecadeData?.decade?.inviteLink) {
+                  webApp?.openTelegramLink(myDecadeData.decade.inviteLink);
+                  return;
+                }
+
+                // Сценарий 2: У пользователя есть город → сразу распределить
+                if (user?.city) {
+                  setDecadeError('');
+                  joinDecadeMutation.mutate(undefined);
+                  return;
+                }
+
+                // Сценарий 3: Нет города → показать/скрыть селектор
+                const newShowState = !showDecadeFlow;
+                setShowDecadeFlow(newShowState);
+                if (!newShowState) {
+                  setDecadeError('');
+                  setSelectedDecadeCity('');
                 }
               }}
               style={{
@@ -789,8 +807,8 @@ export function ChatsTab() {
               </div>
             </div>
 
-            {/* Селектор города для десятки - показываем только если есть доступ */}
-            {showDecadeFlow && canAccessDecades && (
+            {/* Селектор города - показываем только если НЕТ города */}
+            {showDecadeFlow && canAccessDecades && !user?.city && (
               <div
                 className="mt-2 p-4 rounded-lg"
                 style={{
@@ -807,9 +825,7 @@ export function ChatsTab() {
                     color: '#2d2620',
                   }}
                 >
-                  {user?.city && !forceShowCitySelector
-                    ? `Ваш город: ${user.city}. Распределение произойдет в десятку этого города.`
-                    : 'Выберите город для распределения в десятку'}
+                  Выберите город для распределения в десятку
                 </p>
 
                 {decadeError && (
@@ -826,13 +842,48 @@ export function ChatsTab() {
                   </div>
                 )}
 
-                {user?.city && !forceShowCitySelector ? (
-                  <div className="flex flex-col gap-2">
+                <div>
+                  <label
+                    className="block mb-1.5"
+                    style={{
+                      fontFamily: 'Gilroy, sans-serif',
+                      fontWeight: 600,
+                      fontSize: '12px',
+                      color: '#2d2620',
+                    }}
+                  >
+                    Город
+                  </label>
+                  {isLoadingDecadeCities ? (
+                    <div className="p-3 bg-white/50 rounded-lg text-center text-[#6b5a4a] text-sm">
+                      Загрузка городов...
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedDecadeCity}
+                      onChange={(e) => {
+                        haptic.selection();
+                        setSelectedDecadeCity(e.target.value);
+                        setDecadeError('');
+                      }}
+                      className="w-full px-3 py-2.5 rounded-lg border bg-white text-[#2d2620] font-medium text-sm focus:outline-none mb-3"
+                      style={{ borderColor: '#d93547' }}
+                    >
+                      <option value="">Выберите город</option>
+                      {decadeCitiesData?.cities?.map((city: string) => (
+                        <option key={city} value={city}>
+                          {city}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  {selectedDecadeCity && (
                     <button
                       onClick={() => {
                         haptic.impact('medium');
                         setDecadeError('');
-                        joinDecadeMutation.mutate(undefined);
+                        joinDecadeMutation.mutate(selectedDecadeCity);
                       }}
                       disabled={joinDecadeMutation.isPending}
                       className="w-full py-3 rounded-lg text-center active:scale-[0.98] transition-transform disabled:opacity-50"
@@ -845,84 +896,10 @@ export function ChatsTab() {
                         textTransform: 'uppercase',
                       }}
                     >
-                      {joinDecadeMutation.isPending ? 'Распределение...' : 'Подтвердить и вступить'}
+                      {joinDecadeMutation.isPending ? 'Распределение...' : 'Вступить в десятку'}
                     </button>
-                    <button
-                      onClick={() => {
-                        haptic.selection();
-                        setForceShowCitySelector(true);
-                        setSelectedDecadeCity('');
-                        setDecadeError('');
-                      }}
-                      className="text-sm underline"
-                      style={{
-                        fontFamily: 'Gilroy, sans-serif',
-                        color: '#9c1723',
-                      }}
-                    >
-                      Выбрать другой город
-                    </button>
-                  </div>
-                ) : (
-                  <div className="mb-3">
-                    <label
-                      className="block mb-1.5"
-                      style={{
-                        fontFamily: 'Gilroy, sans-serif',
-                        fontWeight: 600,
-                        fontSize: '12px',
-                        color: '#2d2620',
-                      }}
-                    >
-                      Город
-                    </label>
-                    {isLoadingDecadeCities ? (
-                      <div className="p-3 bg-white/50 rounded-lg text-center text-[#6b5a4a] text-sm">
-                        Загрузка городов...
-                      </div>
-                    ) : (
-                      <select
-                        value={selectedDecadeCity}
-                        onChange={(e) => {
-                          haptic.selection();
-                          setSelectedDecadeCity(e.target.value);
-                          setDecadeError('');
-                        }}
-                        className="w-full px-3 py-2.5 rounded-lg border bg-white text-[#2d2620] font-medium text-sm focus:outline-none mb-3"
-                        style={{ borderColor: '#d93547' }}
-                      >
-                        <option value="">Выберите город</option>
-                        {decadeCitiesData?.cities?.map((city: string) => (
-                          <option key={city} value={city}>
-                            {city}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-
-                    {selectedDecadeCity && (
-                      <button
-                        onClick={() => {
-                          haptic.impact('medium');
-                          setDecadeError('');
-                          joinDecadeMutation.mutate(selectedDecadeCity);
-                        }}
-                        disabled={joinDecadeMutation.isPending}
-                        className="w-full py-3 rounded-lg text-center active:scale-[0.98] transition-transform disabled:opacity-50"
-                        style={{
-                          background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
-                          fontFamily: 'Gilroy, sans-serif',
-                          fontWeight: 600,
-                          fontSize: '14px',
-                          color: '#f7f1e8',
-                          textTransform: 'uppercase',
-                        }}
-                      >
-                        {joinDecadeMutation.isPending ? 'Распределение...' : 'Вступить в десятку'}
-                      </button>
-                    )}
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             )}
           </div>
