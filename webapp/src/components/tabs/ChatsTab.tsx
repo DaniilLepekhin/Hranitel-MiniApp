@@ -33,6 +33,7 @@ export function ChatsTab() {
   const [showDecadeFlow, setShowDecadeFlow] = useState(false);
   const [selectedDecadeCity, setSelectedDecadeCity] = useState<string>(user?.city || '');
   const [decadeError, setDecadeError] = useState<string>('');
+  const [forceShowCitySelector, setForceShowCitySelector] = useState(false);
 
   // Fetch my decade info
   const { data: myDecadeData } = useQuery<{ success: boolean; decade: any | null }>({
@@ -58,6 +59,8 @@ export function ChatsTab() {
       if (data.success) {
         queryClient.invalidateQueries({ queryKey: ['decades', 'my'] });
         setShowDecadeFlow(false);
+        setForceShowCitySelector(false);
+        setDecadeError('');
         if (data.inviteLink && webApp?.openTelegramLink) {
           webApp.openTelegramLink(data.inviteLink);
         }
@@ -671,7 +674,13 @@ export function ChatsTab() {
               onClick={() => {
                 if (canAccessDecades) {
                   haptic.impact('light');
-                  setShowDecadeFlow(!showDecadeFlow);
+                  const newShowState = !showDecadeFlow;
+                  setShowDecadeFlow(newShowState);
+                  // Сбросить forceShowCitySelector при закрытии формы
+                  if (!newShowState) {
+                    setForceShowCitySelector(false);
+                    setDecadeError('');
+                  }
                 }
               }}
               style={{
@@ -798,7 +807,7 @@ export function ChatsTab() {
                     color: '#2d2620',
                   }}
                 >
-                  {user?.city
+                  {user?.city && !forceShowCitySelector
                     ? `Ваш город: ${user.city}. Распределение произойдет в десятку этого города.`
                     : 'Выберите город для распределения в десятку'}
                 </p>
@@ -817,7 +826,7 @@ export function ChatsTab() {
                   </div>
                 )}
 
-                {user?.city ? (
+                {user?.city && !forceShowCitySelector ? (
                   <div className="flex flex-col gap-2">
                     <button
                       onClick={() => {
@@ -841,7 +850,9 @@ export function ChatsTab() {
                     <button
                       onClick={() => {
                         haptic.selection();
+                        setForceShowCitySelector(true);
                         setSelectedDecadeCity('');
+                        setDecadeError('');
                       }}
                       className="text-sm underline"
                       style={{
