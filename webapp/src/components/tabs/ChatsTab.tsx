@@ -21,23 +21,8 @@ export function ChatsTab() {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
 
-  // 🔒 Проверка доступа к разделу "Десятки" - открывается в 14:00 МСК 7 февраля 2026
-  const canAccessDecades = (() => {
-    if (!user) return false;
-
-    const now = new Date();
-    const moscowTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Moscow' }));
-    const releaseDate = new Date('2026-02-07T14:00:00+03:00'); // 14:00 MSK
-
-    // После 14:00 МСК - доступ всем
-    if (moscowTime >= releaseDate) {
-      return true;
-    }
-
-    // До 14:00 - только whitelist
-    const allowedDecadesUsers = ['389209990', '709347866', '7353667659'];
-    return allowedDecadesUsers.includes(String(user.telegramId));
-  })();
+  // 🔒 Проверка доступа к разделу "Десятки" - доступ для всех пользователей
+  const canAccessDecades = !!user;
 
   // City chat selection state
   const [selectedCountry, setSelectedCountry] = useState<string>('');
