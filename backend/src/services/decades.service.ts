@@ -619,7 +619,31 @@ class DecadesService {
       return { allowed: true }; // Не десятка - не блокируем
     }
 
-    // Проверить, распределён ли пользователь в эту десятку
+    // ⚠️ ПЕРВАЯ ПРОВЕРКА: Десятка переполнена или заполнена?
+    // Считаем реальное количество активных участников В ЧАТЕ через БД
+    const [result] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(decadeMembers)
+      .where(
+        and(
+          eq(decadeMembers.decadeId, decade.id),
+          isNull(decadeMembers.leftAt)
+        )
+      );
+
+    const actualMembersCount = result?.count || 0;
+
+    // Проверяем, не переполнена ли десятка СРАЗУ
+    // Используем БД как источник истины для количества участников
+    if (actualMembersCount >= decade.maxMembers) {
+      // Десятка заполнена/переполнена - кикаем любого нового
+      return {
+        allowed: false,
+        reason: 'Десятка заполнена. Откройте приложение клуба и нажмите "Вступить в десятку" - вы будете распределены в свободную десятку вашего города.',
+      };
+    }
+
+    // ВТОРАЯ ПРОВЕРКА: Проверить, распределён ли пользователь в эту десятку
     const [membership] = await db
       .select()
       .from(decadeMembers)
@@ -635,32 +659,7 @@ class DecadesService {
     if (!membership) {
       return {
         allowed: false,
-        reason: 'Вы не распределены в эту десятку. Используйте приложение для вступления.',
-      };
-    }
-
-    // ⚠️ КРИТИЧЕСКАЯ ПРОВЕРКА: Десятка переполнена?
-    // Считаем реальное количество активных участников В ЧАТЕ через БД
-    const [result] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(decadeMembers)
-      .where(
-        and(
-          eq(decadeMembers.decadeId, decade.id),
-          isNull(decadeMembers.leftAt)
-        )
-      );
-
-    const actualMembersCount = result?.count || 0;
-
-    // Проверяем, не переполнена ли десятка
-    // Используем БД как источник истины для количества участников
-    if (actualMembersCount >= decade.maxMembers) {
-      // Десятка переполнена - кикаем этого пользователя
-      // Он будет автоматически перераспределен в другую десятку
-      return {
-        allowed: false,
-        reason: 'Десятка заполнена. Откройте приложение - вы будете автоматически распределены в другую десятку вашего города.',
+        reason: 'Вы не распределены в эту десятку. Откройте приложение клуба и нажмите "Вступить в десятку".',
       };
     }
 
