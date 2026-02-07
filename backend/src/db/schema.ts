@@ -1058,6 +1058,7 @@ export const decades = pgTable('decades', {
   // Статусы
   isActive: boolean('is_active').default(true).notNull(), // Активна ли десятка
   isFull: boolean('is_full').default(false).notNull(), // Заполнена ли (current >= max)
+  isAvailableForDistribution: boolean('is_available_for_distribution').default(true).notNull(), // Доступна ли для автоматического распределения
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

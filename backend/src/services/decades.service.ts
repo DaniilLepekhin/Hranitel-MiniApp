@@ -327,11 +327,18 @@ class DecadesService {
     decade?: Decade;
     inviteLink?: string;
   }> {
-    // Ищем активную, незаполненную десятку в городе
+    // Ищем активную, незаполненную десятку в городе, доступную для распределения
     const [availableDecade] = await db
       .select()
       .from(decades)
-      .where(and(eq(decades.city, city), eq(decades.isActive, true), eq(decades.isFull, false)))
+      .where(
+        and(
+          eq(decades.city, city),
+          eq(decades.isActive, true),
+          eq(decades.isFull, false),
+          eq(decades.isAvailableForDistribution, true) // ← НОВОЕ: только доступные для распределения
+        )
+      )
       .orderBy(decades.number) // Заполняем по порядку
       .limit(1);
 
@@ -442,6 +449,7 @@ class DecadesService {
                   eq(decades.city, user.city!),
                   eq(decades.isActive, true),
                   eq(decades.isFull, false),
+                  eq(decades.isAvailableForDistribution, true), // ← НОВОЕ: только доступные для распределения
                   lt(decades.currentMembers, decades.maxMembers) // Явная проверка
                 )
               )
@@ -627,6 +635,31 @@ class DecadesService {
       return {
         allowed: false,
         reason: 'Вы не распределены в эту десятку. Используйте приложение для вступления.',
+      };
+    }
+
+    // ⚠️ КРИТИЧЕСКАЯ ПРОВЕРКА: Десятка переполнена?
+    // Считаем реальное количество активных участников В ЧАТЕ через БД
+    const [result] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(decadeMembers)
+      .where(
+        and(
+          eq(decadeMembers.decadeId, decade.id),
+          isNull(decadeMembers.leftAt)
+        )
+      );
+
+    const actualMembersCount = result?.count || 0;
+
+    // Проверяем, не переполнена ли десятка
+    // Используем БД как источник истины для количества участников
+    if (actualMembersCount >= decade.maxMembers) {
+      // Десятка переполнена - кикаем этого пользователя
+      // Он будет автоматически перераспределен в другую десятку
+      return {
+        allowed: false,
+        reason: 'Десятка заполнена. Откройте приложение - вы будете автоматически распределены в другую десятку вашего города.',
       };
     }
 
