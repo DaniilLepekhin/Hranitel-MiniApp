@@ -11,7 +11,7 @@
 
 import { Elysia, t } from 'elysia';
 import { db } from '@/db';
-import { users, paymentAnalytics, clubFunnelProgress, videos, contentItems } from '@/db/schema';
+import { users, paymentAnalytics, clubFunnelProgress, videos, contentItems, decades, decadeMembers, leaderTestResults } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { startOnboardingAfterPayment } from '@/modules/bot/post-payment-funnels';
@@ -768,6 +768,85 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       detail: {
         summary: 'Выполнить SQL',
         description: 'Выполняет безопасный SQL запрос (только ALTER TABLE и SELECT)',
+      },
+    }
+  )
+
+  /**
+   * 🗑️ Деактивировать десятку
+   */
+  .post(
+    '/deactivate-decade',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { decade_id } = body;
+
+      try {
+        // Проверяем существование десятки
+        const [decade] = await db
+          .select()
+          .from(decades)
+          .where(eq(decades.id, decade_id))
+          .limit(1);
+
+        if (!decade) {
+          set.status = 404;
+          return { success: false, error: 'Десятка не найдена' };
+        }
+
+        // Удаляем всех участников
+        const deletedMembers = await db
+          .delete(decadeMembers)
+          .where(eq(decadeMembers.decadeId, decade_id))
+          .returning();
+
+        // Деактивируем десятку
+        await db
+          .update(decades)
+          .set({
+            isActive: false,
+            updatedAt: new Date(),
+          })
+          .where(eq(decades.id, decade_id));
+
+        // Очищаем связь в leader_test_results
+        await db
+          .update(leaderTestResults)
+          .set({ decadeId: null })
+          .where(eq(leaderTestResults.decadeId, decade_id));
+
+        logger.info(
+          {
+            decade_id,
+            city: decade.city,
+            number: decade.number,
+            members_removed: deletedMembers.length,
+          },
+          'Decade deactivated by admin'
+        );
+
+        return {
+          success: true,
+          message: `Десятка №${decade.number} (${decade.city}) деактивирована`,
+          members_removed: deletedMembers.length,
+        };
+      } catch (error: any) {
+        logger.error({ error, decade_id }, 'Failed to deactivate decade');
+        set.status = 500;
+        return { success: false, error: error.message };
+      }
+    },
+    {
+      body: t.Object({
+        decade_id: t.String({ description: 'ID десятки для деактивации' }),
+      }),
+      detail: {
+        summary: 'Деактивировать десятку',
+        description: 'Деактивирует десятку, удаляет всех участников и очищает связи',
       },
     }
   );

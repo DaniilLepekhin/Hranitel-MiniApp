@@ -21,9 +21,23 @@ export function ChatsTab() {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
 
-  // 🔒 Проверка доступа к разделу "Десятки"
-  const allowedDecadesUsers = ['389209990', '709347866', '7353667659'];
-  const canAccessDecades = user?.telegramId && allowedDecadesUsers.includes(String(user.telegramId));
+  // 🔒 Проверка доступа к разделу "Десятки" - открывается в 14:00 МСК 7 февраля 2026
+  const canAccessDecades = (() => {
+    if (!user) return false;
+
+    const now = new Date();
+    const moscowTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Moscow' }));
+    const releaseDate = new Date('2026-02-07T14:00:00+03:00'); // 14:00 MSK
+
+    // После 14:00 МСК - доступ всем
+    if (moscowTime >= releaseDate) {
+      return true;
+    }
+
+    // До 14:00 - только whitelist
+    const allowedDecadesUsers = ['389209990', '709347866', '7353667659'];
+    return allowedDecadesUsers.includes(String(user.telegramId));
+  })();
 
   // City chat selection state
   const [selectedCountry, setSelectedCountry] = useState<string>('');
@@ -44,14 +58,18 @@ export function ChatsTab() {
     staleTime: 30 * 1000, // 30 секунд кеш
   });
 
-  // Fetch available cities for decades - только если нет города
+  // Fetch available cities for decades - всегда запрашиваем для проверки доступности
   const { data: decadeCitiesData, isLoading: isLoadingDecadeCities } = useQuery<{ success: boolean; cities: string[] }>({
     queryKey: ['decades', 'cities'],
     queryFn: () => decadesApi.getCities(initData || ''),
-    enabled: !user?.city && showDecadeFlow && !!canAccessDecades && !!initData,
+    enabled: !!canAccessDecades && !!initData,
     staleTime: 5 * 60 * 1000,
     placeholderData: { success: true, cities: [] },
   });
+
+  // Проверка доступности десяток в городе пользователя
+  const hasDecadesInUserCity = !user?.city || (decadeCitiesData?.cities || []).includes(user.city);
+  const canJoinDecade = canAccessDecades && hasDecadesInUserCity;
 
   // Join decade mutation
   const joinDecadeMutation = useMutation({
@@ -672,12 +690,12 @@ export function ChatsTab() {
             )}
           </div>
 
-          {/* 4. Десятка (🔒 ЗАБЛОКИРОВАНО для всех кроме 389209990) */}
+          {/* 4. Десятка (🔒 Контроль доступа: время + наличие мест в городе) */}
           <div>
             <div
-              className={`relative overflow-hidden ${!canAccessDecades ? 'opacity-60' : 'cursor-pointer active:scale-[0.99] transition-transform'}`}
+              className={`relative overflow-hidden ${!canJoinDecade ? 'opacity-60' : 'cursor-pointer active:scale-[0.99] transition-transform'}`}
               onClick={() => {
-                if (!canAccessDecades) return;
+                if (!canJoinDecade) return;
 
                 haptic.impact('medium');
 
@@ -709,7 +727,7 @@ export function ChatsTab() {
                 minHeight: '200px',
               }}
             >
-              {/* 🔒 Замочек поверх - только если НЕТ доступа */}
+              {/* 🔒 Замочек поверх - если нет доступа по времени */}
               {!canAccessDecades && (
                 <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/20 backdrop-blur-[2px]">
                   <div className="flex flex-col items-center gap-2">
@@ -726,6 +744,29 @@ export function ChatsTab() {
                       }}
                     >
                       Скоро откроется
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* 🔒 Замочек поверх - если есть доступ по времени, но нет мест в городе */}
+              {canAccessDecades && !hasDecadesInUserCity && user?.city && !myDecadeData?.decade && (
+                <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/20 backdrop-blur-[2px]">
+                  <div className="flex flex-col items-center gap-2 px-4">
+                    <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
+                      <Lock className="w-6 h-6 text-[#9c1723]" />
+                    </div>
+                    <p
+                      style={{
+                        fontFamily: 'Gilroy, sans-serif',
+                        fontWeight: 600,
+                        fontSize: '11px',
+                        color: 'white',
+                        textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                        textAlign: 'center',
+                      }}
+                    >
+                      Пока нет мест в городе {user.city}
                     </p>
                   </div>
                 </div>
@@ -790,8 +831,8 @@ export function ChatsTab() {
                 </p>
 
                 <button
-                  disabled={!canAccessDecades}
-                  className={`px-4 py-3 rounded-[5.73px] ${!canAccessDecades ? 'opacity-40 cursor-not-allowed' : 'active:scale-[0.98] transition-transform'}`}
+                  disabled={!canJoinDecade}
+                  className={`px-4 py-3 rounded-[5.73px] ${!canJoinDecade ? 'opacity-40 cursor-not-allowed' : 'active:scale-[0.98] transition-transform'}`}
                   style={{
                     background: '#f7f1e8',
                     fontFamily: 'Gilroy, sans-serif',
