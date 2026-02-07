@@ -33,12 +33,14 @@ export function ChatsTab() {
   const [showDecadeFlow, setShowDecadeFlow] = useState(false);
   const [selectedDecadeCity, setSelectedDecadeCity] = useState<string>('');
   const [decadeError, setDecadeError] = useState<string>('');
+  const [myDecadeLink, setMyDecadeLink] = useState<string | null>(null); // Ссылка на мою десятку после успешного join
 
-  // Fetch my decade info - запрашиваем сразу при загрузке если есть доступ
+  // Fetch my decade info - НЕ запрашиваем автоматически при загрузке (enabled: false)
+  // Данные будут запрошены только после успешного вступления в десятку
   const { data: myDecadeData } = useQuery<{ success: boolean; decade: any | null }>({
     queryKey: ['decades', 'my', user?.id],
     queryFn: () => decadesApi.getMy(initData || ''),
-    enabled: !!user && !!initData && !!canAccessDecades,
+    enabled: false, // Отключаем автозапрос - будет запущен только через invalidateQueries после join
     placeholderData: { success: true, decade: null },
     staleTime: 30 * 1000, // 30 секунд кеш
   });
@@ -61,6 +63,11 @@ export function ChatsTab() {
     mutationFn: (city?: string) => decadesApi.join(initData || '', city),
     onSuccess: (data: any) => {
       if (data.success) {
+        // Сохранить ссылку на мою десятку
+        if (data.inviteLink) {
+          setMyDecadeLink(data.inviteLink);
+        }
+
         // Обновить кеш о моей десятке
         queryClient.invalidateQueries({ queryKey: ['decades', 'my'] });
 
@@ -684,9 +691,9 @@ export function ChatsTab() {
 
                 haptic.impact('medium');
 
-                // Сценарий 1: Пользователь уже в десятке → открыть чат
-                if (myDecadeData?.decade?.inviteLink) {
-                  webApp?.openTelegramLink(myDecadeData.decade.inviteLink);
+                // Сценарий 1: Пользователь уже в десятке (есть сохраненная ссылка) → открыть чат
+                if (myDecadeLink) {
+                  webApp?.openTelegramLink(myDecadeLink);
                   return;
                 }
 
@@ -735,7 +742,7 @@ export function ChatsTab() {
               )}
 
               {/* 🔒 Замочек поверх - если есть доступ по времени, но нет мест в городе */}
-              {canAccessDecades && !hasDecadesInUserCity && user?.city && !myDecadeData?.decade && (
+              {canAccessDecades && !hasDecadesInUserCity && user?.city && !myDecadeLink && (
                 <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/20 backdrop-blur-[2px]">
                   <div className="flex flex-col items-center gap-2 px-4">
                     <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
