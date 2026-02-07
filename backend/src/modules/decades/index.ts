@@ -74,12 +74,58 @@ export const decadesModule = new Elysia({ prefix: '/decades', tags: ['Decades'] 
   )
 
   /**
+   * Получить список городов с доступными десятками
+   */
+  .post(
+    '/cities',
+    async ({ body, set }) => {
+      const { initData } = body;
+
+      if (!validateTelegramInitData(initData)) {
+        set.status = 401;
+        return { success: false, error: 'Invalid Telegram data' };
+      }
+
+      try {
+        const cities = await db
+          .selectDistinct({ city: decades.city })
+          .from(decades)
+          .where(
+            and(
+              eq(decades.isActive, true),
+              eq(decades.isAvailableForDistribution, true)
+            )
+          )
+          .orderBy(decades.city);
+
+        return {
+          success: true,
+          cities: cities.map((c) => c.city).filter(Boolean),
+        };
+      } catch (error) {
+        logger.error({ error }, 'Failed to get cities');
+        set.status = 500;
+        return { success: false, error: 'Internal error' };
+      }
+    },
+    {
+      body: t.Object({
+        initData: t.String(),
+      }),
+      detail: {
+        summary: 'Get cities with available decades',
+        description: 'Get list of cities that have available decades for distribution',
+      },
+    }
+  )
+
+  /**
    * Вступить в десятку (автоматический подбор по городу)
    */
   .post(
     '/join',
     async ({ body, set }) => {
-      const { initData } = body;
+      const { initData, city } = body;
 
       if (!validateTelegramInitData(initData)) {
         set.status = 401;
@@ -92,12 +138,35 @@ export const decadesModule = new Elysia({ prefix: '/decades', tags: ['Decades'] 
         return { success: false, error: 'Could not parse user data' };
       }
 
+      // Проверка: пользователь уже в десятке?
+      const { decade: existingDecade } = await decadesService.getUserDecade(tgUser.id);
+      if (existingDecade) {
+        return {
+          success: false,
+          error: 'already_in_decade',
+          message: 'Вы уже состоите в десятке. Выйдите из текущей десятки, чтобы вступить в новую.',
+          currentDecade: {
+            city: existingDecade.city,
+            number: existingDecade.number,
+          },
+        };
+      }
+
+      // Если передан город - обновить в БД
+      if (city) {
+        await db
+          .update(users)
+          .set({ city, updatedAt: new Date() })
+          .where(eq(users.telegramId, String(tgUser.id)));
+      }
+
       const result = await decadesService.assignUserToDecade(tgUser.id);
       return result;
     },
     {
       body: t.Object({
         initData: t.String(),
+        city: t.Optional(t.String()),
       }),
       detail: {
         summary: 'Join a decade',

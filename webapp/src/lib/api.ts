@@ -813,3 +813,16 @@ export interface PracticeContent {
   content: string;
   createdAt: string;
 }
+
+// Decades API
+export const decadesApi = {
+  getMy: async (initData: string) => {
+    return api.post('/decades/my', { initData });
+  },
+  getCities: async (initData: string) => {
+    return api.post('/decades/cities', { initData });
+  },
+  join: async (initData: string, city?: string) => {
+    return api.post('/decades/join', { initData, city });
+  },
+};

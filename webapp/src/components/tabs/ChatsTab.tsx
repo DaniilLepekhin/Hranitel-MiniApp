@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Lock } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
-import { cityChatsApi } from '@/lib/api';
+import { cityChatsApi, decadesApi } from '@/lib/api';
 
 // API endpoints
 const teamsApi = {
@@ -17,13 +17,57 @@ const teamsApi = {
 };
 
 export function ChatsTab() {
-  const { haptic, webApp } = useTelegram();
+  const { haptic, webApp, user: tgUser, initData } = useTelegram();
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
+
+  // 🔒 Проверка доступа к разделу "Десятки" - только для telegram_id 389209990
+  const canAccessDecades = String(user?.telegramId) === '389209990';
 
   // City chat selection state
   const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [selectedCity, setSelectedCity] = useState<string>('');
   const [showCitySelector, setShowCitySelector] = useState(false);
+
+  // Decade selection state
+  const [showDecadeFlow, setShowDecadeFlow] = useState(false);
+  const [selectedDecadeCity, setSelectedDecadeCity] = useState<string>(user?.city || '');
+  const [decadeError, setDecadeError] = useState<string>('');
+
+  // Fetch my decade info
+  const { data: myDecadeData } = useQuery({
+    queryKey: ['decades', 'my', user?.id],
+    queryFn: () => decadesApi.getMy(initData || ''),
+    enabled: !!user && !!initData && canAccessDecades,
+    placeholderData: { success: true, decade: null },
+  });
+
+  // Fetch available cities for decades
+  const { data: decadeCitiesData, isLoading: isLoadingDecadeCities } = useQuery({
+    queryKey: ['decades', 'cities'],
+    queryFn: () => decadesApi.getCities(initData || ''),
+    enabled: showDecadeFlow && canAccessDecades && !!initData,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Join decade mutation
+  const joinDecadeMutation = useMutation({
+    mutationFn: (city?: string) => decadesApi.join(initData || '', city),
+    onSuccess: (data) => {
+      if (data.success) {
+        queryClient.invalidateQueries({ queryKey: ['decades', 'my'] });
+        setShowDecadeFlow(false);
+        if (data.inviteLink && webApp?.openTelegramLink) {
+          webApp.openTelegramLink(data.inviteLink);
+        }
+      } else {
+        setDecadeError(data.message || 'Ошибка при распределении');
+      }
+    },
+    onError: () => {
+      setDecadeError('Произошла ошибка. Попробуйте снова.');
+    },
+  });
 
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch user team
   const { data: teamData } = useQuery({
@@ -619,111 +663,256 @@ export function ChatsTab() {
             )}
           </div>
 
-          {/* 4. Десятка (🔒 ЗАБЛОКИРОВАНО) */}
-          <div
-            className="relative overflow-hidden opacity-60"
-            style={{
-              borderRadius: '5.73px',
-              border: '0.955px solid #d93547',
-              background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
-              minHeight: '200px',
-            }}
-          >
-            {/* 🔒 Замочек поверх */}
-            <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/20 backdrop-blur-[2px]">
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
-                  <Lock className="w-6 h-6 text-[#9c1723]" />
+          {/* 4. Десятка (🔒 ЗАБЛОКИРОВАНО для всех кроме 389209990) */}
+          <div>
+            <div
+              className={`relative overflow-hidden ${!canAccessDecades ? 'opacity-60' : 'cursor-pointer active:scale-[0.99] transition-transform'}`}
+              onClick={() => {
+                if (canAccessDecades) {
+                  haptic.impact('light');
+                  setShowDecadeFlow(!showDecadeFlow);
+                }
+              }}
+              style={{
+                borderRadius: '5.73px',
+                border: '0.955px solid #d93547',
+                background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
+                minHeight: '200px',
+              }}
+            >
+              {/* 🔒 Замочек поверх - только если НЕТ доступа */}
+              {!canAccessDecades && (
+                <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/20 backdrop-blur-[2px]">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
+                      <Lock className="w-6 h-6 text-[#9c1723]" />
+                    </div>
+                    <p
+                      style={{
+                        fontFamily: 'Gilroy, sans-serif',
+                        fontWeight: 600,
+                        fontSize: '12px',
+                        color: 'white',
+                        textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                      }}
+                    >
+                      Скоро откроется
+                    </p>
+                  </div>
                 </div>
+              )}
+
+              {/* Изображение справа */}
+              <div
+                className="absolute overflow-hidden"
+                style={{
+                  right: '0px',
+                  top: '0',
+                  bottom: '0',
+                  width: '55%',
+                }}
+              >
+                <img
+                  src="/assets/chat-desyatka.png"
+                  alt=""
+                  className="w-full h-full object-contain object-right-bottom"
+                />
+              </div>
+
+              {/* Контент слева */}
+              <div className="relative z-10 p-4 pr-2" style={{ maxWidth: '55%' }}>
+                <h3
+                  style={{
+                    fontFamily: '"TT Nooks", Georgia, serif',
+                    fontWeight: 300,
+                    fontSize: '19.4px',
+                    lineHeight: 1.05,
+                    color: '#f7f1e8',
+                    marginBottom: '8px',
+                  }}
+                >
+                  Десятка
+                </h3>
+
                 <p
                   style={{
                     fontFamily: 'Gilroy, sans-serif',
-                    fontWeight: 600,
-                    fontSize: '12px',
-                    color: 'white',
-                    textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                    fontWeight: 400,
+                    fontSize: '10px',
+                    lineHeight: 1.4,
+                    color: '#f7f1e8',
+                    marginBottom: '4px',
                   }}
                 >
-                  Скоро откроется
+                  <span style={{ fontWeight: 700 }}>Твоя малая группа</span> для роста, поддержки и совместной работы внутри клуба.
                 </p>
+
+                <p
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontWeight: 400,
+                    fontSize: '9px',
+                    lineHeight: 1.4,
+                    color: '#f7f1e8',
+                    marginBottom: '12px',
+                  }}
+                >
+                  *десятка формируется внутри чата города
+                </p>
+
+                <button
+                  disabled={!canAccessDecades}
+                  className={`px-4 py-3 rounded-[5.73px] ${!canAccessDecades ? 'opacity-40 cursor-not-allowed' : 'active:scale-[0.98] transition-transform'}`}
+                  style={{
+                    background: '#f7f1e8',
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontWeight: 700,
+                    fontSize: '11.14px',
+                    color: '#a81b28',
+                    textTransform: 'uppercase',
+                    border: 'none',
+                    boxShadow: '0 4px 12px rgba(33, 23, 10, 0.3)',
+                  }}
+                >
+                  вступить в десятку
+                </button>
               </div>
             </div>
 
-            {/* Изображение справа */}
-            <div
-              className="absolute overflow-hidden"
-              style={{
-                right: '0px',
-                top: '0',
-                bottom: '0',
-                width: '55%',
-              }}
-            >
-              <img
-                src="/assets/chat-desyatka.png"
-                alt=""
-                className="w-full h-full object-contain object-right-bottom"
-              />
-            </div>
-
-            {/* Контент слева */}
-            <div className="relative z-10 p-4 pr-2" style={{ maxWidth: '55%' }}>
-              <h3
+            {/* Селектор города для десятки - показываем только если есть доступ */}
+            {showDecadeFlow && canAccessDecades && (
+              <div
+                className="mt-2 p-4 rounded-lg"
                 style={{
-                  fontFamily: '"TT Nooks", Georgia, serif',
-                  fontWeight: 300,
-                  fontSize: '19.4px',
-                  lineHeight: 1.05,
-                  color: '#f7f1e8',
-                  marginBottom: '8px',
+                  background: 'rgba(247, 241, 232, 0.95)',
+                  border: '1px solid #d93547',
                 }}
               >
-                Десятка
-              </h3>
+                <p
+                  className="mb-3 text-center"
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontWeight: 500,
+                    fontSize: '13px',
+                    color: '#2d2620',
+                  }}
+                >
+                  {user?.city
+                    ? `Ваш город: ${user.city}. Распределение произойдет в десятку этого города.`
+                    : 'Выберите город для распределения в десятку'}
+                </p>
 
-              <p
-                style={{
-                  fontFamily: 'Gilroy, sans-serif',
-                  fontWeight: 400,
-                  fontSize: '10px',
-                  lineHeight: 1.4,
-                  color: '#f7f1e8',
-                  marginBottom: '4px',
-                }}
-              >
-                <span style={{ fontWeight: 700 }}>Твоя малая группа</span> для роста, поддержки и совместной работы внутри клуба.
-              </p>
+                {decadeError && (
+                  <div
+                    className="mb-3 p-2 rounded text-center"
+                    style={{
+                      background: 'rgba(156, 23, 35, 0.1)',
+                      color: '#9c1723',
+                      fontFamily: 'Gilroy, sans-serif',
+                      fontSize: '12px',
+                    }}
+                  >
+                    {decadeError}
+                  </div>
+                )}
 
-              <p
-                style={{
-                  fontFamily: 'Gilroy, sans-serif',
-                  fontWeight: 400,
-                  fontSize: '9px',
-                  lineHeight: 1.4,
-                  color: '#f7f1e8',
-                  marginBottom: '12px',
-                }}
-              >
-                *десятка формируется внутри чата города
-              </p>
+                {user?.city ? (
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => {
+                        haptic.impact('medium');
+                        setDecadeError('');
+                        joinDecadeMutation.mutate();
+                      }}
+                      disabled={joinDecadeMutation.isPending}
+                      className="w-full py-3 rounded-lg text-center active:scale-[0.98] transition-transform disabled:opacity-50"
+                      style={{
+                        background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
+                        fontFamily: 'Gilroy, sans-serif',
+                        fontWeight: 600,
+                        fontSize: '14px',
+                        color: '#f7f1e8',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      {joinDecadeMutation.isPending ? 'Распределение...' : 'Подтвердить и вступить'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        haptic.selection();
+                        setSelectedDecadeCity('');
+                      }}
+                      className="text-sm underline"
+                      style={{
+                        fontFamily: 'Gilroy, sans-serif',
+                        color: '#9c1723',
+                      }}
+                    >
+                      Выбрать другой город
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mb-3">
+                    <label
+                      className="block mb-1.5"
+                      style={{
+                        fontFamily: 'Gilroy, sans-serif',
+                        fontWeight: 600,
+                        fontSize: '12px',
+                        color: '#2d2620',
+                      }}
+                    >
+                      Город
+                    </label>
+                    {isLoadingDecadeCities ? (
+                      <div className="p-3 bg-white/50 rounded-lg text-center text-[#6b5a4a] text-sm">
+                        Загрузка городов...
+                      </div>
+                    ) : (
+                      <select
+                        value={selectedDecadeCity}
+                        onChange={(e) => {
+                          haptic.selection();
+                          setSelectedDecadeCity(e.target.value);
+                          setDecadeError('');
+                        }}
+                        className="w-full px-3 py-2.5 rounded-lg border bg-white text-[#2d2620] font-medium text-sm focus:outline-none mb-3"
+                        style={{ borderColor: '#d93547' }}
+                      >
+                        <option value="">Выберите город</option>
+                        {decadeCitiesData?.cities?.map((city: string) => (
+                          <option key={city} value={city}>
+                            {city}
+                          </option>
+                        ))}
+                      </select>
+                    )}
 
-              <button
-                disabled
-                className="px-4 py-3 rounded-[5.73px] opacity-40 cursor-not-allowed"
-                style={{
-                  background: '#f7f1e8',
-                  fontFamily: 'Gilroy, sans-serif',
-                  fontWeight: 700,
-                  fontSize: '11.14px',
-                  color: '#a81b28',
-                  textTransform: 'uppercase',
-                  border: 'none',
-                  boxShadow: '0 4px 12px rgba(33, 23, 10, 0.3)',
-                }}
-              >
-                вступить в десятку
-              </button>
-            </div>
+                    {selectedDecadeCity && (
+                      <button
+                        onClick={() => {
+                          haptic.impact('medium');
+                          setDecadeError('');
+                          joinDecadeMutation.mutate(selectedDecadeCity);
+                        }}
+                        disabled={joinDecadeMutation.isPending}
+                        className="w-full py-3 rounded-lg text-center active:scale-[0.98] transition-transform disabled:opacity-50"
+                        style={{
+                          background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
+                          fontFamily: 'Gilroy, sans-serif',
+                          fontWeight: 600,
+                          fontSize: '14px',
+                          color: '#f7f1e8',
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        {joinDecadeMutation.isPending ? 'Распределение...' : 'Вступить в десятку'}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* 5. Служба заботы */}
