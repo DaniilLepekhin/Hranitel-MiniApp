@@ -621,7 +621,7 @@ export async function showGiftContinuePayment(userId: number, chatId: number) {
   if (!user) return;
 
   const keyboard = new InlineKeyboard()
-    .webApp('Оплатить', `https://hranitel.daniillepekhin.com/payment_form_club.html`);
+    .webApp('Оплатить', `https://app.successkod.com/payment_form_club.html`);
 
   await getTelegramService().sendPhoto(
     chatId,

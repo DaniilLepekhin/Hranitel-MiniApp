@@ -9,13 +9,13 @@ import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
 // Динамически определяем API URL на основе текущего домена
 const getApiUrl = (): string => {
   if (typeof window === 'undefined') {
-    return process.env.NEXT_PUBLIC_API_URL || 'https://hranitel.daniillepekhin.com';
+    return process.env.NEXT_PUBLIC_API_URL || 'https://app.successkod.com';
   }
   const hostname = window.location.hostname;
   if (hostname.includes('successkod.com')) {
     return `https://${hostname}`;
   }
-  return process.env.NEXT_PUBLIC_API_URL || 'https://hranitel.daniillepekhin.com';
+  return process.env.NEXT_PUBLIC_API_URL || 'https://app.successkod.com';
 };
 const API_URL = getApiUrl();
 
