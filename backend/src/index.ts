@@ -228,6 +228,7 @@ logger.info(
 
 // Telegram webhook setup + health monitoring
 import { alertsService } from '@/services/alerts.service';
+import { subscriptionGuardService } from '@/services/subscription-guard.service';
 
 if (!isDevelopment) {
   setupWebhook().catch(async (error) => {
@@ -250,6 +251,31 @@ if (!isDevelopment) {
   setTimeout(async () => {
     await alertsService.checkWebhookHealth();
   }, 60 * 1000);
+
+  // 🔒 CRON: Проверка истекших подписок (каждый день в 00:00 по МСК)
+  // Выгоняет из каналов и чатов пользователей с истекшей подпиской
+  const checkExpiredSubscriptionsDaily = async () => {
+    const now = new Date();
+    const moscowHour = (now.getUTCHours() + 3) % 24; // UTC+3 = Moscow time
+
+    // Запускаем в 00:00 по МСК (21:00 UTC предыдущего дня)
+    if (moscowHour === 0) {
+      logger.info('Running daily expired subscriptions check...');
+      try {
+        const result = await subscriptionGuardService.checkExpiredSubscriptions();
+        logger.info({ result }, 'Daily expired subscriptions check completed');
+      } catch (error) {
+        logger.error({ error }, 'Daily expired subscriptions check failed');
+      }
+    }
+  };
+
+  // Проверяем каждый час (в :00 минут)
+  const HOURLY_CHECK = 60 * 60 * 1000; // 1 час
+  setInterval(checkExpiredSubscriptionsDaily, HOURLY_CHECK);
+
+  // Первая проверка через 5 минут после старта (если сейчас 00:xx МСК)
+  setTimeout(checkExpiredSubscriptionsDaily, 5 * 60 * 1000);
 }
 
 // Graceful shutdown with timeout
