@@ -15,6 +15,7 @@ import { users, paymentAnalytics, clubFunnelProgress, videos, contentItems, deca
 import { eq } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { startOnboardingAfterPayment } from '@/modules/bot/post-payment-funnels';
+import { subscriptionGuardService } from '@/services/subscription-guard.service';
 
 // n8n webhook для генерации ссылки на оплату Lava
 const N8N_LAVA_WEBHOOK_URL = 'https://n8n4.daniillepekhin.ru/webhook/lava_club2';
@@ -847,6 +848,68 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       detail: {
         summary: 'Деактивировать десятку',
         description: 'Деактивирует десятку, удаляет всех участников и очищает связи',
+      },
+    }
+  )
+
+  /**
+   * 🔓 Разблокировать пользователя во всех чатах и каналах
+   */
+  .post(
+    '/unban-user',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { telegram_id: rawTelegramId } = body;
+      const telegram_id = typeof rawTelegramId === 'string' ? parseInt(rawTelegramId, 10) : rawTelegramId;
+
+      try {
+        // Находим пользователя
+        const [user] = await db
+          .select()
+          .from(users)
+          .where(eq(users.telegramId, telegram_id))
+          .limit(1);
+
+        if (!user) {
+          set.status = 404;
+          return { success: false, error: 'Пользователь не найден' };
+        }
+
+        // Разблокируем во всех чатах (каналы + городские чаты)
+        await subscriptionGuardService.unbanUserFromAllChats(telegram_id);
+
+        logger.info(
+          { telegram_id, username: user.username, city: user.city },
+          'User unbanned from all chats by admin'
+        );
+
+        return {
+          success: true,
+          message: `Пользователь ${telegram_id} разблокирован во всех каналах и чатах`,
+          user: {
+            id: user.id,
+            telegram_id: user.telegramId,
+            username: user.username,
+            city: user.city,
+          },
+        };
+      } catch (error: any) {
+        logger.error({ error, telegram_id }, 'Failed to unban user');
+        set.status = 500;
+        return { success: false, error: error.message };
+      }
+    },
+    {
+      body: t.Object({
+        telegram_id: t.Union([t.Number(), t.String()], { description: 'Telegram ID пользователя' }),
+      }),
+      detail: {
+        summary: 'Разблокировать пользователя',
+        description: 'Разблокирует пользователя во всех защищённых каналах и городских чатах',
       },
     }
   );
