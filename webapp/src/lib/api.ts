@@ -817,12 +817,12 @@ export interface PracticeContent {
 // Decades API
 export const decadesApi = {
   getMy: async (initData: string) => {
-    return api.post('/decades/my', { initData });
+    return api.post<{ success: boolean; decade: any | null }>('/decades/my', { initData });
   },
   getCities: async (initData: string) => {
-    return api.post('/decades/cities', { initData });
+    return api.post<{ success: boolean; cities: string[] }>('/decades/cities', { initData });
   },
   join: async (initData: string, city?: string) => {
-    return api.post('/decades/join', { initData, city });
+    return api.post<{ success: boolean; inviteLink?: string; message?: string; error?: string }>('/decades/join', { initData, city });
   },
 };
