@@ -242,6 +242,7 @@ class DecadesService {
               leaderTelegramId,
               chatTitle: chatTitle || `Десятка №${nextNumber} ${city}`,
               currentMembers: 1,
+              isAvailableForDistribution: true, // Сразу делаем доступной для распределения
             })
             .returning();
 

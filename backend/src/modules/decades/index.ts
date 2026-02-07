@@ -144,7 +144,8 @@ export const decadesModule = new Elysia({ prefix: '/decades', tags: ['Decades'] 
         return {
           success: false,
           error: 'already_in_decade',
-          message: 'Вы уже состоите в десятке. Выйдите из текущей десятки, чтобы вступить в новую.',
+          message: 'Вы уже состоите в десятке',
+          inviteLink: existingDecade.inviteLink || undefined,
           currentDecade: {
             city: existingDecade.city,
             number: existingDecade.number,

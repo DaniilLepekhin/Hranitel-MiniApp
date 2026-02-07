@@ -80,11 +80,35 @@ export function ChatsTab() {
         setShowDecadeFlow(false);
         setDecadeError('');
       } else {
-        setDecadeError(data.message || 'Ошибка при распределении');
+        // Проверяем тип ошибки
+        const errorMessage = data.error || data.message || 'Ошибка при распределении';
+
+        // Если пользователь уже в десятке - сохраняем ссылку и открываем чат
+        if (data.error === 'already_in_decade' && data.inviteLink) {
+          setMyDecadeLink(data.inviteLink);
+          if (webApp?.openTelegramLink) {
+            webApp.openTelegramLink(data.inviteLink);
+          }
+          setShowDecadeFlow(false);
+          return;
+        }
+
+        // Если нет доступных десяток - показываем красивое уведомление
+        if (errorMessage.includes('нет доступных десяток') || errorMessage.includes('пока нет мест')) {
+          haptic.notification('warning');
+          webApp?.showAlert(
+            `В городе ${user?.city || 'вашем городе'} пока нет доступных десяток.\n\nДесятки появятся когда лидеры создадут чаты и откроют набор участников.`
+          );
+          setShowDecadeFlow(false);
+        } else {
+          // Остальные ошибки показываем в форме
+          setDecadeError(errorMessage);
+        }
       }
     },
     onError: () => {
-      setDecadeError('Произошла ошибка. Попробуйте снова.');
+      haptic.notification('error');
+      webApp?.showAlert('Произошла ошибка при распределении. Попробуйте снова.');
     },
   });
 
