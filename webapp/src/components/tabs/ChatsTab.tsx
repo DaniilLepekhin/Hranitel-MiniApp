@@ -35,7 +35,7 @@ export function ChatsTab() {
   const [decadeError, setDecadeError] = useState<string>('');
 
   // Fetch my decade info
-  const { data: myDecadeData } = useQuery({
+  const { data: myDecadeData } = useQuery<{ success: boolean; decade: any | null }>({
     queryKey: ['decades', 'my', user?.id],
     queryFn: () => decadesApi.getMy(initData || ''),
     enabled: !!user && !!initData && canAccessDecades,
@@ -43,7 +43,7 @@ export function ChatsTab() {
   });
 
   // Fetch available cities for decades
-  const { data: decadeCitiesData, isLoading: isLoadingDecadeCities } = useQuery({
+  const { data: decadeCitiesData, isLoading: isLoadingDecadeCities } = useQuery<{ success: boolean; cities: string[] }>({
     queryKey: ['decades', 'cities'],
     queryFn: () => decadesApi.getCities(initData || ''),
     enabled: showDecadeFlow && canAccessDecades && !!initData,
