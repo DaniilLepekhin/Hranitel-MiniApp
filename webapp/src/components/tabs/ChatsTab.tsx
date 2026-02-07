@@ -53,7 +53,7 @@ export function ChatsTab() {
   // Join decade mutation
   const joinDecadeMutation = useMutation({
     mutationFn: (city?: string) => decadesApi.join(initData || '', city),
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       if (data.success) {
         queryClient.invalidateQueries({ queryKey: ['decades', 'my'] });
         setShowDecadeFlow(false);
