@@ -39,7 +39,7 @@ export function ChatsTab() {
   const { data: myDecadeData } = useQuery<{ success: boolean; decade: any | null }>({
     queryKey: ['decades', 'my', user?.id],
     queryFn: () => decadesApi.getMy(initData || ''),
-    enabled: !!user && !!initData && canAccessDecades,
+    enabled: !!user && !!initData && !!canAccessDecades,
     placeholderData: { success: true, decade: null },
     staleTime: 30 * 1000, // 30 секунд кеш
   });
@@ -48,7 +48,7 @@ export function ChatsTab() {
   const { data: decadeCitiesData, isLoading: isLoadingDecadeCities } = useQuery<{ success: boolean; cities: string[] }>({
     queryKey: ['decades', 'cities'],
     queryFn: () => decadesApi.getCities(initData || ''),
-    enabled: !user?.city && showDecadeFlow && canAccessDecades && !!initData,
+    enabled: !user?.city && showDecadeFlow && !!canAccessDecades && !!initData,
     staleTime: 5 * 60 * 1000,
     placeholderData: { success: true, cities: [] },
   });
