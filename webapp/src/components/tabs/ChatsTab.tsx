@@ -48,6 +48,7 @@ export function ChatsTab() {
     queryFn: () => decadesApi.getCities(initData || ''),
     enabled: showDecadeFlow && canAccessDecades && !!initData,
     staleTime: 5 * 60 * 1000,
+    placeholderData: { success: true, cities: [] },
   });
 
   // Join decade mutation
