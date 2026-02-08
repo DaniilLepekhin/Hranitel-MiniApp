@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Sparkles, Lock, Gift, Zap, Check, Eye } from 'lucide-react';
+import { ShoppingBag, Sparkles, Lock, Gift, Zap, Check, Eye, TrendingUp } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { Card } from '@/components/ui/Card';
@@ -226,19 +226,45 @@ export function ShopTab() {
           {items.map((item: any) => {
             const canAfford = balance >= item.price;
             const isPurchased = purchases.some((p: any) => p.itemId === item.id);
+            const shortage = !canAfford ? item.price - balance : 0;
+            const progress = canAfford ? 100 : (balance / item.price) * 100;
+
+            // Расчёт "сколько дней нужно"
+            const dailyEarnings = 50; // Средний заработок за #отчет
+            const daysNeeded = canAfford ? 0 : Math.ceil(shortage / dailyEarnings);
 
             return (
               <Card
                 key={item.id}
                 className={`
                   p-4 transition-all duration-300 hover:scale-[1.02]
-                  ${!canAfford && 'opacity-60'}
+                  ${!canAfford && !isPurchased && 'opacity-90'}
                 `}
               >
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <h3 className="font-semibold text-[#2b2520] mb-1">{item.title}</h3>
                     <p className="text-[#6b5a4a] text-xs mb-3 line-clamp-2">{item.description}</p>
+
+                    {/* Прогресс-бар для недоступных товаров */}
+                    {!canAfford && !isPurchased && (
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-[#6b5a4a]">Прогресс накопления</span>
+                          <span className="text-[#d93547] font-semibold">{progress.toFixed(0)}%</span>
+                        </div>
+                        <div className="h-2 bg-[#e8dcc6] rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-[#d93547] to-[#9c1723] transition-all duration-300"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center gap-1 mt-1 text-xs text-[#6b5a4a]">
+                          <TrendingUp className="w-3 h-3" />
+                          <span>Не хватает {shortage.toLocaleString()} ⚡️. Сдай отчёты ещё {daysNeeded} {daysNeeded === 1 ? 'день' : 'дней'}!</span>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">

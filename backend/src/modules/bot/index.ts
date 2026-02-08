@@ -11,6 +11,7 @@ import { TelegramService } from '@/services/telegram.service';
 import { stateService } from '@/services/state.service';
 import { subscriptionGuardService } from '@/services/subscription-guard.service';
 import { decadesService } from '@/services/decades.service';
+import { hashtagParserService } from '@/services/hashtag-parser.service';
 // 🆕 Post-payment funnels
 import * as funnels from './post-payment-funnels';
 // 🆕 Club funnel (numerology-based pre-payment funnel)
@@ -27,9 +28,9 @@ await bot.init();
 // Remove global menu commands (will be set individually per user after payment)
 await bot.api.setMyCommands([]);
 
-// 🚫 MIDDLEWARE: Игнорируем все сообщения из групповых чатов и каналов (chatId < 0)
+// 🚫 MIDDLEWARE: Обработка сообщений из групповых чатов
 // Воронки работают ТОЛЬКО в личных чатах с ботом
-// ИСКЛЮЧЕНИЯ: команда /create_decade и системные сообщения (new_chat_title) должны работать в группах
+// В групповых чатах обрабатываем: команды, системные сообщения, хештеги для геймификации
 bot.use(async (ctx, next) => {
   const chatId = ctx.chat?.id;
   if (chatId && chatId < 0) {
@@ -44,7 +45,13 @@ bot.use(async (ctx, next) => {
       await next();
       return;
     }
-    // Молча игнорируем остальные сообщения - не логируем каждое сообщение чтобы не спамить
+
+    // 🎮 ГЕЙМИФИКАЦИЯ: Парсим хештеги в сообщениях
+    if (ctx.message && (ctx.message.text || ctx.message.caption)) {
+      await hashtagParserService.processGroupMessage(ctx);
+    }
+
+    // Остальные сообщения игнорируем (не вызываем next)
     return;
   }
   await next();

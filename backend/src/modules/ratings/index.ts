@@ -99,4 +99,42 @@ export const ratingsRoutes = new Elysia({ prefix: '/ratings' })
         userId: t.String(),
       }),
     }
+  )
+
+  /**
+   * GET /api/v1/ratings/personal
+   * Получить личный рейтинг пользователя + топ-100
+   */
+  .get(
+    '/personal',
+    async ({ query }) => {
+      try {
+        const { userId } = query;
+
+        if (!userId) {
+          return {
+            success: false,
+            error: 'User ID is required',
+          };
+        }
+
+        const rating = await ratingsService.getPersonalRating(userId);
+
+        return {
+          success: true,
+          ...rating,
+        };
+      } catch (error) {
+        logger.error('[Ratings API] Error getting personal rating:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to get personal rating',
+        };
+      }
+    },
+    {
+      query: t.Object({
+        userId: t.String(),
+      }),
+    }
   );
