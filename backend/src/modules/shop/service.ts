@@ -237,17 +237,48 @@ export class ShopService {
   }
 
   /**
-   * Получить детали купленного товара
+   * Получить детали купленного товара (с проверкой покупки)
    */
-  async getPurchasedItem(itemId: string) {
+  async getPurchasedItem(userId: string, itemId: string) {
     try {
-      const [item] = await db
-        .select()
-        .from(shopItems)
-        .where(eq(shopItems.id, itemId))
+      // Проверяем что пользователь купил этот товар
+      const [purchase] = await db
+        .select({
+          purchaseId: shopPurchases.id,
+          itemId: shopPurchases.itemId,
+          purchasedAt: shopPurchases.purchasedAt,
+          itemTitle: shopItems.title,
+          itemDescription: shopItems.description,
+          itemCategory: shopItems.category,
+          itemType: shopItems.itemType,
+          itemData: shopItems.itemData,
+          itemPrice: shopItems.price,
+        })
+        .from(shopPurchases)
+        .innerJoin(shopItems, eq(shopPurchases.itemId, shopItems.id))
+        .where(
+          and(
+            eq(shopPurchases.userId, userId),
+            eq(shopPurchases.itemId, itemId),
+            eq(shopItems.isActive, true)
+          )
+        )
         .limit(1);
 
-      return item || null;
+      if (!purchase) {
+        return null;
+      }
+
+      return {
+        id: purchase.itemId,
+        title: purchase.itemTitle,
+        description: purchase.itemDescription,
+        category: purchase.itemCategory,
+        item_type: purchase.itemType,
+        item_data: purchase.itemData,
+        price: purchase.itemPrice,
+        purchased_at: purchase.purchasedAt,
+      };
     } catch (error) {
       logger.error('[Shop] Error getting purchased item:', error);
       throw error;

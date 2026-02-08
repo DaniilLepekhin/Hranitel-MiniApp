@@ -3,10 +3,11 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Sparkles, Lock, Gift, Zap, Check } from 'lucide-react';
+import { ShoppingBag, Sparkles, Lock, Gift, Zap, Check, Eye } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { Card } from '@/components/ui/Card';
+import { useRouter } from 'next/navigation';
 
 // API endpoints
 const shopApi = {
@@ -72,6 +73,7 @@ export function ShopTab() {
   const { haptic, webApp } = useTelegram();
   const { user, token } = useAuthStore();
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch shop items by category
   const { data: shopData, isLoading: itemsLoading } = useQuery({
@@ -134,6 +136,11 @@ export function ShopTab() {
       purchaseMutation.mutate(selectedItem.id);
     }
   }, [selectedItem, haptic, purchaseMutation]);
+
+  const handleViewPurchased = useCallback((itemId: string) => {
+    haptic.impact('light');
+    router.push(`/shop/purchased/${itemId}`);
+  }, [haptic, router]);
 
   const balance = balanceData?.balance || 0;
   const items = shopData?.categories?.[selectedCategory] || [];
@@ -241,10 +248,13 @@ export function ShopTab() {
                       </div>
 
                       {isPurchased ? (
-                        <div className="flex items-center gap-1 text-[#9c1723] text-xs">
-                          <Check className="w-4 h-4" />
-                          <span>Куплено</span>
-                        </div>
+                        <button
+                          onClick={() => handleViewPurchased(item.id)}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white text-xs font-semibold border border-[#d93547] hover:shadow-lg hover:shadow-[#d93547]/30 transition-all active:scale-95"
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span>Смотреть</span>
+                        </button>
                       ) : (
                         <button
                           onClick={() => handlePurchase(item)}

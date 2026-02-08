@@ -19,7 +19,7 @@ export default function PurchasedItemPage() {
     queryKey: ['shop', 'purchased', itemId],
     queryFn: async () => {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/shop/purchased/${itemId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/shop/purchased/${itemId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
