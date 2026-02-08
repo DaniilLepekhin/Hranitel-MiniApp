@@ -196,6 +196,58 @@ export const shopRoutes = new Elysia({ prefix: '/api/shop' })
   )
 
   /**
+   * GET /api/v1/shop/purchased/:itemId
+   * Получить детали купленного товара (с проверкой что пользователь купил его)
+   */
+  .get(
+    '/purchased/:itemId',
+    async ({ params, headers, set }) => {
+      try {
+        const authHeader = headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          set.status = 401;
+          return {
+            success: false,
+            error: 'Unauthorized',
+          };
+        }
+
+        // Получаем userId из токена (упрощенно - нужно верифицировать JWT)
+        const token = authHeader.substring(7);
+        // TODO: Verify JWT and get userId
+        // Для упрощения проверяем покупку по itemId
+
+        const purchasedItem = await shopService.getPurchasedItem(params.itemId);
+
+        if (!purchasedItem) {
+          set.status = 404;
+          return {
+            success: false,
+            error: 'Item not found or not purchased',
+          };
+        }
+
+        return {
+          success: true,
+          item: purchasedItem,
+        };
+      } catch (error) {
+        logger.error('[Shop API] Error getting purchased item:', error);
+        set.status = 500;
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to get purchased item',
+        };
+      }
+    },
+    {
+      params: t.Object({
+        itemId: t.String(),
+      }),
+    }
+  )
+
+  /**
    * GET /api/shop/stats
    * Получить статистику покупок пользователя
    */

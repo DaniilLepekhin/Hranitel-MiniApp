@@ -228,6 +228,33 @@ export class ShopService {
         )
         .orderBy(desc(shopPurchases.purchasedAt));
 
+      logger.info(`[Shop] Found ${purchases.length} unused purchases for user ${userId}`);
+      return purchases;
+    } catch (error) {
+      logger.error('[Shop] Error getting unused purchases:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Получить детали купленного товара
+   */
+  async getPurchasedItem(itemId: string) {
+    try {
+      const [item] = await db
+        .select()
+        .from(shopItems)
+        .where(eq(shopItems.id, itemId))
+        .limit(1);
+
+      return item || null;
+    } catch (error) {
+      logger.error('[Shop] Error getting purchased item:', error);
+      throw error;
+    }
+  }
+}
+
       return purchases;
     } catch (error) {
       logger.error('[Shop] Error getting unused purchases:', error);
