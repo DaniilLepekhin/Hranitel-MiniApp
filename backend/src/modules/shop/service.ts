@@ -255,12 +255,4 @@ export class ShopService {
   }
 }
 
-      return purchases;
-    } catch (error) {
-      logger.error('[Shop] Error getting unused purchases:', error);
-      throw error;
-    }
-  }
-}
-
 export const shopService = new ShopService();
