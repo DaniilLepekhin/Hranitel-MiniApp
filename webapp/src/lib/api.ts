@@ -289,44 +289,44 @@ export const shopApi = {
 // Teams (Десятки) (КОД ДЕНЕГ 4.0)
 export const teamsApi = {
   getUserTeam: (userId: string) =>
-    api.get<{ success: boolean; team: Team | null }>('/teams/my', { params: { userId } }),
+    api.getRaw<{ success: boolean; team: Team | null }>('/api/teams/my', { params: { userId } }),
   getTeam: (teamId: string) =>
-    api.get<{ success: boolean; team: Team }>(`/teams/${teamId}`),
+    api.getRaw<{ success: boolean; team: Team }>(`/api/teams/${teamId}`),
   getTeamMembers: (teamId: string) =>
-    api.get<{ success: boolean; members: TeamMember[] }>(`/teams/${teamId}/members`),
+    api.getRaw<{ success: boolean; members: TeamMember[] }>(`/api/teams/${teamId}/members`),
   listTeams: (metka?: string, page?: number, limit?: number) =>
-    api.get<{ success: boolean; teams: Team[]; total: number; page: number; totalPages: number }>(
-      '/teams',
+    api.getRaw<{ success: boolean; teams: Team[]; total: number; page: number; totalPages: number }>(
+      '/api/teams',
       { params: { metka, page, limit } }
     ),
   distributeUsers: () =>
-    api.post<{ success: boolean; teamsCreated: number; usersDistributed: number }>(
-      '/teams/distribute'
+    api.postRaw<{ success: boolean; teamsCreated: number; usersDistributed: number }>(
+      '/api/teams/distribute'
     ),
 };
 
 // Streams (Прямые эфиры) (КОД ДЕНЕГ 4.0)
 export const streamsApi = {
   listStreams: (upcoming?: boolean, page?: number, limit?: number) =>
-    api.get<{ success: boolean; streams: Stream[]; total: number }>('/streams', {
+    api.getRaw<{ success: boolean; streams: Stream[]; total: number }>('/api/streams', {
       params: { upcoming: upcoming?.toString(), page, limit },
     }),
   getStream: (streamId: string) =>
-    api.get<{ success: boolean; stream: Stream }>(`/streams/${streamId}`),
+    api.getRaw<{ success: boolean; stream: Stream }>(`/api/streams/${streamId}`),
   getNextStream: () =>
-    api.get<{ success: boolean; stream: Stream | null }>('/streams/next'),
+    api.getRaw<{ success: boolean; stream: Stream | null }>('/api/streams/next'),
   markAttendance: (userId: string, streamId: string, watchedOnline: boolean) =>
-    api.post<{ success: boolean; attendance: StreamAttendance; energiesEarned: number }>(
-      '/streams/attendance',
+    api.postRaw<{ success: boolean; attendance: StreamAttendance; energiesEarned: number }>(
+      '/api/streams/attendance',
       { userId, streamId, watchedOnline }
     ),
   getUserAttendance: (userId: string, streamId: string) =>
-    api.get<{ success: boolean; attendance: StreamAttendance | null }>('/streams/attendance', {
+    api.getRaw<{ success: boolean; attendance: StreamAttendance | null }>('/api/streams/attendance', {
       params: { userId, streamId },
     }),
   getStreamAttendance: (streamId: string) =>
-    api.get<{ success: boolean; attendance: StreamAttendance[]; stats: AttendanceStats }>(
-      `/streams/${streamId}/attendance`
+    api.getRaw<{ success: boolean; attendance: StreamAttendance[]; stats: AttendanceStats }>(
+      `/api/streams/${streamId}/attendance`
     ),
 };
 
@@ -386,26 +386,26 @@ export const contentApi = {
 // Reports (Недельные отчеты) (КОД ДЕНЕГ 4.0)
 export const reportsApi = {
   getDeadline: () =>
-    api.get<{ success: boolean; deadline: Date; weekNumber: number; hoursRemaining: number }>(
-      '/reports/deadline'
+    api.getRaw<{ success: boolean; deadline: Date; weekNumber: number; hoursRemaining: number }>(
+      '/api/reports/deadline'
     ),
   submitReport: (userId: string, content: string) =>
-    api.post<{ success: boolean; report: WeeklyReport; energiesEarned: number }>(
-      '/reports/submit',
+    api.postRaw<{ success: boolean; report: WeeklyReport; energiesEarned: number }>(
+      '/api/reports/submit',
       { userId, content }
     ),
   getUserReports: (userId: string, limit?: number) =>
-    api.get<{ success: boolean; reports: WeeklyReport[] }>('/reports/user', {
+    api.getRaw<{ success: boolean; reports: WeeklyReport[] }>('/api/reports/user', {
       params: { userId, limit },
     }),
   getReport: (reportId: string) =>
-    api.get<{ success: boolean; report: WeeklyReport }>(`/reports/${reportId}`),
+    api.getRaw<{ success: boolean; report: WeeklyReport }>(`/api/reports/${reportId}`),
   getWeekReport: (userId: string, weekNumber: number) =>
-    api.get<{ success: boolean; report: WeeklyReport | null }>('/reports/week', {
+    api.getRaw<{ success: boolean; report: WeeklyReport | null }>('/api/reports/week', {
       params: { userId, weekNumber },
     }),
   getStats: (userId: string) =>
-    api.get<{ success: boolean; stats: ReportStats }>('/reports/stats', {
+    api.getRaw<{ success: boolean; stats: ReportStats }>('/api/reports/stats', {
       params: { userId },
     }),
 };
