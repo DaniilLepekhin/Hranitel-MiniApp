@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Lock } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
@@ -37,13 +37,14 @@ export function ChatsTab() {
     enabled: !!user?.id,
     staleTime: 0, // Всегда обновляем при открытии вкладки
     refetchOnMount: 'always', // Перезапрашивать при каждом монтировании
-    onSuccess: (data) => {
-      // Обновляем user в store если пришли новые данные
-      if (data?.user && user) {
-        setUser({ ...user, ...data.user });
-      }
-    },
   });
+
+  // Обновляем user в store когда получены свежие данные
+  useEffect(() => {
+    if (freshUserData?.user && user) {
+      setUser({ ...user, ...freshUserData.user });
+    }
+  }, [freshUserData, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 🔒 Проверка доступа к разделу "Десятки" - доступ для всех пользователей
   const canAccessDecades = !!user;
