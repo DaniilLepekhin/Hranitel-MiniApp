@@ -18,8 +18,32 @@ const teamsApi = {
 
 export function ChatsTab() {
   const { haptic, webApp, user: tgUser, initData } = useTelegram();
-  const { user } = useAuthStore();
+  const { user, setUser } = useAuthStore();
   const queryClient = useQueryClient();
+
+  // 🔄 Обновляем user при каждом открытии вкладки (для актуального города)
+  const { data: freshUserData } = useQuery({
+    queryKey: ['user', 'profile', user?.id],
+    queryFn: async () => {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${useAuthStore.getState().token}`,
+        },
+      });
+      if (!response.ok) throw new Error('Failed to fetch user');
+      const data = await response.json();
+      return data;
+    },
+    enabled: !!user?.id,
+    staleTime: 0, // Всегда обновляем при открытии вкладки
+    refetchOnMount: 'always', // Перезапрашивать при каждом монтировании
+    onSuccess: (data) => {
+      // Обновляем user в store если пришли новые данные
+      if (data?.user && user) {
+        setUser({ ...user, ...data.user });
+      }
+    },
+  });
 
   // 🔒 Проверка доступа к разделу "Десятки" - доступ для всех пользователей
   const canAccessDecades = !!user;
