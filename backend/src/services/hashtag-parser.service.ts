@@ -175,7 +175,7 @@ export class HashtagParserService {
   /**
    * Обработать сообщение из чата десятки
    */
-  async processDecadeMessage(ctx: any, userId: string): Promise<void> {
+  async processDecadeMessage(ctx: any, userId: string, userTelegramId: number): Promise<void> {
     try {
       const text = ctx.message?.text || ctx.message?.caption || '';
       const hashtags = this.extractHashtags(text);
@@ -213,6 +213,36 @@ export class HashtagParserService {
           chat_type: 'decade',
         });
 
+        // Получаем новый баланс
+        const [userBalance] = await db
+          .select({ energies: users.energies })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+
+        const newBalance = userBalance?.energies || 0;
+
+        // 🎯 РЕАКЦИЯ: Ставим молнию на сообщение
+        try {
+          await ctx.react('⚡');
+        } catch (reactionError) {
+          logger.warn('[HashtagParser] Could not set reaction:', reactionError);
+        }
+
+        // 💌 ЛИЧНОЕ СООБЩЕНИЕ: Отправляем детали в ЛС
+        try {
+          await ctx.api.sendMessage(
+            userTelegramId,
+            `✅ <b>Энергия начислена!</b>\n\n` +
+              `${matchedHashtag} → <b>+${rule.reward}⚡️</b>\n` +
+              `💰 Твой баланс: <b>${newBalance.toLocaleString()}⚡️</b>\n\n` +
+              `🎯 <i>${rule.description}</i>`,
+            { parse_mode: 'HTML' }
+          );
+        } catch (dmError) {
+          logger.warn('[HashtagParser] Could not send DM (user may not have started bot):', dmError);
+        }
+
         logger.info(
           `[HashtagParser] Awarded ${rule.reward} Energy to user ${userId} for ${matchedHashtag} in decade chat`
         );
@@ -228,7 +258,7 @@ export class HashtagParserService {
   /**
    * Обработать сообщение из чата города
    */
-  async processCityMessage(ctx: any, userId: string): Promise<void> {
+  async processCityMessage(ctx: any, userId: string, userTelegramId: number): Promise<void> {
     try {
       const text = ctx.message?.text || ctx.message?.caption || '';
       const hashtags = this.extractHashtags(text);
@@ -268,6 +298,36 @@ export class HashtagParserService {
           chat_type: 'city',
         });
 
+        // Получаем новый баланс
+        const [userBalance] = await db
+          .select({ energies: users.energies })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+
+        const newBalance = userBalance?.energies || 0;
+
+        // 🎯 РЕАКЦИЯ: Ставим сердечко на сообщение (для городов)
+        try {
+          await ctx.react('❤');
+        } catch (reactionError) {
+          logger.warn('[HashtagParser] Could not set reaction:', reactionError);
+        }
+
+        // 💌 ЛИЧНОЕ СООБЩЕНИЕ: Отправляем детали в ЛС
+        try {
+          await ctx.api.sendMessage(
+            userTelegramId,
+            `✅ <b>Энергия начислена!</b>\n\n` +
+              `${matchedHashtag} → <b>+${rule.reward}⚡️</b>\n` +
+              `💰 Твой баланс: <b>${newBalance.toLocaleString()}⚡️</b>\n\n` +
+              `🎯 <i>${rule.description}</i>`,
+            { parse_mode: 'HTML' }
+          );
+        } catch (dmError) {
+          logger.warn('[HashtagParser] Could not send DM (user may not have started bot):', dmError);
+        }
+
         logger.info(
           `[HashtagParser] Awarded ${rule.reward} Energy to user ${userId} for ${matchedHashtag} in city chat`
         );
@@ -287,25 +347,25 @@ export class HashtagParserService {
   async processGroupMessage(ctx: any): Promise<void> {
     try {
       const chatId = ctx.chat?.id;
-      const userId = ctx.from?.id;
+      const userTelegramId = ctx.from?.id;
 
-      if (!chatId || !userId) return;
+      if (!chatId || !userTelegramId) return;
 
       // Получаем информацию о пользователе из БД
       const [user] = await db
         .select()
         .from(users)
-        .where(eq(users.telegramId, userId))
+        .where(eq(users.telegramId, userTelegramId))
         .limit(1);
 
       if (!user) {
-        logger.debug(`[HashtagParser] User ${userId} not found in database`);
+        logger.debug(`[HashtagParser] User ${userTelegramId} not found in database`);
         return;
       }
 
       // Проверяем что у пользователя активная подписка
       if (!user.isPro) {
-        logger.debug(`[HashtagParser] User ${userId} does not have active subscription`);
+        logger.debug(`[HashtagParser] User ${userTelegramId} does not have active subscription`);
         return;
       }
 
@@ -315,10 +375,10 @@ export class HashtagParserService {
       const chatTitle = ctx.chat?.title?.toLowerCase() || '';
 
       if (chatTitle.includes('десятк')) {
-        await this.processDecadeMessage(ctx, user.id);
+        await this.processDecadeMessage(ctx, user.id, userTelegramId);
       } else {
         // По умолчанию считаем что это чат города
-        await this.processCityMessage(ctx, user.id);
+        await this.processCityMessage(ctx, user.id, userTelegramId);
       }
     } catch (error) {
       logger.error('[HashtagParser] Error processing group message:', error);
