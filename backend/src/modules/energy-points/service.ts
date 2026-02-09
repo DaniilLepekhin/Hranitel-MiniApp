@@ -1,23 +1,30 @@
 import { db } from '@/db';
 import { energyTransactions, users } from '@/db/schema';
-import { eq, desc, and, gte } from 'drizzle-orm';
+import { eq, desc, and, gte, lt, sql, inArray } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
+
+const ENERGY_LIFETIME_MONTHS = 6; // Срок жизни баллов по документу "Геймификация"
 
 export class EnergyPointsService {
   /**
    * Начислить Энергии
+   * Income-транзакции получают expires_at = created_at + 6 месяцев
    */
   async award(userId: string, amount: number, reason: string, metadata?: Record<string, any>) {
     try {
-      // Начинаем транзакцию
+      const expiresAt = new Date();
+      expiresAt.setMonth(expiresAt.getMonth() + ENERGY_LIFETIME_MONTHS);
+
       await db.transaction(async (tx) => {
-        // Создаем запись о транзакции
+        // Создаем запись о транзакции с expires_at
         await tx.insert(energyTransactions).values({
           userId,
           amount,
           type: 'income',
           reason,
           metadata: metadata || {},
+          expiresAt,
+          isExpired: false,
         });
 
         // Обновляем баланс пользователя
@@ -31,7 +38,7 @@ export class EnergyPointsService {
         }
       });
 
-      logger.info(`[Energies] Awarded ${amount} Энергииto user ${userId} for: ${reason}`);
+      logger.info(`[Energies] Awarded ${amount} to user ${userId} for: ${reason} (expires: ${expiresAt.toISOString()})`);
 
       return { success: true, amount, reason };
     } catch (error) {
@@ -42,24 +49,25 @@ export class EnergyPointsService {
 
   /**
    * Списать Энергии
+   * Expense-транзакции не имеют expires_at (списание не истекает)
    */
   async spend(userId: string, amount: number, reason: string, metadata?: Record<string, any>) {
     try {
-      // Проверяем баланс
       const balance = await this.getBalance(userId);
       if (balance < amount) {
         throw new Error('Insufficient energy points');
       }
 
-      // Начинаем транзакцию
       await db.transaction(async (tx) => {
-        // Создаем запись о транзакции
         await tx.insert(energyTransactions).values({
           userId,
           amount,
           type: 'expense',
           reason,
           metadata: metadata || {},
+          // expense не истекает
+          expiresAt: null,
+          isExpired: false,
         });
 
         // Обновляем баланс пользователя
@@ -69,7 +77,7 @@ export class EnergyPointsService {
           .where(eq(users.id, userId));
       });
 
-      logger.info(`[Energies] Spent ${amount} Энергииfrom user ${userId} for: ${reason}`);
+      logger.info(`[Energies] Spent ${amount} from user ${userId} for: ${reason}`);
 
       return { success: true, amount, reason, newBalance: balance - amount };
     } catch (error) {
@@ -111,12 +119,82 @@ export class EnergyPointsService {
   }
 
   /**
-   * Триггеры начисления Энергиипо ТЗ
+   * 🕐 Пометить просроченные транзакции как is_expired и пересчитать балансы
+   * Вызывается по CRON раз в час/день
+   * Записи НЕ удаляются — только помечаются. Можно восстановить вручную.
+   */
+  async processExpiredEnergies(): Promise<{ expiredCount: number; usersAffected: number }> {
+    try {
+      const now = new Date();
+
+      // 1. Найти все просроченные, но ещё не помеченные транзакции
+      const expired = await db
+        .select({
+          id: energyTransactions.id,
+          userId: energyTransactions.userId,
+          amount: energyTransactions.amount,
+        })
+        .from(energyTransactions)
+        .where(
+          and(
+            eq(energyTransactions.type, 'income'),
+            eq(energyTransactions.isExpired, false),
+            lt(energyTransactions.expiresAt, now)
+          )
+        );
+
+      if (expired.length === 0) {
+        return { expiredCount: 0, usersAffected: 0 };
+      }
+
+      // 2. Группируем по userId для пересчёта балансов
+      const userAmounts = new Map<string, number>();
+      for (const tx of expired) {
+        userAmounts.set(tx.userId, (userAmounts.get(tx.userId) || 0) + tx.amount);
+      }
+
+      // 3. Помечаем транзакции как expired и уменьшаем балансы
+      await db.transaction(async (dbTx) => {
+        // Пометить все просроченные
+        const expiredIds = expired.map((tx) => tx.id);
+        await dbTx
+          .update(energyTransactions)
+          .set({ isExpired: true })
+          .where(inArray(energyTransactions.id, expiredIds));
+
+        // Уменьшить балансы пользователей
+        for (const [userId, expiredAmount] of userAmounts) {
+          const [user] = await dbTx
+            .select({ energies: users.energies })
+            .from(users)
+            .where(eq(users.id, userId))
+            .limit(1);
+
+          const newBalance = Math.max(0, (user?.energies || 0) - expiredAmount);
+          await dbTx
+            .update(users)
+            .set({ energies: newBalance })
+            .where(eq(users.id, userId));
+        }
+      });
+
+      logger.info(
+        `[Energies] Expired ${expired.length} transactions for ${userAmounts.size} users`
+      );
+
+      return { expiredCount: expired.length, usersAffected: userAmounts.size };
+    } catch (error) {
+      logger.error('[Energies] Error processing expired energies:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Триггеры начисления Энергии по ТЗ
    */
 
   // Ежедневный вход (+10 EP)
   async awardDailyLogin(userId: string) {
-    // Проверяем, не начисляли ли уже сегодня
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -139,9 +217,9 @@ export class EnergyPointsService {
     return this.award(userId, 10, 'Ежедневный вход');
   }
 
-  // Просмотр урока (+50 EP)
+  // Просмотр урока (+20 EP по документу "Геймификация")
   async awardLessonView(userId: string, lessonId: string) {
-    return this.award(userId, 50, 'Просмотр урока', { lessonId });
+    return this.award(userId, 20, 'Просмотр урока', { lessonId });
   }
 
   // Воскресная практика (+50 EP)
@@ -149,12 +227,12 @@ export class EnergyPointsService {
     return this.award(userId, 50, 'Воскресная практика', { practiceId });
   }
 
-  // Просмотр записи эфира (награда зависит от recording.energiesReward)
+  // Просмотр записи эфира
   async awardStreamRecording(userId: string, recordingId: string) {
     return this.award(userId, 100, 'Просмотр записи эфира', { recordingId });
   }
 
-  // Прямой эфир - DEPRECATED (оставлено для обратной совместимости)
+  // Прямой эфир - DEPRECATED
   async awardLiveStream(userId: string, streamId: string, watchedOnline: boolean) {
     return this.awardStreamRecording(userId, streamId);
   }

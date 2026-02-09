@@ -498,4 +498,42 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
         description: 'Removes users with expired subscriptions from channel and city chats. Should be called daily via cron job.',
       },
     }
+  )
+  // ⚡ Cron job для списания просроченных Энергий (6 месяцев)
+  // Вызывается ежедневно через cron
+  .post(
+    '/cron/process-expired-energies',
+    async ({ headers, set }) => {
+      const cronSecret = headers['x-cron-secret'];
+      if (cronSecret !== process.env.CRON_SECRET && cronSecret !== 'local-dev-secret') {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
+      try {
+        const { energiesService } = await import('@/modules/energy-points/service');
+        logger.info('Running expired energies check via cron...');
+        const result = await energiesService.processExpiredEnergies();
+
+        return {
+          success: true,
+          message: 'Expired energies check completed',
+          expiredCount: result.expiredCount,
+          usersAffected: result.usersAffected,
+        };
+      } catch (error) {
+        logger.error({ error }, 'Failed to process expired energies');
+        set.status = 500;
+        return {
+          success: false,
+          error: 'Failed to process expired energies',
+        };
+      }
+    },
+    {
+      detail: {
+        summary: 'Process expired energy points (cron)',
+        description: 'Marks energy transactions older than 6 months as expired and decrements user balances. Should be called daily via cron job.',
+      },
+    }
   );

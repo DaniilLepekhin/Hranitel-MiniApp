@@ -276,11 +276,16 @@ export const energyTransactions = pgTable('energy_transactions', {
   reason: text('reason').notNull(), // "Просмотр урока", "Покупка билета", etc
   metadata: jsonb('metadata').default({}),
 
+  // Срок жизни баллов — 6 месяцев (по документу "Геймификация")
+  expiresAt: timestamp('expires_at'), // NULL = не истекает (для expense), дата = когда сгорит (для income)
+  isExpired: boolean('is_expired').default(false).notNull(), // true = баллы просрочены (не удалены, можно восстановить)
+
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   index('energy_transactions_user_id_idx').on(table.userId),
   index('energy_transactions_created_at_idx').on(table.createdAt),
   index('energy_transactions_type_idx').on(table.type),
+  index('energy_transactions_expires_idx').on(table.expiresAt),
 ]);
 
 // Shop Items

@@ -186,6 +186,10 @@ jobs:
             echo "📊 Applying migration 0013_add_is_ambassador_to_users.sql..."
             psql "$DATABASE_URL" -f drizzle/migrations/0013_add_is_ambassador_to_users.sql && echo "✅ Migration 0013 completed"
 
+            # Apply migration 0014 (add energy expiry fields - uses IF NOT EXISTS, safe to run multiple times)
+            echo "📊 Applying migration 0014_add_energy_expiry.sql..."
+            psql "$DATABASE_URL" -f drizzle/migrations/0014_add_energy_expiry.sql && echo "✅ Migration 0014 completed"
+
             echo "✅ All migrations applied successfully!"
 
             # 🔍 Pre-deployment health check
@@ -348,6 +352,44 @@ jobs:
             }
 
             echo "✅ Cron setup completed"
+
+      - name: Setup Energy Expiry Cron Job
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: false
+          command_timeout: 2m
+          script: |
+            echo "⚡ Setting up energy expiry cron job..."
+
+            # Create energy expiry script
+            cat > /usr/local/bin/process_expired_energies.sh << 'EOFSCRIPT'
+            #!/bin/bash
+            CRON_SECRET="local-dev-secret"
+            if [ -f /var/www/hranitel/backend/.env ]; then
+              STORED_SECRET=$(grep CRON_SECRET /var/www/hranitel/backend/.env | cut -d= -f2-)
+              if [ -n "$STORED_SECRET" ]; then
+                CRON_SECRET="$STORED_SECRET"
+              fi
+            fi
+            RESULT=$(curl -s -X POST http://localhost:3002/api/webhooks/cron/process-expired-energies \
+              -H "Content-Type: application/json" \
+              -H "x-cron-secret: $CRON_SECRET")
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - Result: $RESULT" >> /var/log/energy_expiry.log
+            EOFSCRIPT
+
+            chmod +x /usr/local/bin/process_expired_energies.sh
+
+            # Run daily at 03:00 UTC (06:00 MSK)
+            CRON_LINE="0 3 * * * /usr/local/bin/process_expired_energies.sh"
+            (crontab -l 2>/dev/null | grep -q "process_expired_energies.sh") || {
+              (crontab -l 2>/dev/null; echo "$CRON_LINE") | crontab -
+              echo "✅ Energy expiry cron job added (daily 06:00 MSK)"
+            }
+
+            echo "✅ Energy expiry cron setup completed"
 
       - name: Setup Chat Schedule Cron Jobs
         uses: appleboy/ssh-action@v1.0.0
