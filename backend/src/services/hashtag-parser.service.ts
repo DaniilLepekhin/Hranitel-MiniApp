@@ -13,12 +13,23 @@ interface HashtagRule {
   hashtags: string[]; // Список хештегов (например, ['#отчет', '#дз'])
   reward: number; // Награда в Энергии
   requiresMedia?: boolean; // Требуется ли медиафайл (фото/видео)
-  limitType: 'daily' | 'weekly' | 'weekly_max'; // Тип лимита
+  limitType: 'daily' | 'weekly' | 'weekly_max' | 'every_3_days'; // Тип лимита
   limitValue?: number; // Значение лимита (для weekly_max)
   cooldownHours?: number; // Кулдаун в часах (для daily с 20-часовым лимитом)
   weekendOnly?: boolean; // Только Сб/Вс (для #практика)
   description: string; // Описание действия
 }
+
+// Награды за #созвон + #сторис (комбо-система, раз в 3 дня)
+const SOZVON_STORIS_REWARDS = {
+  comboReward: 300,     // #созвон + #сторис вместе
+  sozvonOnly: 100,      // только #созвон
+  storisOnly: 200,      // только #сторис
+  cooldownHours: 72,    // раз в 3 дня
+  comboDescription: 'Созвон + Stories',
+  sozvonDescription: 'Участие в Созвоне',
+  storisDescription: 'Отметка в Stories',
+};
 
 // Правила начисления для чатов десяток
 const DECADE_RULES: HashtagRule[] = [
@@ -32,6 +43,7 @@ const DECADE_RULES: HashtagRule[] = [
 ];
 
 // Правила начисления для чатов городов
+// (#созвон и #сторис обрабатываются отдельно — комбо-система)
 const CITY_RULES: HashtagRule[] = [
   {
     hashtags: ['#практика'],
@@ -47,20 +59,6 @@ const CITY_RULES: HashtagRule[] = [
     limitType: 'weekly_max',
     limitValue: 3,
     description: 'Инсайт / Отзыв',
-  },
-  {
-    hashtags: ['#созвон'],
-    reward: 100,
-    requiresMedia: true,
-    limitType: 'weekly',
-    description: 'Участие в Созвоне',
-  },
-  {
-    hashtags: ['#сторис'],
-    reward: 200,
-    requiresMedia: true,
-    limitType: 'weekly',
-    description: 'Отметка в Stories',
   },
 ];
 
@@ -153,6 +151,33 @@ export class HashtagParserService {
       }
     } catch (error) {
       logger.error('[HashtagParser] Error checking weekly limit:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Проверить лимит раз в 3 дня (72 часа)
+   */
+  private async checkEvery3DaysLimit(userId: string, reason: string): Promise<boolean> {
+    try {
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setHours(threeDaysAgo.getHours() - 72);
+
+      const recentTransactions = await db
+        .select()
+        .from(energyTransactions)
+        .where(
+          and(
+            eq(energyTransactions.userId, userId),
+            eq(energyTransactions.reason, reason),
+            gte(energyTransactions.createdAt, threeDaysAgo)
+          )
+        )
+        .limit(1);
+
+      return recentTransactions.length === 0;
+    } catch (error) {
+      logger.error('[HashtagParser] Error checking every-3-days limit:', error);
       return false;
     }
   }
@@ -258,6 +283,124 @@ export class HashtagParserService {
   }
 
   /**
+   * Обработать #созвон и #сторис (комбо-система, раз в 3 дня)
+   * Возвращает true если хотя бы один из них был обработан (чтобы не дублировать в обычных правилах)
+   */
+  private async processSozvonStoris(
+    ctx: any,
+    userId: string,
+    userTelegramId: number,
+    hashtags: string[]
+  ): Promise<boolean> {
+    const hasSozvon = hashtags.includes('#созвон');
+    const hasStoris = hashtags.includes('#сторис');
+
+    if (!hasSozvon && !hasStoris) return false;
+
+    // Оба требуют медиафайл
+    if (!this.hasMedia(ctx)) {
+      logger.info(
+        `[HashtagParser] User ${userId} submitted #созвон/#сторис without required media`
+      );
+      return true; // Хештег был найден, но не начислен — не передаём в обычные правила
+    }
+
+    const R = SOZVON_STORIS_REWARDS;
+
+    if (hasSozvon && hasStoris) {
+      // Комбо: #созвон + #сторис = 300
+      // Проверяем лимит по комбо-reason
+      const canAward = await this.checkEvery3DaysLimit(userId, R.comboDescription);
+      if (!canAward) {
+        logger.info(`[HashtagParser] User ${userId} exceeded 3-day limit for #созвон + #сторис combo`);
+        return true;
+      }
+
+      await energiesService.award(userId, R.comboReward, R.comboDescription, {
+        hashtag: '#созвон + #сторис',
+        chat_type: 'city',
+      });
+
+      await this.sendCityRewardNotification(ctx, userId, userTelegramId, '#созвон + #сторис', R.comboReward, R.comboDescription);
+      logger.info(`[HashtagParser] Awarded ${R.comboReward} Energy to user ${userId} for #созвон + #сторис combo`);
+    } else if (hasSozvon) {
+      // Только #созвон = 100
+      const canAward = await this.checkEvery3DaysLimit(userId, R.sozvonDescription);
+      if (!canAward) {
+        logger.info(`[HashtagParser] User ${userId} exceeded 3-day limit for #созвон`);
+        return true;
+      }
+
+      await energiesService.award(userId, R.sozvonOnly, R.sozvonDescription, {
+        hashtag: '#созвон',
+        chat_type: 'city',
+      });
+
+      await this.sendCityRewardNotification(ctx, userId, userTelegramId, '#созвон', R.sozvonOnly, R.sozvonDescription);
+      logger.info(`[HashtagParser] Awarded ${R.sozvonOnly} Energy to user ${userId} for #созвон`);
+    } else {
+      // Только #сторис = 200
+      const canAward = await this.checkEvery3DaysLimit(userId, R.storisDescription);
+      if (!canAward) {
+        logger.info(`[HashtagParser] User ${userId} exceeded 3-day limit for #сторис`);
+        return true;
+      }
+
+      await energiesService.award(userId, R.storisOnly, R.storisDescription, {
+        hashtag: '#сторис',
+        chat_type: 'city',
+      });
+
+      await this.sendCityRewardNotification(ctx, userId, userTelegramId, '#сторис', R.storisOnly, R.storisDescription);
+      logger.info(`[HashtagParser] Awarded ${R.storisOnly} Energy to user ${userId} for #сторис`);
+    }
+
+    return true;
+  }
+
+  /**
+   * Отправить реакцию и ЛС для начисления в городском чате
+   */
+  private async sendCityRewardNotification(
+    ctx: any,
+    userId: string,
+    userTelegramId: number,
+    hashtagLabel: string,
+    reward: number,
+    description: string
+  ): Promise<void> {
+    // Получаем новый баланс
+    const [userBalance] = await db
+      .select({ energies: users.energies })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const newBalance = userBalance?.energies || 0;
+
+    // Реакция
+    try {
+      await ctx.react('❤');
+    } catch (reactionError) {
+      logger.warn('[HashtagParser] Could not set reaction:', reactionError);
+    }
+
+    // ЛС
+    try {
+      await ctx.api.sendMessage(
+        userTelegramId,
+        `✅ <b>Энергия начислена!</b>\n\n` +
+          `${hashtagLabel} → <b>+${reward}⚡️</b>\n` +
+          `💰 Твой баланс: <b>${newBalance.toLocaleString()}⚡️</b>\n\n` +
+          `🎯 <i>${description}</i>`,
+        { parse_mode: 'HTML' }
+      );
+    } catch (dmError) {
+      logger.warn('[HashtagParser] Could not send DM:', dmError);
+    }
+  }
+
+  /**
    * Обработать сообщение из чата города
    */
   async processCityMessage(ctx: any, userId: string, userTelegramId: number): Promise<void> {
@@ -267,8 +410,11 @@ export class HashtagParserService {
 
       if (hashtags.length === 0) return;
 
+      // 1. Сначала обрабатываем #созвон / #сторис (комбо-система, раз в 3 дня)
+      const handledSozvonStoris = await this.processSozvonStoris(ctx, userId, userTelegramId, hashtags);
+
+      // 2. Обрабатываем остальные хештеги (#практика, #инсайт)
       for (const rule of CITY_RULES) {
-        // Проверяем есть ли хотя бы один из хештегов правила
         const matchedHashtag = rule.hashtags.find((tag) => hashtags.includes(tag));
         if (!matchedHashtag) continue;
 
@@ -298,6 +444,8 @@ export class HashtagParserService {
           canAward = await this.checkWeeklyLimit(userId, rule.description);
         } else if (rule.limitType === 'weekly_max' && rule.limitValue) {
           canAward = await this.checkWeeklyLimit(userId, rule.description, rule.limitValue);
+        } else if (rule.limitType === 'every_3_days') {
+          canAward = await this.checkEvery3DaysLimit(userId, rule.description);
         }
 
         if (!canAward) {
@@ -311,42 +459,11 @@ export class HashtagParserService {
           chat_type: 'city',
         });
 
-        // Получаем новый баланс
-        const [userBalance] = await db
-          .select({ energies: users.energies })
-          .from(users)
-          .where(eq(users.id, userId))
-          .limit(1);
-
-        const newBalance = userBalance?.energies || 0;
-
-        // 🎯 РЕАКЦИЯ: Ставим сердечко на сообщение (для городов)
-        try {
-          await ctx.react('❤');
-        } catch (reactionError) {
-          logger.warn('[HashtagParser] Could not set reaction:', reactionError);
-        }
-
-        // 💌 ЛИЧНОЕ СООБЩЕНИЕ: Отправляем детали в ЛС
-        try {
-          await ctx.api.sendMessage(
-            userTelegramId,
-            `✅ <b>Энергия начислена!</b>\n\n` +
-              `${matchedHashtag} → <b>+${rule.reward}⚡️</b>\n` +
-              `💰 Твой баланс: <b>${newBalance.toLocaleString()}⚡️</b>\n\n` +
-              `🎯 <i>${rule.description}</i>`,
-            { parse_mode: 'HTML' }
-          );
-        } catch (dmError) {
-          logger.warn('[HashtagParser] Could not send DM (user may not have started bot):', dmError);
-        }
+        await this.sendCityRewardNotification(ctx, userId, userTelegramId, matchedHashtag, rule.reward, rule.description);
 
         logger.info(
           `[HashtagParser] Awarded ${rule.reward} Energy to user ${userId} for ${matchedHashtag} in city chat`
         );
-
-        // Только одно начисление за сообщение
-        break;
       }
     } catch (error) {
       logger.error('[HashtagParser] Error processing city message:', error);
