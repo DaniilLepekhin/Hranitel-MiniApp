@@ -60,15 +60,23 @@ export function ChatsTab() {
   const [decadeError, setDecadeError] = useState<string>('');
   const [myDecadeLink, setMyDecadeLink] = useState<string | null>(null); // Ссылка на мою десятку после успешного join
 
-  // Fetch my decade info - НЕ запрашиваем автоматически при загрузке (enabled: false)
-  // Данные будут запрошены только после успешного вступления в десятку
+  // Fetch my decade info - запрашиваем при загрузке чтобы показать ссылку если уже в десятке
   const { data: myDecadeData } = useQuery<{ success: boolean; decade: any | null }>({
     queryKey: ['decades', 'my', user?.id],
     queryFn: () => decadesApi.getMy(initData || ''),
-    enabled: false, // Отключаем автозапрос - будет запущен только через invalidateQueries после join
-    placeholderData: { success: true, decade: null },
+    enabled: !!canAccessDecades && !!initData,
     staleTime: 30 * 1000, // 30 секунд кеш
   });
+
+  // Инициализировать ссылку на десятку из данных запроса
+  useEffect(() => {
+    if (myDecadeData?.decade?.inviteLink && !myDecadeLink) {
+      setMyDecadeLink(myDecadeData.decade.inviteLink);
+    }
+  }, [myDecadeData]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Пользователь уже в десятке?
+  const isAlreadyInDecade = !!(myDecadeLink || myDecadeData?.decade);
 
   // Fetch available cities for decades - всегда запрашиваем для проверки доступности
   const { data: decadeCitiesData, isLoading: isLoadingDecadeCities } = useQuery<{ success: boolean; cities: string[] }>({
@@ -80,7 +88,8 @@ export function ChatsTab() {
   });
 
   // Проверка доступности десяток в городе пользователя
-  const hasDecadesInUserCity = !user?.city || (decadeCitiesData?.cities || []).includes(user.city);
+  // Если уже в десятке — всегда разрешаем (чтобы мог открыть чат)
+  const hasDecadesInUserCity = isAlreadyInDecade || !user?.city || (decadeCitiesData?.cities || []).includes(user.city);
   const canJoinDecade = canAccessDecades && hasDecadesInUserCity;
 
   // Join decade mutation
