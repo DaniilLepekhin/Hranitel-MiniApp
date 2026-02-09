@@ -182,6 +182,10 @@ jobs:
             echo "📊 Applying migration 0012_add_character_test_steps.sql..."
             psql "$DATABASE_URL" -f drizzle/migrations/0012_add_character_test_steps.sql && echo "✅ Migration 0012 completed"
 
+            # Apply migration 0013 (add is_ambassador to users - uses IF NOT EXISTS, safe to run multiple times)
+            echo "📊 Applying migration 0013_add_is_ambassador_to_users.sql..."
+            psql "$DATABASE_URL" -f drizzle/migrations/0013_add_is_ambassador_to_users.sql && echo "✅ Migration 0013 completed"
+
             echo "✅ All migrations applied successfully!"
 
             # 🔍 Pre-deployment health check

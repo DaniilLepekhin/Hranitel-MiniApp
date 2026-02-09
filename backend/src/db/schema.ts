@@ -80,6 +80,9 @@ export const users = pgTable('users', {
     | null
   >(),
 
+  // Ambassador
+  isAmbassador: boolean('is_ambassador').default(false).notNull(),
+
   // Settings
   role: userRoleEnum('role').default('user').notNull(),
   settings: jsonb('settings').default({}),

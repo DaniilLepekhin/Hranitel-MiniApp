@@ -619,6 +619,18 @@ class DecadesService {
       return { allowed: true }; // Не десятка - не блокируем
     }
 
+    // 🏅 ПРОВЕРКА АМБАССАДОРА: амбассадоры могут заходить в любые десятки без ограничений
+    const [ambassadorCheck] = await db
+      .select({ isAmbassador: users.isAmbassador })
+      .from(users)
+      .where(eq(users.telegramId, userTelegramId))
+      .limit(1);
+
+    if (ambassadorCheck?.isAmbassador) {
+      logger.info({ userTelegramId, tgChatId, decadeId: decade.id }, 'Ambassador bypassed decade access check');
+      return { allowed: true };
+    }
+
     // ⚠️ ПЕРВАЯ ПРОВЕРКА: Десятка переполнена или заполнена?
     // Считаем реальное количество активных участников В ЧАТЕ через БД
     const [result] = await db
