@@ -87,13 +87,15 @@ export const decadesModule = new Elysia({ prefix: '/decades', tags: ['Decades'] 
       }
 
       try {
+        // Только города где есть реально свободные десятки (не заполненные)
         const cities = await db
           .selectDistinct({ city: decades.city })
           .from(decades)
           .where(
             and(
               eq(decades.isActive, true),
-              eq(decades.isAvailableForDistribution, true)
+              eq(decades.isAvailableForDistribution, true),
+              eq(decades.isFull, false)
             )
           )
           .orderBy(decades.city);
