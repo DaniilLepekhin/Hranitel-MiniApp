@@ -17,6 +17,7 @@ const envSchema = v.object({
   TELEGRAM_BOT_TOKEN: v.optional(v.string(), ''),
   TELEGRAM_BOT_USERNAME: v.optional(v.string(), 'AcademyMiniApp2Bot'),
   TELEGRAM_WEBHOOK_SECRET: v.optional(v.string()),
+  TELEGRAM_WEBHOOK_URL: v.optional(v.string(), ''), // Явный URL для webhook (приоритет над API_URL)
 
   // JWT
   JWT_SECRET: v.pipe(v.string(), v.minLength(32)),

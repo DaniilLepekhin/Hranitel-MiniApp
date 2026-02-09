@@ -4,7 +4,9 @@ import { logger } from './utils/logger';
 
 async function setupWebhook() {
   try {
-    const webhookUrl = `${config.API_URL}/api/v1/bot/webhook`;
+    // TELEGRAM_WEBHOOK_URL имеет приоритет — используется для обхода проблемы с DNS/CDN
+    const baseUrl = config.TELEGRAM_WEBHOOK_URL || config.API_URL;
+    const webhookUrl = `${baseUrl}/api/v1/bot/webhook`;
 
     logger.info({ webhookUrl }, 'Setting up Telegram webhook...');
 
