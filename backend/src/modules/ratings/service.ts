@@ -89,14 +89,14 @@ export class RatingsService {
       const cityRatings = await db
         .select({
           city: users.city,
-          memberCount: sql<number>\`COUNT(DISTINCT \${users.id})\`,
-          totalEnergies: sql<number>\`COALESCE(SUM(\${users.energies}), 0)\`,
-          avgEnergies: sql<number>\`COALESCE(AVG(\${users.energies}), 0)\`,
+          memberCount: sql<number>`COUNT(DISTINCT ${users.id})`,
+          totalEnergies: sql<number>`COALESCE(SUM(${users.energies}), 0)`,
+          avgEnergies: sql<number>`COALESCE(AVG(${users.energies}), 0)`,
         })
         .from(users)
         .where(and(isNotNull(users.city), isNotNull(users.energies)))
         .groupBy(users.city)
-        .orderBy(desc(sql\`COALESCE(SUM(\${users.energies}), 0)\`))
+        .orderBy(desc(sql`COALESCE(SUM(${users.energies}), 0)`))
         .limit(limit);
 
       return cityRatings.map((c, index) => ({
