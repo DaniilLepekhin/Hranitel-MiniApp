@@ -4955,7 +4955,7 @@ export const botModule = new Elysia({ prefix: '/bot', tags: ['Bot'] })
   // Webhook endpoint
   .post(
     '/webhook',
-    async ({ body, headers, set }) => {
+    async ({ body, headers, set, request }) => {
       // 🔒 SECURITY: Verify webhook secret (REQUIRED in production)
       if (config.NODE_ENV === 'production' && !config.TELEGRAM_WEBHOOK_SECRET) {
         logger.error('🔴 CRITICAL: TELEGRAM_WEBHOOK_SECRET not set in production!');
@@ -4972,9 +4972,14 @@ export const botModule = new Elysia({ prefix: '/bot', tags: ['Bot'] })
       }
 
       try {
-        // Handle update
-        logger.info({ update: body }, 'Processing webhook update');
-        await bot.handleUpdate(body as Parameters<typeof bot.handleUpdate>[0]);
+        // Handle update — fallback to request.json() if Elysia body parsing fails
+        const update = body ?? await request.json().catch(() => null);
+        if (!update || !update.update_id) {
+          logger.warn({ hasBody: !!body, hasUpdate: !!update }, 'Webhook received empty or invalid update');
+          return { ok: true }; // Return 200 to prevent Telegram retries
+        }
+        logger.info({ updateId: update.update_id }, 'Processing webhook update');
+        await bot.handleUpdate(update as Parameters<typeof bot.handleUpdate>[0]);
         return { ok: true };
       } catch (error) {
         logger.error({
@@ -4988,6 +4993,7 @@ export const botModule = new Elysia({ prefix: '/bot', tags: ['Bot'] })
       }
     },
     {
+      body: t.Any(),
       detail: {
         summary: 'Telegram webhook',
         description: 'Receives updates from Telegram',

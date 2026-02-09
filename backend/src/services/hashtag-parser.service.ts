@@ -16,6 +16,7 @@ interface HashtagRule {
   limitType: 'daily' | 'weekly' | 'weekly_max'; // Тип лимита
   limitValue?: number; // Значение лимита (для weekly_max)
   cooldownHours?: number; // Кулдаун в часах (для daily с 20-часовым лимитом)
+  weekendOnly?: boolean; // Только Сб/Вс (для #практика)
   description: string; // Описание действия
 }
 
@@ -37,6 +38,7 @@ const CITY_RULES: HashtagRule[] = [
     reward: 50,
     requiresMedia: true,
     limitType: 'weekly',
+    weekendOnly: true, // Только Сб/Вс по документу "Геймификация"
     description: 'Субботняя практика',
   },
   {
@@ -269,6 +271,17 @@ export class HashtagParserService {
         // Проверяем есть ли хотя бы один из хештегов правила
         const matchedHashtag = rule.hashtags.find((tag) => hashtags.includes(tag));
         if (!matchedHashtag) continue;
+
+        // Проверяем ограничение "только выходные" (Сб/Вс)
+        if (rule.weekendOnly) {
+          const dayOfWeek = new Date().getDay(); // 0=Вс, 6=Сб
+          if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+            logger.info(
+              `[HashtagParser] User ${userId} submitted ${matchedHashtag} on weekday (only Sat/Sun allowed)`
+            );
+            continue;
+          }
+        }
 
         // Проверяем наличие медиафайла если требуется
         if (rule.requiresMedia && !this.hasMedia(ctx)) {

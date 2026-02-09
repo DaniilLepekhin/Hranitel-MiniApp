@@ -216,17 +216,8 @@ export const contentModule = new Elysia({ prefix: '/api/v1/content' })
       throw new Error('Video not found');
     }
 
-    // Calculate Энергии based on video duration
-    let energiesReward = 0;
-    const durationMinutes = (video[0].durationSeconds || 0) / 60;
-
-    if (durationMinutes < 5) {
-      energiesReward = 25; // Short video
-    } else if (durationMinutes <= 20) {
-      energiesReward = 50; // Medium video
-    } else {
-      energiesReward = 100; // Long video
-    }
+    // По документу "Геймификация": +20⚡ за каждый урок (фиксированно)
+    const energiesReward = 20;
 
     // Check if progress already exists
     const existingProgress = await db

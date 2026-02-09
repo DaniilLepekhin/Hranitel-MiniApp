@@ -497,6 +497,15 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         logger.info({ telegram_id, days, source }, 'Admin granted manual payment subscription');
       }
 
+      // ⚡ Начислить +500 Энергии за оплату (по документу "Геймификация")
+      try {
+        const { energiesService } = await import('@/modules/energy-points/service');
+        await energiesService.award(user.id, 500, 'Продление подписки', { source: 'manual_payment' });
+        logger.info({ telegram_id, userId: user.id }, 'Awarded 500 energy for manual payment');
+      } catch (error) {
+        logger.error({ error, telegram_id }, 'Failed to award energy for manual payment');
+      }
+
       // Отправляем сообщение с видео (как после реальной оплаты)
       // chatId = telegram_id для личных сообщений
       try {

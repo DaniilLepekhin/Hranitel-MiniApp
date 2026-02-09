@@ -164,9 +164,9 @@ export class EnergyPointsService {
     return this.award(userId, 100, 'Сдача отчета недели', { weekNumber });
   }
 
-  // Продление подписки (+300 EP)
+  // Продление подписки (+500 EP по документу "Геймификация")
   async awardSubscriptionRenewal(userId: string) {
-    return this.award(userId, 300, 'Продление подписки');
+    return this.award(userId, 500, 'Продление подписки');
   }
 
   // Закрытие месяца (+500 EP)

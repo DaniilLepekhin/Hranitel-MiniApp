@@ -7,6 +7,7 @@ import { startOnboardingAfterPayment, handleGiftPaymentSuccess } from '@/modules
 import { subscriptionGuardService } from '@/services/subscription-guard.service';
 import { withLock } from '@/utils/distributed-lock';
 import { getcourseService } from '@/services/getcourse.service';
+import { energiesService } from '@/modules/energy-points/service';
 import { nanoid } from 'nanoid';
 
 export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
@@ -354,6 +355,18 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
           },
           'Payment processed successfully'
         );
+
+        // ⚡ Начислить +500 Энергии за оплату/продление клуба (по документу "Геймификация")
+        try {
+          await energiesService.award(user.id, 500, 'Продление подписки', {
+            source: 'payment',
+            paymentId: payment.id,
+          });
+          logger.info({ userId: user.id, telegramId: telegram_id }, 'Awarded 500 energy for payment');
+        } catch (error) {
+          logger.error({ error, telegramId: telegram_id }, 'Failed to award energy for payment');
+          // Don't fail the webhook - payment is already processed
+        }
 
         // 🛡️ Unban user from all protected chats (in case they were banned for expired subscription)
         try {
