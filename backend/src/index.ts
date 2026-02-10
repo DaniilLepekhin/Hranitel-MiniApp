@@ -1,3 +1,9 @@
+// Подавляем TimeoutNegativeWarning из postgres.js (баг библиотеки, не влияет на работу)
+process.on('warning', (warning) => {
+  if (warning.name === 'TimeoutNegativeWarning') return;
+  console.warn(warning);
+});
+
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { swagger } from '@elysiajs/swagger';

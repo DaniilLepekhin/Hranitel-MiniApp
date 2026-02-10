@@ -1,6 +1,6 @@
 import { db } from '@/db';
-import { users, teamMembers, decades } from '@/db/schema';
-import { eq, desc, sql, and, isNotNull } from 'drizzle-orm';
+import { users, decades, decadeMembers } from '@/db/schema';
+import { eq, desc, sql, and, isNotNull, isNull } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 
 /**
@@ -108,6 +108,153 @@ export class RatingsService {
       }));
     } catch (error) {
       logger.error('[Ratings] Error getting city ratings:', error);
+      throw error;
+    }
+  }
+  /**
+   * Получить рейтинг команд (десяток) по средним энергиям участников
+   */
+  async getTeamRatings(limit: number = 50) {
+    try {
+      const teamRatings = await db
+        .select({
+          decadeId: decades.id,
+          city: decades.city,
+          number: decades.number,
+          memberCount: sql<number>`COUNT(DISTINCT ${decadeMembers.userId})`,
+          totalEnergies: sql<number>`COALESCE(SUM(${users.energies}), 0)`,
+          avgEnergies: sql<number>`COALESCE(AVG(${users.energies}), 0)`,
+        })
+        .from(decades)
+        .innerJoin(decadeMembers, and(
+          eq(decadeMembers.decadeId, decades.id),
+          isNull(decadeMembers.leftAt)
+        ))
+        .innerJoin(users, eq(users.id, decadeMembers.userId))
+        .where(eq(decades.isActive, true))
+        .groupBy(decades.id, decades.city, decades.number)
+        .orderBy(desc(sql`COALESCE(AVG(${users.energies}), 0)`))
+        .limit(limit);
+
+      return teamRatings.map((t, index) => ({
+        decadeId: t.decadeId,
+        decadeName: `Десятка №${t.number} ${t.city}`,
+        city: t.city,
+        number: t.number,
+        totalEnergies: Number(t.totalEnergies),
+        memberCount: Number(t.memberCount),
+        avgEnergies: Math.round(Number(t.avgEnergies)),
+        rank: index + 1,
+      }));
+    } catch (error) {
+      logger.error('[Ratings] Error getting team ratings:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Получить позицию пользователя во всех рейтингах
+   */
+  async getUserPosition(userId: string) {
+    try {
+      // Находим пользователя
+      const [user] = await db
+        .select({
+          id: users.id,
+          telegramId: users.telegramId,
+          name: users.name,
+          energies: users.energies,
+          city: users.city,
+        })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (!user) {
+        return { personalRank: 0, cityRank: 0, teamRank: 0 };
+      }
+
+      // Личный рейтинг — сколько пользователей имеют больше энергий
+      const [personalPos] = await db
+        .select({
+          rank: sql<number>`COUNT(*) + 1`,
+        })
+        .from(users)
+        .where(sql`${users.energies} > ${user.energies || 0}`);
+
+      // Рейтинг в городе
+      let cityRank = 0;
+      if (user.city) {
+        const [cityPos] = await db
+          .select({
+            rank: sql<number>`COUNT(*) + 1`,
+          })
+          .from(users)
+          .where(and(
+            eq(users.city, user.city),
+            sql`${users.energies} > ${user.energies || 0}`
+          ));
+        cityRank = Number(cityPos?.rank || 0);
+      }
+
+      // Рейтинг десятки пользователя среди всех десяток
+      let teamRank = 0;
+      const [membership] = await db
+        .select({ decadeId: decadeMembers.decadeId })
+        .from(decadeMembers)
+        .where(and(
+          eq(decadeMembers.userId, userId),
+          isNull(decadeMembers.leftAt)
+        ))
+        .limit(1);
+
+      if (membership) {
+        // Средняя энергия десятки пользователя
+        const [myTeamAvg] = await db
+          .select({
+            avgEnergies: sql<number>`COALESCE(AVG(${users.energies}), 0)`,
+          })
+          .from(decadeMembers)
+          .innerJoin(users, eq(users.id, decadeMembers.userId))
+          .where(and(
+            eq(decadeMembers.decadeId, membership.decadeId),
+            isNull(decadeMembers.leftAt)
+          ));
+
+        // Сколько десяток имеют среднюю энергию выше
+        const myAvg = Number(myTeamAvg?.avgEnergies || 0);
+        const [teamPos] = await db
+          .select({
+            rank: sql<number>`COUNT(*) + 1`,
+          })
+          .from(
+            db
+              .select({
+                avgE: sql<number>`AVG(${users.energies})`.as('avg_e'),
+              })
+              .from(decadeMembers)
+              .innerJoin(users, eq(users.id, decadeMembers.userId))
+              .innerJoin(decades, eq(decades.id, decadeMembers.decadeId))
+              .where(and(
+                eq(decades.isActive, true),
+                isNull(decadeMembers.leftAt)
+              ))
+              .groupBy(decadeMembers.decadeId)
+              .as('team_avgs')
+          )
+          .where(sql`avg_e > ${myAvg}`);
+
+        teamRank = Number(teamPos?.rank || 0);
+      }
+
+      return {
+        personalRank: Number(personalPos?.rank || 0),
+        cityRank,
+        teamRank,
+        decadeId: membership?.decadeId || null,
+      };
+    } catch (error) {
+      logger.error('[Ratings] Error getting user position:', error);
       throw error;
     }
   }
