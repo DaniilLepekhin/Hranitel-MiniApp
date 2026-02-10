@@ -174,13 +174,15 @@ export class RatingsService {
         return { personalRank: 0, cityRank: 0, teamRank: 0 };
       }
 
+      const userEnergies = user.energies || 0;
+
       // Личный рейтинг — сколько пользователей имеют больше энергий
       const [personalPos] = await db
         .select({
           rank: sql<number>`COUNT(*) + 1`,
         })
         .from(users)
-        .where(sql`${users.energies} > ${user.energies || 0}`);
+        .where(sql`${users.energies} > ${userEnergies}`);
 
       // Рейтинг в городе
       let cityRank = 0;
@@ -192,13 +194,15 @@ export class RatingsService {
           .from(users)
           .where(and(
             eq(users.city, user.city),
-            sql`${users.energies} > ${user.energies || 0}`
+            sql`${users.energies} > ${userEnergies}`
           ));
         cityRank = Number(cityPos?.rank || 0);
       }
 
-      // Рейтинг десятки пользователя среди всех десяток
+      // Рейтинг десятки пользователя среди всех десяток (raw SQL для надёжности)
       let teamRank = 0;
+      let decadeId: string | null = null;
+
       const [membership] = await db
         .select({ decadeId: decadeMembers.decadeId })
         .from(decadeMembers)
@@ -209,49 +213,34 @@ export class RatingsService {
         .limit(1);
 
       if (membership) {
-        // Средняя энергия десятки пользователя
-        const [myTeamAvg] = await db
-          .select({
-            avgEnergies: sql<number>`COALESCE(AVG(${users.energies}), 0)`,
-          })
-          .from(decadeMembers)
-          .innerJoin(users, eq(users.id, decadeMembers.userId))
-          .where(and(
-            eq(decadeMembers.decadeId, membership.decadeId),
-            isNull(decadeMembers.leftAt)
-          ));
+        decadeId = membership.decadeId;
 
-        // Сколько десяток имеют среднюю энергию выше
-        const myAvg = Number(myTeamAvg?.avgEnergies || 0);
-        const [teamPos] = await db
-          .select({
-            rank: sql<number>`COUNT(*) + 1`,
-          })
-          .from(
-            db
-              .select({
-                avgE: sql<number>`AVG(${users.energies})`.as('avg_e'),
-              })
-              .from(decadeMembers)
-              .innerJoin(users, eq(users.id, decadeMembers.userId))
-              .innerJoin(decades, eq(decades.id, decadeMembers.decadeId))
-              .where(and(
-                eq(decades.isActive, true),
-                isNull(decadeMembers.leftAt)
-              ))
-              .groupBy(decadeMembers.decadeId)
-              .as('team_avgs')
+        // Используем raw SQL для подзапроса (Drizzle subquery ненадёжен)
+        const teamRankResult = await db.execute(sql`
+          WITH team_avgs AS (
+            SELECT dm.decade_id, AVG(u.energies) as avg_e
+            FROM decade_members dm
+            JOIN users u ON u.id = dm.user_id
+            JOIN decades d ON d.id = dm.decade_id
+            WHERE d.is_active = true AND dm.left_at IS NULL
+            GROUP BY dm.decade_id
+          ),
+          my_team AS (
+            SELECT avg_e FROM team_avgs WHERE decade_id = ${membership.decadeId}
           )
-          .where(sql`avg_e > ${myAvg}`);
+          SELECT COUNT(*) + 1 as rank
+          FROM team_avgs
+          WHERE avg_e > (SELECT COALESCE(avg_e, 0) FROM my_team)
+        `);
 
-        teamRank = Number(teamPos?.rank || 0);
+        teamRank = Number(teamRankResult[0]?.rank || 0);
       }
 
       return {
         personalRank: Number(personalPos?.rank || 0),
         cityRank,
         teamRank,
-        decadeId: membership?.decadeId || null,
+        decadeId,
       };
     } catch (error) {
       logger.error('[Ratings] Error getting user position:', error);
