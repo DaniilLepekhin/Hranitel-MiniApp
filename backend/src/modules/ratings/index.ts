@@ -5,14 +5,14 @@ import { logger } from '@/utils/logger';
 export const ratingsRoutes = new Elysia({ prefix: '/ratings' })
   /**
    * GET /api/v1/ratings/cities
-   * Получить рейтинг городов по энергиям
    */
   .get(
     '/cities',
-    async ({ query }) => {
+    async ({ request }) => {
       try {
-        const { limit } = query;
-        const ratings = await ratingsService.getCityRatings(limit);
+        const url = new URL(request.url);
+        const limit = Number(url.searchParams.get('limit')) || 50;
+        const ratings = await ratingsService.getCityRatings(Math.min(limit, 100));
 
         return {
           success: true,
@@ -25,24 +25,19 @@ export const ratingsRoutes = new Elysia({ prefix: '/ratings' })
           error: error instanceof Error ? error.message : 'Failed to get city ratings',
         };
       }
-    },
-    {
-      query: t.Object({
-        limit: t.Optional(t.Number({ minimum: 1, maximum: 100, default: 50 })),
-      }),
     }
   )
 
   /**
    * GET /api/v1/ratings/teams
-   * Получить рейтинг команд (десяток) по энергиям
    */
   .get(
     '/teams',
-    async ({ query }) => {
+    async ({ request }) => {
       try {
-        const { limit } = query;
-        const ratings = await ratingsService.getTeamRatings(limit);
+        const url = new URL(request.url);
+        const limit = Number(url.searchParams.get('limit')) || 50;
+        const ratings = await ratingsService.getTeamRatings(Math.min(limit, 100));
 
         return {
           success: true,
@@ -55,28 +50,18 @@ export const ratingsRoutes = new Elysia({ prefix: '/ratings' })
           error: error instanceof Error ? error.message : 'Failed to get team ratings',
         };
       }
-    },
-    {
-      query: t.Object({
-        limit: t.Optional(t.Number({ minimum: 1, maximum: 100, default: 50 })),
-      }),
     }
   )
 
   /**
    * GET /api/v1/ratings/user-position
-   * Получить позицию пользователя в рейтингах
    */
   .get(
     '/user-position',
-    async ({ query, request }) => {
+    async ({ request }) => {
       try {
-        // Fallback: parse userId from URL if Elysia query is broken
-        let userId = query?.userId;
-        if (!userId) {
-          const url = new URL(request.url);
-          userId = url.searchParams.get('userId') || '';
-        }
+        const url = new URL(request.url);
+        const userId = url.searchParams.get('userId') || '';
 
         if (!userId) {
           return {
@@ -98,28 +83,18 @@ export const ratingsRoutes = new Elysia({ prefix: '/ratings' })
           error: error instanceof Error ? error.message : 'Failed to get user position',
         };
       }
-    },
-    {
-      query: t.Object({
-        userId: t.Optional(t.String()),
-      }),
     }
   )
 
   /**
    * GET /api/v1/ratings/personal
-   * Получить личный рейтинг пользователя + топ-100
    */
   .get(
     '/personal',
-    async ({ query, request }) => {
+    async ({ request }) => {
       try {
-        // Fallback: parse userId from URL if Elysia query is broken
-        let userId = query?.userId;
-        if (!userId) {
-          const url = new URL(request.url);
-          userId = url.searchParams.get('userId') || '';
-        }
+        const url = new URL(request.url);
+        const userId = url.searchParams.get('userId') || '';
 
         if (!userId) {
           return {
@@ -141,10 +116,5 @@ export const ratingsRoutes = new Elysia({ prefix: '/ratings' })
           error: error instanceof Error ? error.message : 'Failed to get personal rating',
         };
       }
-    },
-    {
-      query: t.Object({
-        userId: t.Optional(t.String()),
-      }),
     }
   );
