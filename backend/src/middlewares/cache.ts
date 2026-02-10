@@ -103,7 +103,9 @@ function checkETag(requestEtag: string | undefined, responseEtag: string): boole
  */
 export function apiCache(config: CacheConfig) {
   return new Elysia({ name: 'api-cache' })
-    .derive(async ({ request, path, user, set, headers }) => {
+    .derive(async (ctx: any) => {
+      const { request, path, set, headers } = ctx;
+      const user = ctx.user;
       const method = request.method;
 
       // Только GET requests кэшируются (по умолчанию)

@@ -69,9 +69,14 @@ export const ratingsRoutes = new Elysia({ prefix: '/ratings' })
    */
   .get(
     '/user-position',
-    async ({ query }) => {
+    async ({ query, request }) => {
       try {
-        const { userId } = query;
+        // Fallback: parse userId from URL if Elysia query is broken
+        let userId = query?.userId;
+        if (!userId) {
+          const url = new URL(request.url);
+          userId = url.searchParams.get('userId') || '';
+        }
 
         if (!userId) {
           return {
@@ -96,7 +101,7 @@ export const ratingsRoutes = new Elysia({ prefix: '/ratings' })
     },
     {
       query: t.Object({
-        userId: t.String(),
+        userId: t.Optional(t.String()),
       }),
     }
   )
@@ -107,9 +112,14 @@ export const ratingsRoutes = new Elysia({ prefix: '/ratings' })
    */
   .get(
     '/personal',
-    async ({ query }) => {
+    async ({ query, request }) => {
       try {
-        const { userId } = query;
+        // Fallback: parse userId from URL if Elysia query is broken
+        let userId = query?.userId;
+        if (!userId) {
+          const url = new URL(request.url);
+          userId = url.searchParams.get('userId') || '';
+        }
 
         if (!userId) {
           return {
@@ -134,7 +144,7 @@ export const ratingsRoutes = new Elysia({ prefix: '/ratings' })
     },
     {
       query: t.Object({
-        userId: t.String(),
+        userId: t.Optional(t.String()),
       }),
     }
   );
