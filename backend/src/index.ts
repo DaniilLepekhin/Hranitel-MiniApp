@@ -218,8 +218,8 @@ const app = new Elysia()
   .use(teamsRoutes)
   .use(streamsRoutes)
   .use(reportsRoutes)
-  // Ratings with hot cache (frequently accessed, changes rarely)
-  .group('/api/v1', (app) => app.use(hotCache).use(ratingsRoutes))
+  // Ratings (без hotCache — Elysia 1.4.21 derive конфликтует с query parsing)
+  .group('/api/v1', (app) => app.use(ratingsRoutes))
   // Start server
   .listen(Number(config.PORT));
 
