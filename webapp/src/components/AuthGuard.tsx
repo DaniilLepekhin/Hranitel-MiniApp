@@ -6,6 +6,7 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { authApi, setAuthToken } from '@/lib/api';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { SubscriptionRequiredScreen } from '@/components/ui/SubscriptionRequiredScreen';
+import { SessionTracker } from '@/components/SessionTracker';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -89,5 +90,10 @@ export function AuthGuard({ children }: AuthGuardProps) {
     return <SubscriptionRequiredScreen />;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <SessionTracker />
+      {children}
+    </>
+  );
 }

@@ -1152,3 +1152,35 @@ export type DecadeMember = typeof decadeMembers.$inferSelect;
 export type NewDecadeMember = typeof decadeMembers.$inferInsert;
 export type LeaderReport = typeof leaderReports.$inferSelect;
 export type NewLeaderReport = typeof leaderReports.$inferInsert;
+
+// ============================================================================
+// User Sessions (Time in App tracking)
+// ============================================================================
+
+export const userSessions = pgTable('user_sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  telegramId: bigint('telegram_id', { mode: 'number' }).notNull(),
+  sessionId: text('session_id').notNull(),
+  startedAt: timestamp('started_at').defaultNow().notNull(),
+  endedAt: timestamp('ended_at'),
+  durationSeconds: integer('duration_seconds'),
+  pagesVisited: integer('pages_visited').default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_user_sessions_user_id').on(table.userId),
+  index('idx_user_sessions_telegram_id').on(table.telegramId),
+  index('idx_user_sessions_created_at').on(table.createdAt),
+]);
+
+// User Sessions Relations
+export const userSessionsRelations = relations(userSessions, ({ one }) => ({
+  user: one(users, {
+    fields: [userSessions.userId],
+    references: [users.id],
+  }),
+}));
+
+// User Sessions Types
+export type UserSession = typeof userSessions.$inferSelect;
+export type NewUserSession = typeof userSessions.$inferInsert;

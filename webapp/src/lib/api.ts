@@ -826,3 +826,20 @@ export const decadesApi = {
     return api.post<{ success: boolean; inviteLink?: string; message?: string; error?: string }>('/decades/join', { initData, city });
   },
 };
+
+// Sessions API (Time in App tracking)
+export const sessionsApi = {
+  start: async (sessionId: string) => {
+    return api.post<{ success: boolean; session_db_id?: string }>('/sessions/start', { session_id: sessionId });
+  },
+  heartbeat: async (sessionId: string, pagesVisited?: number) => {
+    return api.post<{ success: boolean }>('/sessions/heartbeat', { session_id: sessionId, pages_visited: pagesVisited });
+  },
+  end: async (sessionId: string, durationSeconds?: number, pagesVisited?: number) => {
+    return api.post<{ success: boolean }>('/sessions/end', {
+      session_id: sessionId,
+      duration_seconds: durationSeconds,
+      pages_visited: pagesVisited,
+    });
+  },
+};
