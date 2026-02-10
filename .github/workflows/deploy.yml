@@ -252,6 +252,13 @@ jobs:
               echo "⚠️ WARNING: Large scheduler queue detected!"
             fi
 
+            # 🔄 Переустановка webhook после деплоя (SSL может сбоить во время restart)
+            echo "🤖 Re-setting Telegram webhook..."
+            WEBHOOK_RESULT=$(curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/setWebhook" \
+              -H "Content-Type: application/json" \
+              -d '{"url": "https://hranitel.daniillepekhin.com/api/v1/bot/webhook", "secret_token": "${{ secrets.TELEGRAM_WEBHOOK_SECRET }}", "allowed_updates": ["message", "inline_query", "callback_query", "my_chat_member", "chat_member"]}')
+            echo "Webhook result: $WEBHOOK_RESULT"
+
             # Frontend deployment
             echo "🎨 Deploying Frontend..."
             cd ../webapp
