@@ -500,16 +500,11 @@ export class HashtagParserService {
       }
 
       // Определяем тип чата через таблицу decades (по tg_chat_id)
-      const chatId = ctx.chat?.id;
-      let isDecadeChat = false;
-
-      if (chatId) {
-        const decade = await db.select({ id: decades.id })
-          .from(decades)
-          .where(eq(decades.tgChatId, chatId))
-          .limit(1);
-        isDecadeChat = decade.length > 0;
-      }
+      const decade = await db.select({ id: decades.id })
+        .from(decades)
+        .where(eq(decades.tgChatId, chatId))
+        .limit(1);
+      const isDecadeChat = decade.length > 0;
 
       if (isDecadeChat) {
         await this.processDecadeMessage(ctx, user.id, userTelegramId);
