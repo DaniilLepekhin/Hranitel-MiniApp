@@ -69,40 +69,30 @@ export function SessionTracker() {
     const pages = pagesRef.current;
     sessionIdRef.current = null;
 
-    // Используем sendBeacon для гарантированной доставки при закрытии
-    if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
-      const apiUrl = typeof window !== 'undefined' && window.location.hostname.includes('successkod.com')
-        ? `https://${window.location.hostname}`
-        : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
+    // Используем fetch с keepalive для гарантированной доставки при закрытии
+    const apiUrl = typeof window !== 'undefined' && window.location.hostname.includes('successkod.com')
+      ? `https://${window.location.hostname}`
+      : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
 
-      const payload = JSON.stringify({
-        session_id: sid,
-        duration_seconds: duration,
-        pages_visited: pages,
-      });
+    const payload = JSON.stringify({
+      session_id: sid,
+      duration_seconds: duration,
+      pages_visited: pages,
+    });
 
-      const headers = new Blob([payload], { type: 'application/json' });
-      // sendBeacon не поддерживает custom headers, поэтому fallback на fetch с keepalive
-      try {
-        await fetch(`${apiUrl}/api/v1/sessions/end`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: payload,
-          keepalive: true,
-          credentials: 'include',
-        });
-      } catch {
-        // Last resort — ignore
-      }
-    } else {
-      try {
-        await sessionsApi.end(sid, duration, pages);
-      } catch {
-        // Ignore
-      }
+    try {
+      fetch(`${apiUrl}/api/v1/sessions/end`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: payload,
+        keepalive: true,
+        credentials: 'include',
+      }).catch(() => {});
+    } catch {
+      // Ignore — app is closing
     }
   }, [token]);
 
