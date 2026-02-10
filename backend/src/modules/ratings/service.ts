@@ -157,8 +157,10 @@ export class RatingsService {
    */
   async getUserPosition(userId: string) {
     try {
+      logger.info({ userId }, '[Ratings] getUserPosition: start');
+
       // Находим пользователя
-      const [user] = await db
+      const userResult = await db
         .select({
           id: users.id,
           telegramId: users.telegramId,
@@ -170,6 +172,9 @@ export class RatingsService {
         .where(eq(users.id, userId))
         .limit(1);
 
+      logger.info({ userId, found: userResult.length }, '[Ratings] getUserPosition: user query done');
+
+      const user = userResult[0];
       if (!user) {
         return { personalRank: 0, cityRank: 0, teamRank: 0, decadeId: null };
       }
@@ -177,14 +182,17 @@ export class RatingsService {
       const userEnergies = user.energies || 0;
 
       // Личный рейтинг
+      logger.info({ userId, userEnergies }, '[Ratings] getUserPosition: personal rank query');
       const personalResult = await db.execute(
         sql`SELECT COUNT(*)::int + 1 as rank FROM users WHERE energies > ${userEnergies}`
       );
+      logger.info({ userId, resultType: typeof personalResult, hasRows: !!personalResult?.rows }, '[Ratings] getUserPosition: personal result');
       const personalRank = Number(personalResult.rows?.[0]?.rank ?? personalResult[0]?.rank ?? 0);
 
       // Рейтинг в городе
       let cityRank = 0;
       if (user.city) {
+        logger.info({ userId, city: user.city }, '[Ratings] getUserPosition: city rank query');
         const cityResult = await db.execute(
           sql`SELECT COUNT(*)::int + 1 as rank FROM users WHERE city = ${user.city} AND energies > ${userEnergies}`
         );
@@ -195,7 +203,8 @@ export class RatingsService {
       let teamRank = 0;
       let decadeId: string | null = null;
 
-      const [membership] = await db
+      logger.info({ userId }, '[Ratings] getUserPosition: membership query');
+      const membershipResult = await db
         .select({ decadeId: decadeMembers.decadeId })
         .from(decadeMembers)
         .where(and(
@@ -203,6 +212,9 @@ export class RatingsService {
           isNull(decadeMembers.leftAt)
         ))
         .limit(1);
+
+      const membership = membershipResult[0];
+      logger.info({ userId, hasMembership: !!membership }, '[Ratings] getUserPosition: membership done');
 
       if (membership) {
         decadeId = membership.decadeId;
@@ -227,6 +239,7 @@ export class RatingsService {
         teamRank = Number(teamResult.rows?.[0]?.rank ?? teamResult[0]?.rank ?? 0);
       }
 
+      logger.info({ userId, personalRank, cityRank, teamRank }, '[Ratings] getUserPosition: done');
       return {
         personalRank,
         cityRank,
