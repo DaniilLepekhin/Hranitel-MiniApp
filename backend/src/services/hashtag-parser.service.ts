@@ -1,5 +1,5 @@
 import { db } from '@/db';
-import { users, energyTransactions } from '@/db/schema';
+import { users, energyTransactions, decades } from '@/db/schema';
 import { eq, and, gte } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { energiesService } from '@/modules/energy-points/service';
@@ -499,15 +499,22 @@ export class HashtagParserService {
         return;
       }
 
-      // Определяем тип чата
-      // TODO: Добавить проверку через таблицу decades или city_chats
-      // Пока используем простую эвристику: если в названии чата есть "десятка" - это десятка
-      const chatTitle = ctx.chat?.title?.toLowerCase() || '';
+      // Определяем тип чата через таблицу decades (по tg_chat_id)
+      const chatId = ctx.chat?.id;
+      let isDecadeChat = false;
 
-      if (chatTitle.includes('десятк')) {
+      if (chatId) {
+        const decade = await db.select({ id: decades.id })
+          .from(decades)
+          .where(eq(decades.tgChatId, chatId))
+          .limit(1);
+        isDecadeChat = decade.length > 0;
+      }
+
+      if (isDecadeChat) {
         await this.processDecadeMessage(ctx, user.id, userTelegramId);
       } else {
-        // По умолчанию считаем что это чат города
+        // Не найден в таблице decades — считаем что это чат города
         await this.processCityMessage(ctx, user.id, userTelegramId);
       }
     } catch (error) {

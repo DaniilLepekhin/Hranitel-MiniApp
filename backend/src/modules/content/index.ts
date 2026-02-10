@@ -10,6 +10,7 @@ import {
 } from '../../db/schema';
 import { eq, and, desc, asc, sql } from 'drizzle-orm';
 import { energyTransactions } from '../../db/schema';
+import { energiesService } from '../energy-points/service';
 
 export const contentModule = new Elysia({ prefix: '/api/v1/content' })
   // Get content items list (with filters)
@@ -261,13 +262,9 @@ export const contentModule = new Elysia({ prefix: '/api/v1/content' })
 
     // Award Энергии пользователю
     if (energiesReward > 0) {
-      await db.insert(energyTransactions).values({
-        userId,
-        amount: energiesReward,
-        type: 'earn',
-        source: 'video_completion',
-        description: `Просмотр видео: ${video[0].title}`,
-        metadata: { videoId, videoTitle: video[0].title }
+      await energiesService.award(userId, energiesReward, `Просмотр видео: ${video[0].title}`, {
+        videoId,
+        videoTitle: video[0].title,
       });
     }
 

@@ -229,7 +229,7 @@ export class EnergyPointsService {
 
   // Просмотр записи эфира
   async awardStreamRecording(userId: string, recordingId: string) {
-    return this.award(userId, 100, 'Просмотр записи эфира', { recordingId });
+    return this.award(userId, 20, 'Просмотр записи эфира', { recordingId });
   }
 
   // Прямой эфир - DEPRECATED
