@@ -171,35 +171,27 @@ export class RatingsService {
         .limit(1);
 
       if (!user) {
-        return { personalRank: 0, cityRank: 0, teamRank: 0 };
+        return { personalRank: 0, cityRank: 0, teamRank: 0, decadeId: null };
       }
 
       const userEnergies = user.energies || 0;
 
-      // Личный рейтинг — сколько пользователей имеют больше энергий
-      const [personalPos] = await db
-        .select({
-          rank: sql<number>`COUNT(*) + 1`,
-        })
-        .from(users)
-        .where(sql`${users.energies} > ${userEnergies}`);
+      // Личный рейтинг
+      const personalResult = await db.execute(
+        sql`SELECT COUNT(*)::int + 1 as rank FROM users WHERE energies > ${userEnergies}`
+      );
+      const personalRank = Number(personalResult.rows?.[0]?.rank ?? personalResult[0]?.rank ?? 0);
 
       // Рейтинг в городе
       let cityRank = 0;
       if (user.city) {
-        const [cityPos] = await db
-          .select({
-            rank: sql<number>`COUNT(*) + 1`,
-          })
-          .from(users)
-          .where(and(
-            eq(users.city, user.city),
-            sql`${users.energies} > ${userEnergies}`
-          ));
-        cityRank = Number(cityPos?.rank || 0);
+        const cityResult = await db.execute(
+          sql`SELECT COUNT(*)::int + 1 as rank FROM users WHERE city = ${user.city} AND energies > ${userEnergies}`
+        );
+        cityRank = Number(cityResult.rows?.[0]?.rank ?? cityResult[0]?.rank ?? 0);
       }
 
-      // Рейтинг десятки пользователя среди всех десяток (raw SQL для надёжности)
+      // Рейтинг десятки
       let teamRank = 0;
       let decadeId: string | null = null;
 
@@ -215,8 +207,7 @@ export class RatingsService {
       if (membership) {
         decadeId = membership.decadeId;
 
-        // Используем raw SQL для подзапроса (Drizzle subquery ненадёжен)
-        const teamRankResult = await db.execute(sql`
+        const teamResult = await db.execute(sql`
           WITH team_avgs AS (
             SELECT dm.decade_id, AVG(u.energies) as avg_e
             FROM decade_members dm
@@ -228,22 +219,22 @@ export class RatingsService {
           my_team AS (
             SELECT avg_e FROM team_avgs WHERE decade_id = ${membership.decadeId}
           )
-          SELECT COUNT(*) + 1 as rank
+          SELECT COUNT(*)::int + 1 as rank
           FROM team_avgs
           WHERE avg_e > (SELECT COALESCE(avg_e, 0) FROM my_team)
         `);
 
-        teamRank = Number(teamRankResult[0]?.rank || 0);
+        teamRank = Number(teamResult.rows?.[0]?.rank ?? teamResult[0]?.rank ?? 0);
       }
 
       return {
-        personalRank: Number(personalPos?.rank || 0),
+        personalRank,
         cityRank,
         teamRank,
         decadeId,
       };
     } catch (error) {
-      logger.error('[Ratings] Error getting user position:', error);
+      logger.error({ error, userId }, '[Ratings] Error getting user position');
       throw error;
     }
   }
