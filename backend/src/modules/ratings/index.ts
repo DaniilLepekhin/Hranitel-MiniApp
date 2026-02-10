@@ -59,11 +59,9 @@ export const ratingsRoutes = new Elysia({ prefix: '/ratings' })
   .get(
     '/user-position',
     async ({ request }) => {
-      logger.info('[Ratings API] user-position handler ENTERED');
       try {
         const url = new URL(request.url);
         const userId = url.searchParams.get('userId') || '';
-        logger.info({ userId }, '[Ratings API] user-position parsed userId');
 
         if (!userId) {
           return {
@@ -73,14 +71,13 @@ export const ratingsRoutes = new Elysia({ prefix: '/ratings' })
         }
 
         const position = await ratingsService.getUserPosition(userId);
-        logger.info({ userId, position }, '[Ratings API] user-position result');
 
         return {
           success: true,
           position,
         };
       } catch (error) {
-        logger.error({ error, stack: (error as Error)?.stack }, '[Ratings API] Error getting user position');
+        logger.error('[Ratings API] Error getting user position:', error);
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Failed to get user position',

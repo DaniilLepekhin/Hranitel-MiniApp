@@ -45,7 +45,7 @@ export class RatingsService {
         .select({
           id: users.id,
           telegramId: users.telegramId,
-          name: users.name,
+          firstName: users.firstName,
           energies: users.energies,
         })
         .from(users)
@@ -59,7 +59,7 @@ export class RatingsService {
       const currentUser = {
         userId: allUsers[userIndex]?.id || userId,
         telegramId: allUsers[userIndex]?.telegramId || 0,
-        name: allUsers[userIndex]?.name || 'Неизвестно',
+        name: allUsers[userIndex]?.firstName || 'Неизвестно',
         energies: allUsers[userIndex]?.energies || 0,
         rank,
         total,
@@ -68,7 +68,7 @@ export class RatingsService {
       const topUsers = allUsers.slice(0, 100).map((u, index) => ({
         userId: u.id,
         telegramId: u.telegramId,
-        name: u.name || 'Участник',
+        name: u.firstName || 'Участник',
         energies: u.energies || 0,
         rank: index + 1,
         total,
@@ -157,22 +157,18 @@ export class RatingsService {
    */
   async getUserPosition(userId: string) {
     try {
-      logger.info({ userId }, '[Ratings] getUserPosition: start');
-
       // Находим пользователя
       const userResult = await db
         .select({
           id: users.id,
           telegramId: users.telegramId,
-          name: users.name,
+          firstName: users.firstName,
           energies: users.energies,
           city: users.city,
         })
         .from(users)
         .where(eq(users.id, userId))
         .limit(1);
-
-      logger.info({ userId, found: userResult.length }, '[Ratings] getUserPosition: user query done');
 
       const user = userResult[0];
       if (!user) {
@@ -182,17 +178,14 @@ export class RatingsService {
       const userEnergies = user.energies || 0;
 
       // Личный рейтинг
-      logger.info({ userId, userEnergies }, '[Ratings] getUserPosition: personal rank query');
       const personalResult = await db.execute(
         sql`SELECT COUNT(*)::int + 1 as rank FROM users WHERE energies > ${userEnergies}`
       );
-      logger.info({ userId, resultType: typeof personalResult, hasRows: !!personalResult?.rows }, '[Ratings] getUserPosition: personal result');
       const personalRank = Number(personalResult.rows?.[0]?.rank ?? personalResult[0]?.rank ?? 0);
 
       // Рейтинг в городе
       let cityRank = 0;
       if (user.city) {
-        logger.info({ userId, city: user.city }, '[Ratings] getUserPosition: city rank query');
         const cityResult = await db.execute(
           sql`SELECT COUNT(*)::int + 1 as rank FROM users WHERE city = ${user.city} AND energies > ${userEnergies}`
         );
@@ -203,7 +196,6 @@ export class RatingsService {
       let teamRank = 0;
       let decadeId: string | null = null;
 
-      logger.info({ userId }, '[Ratings] getUserPosition: membership query');
       const membershipResult = await db
         .select({ decadeId: decadeMembers.decadeId })
         .from(decadeMembers)
@@ -214,7 +206,6 @@ export class RatingsService {
         .limit(1);
 
       const membership = membershipResult[0];
-      logger.info({ userId, hasMembership: !!membership }, '[Ratings] getUserPosition: membership done');
 
       if (membership) {
         decadeId = membership.decadeId;
@@ -239,7 +230,6 @@ export class RatingsService {
         teamRank = Number(teamResult.rows?.[0]?.rank ?? teamResult[0]?.rank ?? 0);
       }
 
-      logger.info({ userId, personalRank, cityRank, teamRank }, '[Ratings] getUserPosition: done');
       return {
         personalRank,
         cityRank,
