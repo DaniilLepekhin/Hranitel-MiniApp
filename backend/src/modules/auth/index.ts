@@ -183,6 +183,7 @@ export const authModule = new Elysia({ prefix: '/auth', tags: ['Auth'] })
               // firstName и lastName НЕ обновляем - пользователь мог их изменить в профиле
               photoUrl: photoUrl || user.photoUrl,
               languageCode: telegramUser.language_code || user.languageCode,
+              lastActiveDate: new Date(),
               updatedAt: new Date(),
             })
             .where(eq(users.id, user.id))

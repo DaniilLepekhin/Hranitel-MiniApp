@@ -179,6 +179,19 @@ export const authMiddleware = new Elysia({ name: 'auth' })
         return { user: null as User | null, authError: 'User not found' };
       }
 
+      // Update lastActiveDate (max once per hour to reduce DB writes)
+      const now = new Date();
+      const lastActive = user.lastActiveDate ? new Date(user.lastActiveDate) : null;
+      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+      if (!lastActive || lastActive < oneHourAgo) {
+        // Fire-and-forget: don't await, don't block the request
+        db.update(users)
+          .set({ lastActiveDate: now })
+          .where(eq(users.id, user.id))
+          .then(() => {})
+          .catch((err) => logger.error({ err, userId: user.id }, 'Failed to update lastActiveDate'));
+      }
+
       return { user, authError: null };
     } catch (error) {
       logger.error({ error }, 'JWT verification error');
