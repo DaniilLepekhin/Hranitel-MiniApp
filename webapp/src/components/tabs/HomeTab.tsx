@@ -394,8 +394,8 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
           {/* Линия */}
           <div className="w-full h-[1px] bg-[#2d2620]/20 mb-4" />
 
-          {/* 📅 Анонс дня - временно отключен */}
-          {/* <DailyAnnouncement /> */}
+          {/* 📅 Расписание февраля */}
+          <DailyAnnouncement />
 
           {/* Кнопка "Стать амбассадором" */}
           <div
