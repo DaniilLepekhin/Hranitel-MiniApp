@@ -199,6 +199,9 @@ export const authMiddleware = new Elysia({ name: 'auth' })
     }
   })
   .onBeforeHandle(({ user, authError, set }) => {
+    // DEBUG: Логируем для отладки
+    logger.info('[authMiddleware] onBeforeHandle called, user:', user ? { id: user.id } : 'NULL', 'authError:', authError);
+    
     if (!user) {
       set.status = 401;
       return {

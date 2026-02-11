@@ -15,7 +15,18 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/v1/energies', tags:
     '/balance',
     async ({ user }) => {
       try {
-        const balance = await energyPointsService.getBalance(user!.id);
+        // DEBUG: Логируем user для отладки
+        logger.info('[Energies API] /balance called, user:', user ? { id: user.id, username: user.username } : 'NULL');
+        
+        if (!user) {
+          logger.error('[Energies API] User is null/undefined in /balance endpoint');
+          return {
+            success: false,
+            error: 'User not authenticated - user object is null',
+          };
+        }
+
+        const balance = await energyPointsService.getBalance(user.id);
 
         return {
           success: true,
