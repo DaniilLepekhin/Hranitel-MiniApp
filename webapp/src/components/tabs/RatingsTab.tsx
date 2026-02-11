@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { gamificationApi, energiesApi, ratingsApi } from '@/lib/api';
@@ -16,10 +16,19 @@ interface RatingsTabProps {
 export function RatingsTab({ onShopClick }: RatingsTabProps) {
   const { haptic, webApp } = useTelegram();
   const { user, token } = useAuthStore();
+  const queryClient = useQueryClient();
   const [showFullLeaderboard, setShowFullLeaderboard] = useState(false);
   const [showFullCityRatings, setShowFullCityRatings] = useState(false);
   const [showFullTeamRatings, setShowFullTeamRatings] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+
+  // Инвалидируем кэш баланса при смене пользователя
+  useEffect(() => {
+    if (user?.id && token) {
+      console.log('[RatingsTab] User loaded, invalidating balance cache');
+      queryClient.invalidateQueries({ queryKey: ['energies-balance'] });
+    }
+  }, [user?.id, token, queryClient]);
 
   // Вычисляем staleTime до следующего дня 00:01 МСК
   const getStaleTimeUntilMidnight = () => {
@@ -117,19 +126,25 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     placeholderData: { success: true, position: undefined as any }, // Показываем undefined сразу
   });
 
-  const userBalance = balanceData?.balance ?? 0;
+  // DEBUG: Детальное логирование баланса
+  console.log('[RatingsTab] DEBUG balanceData FULL:', JSON.stringify(balanceData, null, 2));
+  console.log('[RatingsTab] DEBUG user:', user);
+  console.log('[RatingsTab] DEBUG token:', token ? 'EXISTS' : 'NULL');
+  
+  // Проверяем структуру ответа
+  const userBalance = balanceData?.success === true ? (balanceData?.balance ?? 0) : 0;
   
   // Debug: показываем статус загрузки
   if (balanceLoading) {
     console.log('[RatingsTab] Balance is loading...');
   }
   
-  // DEBUG: Детальное логирование баланса
-  console.log('[RatingsTab] DEBUG balanceData:', balanceData);
-  console.log('[RatingsTab] DEBUG balanceData?.balance:', balanceData?.balance);
+  // Показываем ошибку, если есть
+  if (balanceData && !balanceData.success) {
+    console.error('[RatingsTab] API returned error:', balanceData.error);
+  }
+  
   console.log('[RatingsTab] DEBUG userBalance (final):', userBalance);
-  console.log('[RatingsTab] DEBUG typeof balanceData:', typeof balanceData);
-  console.log('[RatingsTab] DEBUG balanceData keys:', balanceData ? Object.keys(balanceData) : 'null');
   const leaderboard = leaderboardData?.leaderboard || [];
   const cityRatings = cityRatingsData?.ratings || [];
   const teamRatings = teamRatingsData?.ratings || [];
