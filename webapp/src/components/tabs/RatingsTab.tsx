@@ -892,7 +892,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
 
             {/* Список транзакций */}
             <div className="overflow-y-auto max-h-[calc(80vh-80px)] p-4">
-              {!historyData || historyData.transactions?.length === 0 ? (
+              {!historyData || !historyData.transactions || historyData.transactions.length === 0 ? (
                 <div className="text-center py-8">
                   <Clock className="w-12 h-12 mx-auto mb-3 opacity-30" style={{ color: '#2d2620' }} />
                   <p
@@ -904,7 +904,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
                       opacity: 0.7,
                     }}
                   >
-                    История начислений пока пуста
+                    {!historyData ? 'Загрузка...' : 'История начислений пока пуста'}
                   </p>
                 </div>
               ) : (
