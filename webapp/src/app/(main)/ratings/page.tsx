@@ -23,7 +23,7 @@ export default function RatingsPage() {
   // Fetch user's energy balance
   const { data: epData } = useQuery({
     queryKey: ['energies', 'balance', user?.id],
-    queryFn: () => energiesApi.getBalance(user!.id),
+    queryFn: () => energiesApi.getBalance(),
     enabled: !!user,
   });
 

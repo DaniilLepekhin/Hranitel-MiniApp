@@ -37,7 +37,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
   // 🚀 ПРАВИЛЬНЫЙ ИСТОЧНИК ДАННЫХ: Получаем баланс энергий из API (а не из устаревшего user.energies)
   const { data: balanceData } = useQuery({
     queryKey: ['energies-balance', user?.id],
-    queryFn: () => energiesApi.getBalance(user!.id),
+    queryFn: () => energiesApi.getBalance(),
     enabled: !!user && !!token,
     retry: 2,
     staleTime: 30 * 1000, // 30 секунд - данные считаются свежими

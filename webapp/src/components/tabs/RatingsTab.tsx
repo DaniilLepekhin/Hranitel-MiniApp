@@ -36,7 +36,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем баланс энергий пользователя
   const { data: balanceData } = useQuery({
     queryKey: ['energies-balance', user?.id],
-    queryFn: () => energiesApi.getBalance(user!.id),
+    queryFn: () => energiesApi.getBalance(),
     enabled: !!user && !!token,
     retry: 2,
     staleTime: getStaleTimeUntilMidnight(),
