@@ -46,13 +46,14 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     placeholderData: { success: true, balance: 0 }, // Показываем 0 сразу
   });
 
-  // 🚀 Получаем историю начислений энергий
-  const { data: historyData } = useQuery({
+  // 🚀 Получаем историю начислений энергий (загружаем заранее для мгновенного открытия)
+  const { data: historyData, isLoading: historyLoading } = useQuery({
     queryKey: ['energies-history', user?.id],
     queryFn: () => energiesApi.getHistory(20), // Последние 20 транзакций
-    enabled: !!user && !!token && showHistoryModal,
+    enabled: !!user && !!token, // Загружаем сразу, не ждём открытия модального окна
     retry: 2,
     staleTime: 60 * 1000, // 1 минута
+    gcTime: 5 * 60 * 1000, // 5 минут в кэше
   });
 
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем общий рейтинг
@@ -892,7 +893,30 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
 
             {/* Список транзакций */}
             <div className="overflow-y-auto max-h-[calc(80vh-80px)] p-4">
-              {!historyData || !historyData.transactions || historyData.transactions.length === 0 ? (
+              {historyLoading ? (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 mx-auto mb-3 relative">
+                    <div
+                      className="w-full h-full rounded-full border-4 border-[#2d2620]/10"
+                      style={{
+                        borderTopColor: '#9c1723',
+                        animation: 'spin 1s linear infinite',
+                      }}
+                    />
+                  </div>
+                  <p
+                    style={{
+                      fontFamily: 'Gilroy, sans-serif',
+                      fontWeight: 400,
+                      fontSize: '14px',
+                      color: '#2d2620',
+                      opacity: 0.7,
+                    }}
+                  >
+                    Загрузка истории...
+                  </p>
+                </div>
+              ) : !historyData || !historyData.transactions || historyData.transactions.length === 0 ? (
                 <div className="text-center py-8">
                   <Clock className="w-12 h-12 mx-auto mb-3 opacity-30" style={{ color: '#2d2620' }} />
                   <p
@@ -904,7 +928,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
                       opacity: 0.7,
                     }}
                   >
-                    {!historyData ? 'Загрузка...' : 'История начислений пока пуста'}
+                    История начислений пока пуста
                   </p>
                 </div>
               ) : (
