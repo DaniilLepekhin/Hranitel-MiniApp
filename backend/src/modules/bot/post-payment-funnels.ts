@@ -268,8 +268,30 @@ export async function completeOnboarding(userId: string, chatId: number) {
     'ready_final_120m',
   ]);
 
-  // 3. Установить кнопку меню в левом нижнем углу (показывает команды бота)
-  await getTelegramService().setChatMenuButton(chatId, { type: 'commands' });
+  // 3. Установить команды бота И кнопку меню ПЕРЕД отправкой сообщения
+  try {
+    // 3.1. Сначала установить команды для этого пользователя
+    await getTelegramService().setMyCommands(
+      [
+        { command: 'menu', description: '🏠 Главное меню' },
+        { command: 'start', description: '🚀 Начать заново' },
+      ],
+      { scope: { type: 'chat', chat_id: chatId } }
+    );
+    logger.info({ chatId }, 'Commands set for user');
+
+    // 3.2. Задержка 500мс чтобы Telegram обновил интерфейс
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // 3.3. Установить кнопку меню в левом нижнем углу
+    await getTelegramService().setChatMenuButton(chatId, { type: 'commands' });
+    logger.info({ chatId }, 'Menu button set successfully');
+
+    // 3.4. Ещё одна задержка 500мс перед отправкой сообщения
+    await new Promise(resolve => setTimeout(resolve, 500));
+  } catch (error) {
+    logger.error({ error, chatId }, 'Failed to set menu commands/button');
+  }
 
   // 4. Отправить видео-инструкцию по экосистеме клуба
   await getTelegramService().sendVideo(
@@ -285,15 +307,7 @@ export async function completeOnboarding(userId: string, chatId: number) {
     }
   );
 
-  // 5. Еще раз установить кнопку меню (на случай если предыдущая попытка не сработала)
-  try {
-    await getTelegramService().setChatMenuButton(chatId, { type: 'commands' });
-    logger.info({ chatId }, 'Menu button re-set after video instruction');
-  } catch (error) {
-    logger.error({ error, chatId }, 'Failed to re-set menu button after video');
-  }
-
-  // 6. Запланировать воронку вовлечения
+  // 5. Запланировать воронку вовлечения
   await scheduleEngagementFunnel(userId, chatId);
 }
 
