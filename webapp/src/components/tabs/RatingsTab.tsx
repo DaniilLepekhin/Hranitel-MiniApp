@@ -141,7 +141,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
   
   // Показываем ошибку, если есть
   if (balanceData && !balanceData.success) {
-    console.error('[RatingsTab] API returned error:', balanceData.error);
+    console.error('[RatingsTab] API returned error:', (balanceData as any).error);
   }
   
   console.log('[RatingsTab] DEBUG userBalance (final):', userBalance);
