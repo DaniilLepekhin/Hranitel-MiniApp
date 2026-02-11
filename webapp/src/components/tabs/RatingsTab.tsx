@@ -123,6 +123,13 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
   if (balanceLoading) {
     console.log('[RatingsTab] Balance is loading...');
   }
+  
+  // DEBUG: Детальное логирование баланса
+  console.log('[RatingsTab] DEBUG balanceData:', balanceData);
+  console.log('[RatingsTab] DEBUG balanceData?.balance:', balanceData?.balance);
+  console.log('[RatingsTab] DEBUG userBalance (final):', userBalance);
+  console.log('[RatingsTab] DEBUG typeof balanceData:', typeof balanceData);
+  console.log('[RatingsTab] DEBUG balanceData keys:', balanceData ? Object.keys(balanceData) : 'null');
   const leaderboard = leaderboardData?.leaderboard || [];
   const cityRatings = cityRatingsData?.ratings || [];
   const teamRatings = teamRatingsData?.ratings || [];
