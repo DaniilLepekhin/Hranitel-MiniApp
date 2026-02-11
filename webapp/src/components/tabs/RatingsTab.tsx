@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
@@ -54,7 +54,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
   });
 
   // Логирование для отладки
-  React.useEffect(() => {
+  useEffect(() => {
     if (balanceData) {
       console.log('[RatingsTab] Balance data updated:', balanceData);
     }
