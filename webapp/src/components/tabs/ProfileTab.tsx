@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/auth';
 import { energiesApi, usersApi } from '@/lib/api';
 import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { EnergyHistory } from '@/components/EnergyHistory';
 import { Edit2, X, Check } from 'lucide-react';
 
 export function ProfileTab() {
@@ -24,11 +25,12 @@ export function ProfileTab() {
 
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем баланс энергий пользователя
   const { data: balanceData } = useQuery({
-    queryKey: ['energies-balance', user?.id],
-    queryFn: () => energiesApi.getBalance(user!.id),
+    queryKey: ['energies-balance'],
+    queryFn: () => energiesApi.getBalance(),
     enabled: !!user && !!token,
     retry: false,
-    placeholderData: { success: true, balance: 0 }, // Показываем 0 сразу для мгновенного рендера
+    staleTime: 10000, // 10 секунд
+    placeholderData: { success: true, balance: user?.energies || 0 }, // Показываем баланс из user сразу
   });
 
   // 🚀 МЕМОИЗАЦИЯ: Вычисляем только когда данные меняются
@@ -573,6 +575,11 @@ export function ProfileTab() {
             )}
           </div>
         )}
+
+        {/* ===== ИСТОРИЯ ЭНЕРГИЙ ===== */}
+        <div className="mx-[30px] mb-6">
+          <EnergyHistory limit={10} />
+        </div>
 
         {/* ===== ССЫЛКИ ===== */}
         <div className="space-y-[20px] px-[30px]">

@@ -253,14 +253,12 @@ export const aiApi = {
 
 // Energies (КОД ДЕНЕГ 4.0)
 export const energiesApi = {
-  getBalance: (userId: string) =>
-    api.getRaw<{ success: boolean; balance: number }>(`/api/energies/balance`, { params: { userId } }),
-  getHistory: (userId: string, limit?: number) =>
-    api.getRaw<{ success: boolean; transactions: EnergyTransaction[] }>(`/api/energies/history`, {
-      params: { userId, limit }
+  getBalance: () =>
+    api.get<{ success: boolean; balance: number }>('/energies/balance'),
+  getHistory: (limit?: number) =>
+    api.get<{ success: boolean; transactions: EnergyTransaction[] }>('/energies/history', {
+      params: { limit: limit?.toString() }
     }),
-  getStats: (userId: string) =>
-    api.getRaw<{ success: boolean; stats: EnergyStats }>(`/api/energies/stats`, { params: { userId } }),
 };
 
 // Shop (КОД ДЕНЕГ 4.0)
@@ -603,7 +601,9 @@ export interface EnergyTransaction {
   amount: number;
   type: 'income' | 'expense';
   reason: string;
-  metadata: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+  expiresAt?: string | null;
+  isExpired: boolean;
   createdAt: string;
 }
 

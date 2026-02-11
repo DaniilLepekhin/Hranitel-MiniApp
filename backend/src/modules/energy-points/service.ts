@@ -218,7 +218,26 @@ export class EnergyPointsService {
   }
 
   // Просмотр урока (+20 EP по документу "Геймификация")
+  // Защита от повторного начисления за один урок
   async awardLessonView(userId: string, lessonId: string) {
+    // Проверяем, не начисляли ли уже за этот урок
+    const existing = await db
+      .select()
+      .from(energyTransactions)
+      .where(
+        and(
+          eq(energyTransactions.userId, userId),
+          eq(energyTransactions.reason, 'Просмотр урока'),
+          sql`metadata->>'lessonId' = ${lessonId}`
+        )
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      logger.info(`[Energies] Lesson ${lessonId} already awarded for user ${userId}`);
+      return { success: false, message: 'Already awarded for this lesson' };
+    }
+
     return this.award(userId, 20, 'Просмотр урока', { lessonId });
   }
 

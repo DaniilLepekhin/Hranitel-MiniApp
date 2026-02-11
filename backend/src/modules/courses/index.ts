@@ -4,6 +4,7 @@ import { db, courses, courseDays, courseProgress, favorites, type CourseProgress
 import { authMiddleware, optionalAuthMiddleware } from '@/middlewares/auth';
 import { logger } from '@/utils/logger';
 import { cache } from '@/utils/redis';
+import { energiesService } from '@/modules/energy-points/service';
 
 const COURSES_CACHE_TTL = 300; // 5 minutes
 
@@ -266,9 +267,11 @@ export const coursesModule = new Elysia({ prefix: '/courses', tags: ['Courses'] 
         .limit(1);
 
       let completedDays = existingProgress?.completedDays || [];
+      let isNewCompletion = false;
 
       if (completedDay && !completedDays.includes(completedDay)) {
         completedDays = [...completedDays, completedDay].sort((a, b) => a - b);
+        isNewCompletion = true;
       }
 
       if (existingProgress) {
@@ -291,6 +294,24 @@ export const coursesModule = new Elysia({ prefix: '/courses', tags: ['Courses'] 
           completedDays,
           lastAccessedAt: new Date(),
         });
+      }
+
+      // 🎁 ГЕЙМИФИКАЦИЯ: Начислить +20 Энергии за просмотр урока
+      if (isNewCompletion && completedDay) {
+        try {
+          const lessonId = `${id}:day${completedDay}`;
+          await energiesService.awardLessonView(user!.id, lessonId);
+          logger.info(
+            { userId: user!.id, courseId: id, dayNumber: completedDay },
+            'Awarded 20 energy for lesson completion'
+          );
+        } catch (error) {
+          // Не падаем, если начисление не удалось
+          logger.error(
+            { error, userId: user!.id, courseId: id, dayNumber: completedDay },
+            'Failed to award energy for lesson'
+          );
+        }
       }
 
       return {

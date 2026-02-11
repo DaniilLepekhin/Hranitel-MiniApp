@@ -1,26 +1,21 @@
 import { Elysia, t } from 'elysia';
 import { energiesService as energyPointsService } from './service';
 import { logger } from '@/utils/logger';
+import { authMiddleware } from '@/middlewares/auth';
 
-export const energyPointsRoutes = new Elysia({ prefix: '/api/energies' })
+export const energyPointsRoutes = new Elysia({ prefix: '/api/v1/energies', tags: ['Energy Points'] })
+  // Protected routes - require authentication
+  .use(authMiddleware)
+  
   /**
-   * GET /api/energies/balance
-   * Получить баланс Энергии
+   * GET /api/v1/energies/balance
+   * Получить баланс Энергии текущего пользователя
    */
   .get(
     '/balance',
-    async ({ query }) => {
+    async ({ user }) => {
       try {
-        const { userId } = query;
-
-        if (!userId) {
-          return {
-            success: false,
-            error: 'User ID is required',
-          };
-        }
-
-        const balance = await energyPointsService.getBalance(userId);
+        const balance = await energyPointsService.getBalance(user!.id);
 
         return {
           success: true,
@@ -35,31 +30,25 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/energies' })
       }
     },
     {
-      query: t.Object({
-        userId: t.String(),
-      }),
+      detail: {
+        summary: 'Get energy balance',
+        description: 'Returns current energy points balance for authenticated user',
+      },
     }
   )
 
   /**
-   * GET /api/ep/history
-   * Получить историю транзакций
+   * GET /api/v1/energies/history
+   * Получить историю транзакций текущего пользователя
    */
   .get(
     '/history',
-    async ({ query }) => {
+    async ({ user, query }) => {
       try {
-        const { userId, limit } = query;
-
-        if (!userId) {
-          return {
-            success: false,
-            error: 'User ID is required',
-          };
-        }
+        const { limit } = query;
 
         const history = await energyPointsService.getHistory(
-          userId,
+          user!.id,
           limit ? parseInt(limit) : 50
         );
 
@@ -77,9 +66,12 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/energies' })
     },
     {
       query: t.Object({
-        userId: t.String(),
         limit: t.Optional(t.String()),
       }),
+      detail: {
+        summary: 'Get transaction history',
+        description: 'Returns energy points transaction history for authenticated user',
+      },
     }
   )
 
