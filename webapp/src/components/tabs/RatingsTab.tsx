@@ -27,6 +27,21 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     if (user?.id && token) {
       console.log('[RatingsTab] User loaded, invalidating balance cache');
       queryClient.invalidateQueries({ queryKey: ['energies-balance'] });
+      
+      // TEST: Проверяем, работает ли authMiddleware вообще
+      fetch('https://app.successkod.com/users/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+        .then(r => r.json())
+        .then(data => {
+          console.log('[RatingsTab] TEST /users/me response:', data);
+          if (!data.success) {
+            console.error('[RatingsTab] /users/me failed, auth is broken!');
+          }
+        })
+        .catch(err => console.error('[RatingsTab] /users/me error:', err));
     }
   }, [user?.id, token, queryClient]);
 
@@ -129,7 +144,9 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
   // DEBUG: Детальное логирование баланса
   console.log('[RatingsTab] DEBUG balanceData FULL:', JSON.stringify(balanceData, null, 2));
   console.log('[RatingsTab] DEBUG user:', user);
-  console.log('[RatingsTab] DEBUG token:', token ? 'EXISTS' : 'NULL');
+  console.log('[RatingsTab] DEBUG user.id:', user?.id);
+  console.log('[RatingsTab] DEBUG token:', token ? 'EXISTS (length: ' + token.length + ')' : 'NULL');
+  console.log('[RatingsTab] DEBUG token first 50 chars:', token ? token.substring(0, 50) + '...' : 'NULL');
   
   // Проверяем структуру ответа
   const userBalance = balanceData?.success === true ? (balanceData?.balance ?? 0) : 0;
