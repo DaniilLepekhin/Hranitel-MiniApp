@@ -116,15 +116,16 @@ export function ProfileTab() {
       return;
     }
 
-    const updateData: { firstName: string; lastName?: string } = {
-      firstName: editFirstName.trim(),
-    };
-
-    // Только добавляем lastName если он не пустой
-    const trimmedLastName = editLastName.trim();
-    if (trimmedLastName) {
-      updateData.lastName = trimmedLastName;
+    if (!editLastName.trim()) {
+      haptic.notification('warning');
+      webApp?.showAlert('Пожалуйста, введите фамилию. Это обязательное поле для доставки через СДЭК.');
+      return;
     }
+
+    const updateData: { firstName: string; lastName: string } = {
+      firstName: editFirstName.trim(),
+      lastName: editLastName.trim(),
+    };
 
     console.log('Updating profile with:', JSON.stringify(updateData, null, 2));
     haptic.impact('medium');
@@ -718,14 +719,15 @@ export function ProfileTab() {
                     marginBottom: '8px',
                   }}
                 >
-                  Фамилия
+                  Фамилия <span style={{ color: '#d93547' }}>*</span>
                 </label>
                 <input
                   id="lastName"
                   type="text"
                   value={editLastName}
                   onChange={(e) => setEditLastName(e.target.value)}
-                  placeholder="Введите фамилию (необязательно)"
+                  placeholder="Введите фамилию"
+                  required
                   className="w-full px-4 py-3 rounded-lg"
                   style={{
                     fontFamily: 'Gilroy, sans-serif',
@@ -736,6 +738,16 @@ export function ProfileTab() {
                     outline: 'none',
                   }}
                 />
+                <p
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontSize: '12px',
+                    color: '#9c8b7a',
+                    marginTop: '6px',
+                  }}
+                >
+                  Фамилия обязательна для получения заказов через СДЭК
+                </p>
               </div>
 
               {/* Кнопки */}
@@ -757,7 +769,7 @@ export function ProfileTab() {
                 </button>
                 <button
                   onClick={saveEditedName}
-                  disabled={updateProfileMutation.isPending || !editFirstName.trim()}
+                  disabled={updateProfileMutation.isPending || !editFirstName.trim() || !editLastName.trim()}
                   className="flex-1 py-3 rounded-lg transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
                   style={{
                     fontFamily: 'Gilroy, sans-serif',
