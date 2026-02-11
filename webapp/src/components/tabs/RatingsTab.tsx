@@ -37,17 +37,31 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
   };
 
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем баланс энергий пользователя
-  const { data: balanceData } = useQuery({
+  const { data: balanceData, isLoading: balanceLoading, error: balanceError } = useQuery({
     queryKey: ['energies-balance', user?.id],
-    queryFn: () => energiesApi.getBalance(),
+    queryFn: async () => {
+      console.log('[RatingsTab] Fetching energy balance for user:', user?.id);
+      const result = await energiesApi.getBalance();
+      console.log('[RatingsTab] Energy balance response:', result);
+      return result;
+    },
     enabled: !!user && !!token,
     retry: 2,
-    staleTime: 30 * 1000, // 30 секунд - баланс обновляется часто (хештеги, уроки)
-    gcTime: 5 * 60 * 1000, // 5 минут в кэше
-    placeholderData: { success: true, balance: 0 }, // Показываем 0 сразу
-    refetchOnMount: true, // Всегда обновлять при монтировании
+    staleTime: 0, // ВСЕГДА обновляем - никакого кэша!
+    gcTime: 0, // НЕ храним в кэше
+    refetchOnMount: 'always', // ВСЕГДА обновлять при монтировании
     refetchOnWindowFocus: true, // Обновлять при возврате в приложение
   });
+
+  // Логирование для отладки
+  React.useEffect(() => {
+    if (balanceData) {
+      console.log('[RatingsTab] Balance data updated:', balanceData);
+    }
+    if (balanceError) {
+      console.error('[RatingsTab] Balance error:', balanceError);
+    }
+  }, [balanceData, balanceError]);
 
   // 🚀 Получаем историю начислений энергий (загружаем заранее для мгновенного открытия)
   const { data: historyData, isLoading: historyLoading } = useQuery({
@@ -103,7 +117,12 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     placeholderData: { success: true, position: undefined as any }, // Показываем undefined сразу
   });
 
-  const userBalance = balanceData?.balance || 0;
+  const userBalance = balanceData?.balance ?? 0;
+  
+  // Debug: показываем статус загрузки
+  if (balanceLoading) {
+    console.log('[RatingsTab] Balance is loading...');
+  }
   const leaderboard = leaderboardData?.leaderboard || [];
   const cityRatings = cityRatingsData?.ratings || [];
   const teamRatings = teamRatingsData?.ratings || [];
@@ -278,13 +297,13 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
               <p
                 style={{
                   fontFamily: 'Gilroy, sans-serif',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   fontSize: '46.4px',
                   color: '#f7f1e8',
                   lineHeight: 1,
                 }}
               >
-                {userBalance}
+                {balanceLoading ? '...' : userBalance}
               </p>
               <p
                 style={{
