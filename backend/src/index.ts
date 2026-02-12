@@ -109,6 +109,10 @@ const app = new Elysia()
     const duration = Date.now() - requestStartTime;
     const status = typeof set.status === 'number' ? set.status : 200;
 
+    // 🚀 PERFORMANCE: Подсказка для Bun.serve() о сжатии
+    // Bun автоматически сжимает ответы если клиент поддерживает
+    set.headers['Vary'] = 'Accept-Encoding';
+
     logRequest(request.method, path, status, duration);
   })
   // Basic health check (liveness probe)

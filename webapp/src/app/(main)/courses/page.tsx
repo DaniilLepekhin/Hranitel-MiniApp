@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { ArrowLeft, BookOpen, ChevronRight, Lock } from 'lucide-react';
 import { coursesApi } from '@/lib/api';
 import { useTelegram } from '@/hooks/useTelegram';
@@ -16,15 +17,6 @@ export default function CoursesListPage() {
   });
 
   const courses = data?.courses || [];
-
-  const handleCourseClick = (courseId: string, isLocked: boolean) => {
-    if (isLocked) {
-      haptic.notification('error');
-      return;
-    }
-    haptic.impact('light');
-    router.push(`/course/${courseId}`);
-  };
 
   return (
     <div className="min-h-screen bg-[#f7f1e8]">
@@ -69,14 +61,8 @@ export default function CoursesListPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {courses.map((course) => (
-              <button
-                key={course.id}
-                onClick={() => handleCourseClick(course.id, course.isLocked || false)}
-                className={`w-full bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg transition-all active:scale-98 ${
-                  course.isLocked ? 'opacity-70' : 'hover:shadow-xl'
-                }`}
-              >
+            {courses.map((course) => {
+              const courseContent = (
                 <div className="flex items-center gap-4">
                   {/* Icon/Cover */}
                   {course.coverUrl ? (
@@ -134,8 +120,28 @@ export default function CoursesListPage() {
                     <ChevronRight className="w-6 h-6 text-[#6b5a4a] flex-shrink-0" />
                   )}
                 </div>
-              </button>
-            ))}
+              );
+
+              return course.isLocked ? (
+                <div
+                  key={course.id}
+                  onClick={() => haptic.notification('error')}
+                  className="w-full bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg transition-all opacity-70 cursor-not-allowed"
+                >
+                  {courseContent}
+                </div>
+              ) : (
+                <Link
+                  key={course.id}
+                  href={`/course/${course.id}`}
+                  prefetch={true}
+                  onClick={() => haptic.impact('light')}
+                  className="block w-full bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg transition-all hover:shadow-xl active:scale-98"
+                >
+                  {courseContent}
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
