@@ -1,5 +1,5 @@
 // Service Worker для принудительной очистки кеша
-const CACHE_VERSION = 'v2.0.2';
+const CACHE_VERSION = 'v2.0.3-courses-initdata-fix';
 
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing new service worker', CACHE_VERSION);
