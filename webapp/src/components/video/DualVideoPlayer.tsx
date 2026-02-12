@@ -65,7 +65,12 @@ export function DualVideoPlayer({
   };
 
   const handleComplete = () => {
-    if (isCompleted || isPending) return;
+    console.log('[DualVideoPlayer] handleComplete called', { isCompleted, isPending });
+    if (isCompleted || isPending) {
+      console.log('[DualVideoPlayer] Blocked: already completed or pending');
+      return;
+    }
+    console.log('[DualVideoPlayer] Calling onComplete');
     onComplete?.();
     haptic.notification('success');
   };
@@ -216,16 +221,19 @@ export function DualVideoPlayer({
       )}
 
       {/* Complete Button */}
-      {!isCompleted && (
-        <button
-          onClick={handleComplete}
-          disabled={isPending}
-          className="w-full mt-4 px-6 py-4 rounded-xl bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white font-bold shadow-lg hover:shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <CheckCircle className="w-5 h-5" />
-          <span>{isPending ? 'Сохранение...' : 'Я посмотрел(а) видео'}</span>
-        </button>
-      )}
+      {(() => {
+        console.log('[DualVideoPlayer] Render button area', { isCompleted, isPending });
+        return !isCompleted && (
+          <button
+            onClick={handleComplete}
+            disabled={isPending}
+            className="w-full mt-4 px-6 py-4 rounded-xl bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white font-bold shadow-lg hover:shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <CheckCircle className="w-5 h-5" />
+            <span>{isPending ? 'Сохранение...' : 'Я посмотрел(а) видео'}</span>
+          </button>
+        );
+      })()}
 
       {isCompleted && (
         <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-green-500/10 to-green-600/10 border border-green-500/30 flex items-center gap-3">

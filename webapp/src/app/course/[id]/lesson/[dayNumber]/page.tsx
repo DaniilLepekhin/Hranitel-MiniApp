@@ -63,6 +63,13 @@ export default function LessonPage({
   };
 
   const isCompleted = course?.progress?.completedDays?.includes(lesson?.dayNumber || 0);
+  
+  console.log('[LessonPage] Render state:', {
+    dayNumber: lesson?.dayNumber,
+    completedDays: course?.progress?.completedDays,
+    isCompleted,
+    isPending: updateProgressMutation.isPending,
+  });
 
   if (isLoading) {
     return (
