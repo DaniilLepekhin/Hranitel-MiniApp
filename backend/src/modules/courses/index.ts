@@ -201,30 +201,20 @@ export const coursesModule = new Elysia({ prefix: '/courses', tags: ['Courses'] 
       },
     }
   )
-  // TEMPORARILY: Use authMiddleware (JWT) until frontend cache updates with initData support
+  // Update course progress (requires authentication)
   .use(authMiddleware)
   .post(
     '/:id/progress',
-    async ({ params, body, user, set }) => {
+    async ({ params, body, set, user }) => {
       const { id } = params;
       const { currentDay, completedDay } = body;
       
       logger.info({ 
-        userId: user?.id,
+        userId: user.id,
         courseId: id, 
         currentDay, 
         completedDay,
       }, 'Progress update requested');
-      
-      if (!user) {
-        logger.error({ courseId: id }, 'Progress update failed: no user');
-        set.status = 401;
-        return {
-          success: false,
-          error: 'Unauthorized',
-          message: 'Authentication required',
-        };
-      }
 
       // Check if course exists
       const [course] = await db
@@ -242,7 +232,7 @@ export const coursesModule = new Elysia({ prefix: '/courses', tags: ['Courses'] 
       }
 
       // Check access
-      if (course.isPremium && !user!.isPro) {
+      if (course.isPremium && !user.isPro) {
         set.status = 403;
         return {
           success: false,
@@ -286,7 +276,7 @@ export const coursesModule = new Elysia({ prefix: '/courses', tags: ['Courses'] 
         .from(courseProgress)
         .where(
           and(
-            eq(courseProgress.userId, user!.id),
+            eq(courseProgress.userId, user.id),
             eq(courseProgress.courseId, id)
           )
         )
@@ -314,7 +304,7 @@ export const coursesModule = new Elysia({ prefix: '/courses', tags: ['Courses'] 
       } else {
         // Create
         await db.insert(courseProgress).values({
-          userId: user!.id,
+          userId: user.id,
           courseId: id,
           currentDay: currentDay || 1,
           completedDays,
@@ -326,15 +316,15 @@ export const coursesModule = new Elysia({ prefix: '/courses', tags: ['Courses'] 
       if (isNewCompletion && completedDay) {
         try {
           const lessonId = `${id}:day${completedDay}`;
-          await energiesService.awardLessonView(user!.id, lessonId);
+          await energiesService.awardLessonView(user.id, lessonId);
           logger.info(
-            { userId: user!.id, courseId: id, dayNumber: completedDay },
+            { userId: user.id, courseId: id, dayNumber: completedDay },
             'Awarded 20 energy for lesson completion'
           );
         } catch (error) {
           // Не падаем, если начисление не удалось
           logger.error(
-            { error, userId: user!.id, courseId: id, dayNumber: completedDay },
+            { error, userId: user.id, courseId: id, dayNumber: completedDay },
             'Failed to award energy for lesson'
           );
         }
@@ -370,7 +360,7 @@ export const coursesModule = new Elysia({ prefix: '/courses', tags: ['Courses'] 
         .from(favorites)
         .where(
           and(
-            eq(favorites.userId, user!.id),
+            eq(favorites.userId, user.id),
             eq(favorites.courseId, id)
           )
         )
@@ -388,7 +378,7 @@ export const coursesModule = new Elysia({ prefix: '/courses', tags: ['Courses'] 
       } else {
         // Add to favorites
         await db.insert(favorites).values({
-          userId: user!.id,
+          userId: user.id,
           courseId: id,
         });
 
@@ -423,10 +413,10 @@ export const coursesModule = new Elysia({ prefix: '/courses', tags: ['Courses'] 
           courseProgress,
           and(
             eq(courseProgress.courseId, courses.id),
-            eq(courseProgress.userId, user!.id)
+            eq(courseProgress.userId, user.id)
           )
         )
-        .where(eq(favorites.userId, user!.id));
+        .where(eq(favorites.userId, user.id));
 
       return {
         success: true,
