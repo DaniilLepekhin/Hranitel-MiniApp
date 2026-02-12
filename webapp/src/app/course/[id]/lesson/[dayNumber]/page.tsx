@@ -21,6 +21,8 @@ export default function LessonPage({
   const { data, isLoading } = useQuery({
     queryKey: ['course', id],
     queryFn: () => coursesApi.get(id),
+    refetchOnMount: 'always', // Always fetch fresh data when component mounts
+    staleTime: 0, // Consider data stale immediately
   });
 
   const updateProgressMutation = useMutation({
@@ -34,11 +36,20 @@ export default function LessonPage({
       
       return coursesApi.updateProgress(id, { ...data, initData });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['course', id] });
+    onSuccess: async () => {
+      console.log('[LessonPage] Progress updated successfully');
       haptic.notification('success');
-      // Redirect back to course after completing
-      setTimeout(() => router.push(`/course/${id}`), 1000);
+      // Wait for data to be refetched before redirecting
+      await queryClient.invalidateQueries({ queryKey: ['course', id] });
+      console.log('[LessonPage] Queries invalidated, refetching...');
+      await queryClient.refetchQueries({ queryKey: ['course', id] });
+      console.log('[LessonPage] Data refetched, redirecting...');
+      // Redirect back to course after data is updated
+      setTimeout(() => router.push(`/course/${id}`), 500);
+    },
+    onError: (error) => {
+      console.error('[LessonPage] Failed to update progress:', error);
+      haptic.notification('error');
     },
   });
 
