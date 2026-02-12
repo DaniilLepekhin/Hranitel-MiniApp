@@ -211,11 +211,13 @@ export const coursesModule = new Elysia({ prefix: '/courses', tags: ['Courses'] 
       logger.info({ 
         courseId: id, 
         currentDay, 
-        completedDay, 
+        completedDay,
+        FULL_BODY: body,
+        bodyKeys: Object.keys(body),
         hasInitData: !!initData,
         initDataLength: initData?.length || 0,
         initDataSample: initData ? initData.substring(0, 50) + '...' : 'NULL'
-      }, 'Progress update requested');
+      }, 'Progress update requested - FULL BODY DUMP');
       
       // Validate Telegram initData
       const isValid = validateTelegramInitData(initData || '');
