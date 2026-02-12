@@ -47,14 +47,38 @@ export default function RootLayout({
                 window.location.reload();
               }
 
-              // Unregister service worker if it exists (cleanup)
+              // Register service worker to clear all caches
               if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                  for(let registration of registrations) {
-                    registration.unregister().then(function() {
-                      console.log('[SW] Service worker unregistered');
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then(function(registration) {
+                      console.log('[SW] Registered with scope:', registration.scope);
+                      
+                      // Force update immediately
+                      registration.update();
+                      
+                      // If there's a waiting worker, skip waiting and reload
+                      if (registration.waiting) {
+                        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                        window.location.reload();
+                      }
+                      
+                      // Listen for new service worker
+                      registration.addEventListener('updatefound', function() {
+                        const newWorker = registration.installing;
+                        if (newWorker) {
+                          newWorker.addEventListener('statechange', function() {
+                            if (newWorker.state === 'activated') {
+                              console.log('[SW] New service worker activated, reloading...');
+                              window.location.reload();
+                            }
+                          });
+                        }
+                      });
+                    })
+                    .catch(function(error) {
+                      console.log('[SW] Registration failed:', error);
                     });
-                  }
                 });
               }
             `,

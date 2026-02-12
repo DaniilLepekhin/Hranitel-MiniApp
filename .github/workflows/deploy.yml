@@ -45,8 +45,8 @@ jobs:
         working-directory: ./webapp
         run: npm run build
         env:
-          NEXT_PUBLIC_API_URL: https://app.successkod.com
-          NEXT_PUBLIC_WEBAPP_URL: https://app.successkod.com
+          NEXT_PUBLIC_API_URL: https://hranitel.daniillepekhin.com
+          NEXT_PUBLIC_WEBAPP_URL: https://hranitel.daniillepekhin.com
 
   deploy:
     runs-on: ubuntu-latest
@@ -90,10 +90,10 @@ jobs:
             export REDIS_URL="${{ secrets.REDIS_URL }}"
             export PORT="3002"
             export NODE_ENV="production"
-            export WEBAPP_URL="https://app.successkod.com"
+            export WEBAPP_URL="https://hranitel.daniillepekhin.com"
             export CORS_ORIGIN="${{ secrets.CORS_ORIGIN }}"
             export TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}"
-            export API_URL="https://app.successkod.com"
+            export API_URL="https://hranitel.daniillepekhin.com"
             export TELEGRAM_WEBHOOK_SECRET="${{ secrets.TELEGRAM_WEBHOOK_SECRET }}"
             export TELEGRAM_BOT_USERNAME="${{ secrets.TELEGRAM_BOT_USERNAME }}"
             export OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}"
@@ -270,19 +270,13 @@ jobs:
             # Remove .env.local to use .env.production from repo
             rm -f .env.local
 
-            # Clean npm cache and node_modules (force remove)
-            echo "🧹 Cleaning npm cache..."
-            rm -rf node_modules .next package-lock.json
-            npm cache clean --force
-
-            # Ensure node_modules is completely removed
-            if [ -d "node_modules" ]; then
-              find node_modules -type d -exec chmod 755 {} \; 2>/dev/null || true
-              rm -rf node_modules
-            fi
-
-            # Install dependencies (including devDependencies for TypeScript)
-            npm install --include=dev
+            # Clean build artifacts (keep node_modules for faster builds)
+            echo "🧹 Cleaning build artifacts..."
+            rm -rf .next
+            
+            # Install/update dependencies
+            echo "📦 Installing dependencies..."
+            npm ci --include=dev 2>/dev/null || npm install --include=dev
 
             # Build frontend
             echo "🏗️ Building frontend..."
@@ -290,8 +284,15 @@ jobs:
 
             # Copy static files for standalone mode (required by Next.js)
             echo "📦 Copying static files..."
-            cp -r .next/static .next/standalone/.next/static
-            cp -r public .next/standalone/public
+            cp -r .next/static .next/standalone/.next/static 2>/dev/null || echo "⚠️ Static files already copied"
+            cp -r public .next/standalone/public 2>/dev/null || echo "⚠️ Public files already copied"
+            
+            # Verify critical files exist
+            if [ ! -f ".next/standalone/public/sw.js" ]; then
+              echo "❌ Service worker not found!"
+              exit 1
+            fi
+            echo "✅ Service worker verified"
 
             # Restart frontend service (port 3003)
             echo "🔄 Restarting frontend..."
