@@ -8,6 +8,16 @@ import { coursesApi } from '@/lib/api';
 import { LessonRenderer, type LessonData } from '@/components/lessons';
 import { useTelegram } from '@/hooks/useTelegram';
 
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp?: {
+        initData?: string;
+      };
+    };
+  }
+}
+
 export default function LessonPage({
   params,
 }: {
@@ -16,7 +26,7 @@ export default function LessonPage({
   const router = useRouter();
   const { id, dayNumber } = use(params);
   const queryClient = useQueryClient();
-  const { haptic, initData } = useTelegram();
+  const { haptic } = useTelegram();
 
   const { data, isLoading } = useQuery({
     queryKey: ['course', id],
@@ -24,8 +34,16 @@ export default function LessonPage({
   });
 
   const updateProgressMutation = useMutation({
-    mutationFn: (data: { currentDay?: number; completedDay?: number }) =>
-      coursesApi.updateProgress(id, { ...data, initData: initData || '' }),
+    mutationFn: (data: { currentDay?: number; completedDay?: number }) => {
+      // Get initData directly from Telegram WebApp
+      const initData = typeof window !== 'undefined' 
+        ? window.Telegram?.WebApp?.initData || ''
+        : '';
+      
+      console.log('[LessonPage] Sending progress update with initData:', initData ? 'EXISTS' : 'NULL');
+      
+      return coursesApi.updateProgress(id, { ...data, initData });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['course', id] });
       haptic.notification('success');
