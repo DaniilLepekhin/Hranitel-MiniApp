@@ -44,6 +44,11 @@ export default function LessonPage({
       console.log('[LessonPage] Queries invalidated, refetching...');
       await queryClient.refetchQueries({ queryKey: ['course', id] });
       console.log('[LessonPage] Data refetched - button should now hide');
+      
+      // ВАЖНО: Обновляем баланс энергии после завершения урока
+      await queryClient.invalidateQueries({ queryKey: ['energies-balance'] });
+      console.log('[LessonPage] Energy balance invalidated - will refetch on next view');
+      
       // Don't redirect - let user see the completion badge and choose when to go back
     },
     onError: (error) => {

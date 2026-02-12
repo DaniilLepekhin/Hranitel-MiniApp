@@ -151,6 +151,15 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
   // Проверяем структуру ответа
   const userBalance = balanceData?.success === true ? (balanceData?.balance ?? 0) : 0;
   
+  // Debug: показываем user ID и баланс
+  console.log('[RatingsTab] Current user:', {
+    userId: user?.id,
+    username: user?.username,
+    firstName: user?.firstName,
+    balance: userBalance,
+    balanceData,
+  });
+  
   // Debug: показываем статус загрузки
   if (balanceLoading) {
     console.log('[RatingsTab] Balance is loading...');
