@@ -127,7 +127,7 @@ export const decadesModule = new Elysia({ prefix: '/decades', tags: ['Decades'] 
   .post(
     '/join',
     async ({ body, set }) => {
-      const { initData, city } = body;
+      const { initData } = body;
 
       if (!validateTelegramInitData(initData)) {
         set.status = 401;
@@ -155,13 +155,10 @@ export const decadesModule = new Elysia({ prefix: '/decades', tags: ['Decades'] 
         };
       }
 
-      // Если передан город - обновить в БД
-      if (city) {
-        await db
-          .update(users)
-          .set({ city, updatedAt: new Date() })
-          .where(eq(users.telegramId, String(tgUser.id)));
-      }
+      // ⚠️ ВАЖНО: Не принимаем параметр city из запроса!
+      // Распределение происходит ТОЛЬКО по городу из профиля пользователя.
+      // Пользователь должен СНАЧАЛА установить город в профиле, ПОТОМ вступить в десятку.
+      // Это исключает возможность попадания в десятку другого города.
 
       const result = await decadesService.assignUserToDecade(tgUser.id);
       return result;
@@ -169,11 +166,10 @@ export const decadesModule = new Elysia({ prefix: '/decades', tags: ['Decades'] 
     {
       body: t.Object({
         initData: t.String(),
-        city: t.Optional(t.String()),
       }),
       detail: {
         summary: 'Join a decade',
-        description: 'Assign user to a decade in their city',
+        description: 'Assign user to a decade based on their profile city (user must set city in profile first)',
       },
     }
   )
