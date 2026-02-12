@@ -59,6 +59,7 @@ export function ChatsTab() {
   const [selectedDecadeCity, setSelectedDecadeCity] = useState<string>('');
   const [decadeError, setDecadeError] = useState<string>('');
   const [myDecadeLink, setMyDecadeLink] = useState<string | null>(null); // Ссылка на мою десятку после успешного join
+  const [showCityConfirmation, setShowCityConfirmation] = useState(false); // Подтверждение города перед вступлением
 
   // Fetch my decade info - запрашиваем при загрузке чтобы показать ссылку если уже в десятке
   const { data: myDecadeData } = useQuery<{ success: boolean; decade: any | null }>({
@@ -755,10 +756,9 @@ export function ChatsTab() {
                   return;
                 }
 
-                // Сценарий 2: У пользователя есть город → сразу распределить
+                // Сценарий 2: У пользователя есть город → показать подтверждение
                 if (user?.city) {
-                  setDecadeError('');
-                  joinDecadeMutation.mutate(undefined);
+                  setShowCityConfirmation(true);
                   return;
                 }
 
@@ -991,6 +991,133 @@ export function ChatsTab() {
                       {joinDecadeMutation.isPending ? 'Распределение...' : 'Вступить в десятку'}
                     </button>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Модальное окно подтверждения города */}
+            {showCityConfirmation && user?.city && (
+              <div
+                className="mt-2 p-4 rounded-lg"
+                style={{
+                  background: 'rgba(247, 241, 232, 0.95)',
+                  border: '1px solid #d93547',
+                }}
+              >
+                {/* Заголовок */}
+                <h4
+                  style={{
+                    fontFamily: '"TT Nooks", Georgia, serif',
+                    fontSize: '18px',
+                    color: '#2d2620',
+                    marginBottom: '12px',
+                    textAlign: 'center',
+                  }}
+                >
+                  Подтвердите город
+                </h4>
+
+                {/* Текст */}
+                <p
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontSize: '13px',
+                    color: '#2d2620',
+                    marginBottom: '8px',
+                    textAlign: 'center',
+                  }}
+                >
+                  Вы вступите в десятку города:
+                </p>
+
+                {/* Город крупно */}
+                <p
+                  style={{
+                    fontFamily: '"TT Nooks", Georgia, serif',
+                    fontSize: '24px',
+                    color: '#9c1723',
+                    fontWeight: 600,
+                    marginBottom: '12px',
+                    textAlign: 'center',
+                  }}
+                >
+                  {user.city}
+                </p>
+
+                {/* Подсказка */}
+                <p
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontSize: '11px',
+                    color: '#6b5a4a',
+                    marginBottom: '16px',
+                    textAlign: 'center',
+                  }}
+                >
+                  (согласно вашему профилю)
+                </p>
+
+                {/* Предупреждение */}
+                <div
+                  style={{
+                    background: 'rgba(217, 53, 71, 0.1)',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    marginBottom: '16px',
+                  }}
+                >
+                  <p
+                    style={{
+                      fontFamily: 'Gilroy, sans-serif',
+                      fontSize: '12px',
+                      color: '#9c1723',
+                      textAlign: 'center',
+                    }}
+                  >
+                    Если это не ваш город, измените его в Профиле перед вступлением
+                  </p>
+                </div>
+
+                {/* Кнопки */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      haptic.impact('light');
+                      setShowCityConfirmation(false);
+                      // TODO: Переключение на вкладку "Профиль" (требует передачи функции из родительского компонента)
+                    }}
+                    className="flex-1 py-3 rounded-lg active:scale-[0.98] transition-transform"
+                    style={{
+                      background: 'white',
+                      border: '1px solid #d93547',
+                      fontFamily: 'Gilroy, sans-serif',
+                      fontSize: '13px',
+                      color: '#9c1723',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Изменить город
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      haptic.impact('medium');
+                      setShowCityConfirmation(false);
+                      setDecadeError('');
+                      joinDecadeMutation.mutate(undefined);
+                    }}
+                    disabled={joinDecadeMutation.isPending}
+                    className="flex-1 py-3 rounded-lg active:scale-[0.98] transition-transform disabled:opacity-50"
+                    style={{
+                      background: 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
+                      fontFamily: 'Gilroy, sans-serif',
+                      fontSize: '13px',
+                      color: '#f7f1e8',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {joinDecadeMutation.isPending ? 'Распределение...' : 'Продолжить'}
+                  </button>
                 </div>
               </div>
             )}
