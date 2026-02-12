@@ -2,12 +2,18 @@
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import dynamic from 'next/dynamic';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { gamificationApi, energiesApi, ratingsApi } from '@/lib/api';
 import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
-import { EnergyHistoryModal } from '@/components/EnergyHistoryModal';
 import { Clock } from 'lucide-react';
+
+// 🚀 ОПТИМИЗАЦИЯ: Lazy load модального окна (экономия ~20 KB)
+const EnergyHistoryModal = dynamic(
+  () => import('@/components/EnergyHistoryModal').then(mod => ({ default: mod.EnergyHistoryModal })),
+  { ssr: false }
+);
 
 interface RatingsTabProps {
   onShopClick?: () => void;

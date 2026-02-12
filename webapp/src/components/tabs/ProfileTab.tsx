@@ -3,13 +3,19 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import dynamic from 'next/dynamic';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { energiesApi, usersApi } from '@/lib/api';
 import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
-import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { EnergyHistory } from '@/components/EnergyHistory';
 import { Edit2, X, Check } from 'lucide-react';
+
+// 🚀 ОПТИМИЗАЦИЯ: Lazy load модального окна подтверждения
+const ConfirmModal = dynamic(
+  () => import('@/components/ui/ConfirmModal').then(mod => ({ default: mod.ConfirmModal })),
+  { ssr: false }
+);
 
 export function ProfileTab() {
   const router = useRouter();
