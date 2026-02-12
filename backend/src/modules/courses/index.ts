@@ -198,11 +198,21 @@ export const coursesModule = new Elysia({ prefix: '/courses', tags: ['Courses'] 
       const { id } = params;
       const { currentDay, completedDay, initData } = body;
       
-      logger.info({ courseId: id, currentDay, completedDay, hasInitData: !!initData }, 'Progress update requested');
+      logger.info({ 
+        courseId: id, 
+        currentDay, 
+        completedDay, 
+        hasInitData: !!initData,
+        initDataLength: initData?.length || 0,
+        initDataSample: initData ? initData.substring(0, 50) + '...' : 'NULL'
+      }, 'Progress update requested');
       
       // Validate Telegram initData
-      if (!initData || !validateTelegramInitData(initData)) {
-        logger.error({ courseId: id }, 'Progress update failed: invalid initData');
+      const isValid = validateTelegramInitData(initData || '');
+      logger.info({ courseId: id, isValid, hasInitData: !!initData }, 'InitData validation result');
+      
+      if (!initData || !isValid) {
+        logger.error({ courseId: id, hasInitData: !!initData, isValid }, 'Progress update failed: invalid initData');
         set.status = 401;
         return {
           success: false,

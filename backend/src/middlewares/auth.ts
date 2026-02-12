@@ -10,6 +10,13 @@ import type { JWTPayloadSpec } from '@elysiajs/jwt';
 // Validate Telegram WebApp initData
 export function validateTelegramInitData(initData: string): boolean {
   try {
+    logger.info({ 
+      hasInitData: !!initData, 
+      initDataLength: initData?.length || 0,
+      hasBotToken: !!config.TELEGRAM_BOT_TOKEN,
+      nodeEnv: config.NODE_ENV
+    }, 'validateTelegramInitData called');
+    
     // 🔒 SECURITY: In production, BOT_TOKEN is REQUIRED
     if (!config.TELEGRAM_BOT_TOKEN) {
       if (config.NODE_ENV === 'production') {
@@ -23,8 +30,13 @@ export function validateTelegramInitData(initData: string): boolean {
 
     const urlParams = new URLSearchParams(initData);
     const hash = urlParams.get('hash');
+    
+    logger.info({ hasHash: !!hash }, 'InitData hash check');
 
-    if (!hash) return false;
+    if (!hash) {
+      logger.error('InitData validation failed: no hash');
+      return false;
+    }
 
     urlParams.delete('hash');
 
@@ -46,7 +58,14 @@ export function validateTelegramInitData(initData: string): boolean {
       .digest('hex');
 
     // Verify hash
+    logger.info({ 
+      calculatedHash: calculatedHash.substring(0, 20) + '...', 
+      providedHash: hash.substring(0, 20) + '...',
+      matches: calculatedHash === hash
+    }, 'Hash comparison');
+    
     if (calculatedHash !== hash) {
+      logger.error('InitData validation failed: hash mismatch');
       return false;
     }
 
