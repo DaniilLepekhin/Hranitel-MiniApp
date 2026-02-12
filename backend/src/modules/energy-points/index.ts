@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { energiesService as energyPointsService } from './service';
 import { logger } from '@/utils/logger';
-import { authMiddleware } from '@/middlewares/auth';
+import { authMiddleware, getUserFromToken } from '@/middlewares/auth';
 
 export const energyPointsRoutes = new Elysia({ prefix: '/api/v1/energies', tags: ['Energy Points'] })
   // Protected routes - require authentication
@@ -13,20 +13,24 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/v1/energies', tags:
    */
   .get(
     '/balance',
-    async ({ user }) => {
+    async ({ headers }) => {
       try {
-        // DEBUG: Логируем user для отладки
+        // Получаем пользователя из токена (authMiddleware может не работать)
+        const user = await getUserFromToken(headers.authorization);
+        
         logger.info('[Energies API] /balance called, user:', user ? { id: user.id, username: user.username } : 'NULL');
         
         if (!user) {
-          logger.error('[Energies API] User is null/undefined in /balance endpoint');
+          logger.error('[Energies API] User not authenticated');
           return {
             success: false,
-            error: 'User not authenticated - user object is null',
+            error: 'User not authenticated',
           };
         }
 
         const balance = await energyPointsService.getBalance(user.id);
+        
+        logger.info(`[Energies API] Balance for user ${user.username}: ${balance}`);
 
         return {
           success: true,
@@ -54,14 +58,27 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/v1/energies', tags:
    */
   .get(
     '/history',
-    async ({ user, query }) => {
+    async ({ headers, query }) => {
       try {
+        // Получаем пользователя из токена
+        const user = await getUserFromToken(headers.authorization);
+        
+        if (!user) {
+          logger.error('[Energies API] User not authenticated in /history');
+          return {
+            success: false,
+            error: 'User not authenticated',
+          };
+        }
+        
         const { limit } = query;
 
         const history = await energyPointsService.getHistory(
-          user!.id,
+          user.id,
           limit ? parseInt(limit) : 50
         );
+        
+        logger.info(`[Energies API] History for user ${user.username}: ${history.length} transactions`);
 
         return {
           success: true,
