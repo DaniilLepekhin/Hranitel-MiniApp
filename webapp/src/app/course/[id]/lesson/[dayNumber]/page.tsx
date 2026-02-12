@@ -61,18 +61,20 @@ export default function LessonPage({
     }
   };
 
-  // Оптимистичное обновление: считаем урок завершённым, если мутация в процессе
-  // или если урок уже в списке completedDays
-  const isCompleted = 
-    updateProgressMutation.isPending || 
-    course?.progress?.completedDays?.includes(lesson?.dayNumber || 0);
+  // Урок считается завершённым, если:
+  // 1. Он уже есть в completedDays с сервера
+  // 2. Мутация успешно завершилась (isSuccess)
+  // 3. Мутация в процессе (isPending) - для оптимистичного обновления
+  const isAlreadyCompleted = course?.progress?.completedDays?.includes(lesson?.dayNumber || 0);
+  const isCompleted = isAlreadyCompleted || updateProgressMutation.isSuccess || updateProgressMutation.isPending;
   
   console.log('[LessonPage] Render state:', {
     dayNumber: lesson?.dayNumber,
     completedDays: course?.progress?.completedDays,
+    isAlreadyCompleted,
     isCompleted,
     isPending: updateProgressMutation.isPending,
-    optimisticComplete: updateProgressMutation.isPending,
+    isSuccess: updateProgressMutation.isSuccess,
   });
 
   if (isLoading) {
@@ -144,14 +146,29 @@ export default function LessonPage({
         />
       </div>
 
-      {/* Completion Status (if already completed) */}
-      {isCompleted && !updateProgressMutation.isPending && (
-        <div className="fixed bottom-4 left-4 right-4 p-4 rounded-xl bg-gradient-to-r from-green-500/90 to-green-600/90 backdrop-blur-sm border border-green-400/30 shadow-lg animate-in slide-in-from-bottom duration-300">
+      {/* Show ONLY ONE banner at a time - priority: loading > success */}
+      
+      {/* Loading indicator during mutation - показываем пока идёт запрос */}
+      {updateProgressMutation.isPending && (
+        <div className="fixed bottom-4 left-4 right-4 p-4 rounded-xl bg-gradient-to-r from-[#d93547]/90 to-[#9c1723]/90 backdrop-blur-sm border border-[#d93547]/30 shadow-lg z-50">
+          <div className="flex items-center gap-3">
+            <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin flex-shrink-0" />
+            <div>
+              <p className="font-bold text-white">Сохранение прогресса...</p>
+              <p className="text-white/90 text-sm">Начисляем Energy Points</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Completion Status - показываем ТОЛЬКО когда НЕ идёт загрузка И урок завершён */}
+      {!updateProgressMutation.isPending && isCompleted && (
+        <div className="fixed bottom-4 left-4 right-4 p-4 rounded-xl bg-gradient-to-r from-green-500/90 to-green-600/90 backdrop-blur-sm border border-green-400/30 shadow-lg animate-in slide-in-from-bottom duration-300 z-50">
           <div className="flex items-center gap-3 mb-3">
             <CheckCircle className="w-6 h-6 text-white flex-shrink-0" />
             <div className="flex-1">
               <p className="font-bold text-white">Урок завершён!</p>
-              <p className="text-white/90 text-sm">+20 Energy Points начислено</p>
+              <p className="text-white/90 text-sm">Energy Points уже начислены</p>
             </div>
           </div>
           <button
@@ -160,19 +177,6 @@ export default function LessonPage({
           >
             Вернуться к курсу
           </button>
-        </div>
-      )}
-      
-      {/* Loading indicator during mutation */}
-      {updateProgressMutation.isPending && (
-        <div className="fixed bottom-4 left-4 right-4 p-4 rounded-xl bg-gradient-to-r from-[#d93547]/90 to-[#9c1723]/90 backdrop-blur-sm border border-[#d93547]/30 shadow-lg">
-          <div className="flex items-center gap-3">
-            <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin flex-shrink-0" />
-            <div>
-              <p className="font-bold text-white">Сохранение прогресса...</p>
-              <p className="text-white/90 text-sm">Начисляем Energy Points</p>
-            </div>
-          </div>
         </div>
       )}
     </div>
