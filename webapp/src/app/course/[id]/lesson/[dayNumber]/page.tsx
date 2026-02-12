@@ -16,7 +16,7 @@ export default function LessonPage({
   const router = useRouter();
   const { id, dayNumber } = use(params);
   const queryClient = useQueryClient();
-  const { haptic } = useTelegram();
+  const { haptic, initData } = useTelegram();
 
   const { data, isLoading } = useQuery({
     queryKey: ['course', id],
@@ -25,7 +25,7 @@ export default function LessonPage({
 
   const updateProgressMutation = useMutation({
     mutationFn: (data: { currentDay?: number; completedDay?: number }) =>
-      coursesApi.updateProgress(id, data),
+      coursesApi.updateProgress(id, { ...data, initData: initData || '' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['course', id] });
       haptic.notification('success');

@@ -191,35 +191,55 @@ export const coursesModule = new Elysia({ prefix: '/courses', tags: ['Courses'] 
       },
     }
   )
-  // Protected routes
-  .onBeforeHandle(({ headers, path }) => {
-    if (path.includes('/progress')) {
-      logger.info('[BEFORE AUTH] Progress request headers:', {
-        authorization: headers.authorization ? `${headers.authorization.substring(0, 30)}...` : 'NULL',
-        path,
-      });
-    }
-  })
-  .use(authMiddleware)
-  // Update course progress
+  // Update course progress (WITHOUT authMiddleware - uses initData)
   .post(
     '/:id/progress',
-    async ({ params, body, user, set }) => {
+    async ({ params, body, set }) => {
       const { id } = params;
-      const { currentDay, completedDay } = body;
+      const { currentDay, completedDay, initData } = body;
       
-      logger.info({ userId: user?.id, courseId: id, currentDay, completedDay }, 'Progress update requested');
+      logger.info({ courseId: id, currentDay, completedDay, hasInitData: !!initData }, 'Progress update requested');
       
-      // CRITICAL: Check if user is authenticated
-      if (!user) {
-        logger.error({ courseId: id, currentDay, completedDay }, 'Progress update failed: user not authenticated');
+      // Validate Telegram initData
+      if (!initData || !validateTelegramInitData(initData)) {
+        logger.error({ courseId: id }, 'Progress update failed: invalid initData');
         set.status = 401;
         return {
           success: false,
           error: 'Unauthorized',
-          message: 'Authentication required',
+          message: 'Invalid Telegram data',
         };
       }
+      
+      // Parse user from initData
+      const tgUser = parseTelegramUser(initData);
+      if (!tgUser?.id) {
+        logger.error({ courseId: id }, 'Progress update failed: could not parse user');
+        set.status = 401;
+        return {
+          success: false,
+          error: 'Unauthorized',
+          message: 'Could not parse user data',
+        };
+      }
+      
+      // Get user from database
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.telegramId, String(tgUser.id)))
+        .limit(1);
+      
+      if (!user) {
+        logger.error({ telegramId: tgUser.id, courseId: id }, 'Progress update failed: user not found');
+        set.status = 404;
+        return {
+          success: false,
+          error: 'User not found',
+        };
+      }
+      
+      logger.info({ userId: user.id, courseId: id, currentDay, completedDay }, 'Progress update - user authenticated via initData');
 
       // Check if course exists
       const [course] = await db

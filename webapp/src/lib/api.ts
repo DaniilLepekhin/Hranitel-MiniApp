@@ -200,7 +200,7 @@ export const coursesApi = {
     api.get<{ success: boolean; courses: Course[] }>('/courses', { params: { category } }),
   get: (id: string) =>
     api.get<{ success: boolean; course: CourseWithDays }>(`/courses/${id}`),
-  updateProgress: (id: string, data: { currentDay?: number; completedDay?: number }) =>
+  updateProgress: (id: string, data: { currentDay?: number; completedDay?: number; initData?: string }) =>
     api.post<{ success: boolean }>(`/courses/${id}/progress`, data),
   toggleFavorite: (id: string) =>
     api.post<{ success: boolean; isFavorite: boolean }>(`/courses/${id}/favorite`),
