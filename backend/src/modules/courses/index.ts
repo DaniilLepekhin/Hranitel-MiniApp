@@ -192,6 +192,14 @@ export const coursesModule = new Elysia({ prefix: '/courses', tags: ['Courses'] 
     }
   )
   // Protected routes
+  .onBeforeHandle(({ headers, path }) => {
+    if (path.includes('/progress')) {
+      logger.info('[BEFORE AUTH] Progress request headers:', {
+        authorization: headers.authorization ? `${headers.authorization.substring(0, 30)}...` : 'NULL',
+        path,
+      });
+    }
+  })
   .use(authMiddleware)
   // Update course progress
   .post(
