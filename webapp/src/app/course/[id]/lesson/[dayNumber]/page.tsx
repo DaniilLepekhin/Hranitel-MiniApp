@@ -44,7 +44,7 @@ export default function LessonPage({
       progressUpdatedRef.current = true;
       updateProgressMutation.mutate({ currentDay: lesson.dayNumber });
     }
-  }, [lesson?.dayNumber, updateProgressMutation]); // Run when dayNumber changes
+  }, [lesson?.dayNumber]); // Only re-run if dayNumber changes
 
   const handleComplete = () => {
     if (lesson) {
