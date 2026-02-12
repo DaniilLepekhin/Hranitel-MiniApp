@@ -201,6 +201,17 @@ export const coursesModule = new Elysia({ prefix: '/courses', tags: ['Courses'] 
       const { currentDay, completedDay } = body;
       
       logger.info({ userId: user?.id, courseId: id, currentDay, completedDay }, 'Progress update requested');
+      
+      // CRITICAL: Check if user is authenticated
+      if (!user) {
+        logger.error({ courseId: id, currentDay, completedDay }, 'Progress update failed: user not authenticated');
+        set.status = 401;
+        return {
+          success: false,
+          error: 'Unauthorized',
+          message: 'Authentication required',
+        };
+      }
 
       // Check if course exists
       const [course] = await db
