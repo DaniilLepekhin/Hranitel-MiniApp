@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect, memo } from 'react';
+import { useState, useCallback, useMemo, useEffect, memo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { gamificationApi, energiesApi, ratingsApi } from '@/lib/api';
@@ -124,18 +125,18 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     return midnight.getTime() - now.getTime();
   };
 
-  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем баланс энергий пользователя
-  const { data: balanceData, isLoading: balanceLoading, error: balanceError } = useQuery({
-    queryKey: ['energies-balance', user?.id],
+  // 🚀 ОПТИМИЗАЦИЯ: Batch API - все данные рейтингов в одном запросе
+  const { data: ratingsData, isLoading: ratingsLoading, error: ratingsError } = useQuery({
+    queryKey: ['ratingsAllData', user?.id],
     queryFn: async () => {
-      console.log('[RatingsTab] Fetching energy balance for user:', user?.id);
-      const result = await energiesApi.getBalance();
-      console.log('[RatingsTab] Energy balance response:', result);
+      console.log('[RatingsTab] Fetching all ratings data for user:', user?.id);
+      const result = await ratingsApi.getAllData(user!.id);
+      console.log('[RatingsTab] All ratings data response:', result);
       return result;
     },
     enabled: !!user && !!token,
     retry: 2,
-    staleTime: 0, // ВСЕГДА обновляем - никакого кэша!
+    staleTime: 0, // ВСЕГДА обновляем баланс
     gcTime: 0, // НЕ храним в кэше
     refetchOnMount: 'always', // ВСЕГДА обновлять при монтировании
     refetchOnWindowFocus: true, // Обновлять при возврате в приложение
@@ -143,77 +144,30 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
 
   // Логирование для отладки
   useEffect(() => {
-    if (balanceData) {
-      console.log('[RatingsTab] Balance data updated:', balanceData);
+    if (ratingsData) {
+      console.log('[RatingsTab] Ratings data updated:', ratingsData);
     }
-    if (balanceError) {
-      console.error('[RatingsTab] Balance error:', balanceError);
+    if (ratingsError) {
+      console.error('[RatingsTab] Ratings error:', ratingsError);
     }
-  }, [balanceData, balanceError]);
+  }, [ratingsData, ratingsError]);
 
-  // 🚀 Получаем историю начислений энергий (загружаем заранее для мгновенного открытия)
-  const { data: historyData, isLoading: historyLoading } = useQuery({
-    queryKey: ['energies-history', user?.id],
-    queryFn: () => energiesApi.getHistory(20), // Последние 20 транзакций
-    enabled: !!user && !!token, // Загружаем сразу, не ждём открытия модального окна
-    retry: 2,
-    staleTime: 60 * 1000, // 1 минута
-    gcTime: 5 * 60 * 1000, // 5 минут в кэше
-  });
-
-  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем общий рейтинг
-  const { data: leaderboardData } = useQuery({
-    queryKey: ['leaderboard', showFullLeaderboard ? 50 : 10],
-    queryFn: () => gamificationApi.leaderboard(showFullLeaderboard ? 50 : 10),
-    enabled: !!user && !!token,
-    retry: 2,
-    staleTime: getStaleTimeUntilMidnight(),
-    gcTime: 24 * 60 * 60 * 1000, // 24 часа в кэше
-    placeholderData: { success: true, leaderboard: [] }, // Показываем пустой массив сразу
-  });
-
-  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем рейтинг городов
-  const { data: cityRatingsData } = useQuery({
-    queryKey: ['city-ratings', showFullCityRatings ? 50 : 5],
-    queryFn: () => ratingsApi.getCityRatings(showFullCityRatings ? 50 : 5),
-    enabled: !!user && !!token,
-    retry: 2,
-    staleTime: getStaleTimeUntilMidnight(),
-    gcTime: 24 * 60 * 60 * 1000, // 24 часа в кэше
-    placeholderData: { success: true, ratings: [] }, // Показываем пустой массив сразу
-  });
-
-  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем рейтинг команд
-  const { data: teamRatingsData } = useQuery({
-    queryKey: ['team-ratings', showFullTeamRatings ? 50 : 5],
-    queryFn: () => ratingsApi.getTeamRatings(showFullTeamRatings ? 50 : 5),
-    enabled: !!user && !!token,
-    retry: 2,
-    staleTime: getStaleTimeUntilMidnight(),
-    gcTime: 24 * 60 * 60 * 1000, // 24 часа в кэше
-    placeholderData: { success: true, ratings: [] }, // Показываем пустой массив сразу
-  });
-
-  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем позицию пользователя
-  const { data: userPositionData } = useQuery({
-    queryKey: ['user-position', user?.id],
-    queryFn: () => ratingsApi.getUserPosition(user!.id),
-    enabled: !!user && !!token,
-    retry: 2,
-    staleTime: getStaleTimeUntilMidnight(),
-    gcTime: 24 * 60 * 60 * 1000, // 24 часа в кэше
-    placeholderData: { success: true, position: undefined as any }, // Показываем undefined сразу
-  });
+  // Извлекаем данные из batch API
+  const userBalance = ratingsData?.data?.balance ?? 0;
+  const historyData = { transactions: ratingsData?.data?.history ?? [] };
+  const historyLoading = ratingsLoading;
+  const leaderboard = ratingsData?.data?.leaderboard ?? [];
+  const cityRatings = ratingsData?.data?.cityRatings ?? [];
+  const teamRatings = ratingsData?.data?.teamRatings ?? [];
+  const userPosition = ratingsData?.data?.userPosition;
+  const balanceLoading = ratingsLoading;
 
   // DEBUG: Детальное логирование баланса
-  console.log('[RatingsTab] DEBUG balanceData FULL:', JSON.stringify(balanceData, null, 2));
+  console.log('[RatingsTab] DEBUG ratingsData FULL:', JSON.stringify(ratingsData, null, 2));
   console.log('[RatingsTab] DEBUG user:', user);
   console.log('[RatingsTab] DEBUG user.id:', user?.id);
   console.log('[RatingsTab] DEBUG token:', token ? 'EXISTS (length: ' + token.length + ')' : 'NULL');
   console.log('[RatingsTab] DEBUG token first 50 chars:', token ? token.substring(0, 50) + '...' : 'NULL');
-  
-  // Проверяем структуру ответа
-  const userBalance = balanceData?.success === true ? (balanceData?.balance ?? 0) : 0;
   
   // Debug: показываем user ID и баланс
   console.log('[RatingsTab] Current user:', {
@@ -221,24 +175,20 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     username: user?.username,
     firstName: user?.firstName,
     balance: userBalance,
-    balanceData,
+    ratingsData,
   });
   
   // Debug: показываем статус загрузки
-  if (balanceLoading) {
-    console.log('[RatingsTab] Balance is loading...');
+  if (ratingsLoading) {
+    console.log('[RatingsTab] Ratings are loading...');
   }
   
   // Показываем ошибку, если есть
-  if (balanceData && !balanceData.success) {
-    console.error('[RatingsTab] API returned error:', (balanceData as any).error);
+  if (ratingsData && !ratingsData.success) {
+    console.error('[RatingsTab] API returned error:', (ratingsData as any).error);
   }
   
   console.log('[RatingsTab] DEBUG userBalance (final):', userBalance);
-  const leaderboard = leaderboardData?.leaderboard || [];
-  const cityRatings = cityRatingsData?.ratings || [];
-  const teamRatings = teamRatingsData?.ratings || [];
-  const userPosition = userPositionData?.position;
 
   // Находим позицию пользователя в рейтинге
   const userRank = userPosition?.globalRank || 0;
@@ -256,6 +206,16 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
   }, [haptic, webApp]);
 
   const displayedLeaderboard = leaderboard;
+
+  // 🚀 ОПТИМИЗАЦИЯ: Virtual List для рейтинга
+  const parentRef = useRef<HTMLDivElement>(null);
+  
+  const rowVirtualizer = useVirtualizer({
+    count: displayedLeaderboard.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 32, // Примерная высота строки
+    overscan: 5, // Рендерить 5 строк сверху/снизу для плавности
+  });
 
   return (
     <div className="min-h-screen w-full bg-[#f7f1e8] relative" style={{ WebkitOverflowScrolling: 'touch' }}>
@@ -483,16 +443,45 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
           {/* Разделитель */}
           <div className="w-full h-[1px] bg-[#2d2620]/20 mb-4" />
 
-          {/* Таблица рейтинга */}
+          {/* 🚀 ОПТИМИЗАЦИЯ: Виртуальная таблица рейтинга */}
           <div className="relative">
-            <div className="space-y-1">
-              {displayedLeaderboard.map((entry) => (
-                <LeaderboardItem
-                  key={entry.id}
-                  entry={entry}
-                  isCurrentUser={entry.id === user?.id}
-                />
-              ))}
+            <div 
+              ref={parentRef}
+              className="overflow-auto"
+              style={{ 
+                height: showFullLeaderboard ? '500px' : '320px',
+                contain: 'strict',
+              }}
+            >
+              <div
+                style={{
+                  height: `${rowVirtualizer.getTotalSize()}px`,
+                  width: '100%',
+                  position: 'relative',
+                }}
+              >
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                  const entry = displayedLeaderboard[virtualRow.index];
+                  return (
+                    <div
+                      key={virtualRow.key}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: `${virtualRow.size}px`,
+                        transform: `translateY(${virtualRow.start}px)`,
+                      }}
+                    >
+                      <LeaderboardItem
+                        entry={entry}
+                        isCurrentUser={entry.id === user?.id}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Градиент для fade эффекта если не развернуто */}

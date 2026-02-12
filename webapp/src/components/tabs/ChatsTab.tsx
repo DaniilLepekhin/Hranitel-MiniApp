@@ -6,6 +6,7 @@ import { Lock } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { cityChatsApi, decadesApi } from '@/lib/api';
+import { COUNTRIES, getCitiesCached } from '@/lib/staticData';
 
 // API endpoints
 const teamsApi = {
@@ -155,19 +156,16 @@ export function ChatsTab() {
     placeholderData: { success: true, team: null },
   });
 
-  // 🚀 Fetch countries only when selector is open
-  const { data: countriesData, isLoading: isLoadingCountries } = useQuery({
-    queryKey: ['city-chats', 'countries'],
-    queryFn: () => cityChatsApi.getCountries(),
-    enabled: showCitySelector,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-  });
+  // 🚀 ОПТИМИЗАЦИЯ: Используем статические данные стран
+  const countries = COUNTRIES;
+  const isLoadingCountries = false;
 
-  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch cities when country is selected
+  // 🚀 ОПТИМИЗАЦИЯ: Fetch cities with cache when country is selected
   const { data: citiesData, isLoading: isLoadingCities } = useQuery({
     queryKey: ['city-chats', 'cities', selectedCountry],
     queryFn: () => cityChatsApi.getCities(selectedCountry),
     enabled: !!selectedCountry,
+    staleTime: 24 * 60 * 60 * 1000, // Кешируем 24 часа
     placeholderData: { success: true, cities: [] },
   });
 
@@ -180,7 +178,6 @@ export function ChatsTab() {
   });
 
   const team = teamData?.team;
-  const countries = countriesData?.countries || [];
   const cities = citiesData?.cities || [];
 
   const openLink = (url: string) => {

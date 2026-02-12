@@ -433,6 +433,23 @@ export const cityChatsApi = {
 
 // Ratings (Рейтинги) (КОД ДЕНЕГ 4.0)
 export const ratingsApi = {
+  // ⚡ OPTIMIZED: Batch endpoint - все данные в одном запросе
+  getAllData: (userId: string) =>
+    api.get<{
+      success: boolean;
+      data: {
+        balance: number;
+        history: any[];
+        leaderboard: any;
+        cityRatings: CityRating[];
+        teamRatings: TeamRating[];
+        userPosition: UserPosition;
+      };
+    }>('/ratings/all-data', {
+      params: { userId },
+    }),
+  
+  // Legacy endpoints (сохранены для обратной совместимости)
   getCityRatings: (limit?: number) =>
     api.get<{ success: boolean; ratings: CityRating[] }>('/ratings/cities', {
       params: { limit },
