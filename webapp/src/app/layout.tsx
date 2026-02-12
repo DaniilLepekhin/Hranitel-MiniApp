@@ -34,10 +34,14 @@ export default function RootLayout({
         <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
         <meta httpEquiv="Pragma" content="no-cache" />
         <meta httpEquiv="Expires" content="0" />
-        {/* Предзагрузка изображений фона для моментального отображения */}
-        <link rel="preload" href="/assets/newspaper-texture.jpg" as="image" />
+        {/* 🚀 ОПТИМИЗАЦИЯ: Предзагрузка критических изображений */}
+        <link rel="preload" href="/assets/newspaper-texture.jpg" as="image" fetchPriority="high" />
         <link rel="preload" href="/assets/bg-coins.jpg" as="image" />
         <link rel="preload" href="/assets/bg-blur.jpg" as="image" />
+        
+        {/* 🚀 ОПТИМИЗАЦИЯ: Resource hints для внешних ресурсов */}
+        <link rel="dns-prefetch" href="https://telegram.org" />
+        <link rel="preconnect" href="https://telegram.org" crossOrigin="" />
         <script src="https://telegram.org/js/telegram-web-app.js" />
         <script
           dangerouslySetInnerHTML={{

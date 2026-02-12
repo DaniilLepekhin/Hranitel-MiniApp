@@ -3,6 +3,7 @@
 import { use } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { ArrowLeft, Lock, Play, CheckCircle } from 'lucide-react';
 import { coursesApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
@@ -103,59 +104,62 @@ export default function CoursePage({ params }: { params: Promise<{ id: string }>
             const isCurrent = course.progress?.currentDay === day.dayNumber;
             const isLocked = day.isLocked;
 
-            return (
-              <button
-                key={day.id}
-                onClick={() => {
-                  if (!isLocked) {
-                    router.push(`/course/${id}/lesson/${day.dayNumber}`);
-                  }
-                }}
-                disabled={isLocked}
-                className={`w-full bg-white/70 backdrop-blur-sm rounded-2xl p-4 text-left transition-all border border-[#9c1723]/10 ${
-                  isLocked
-                    ? 'opacity-50 cursor-not-allowed'
-                    : 'hover:shadow-lg active:scale-[0.98] cursor-pointer'
-                }`}
-              >
-                <div className="flex items-center gap-4">
-                  {/* Lesson Number / Icon */}
-                  <div
-                    className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                      isCompleted
-                        ? 'bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/30'
-                        : isCurrent
-                        ? 'bg-gradient-to-br from-[#d93547] to-[#9c1723] shadow-lg shadow-[#d93547]/30'
-                        : 'bg-[#e8dcc6]'
-                    }`}
-                  >
-                    {isLocked ? (
-                      <Lock className="w-5 h-5 text-[#6b5a4a]" />
-                    ) : isCompleted ? (
-                      <CheckCircle className="w-5 h-5 text-white" />
-                    ) : (
-                      <span className="text-white font-bold">{day.dayNumber}</span>
-                    )}
-                  </div>
-
-                  {/* Lesson Info */}
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-[#2b2520]">{day.title}</h4>
-                    {day.content && (
-                      <p className="text-sm text-[#6b5a4a] line-clamp-1 mt-0.5">
-                        {replaceContentPlaceholders(day.content, user || undefined).substring(0, 50)}...
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Play Button */}
-                  {!isLocked && (
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#d93547] to-[#9c1723] shadow-lg shadow-[#d93547]/30 flex items-center justify-center">
-                      <Play className="w-4 h-4 text-white ml-0.5" />
-                    </div>
+            const lessonContent = (
+              <div className="flex items-center gap-4">
+                {/* Lesson Number / Icon */}
+                <div
+                  className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                    isCompleted
+                      ? 'bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/30'
+                      : isCurrent
+                      ? 'bg-gradient-to-br from-[#d93547] to-[#9c1723] shadow-lg shadow-[#d93547]/30'
+                      : 'bg-[#e8dcc6]'
+                  }`}
+                >
+                  {isLocked ? (
+                    <Lock className="w-5 h-5 text-[#6b5a4a]" />
+                  ) : isCompleted ? (
+                    <CheckCircle className="w-5 h-5 text-white" />
+                  ) : (
+                    <span className="text-white font-bold">{day.dayNumber}</span>
                   )}
                 </div>
-              </button>
+
+                {/* Lesson Info */}
+                <div className="flex-1">
+                  <h4 className="font-semibold text-[#2b2520]">{day.title}</h4>
+                  {day.content && (
+                    <p className="text-sm text-[#6b5a4a] line-clamp-1 mt-0.5">
+                      {replaceContentPlaceholders(day.content, user || undefined).substring(0, 50)}...
+                    </p>
+                  )}
+                </div>
+
+                {/* Play Button */}
+                {!isLocked && (
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#d93547] to-[#9c1723] shadow-lg shadow-[#d93547]/30 flex items-center justify-center">
+                    <Play className="w-4 h-4 text-white ml-0.5" />
+                  </div>
+                )}
+              </div>
+            );
+
+            return isLocked ? (
+              <div
+                key={day.id}
+                className="w-full bg-white/70 backdrop-blur-sm rounded-2xl p-4 text-left transition-all border border-[#9c1723]/10 opacity-50 cursor-not-allowed"
+              >
+                {lessonContent}
+              </div>
+            ) : (
+              <Link
+                key={day.id}
+                href={`/course/${id}/lesson/${day.dayNumber}`}
+                prefetch={true}
+                className="block w-full bg-white/70 backdrop-blur-sm rounded-2xl p-4 text-left transition-all border border-[#9c1723]/10 hover:shadow-lg active:scale-[0.98]"
+              >
+                {lessonContent}
+              </Link>
             );
           })}
         </div>
