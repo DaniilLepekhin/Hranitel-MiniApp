@@ -88,6 +88,9 @@ class ApiClient {
     // Add auth token if available
     if (authToken) {
       headers['Authorization'] = `Bearer ${authToken}`;
+      console.log('[API] Request with auth token:', endpoint);
+    } else {
+      console.warn('[API] Request WITHOUT auth token:', endpoint);
     }
 
     let lastError: Error | null = null;

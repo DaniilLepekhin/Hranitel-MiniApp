@@ -29,8 +29,12 @@ function AuthTokenInit() {
   const { token } = useAuthStore();
 
   useEffect(() => {
+    console.log('[AuthTokenInit] Token from store:', token ? 'EXISTS' : 'NULL');
     if (token) {
       setAuthToken(token);
+      console.log('[AuthTokenInit] Token set in API client');
+    } else {
+      console.warn('[AuthTokenInit] No token in store! User needs to re-login');
     }
   }, [token]);
 
