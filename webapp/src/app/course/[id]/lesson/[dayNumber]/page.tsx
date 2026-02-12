@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useRef } from 'react';
+import { use } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle } from 'lucide-react';
@@ -36,15 +36,6 @@ export default function LessonPage({
 
   const course = data?.course;
   const lesson = course?.days?.find((d) => d.dayNumber === parseInt(dayNumber));
-  const progressUpdatedRef = useRef(false);
-
-  // Update current day when lesson loads (only once)
-  useEffect(() => {
-    if (lesson && !progressUpdatedRef.current && !updateProgressMutation.isPending) {
-      progressUpdatedRef.current = true;
-      updateProgressMutation.mutate({ currentDay: lesson.dayNumber });
-    }
-  }, [lesson?.dayNumber]); // Only re-run if dayNumber changes
 
   const handleComplete = () => {
     if (lesson) {
