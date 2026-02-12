@@ -3,6 +3,7 @@ import { relations } from 'drizzle-orm';
 
 // Enums
 export const courseCategoryEnum = pgEnum('course_category', ['mindset', 'spiritual', 'esoteric', 'health']);
+export const courseLessonTypeEnum = pgEnum('course_lesson_type', ['text', 'video', 'audio', 'file']);
 export const userRoleEnum = pgEnum('user_role', ['user', 'admin']);
 export const chatRoleEnum = pgEnum('chat_role', ['user', 'assistant']);
 export const energyTransactionTypeEnum = pgEnum('energy_transaction_type', ['income', 'expense']);
@@ -128,10 +129,17 @@ export const courseDays = pgTable('course_days', {
   title: text('title').notNull(),
   content: text('content'),
 
+  // Lesson type
+  lessonType: courseLessonTypeEnum('lesson_type').default('text').notNull(),
+
   // Media
   audioUrl: text('audio_url'),
-  videoUrl: text('video_url'),
+  videoUrl: text('video_url'), // YouTube URL
+  rutubeUrl: text('rutube_url'), // Rutube URL (для двойного плеера)
   pdfUrl: text('pdf_url'),
+
+  // Attachments (for multiple files: presentations, workbooks, etc)
+  attachments: jsonb('attachments').default([]).$type<{ title: string; url: string; type?: string }[]>(),
 
   // Extended content
   welcomeContent: text('welcome_content'),

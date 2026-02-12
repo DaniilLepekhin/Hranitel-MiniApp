@@ -3,11 +3,10 @@
 import { use } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, CheckCircle, Play, Pause, Volume2, FileText, Video } from 'lucide-react';
+import { ArrowLeft, CheckCircle } from 'lucide-react';
 import { coursesApi } from '@/lib/api';
-import { useState, useRef, useEffect } from 'react';
-import { useAuthStore } from '@/store/auth';
-import { replaceContentPlaceholders } from '@/lib/content';
+import { LessonRenderer, type LessonData } from '@/components/lessons';
+import { useTelegram } from '@/hooks/useTelegram';
 
 export default function LessonPage({
   params,
@@ -17,13 +16,7 @@ export default function LessonPage({
   const router = useRouter();
   const { id, dayNumber } = use(params);
   const queryClient = useQueryClient();
-  const { user } = useAuthStore();
-
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const { haptic } = useTelegram();
 
   const { data, isLoading } = useQuery({
     queryKey: ['course', id],
@@ -33,24 +26,16 @@ export default function LessonPage({
   const updateProgressMutation = useMutation({
     mutationFn: (data: { currentDay?: number; completedDay?: number }) =>
       coursesApi.updateProgress(id, data),
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['course', id] });
-      // Redirect to course page (table of contents) after completing lesson
-      if (variables.completedDay) {
-        router.push(`/course/${id}`);
-      }
+      haptic.notification('success');
+      // Redirect back to course after completing
+      setTimeout(() => router.push(`/course/${id}`), 1000);
     },
   });
 
   const course = data?.course;
   const lesson = course?.days?.find((d) => d.dayNumber === parseInt(dayNumber));
-
-  useEffect(() => {
-    if (lesson && course) {
-      // Update current day
-      updateProgressMutation.mutate({ currentDay: lesson.dayNumber });
-    }
-  }, [lesson?.id]);
 
   const handleComplete = () => {
     if (lesson) {
@@ -58,56 +43,21 @@ export default function LessonPage({
     }
   };
 
-  const togglePlayPause = () => {
-    const media = audioRef.current || videoRef.current;
-    if (!media) return;
-
-    if (isPlaying) {
-      media.pause();
-    } else {
-      media.play();
-    }
-    setIsPlaying(!isPlaying);
-  };
-
-  const handleTimeUpdate = () => {
-    const media = audioRef.current || videoRef.current;
-    if (media) {
-      setCurrentTime(media.currentTime);
-      setDuration(media.duration || 0);
-    }
-  };
-
-  const handleSeek = (value: number) => {
-    const media = audioRef.current || videoRef.current;
-    if (media) {
-      media.currentTime = value;
-      setCurrentTime(value);
-    }
-  };
-
-  const formatTime = (seconds: number) => {
-    if (!seconds || isNaN(seconds)) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
   const isCompleted = course?.progress?.completedDays?.includes(lesson?.dayNumber || 0);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d93547]"></div>
+      <div className="min-h-screen bg-[#f7f1e8] flex items-center justify-center">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#d93547] to-[#9c1723] animate-pulse" />
       </div>
     );
   }
 
   if (!course || !lesson) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-[#f7f1e8] flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-white mb-2">Урок не найден</h2>
+          <h2 className="text-2xl font-bold text-[#2b2520] mb-2">Урок не найден</h2>
           <button
             onClick={() => router.back()}
             className="text-[#d93547] hover:underline"
@@ -119,23 +69,35 @@ export default function LessonPage({
     );
   }
 
+  const lessonData: LessonData = {
+    id: lesson.id,
+    title: lesson.title,
+    content: lesson.content || undefined,
+    lessonType: lesson.lessonType || 'text',
+    videoUrl: lesson.videoUrl || undefined,
+    rutubeUrl: lesson.rutubeUrl || undefined,
+    audioUrl: lesson.audioUrl || undefined,
+    pdfUrl: lesson.pdfUrl || undefined,
+    attachments: lesson.attachments || [],
+  };
+
   return (
-    <div className="min-h-screen pb-24">
+    <div className="min-h-screen bg-[#f7f1e8] pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-50 glass">
+      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-[#9c1723]/10">
         <div className="px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => router.back()}
             className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center active:scale-95 transition-transform"
           >
-            <ArrowLeft className="w-5 h-5 text-gray-700" />
+            <ArrowLeft className="w-5 h-5 text-[#2b2520]" />
           </button>
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-gray-400">Урок {lesson.dayNumber}</p>
-            <h1 className="text-sm font-bold text-white truncate">{lesson.title}</h1>
+            <p className="text-xs text-[#6b5a4a]">Урок {lesson.dayNumber}</p>
+            <h1 className="text-sm font-bold text-[#2b2520] truncate">{lesson.title}</h1>
           </div>
           {isCompleted && (
-            <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 shadow-md">
               <CheckCircle className="w-5 h-5 text-white" />
             </div>
           )}
@@ -143,205 +105,20 @@ export default function LessonPage({
       </div>
 
       {/* Content */}
-      <div className="px-4 pt-4">
-        {/* Video Player */}
-        {lesson.videoUrl && (
-          <div className="mb-6">
-            <div className="glass rounded-3xl overflow-hidden">
-              <video
-                ref={videoRef}
-                src={lesson.videoUrl}
-                className="w-full aspect-video bg-black"
-                onTimeUpdate={handleTimeUpdate}
-                onLoadedMetadata={handleTimeUpdate}
-                onEnded={() => setIsPlaying(false)}
-                controls
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Audio Player */}
-        {lesson.audioUrl && !lesson.videoUrl && (
-          <div className="mb-6">
-            <div className="glass rounded-3xl p-6">
-              <div className="flex items-center gap-4 mb-4">
-                <button
-                  onClick={togglePlayPause}
-                  className="w-14 h-14 rounded-full bg-gradient-to-br from-[#d93547] to-[#9c1723] flex items-center justify-center active:scale-95 transition-transform shadow-lg"
-                >
-                  {isPlaying ? (
-                    <Pause className="w-6 h-6 text-white" />
-                  ) : (
-                    <Play className="w-6 h-6 text-white ml-1" />
-                  )}
-                </button>
-
-                <div className="flex-1">
-                  <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
-                    <span>{formatTime(currentTime)}</span>
-                    <span>{formatTime(duration)}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max={duration || 0}
-                    value={currentTime}
-                    onChange={(e) => handleSeek(parseFloat(e.target.value))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#d93547]"
-                  />
-                </div>
-
-                <Volume2 className="w-5 h-5 text-gray-400" />
-              </div>
-
-              <audio
-                ref={audioRef}
-                src={lesson.audioUrl}
-                onTimeUpdate={handleTimeUpdate}
-                onLoadedMetadata={handleTimeUpdate}
-                onEnded={() => setIsPlaying(false)}
-                className="hidden"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Lesson Title */}
-        <h2 className="text-2xl font-bold text-white mb-4">{lesson.title}</h2>
-
-        {/* Main Content */}
-        {lesson.content && (
-          <div className="card rounded-3xl p-6 mb-4">
-            <div className="prose prose-sm max-w-none">
-              <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-                {replaceContentPlaceholders(lesson.content, user || undefined)}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Welcome Content */}
-        {lesson.welcomeContent && (
-          <div className="card rounded-3xl p-6 mb-4 bg-gradient-to-br from-[#d93547]/10 to-[#9c1723]/10">
-            <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-              <span className="text-xl">👋</span>
-              Добро пожаловать
-            </h3>
-            <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-              {replaceContentPlaceholders(lesson.welcomeContent, user || undefined)}
-            </div>
-          </div>
-        )}
-
-        {/* Course Info */}
-        {lesson.courseInfo && (
-          <div className="card rounded-3xl p-6 mb-4">
-            <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-[#d93547]" />
-              О курсе
-            </h3>
-            <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-              {replaceContentPlaceholders(lesson.courseInfo, user || undefined)}
-            </div>
-          </div>
-        )}
-
-        {/* Meditation Guide */}
-        {lesson.meditationGuide && (
-          <div className="card rounded-3xl p-6 mb-4 bg-gradient-to-br from-[#d93547]/10 to-[#9c1723]/10">
-            <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-              <span className="text-xl">🧘</span>
-              Гид по медитации
-            </h3>
-            <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-              {replaceContentPlaceholders(lesson.meditationGuide, user || undefined)}
-            </div>
-          </div>
-        )}
-
-        {/* Additional Content */}
-        {lesson.additionalContent && (
-          <div className="card rounded-3xl p-6 mb-4">
-            <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-              <span className="text-xl">✨</span>
-              Дополнительно
-            </h3>
-            <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-              {replaceContentPlaceholders(lesson.additionalContent, user || undefined)}
-            </div>
-          </div>
-        )}
-
-        {/* Gift Content */}
-        {lesson.giftContent && (
-          <div className="card rounded-3xl p-6 mb-4 bg-gradient-to-br from-pink-50/50 to-[#d93547]/10">
-            <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-              <span className="text-xl">🎁</span>
-              Подарок
-            </h3>
-            <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-              {replaceContentPlaceholders(lesson.giftContent, user || undefined)}
-            </div>
-          </div>
-        )}
-
-        {/* Stream Link */}
-        {lesson.streamLink && (
-          <div className="card rounded-3xl p-6 mb-4">
-            <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-              <Video className="w-5 h-5 text-[#d93547]" />
-              Трансляция
-            </h3>
-            <a
-              href={lesson.streamLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white rounded-xl font-semibold active:scale-95 transition-transform"
-            >
-              <Play className="w-4 h-4" />
-              Открыть трансляцию
-            </a>
-          </div>
-        )}
-
-        {/* PDF Download */}
-        {lesson.pdfUrl && (
-          <div className="card rounded-3xl p-6 mb-4">
-            <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-[#d93547]" />
-              Материалы
-            </h3>
-            <a
-              href={lesson.pdfUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-white border-2 border-[#d93547] text-[#d93547] rounded-xl font-semibold active:scale-95 transition-transform"
-            >
-              <FileText className="w-4 h-4" />
-              Скачать PDF
-            </a>
-          </div>
-        )}
+      <div className="px-4 py-6">
+        <LessonRenderer lesson={lessonData} onComplete={handleComplete} />
       </div>
 
-      {/* Bottom Action */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 glass">
-        {!isCompleted ? (
-          <button
-            onClick={handleComplete}
-            disabled={updateProgressMutation.isPending}
-            className="w-full py-4 bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white rounded-2xl font-bold active:scale-[0.98] transition-transform disabled:opacity-50"
-          >
-            {updateProgressMutation.isPending ? 'Сохранение...' : 'Завершить урок'}
-          </button>
-        ) : (
-          <div className="flex items-center justify-center gap-2 py-4 text-green-600 font-semibold">
-            <CheckCircle className="w-5 h-5" />
-            Урок завершён
+      {/* Completion Status (if already completed) */}
+      {isCompleted && (
+        <div className="fixed bottom-4 left-4 right-4 p-4 rounded-xl bg-gradient-to-r from-green-500/90 to-green-600/90 backdrop-blur-sm border border-green-400/30 flex items-center gap-3 shadow-lg">
+          <CheckCircle className="w-6 h-6 text-white flex-shrink-0" />
+          <div className="flex-1">
+            <p className="font-semibold text-white">Урок завершён!</p>
+            <p className="text-white/80 text-sm">Вы уже прошли этот урок</p>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

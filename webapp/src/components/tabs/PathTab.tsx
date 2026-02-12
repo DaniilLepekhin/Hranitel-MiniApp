@@ -5,7 +5,7 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { Lock } from 'lucide-react';
 
 // 🔒 ФЛАГ БЛОКИРОВКИ КУРСОВ
-const COURSES_LOCKED = true;
+const COURSES_LOCKED = false; // ✅ Курсы разблокированы!
 
 // Категории контента с изображениями
 const contentCategories = [
@@ -19,9 +19,9 @@ const contentCategories = [
   {
     id: 'course',
     title: 'Курсы',
-    path: '/content-list/course',
+    path: '/courses',
     image: '/assets/path-courses.jpg',
-    isLocked: COURSES_LOCKED, // 🔒 Курсы заблокированы
+    isLocked: COURSES_LOCKED, // ✅ Курсы разблокированы!
   },
   {
     id: 'podcast',
