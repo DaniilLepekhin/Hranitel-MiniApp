@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { eq, desc, asc, and, sql } from 'drizzle-orm';
 import { db, courses, courseDays, courseProgress, favorites, users, type CourseProgress } from '@/db';
-import { authMiddleware, optionalAuthMiddleware, validateTelegramInitData, parseTelegramUser } from '@/middlewares/auth';
+import { authMiddleware, optionalAuthMiddleware, getUserFromToken, validateTelegramInitData, parseTelegramUser } from '@/middlewares/auth';
 import { logger } from '@/utils/logger';
 import { cache } from '@/utils/redis';
 import { energiesService } from '@/modules/energy-points/service';
@@ -202,12 +202,24 @@ export const coursesModule = new Elysia({ prefix: '/courses', tags: ['Courses'] 
     }
   )
   // Update course progress (requires authentication)
-  .use(authMiddleware)
   .post(
     '/:id/progress',
-    async ({ params, body, set, user }) => {
+    async ({ params, body, set, headers }) => {
       const { id } = params;
       const { currentDay, completedDay } = body;
+      
+      // Get user from JWT manually
+      const user = await getUserFromToken(headers.authorization);
+      
+      if (!user) {
+        logger.error({ courseId: id }, 'Progress update failed: no user');
+        set.status = 401;
+        return {
+          success: false,
+          error: 'Unauthorized',
+          message: 'Authentication required',
+        };
+      }
       
       logger.info({ 
         userId: user.id,
