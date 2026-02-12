@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { eq, desc, asc, and, sql } from 'drizzle-orm';
-import { db, courses, courseDays, courseProgress, favorites, type CourseProgress } from '@/db';
-import { authMiddleware, optionalAuthMiddleware } from '@/middlewares/auth';
+import { db, courses, courseDays, courseProgress, favorites, users, type CourseProgress } from '@/db';
+import { authMiddleware, optionalAuthMiddleware, validateTelegramInitData, parseTelegramUser } from '@/middlewares/auth';
 import { logger } from '@/utils/logger';
 import { cache } from '@/utils/redis';
 import { energiesService } from '@/modules/energy-points/service';
@@ -9,6 +9,16 @@ import { energiesService } from '@/modules/energy-points/service';
 const COURSES_CACHE_TTL = 300; // 5 minutes
 
 export const coursesModule = new Elysia({ prefix: '/courses', tags: ['Courses'] })
+  .onRequest(({ request, path }) => {
+    if (path.includes('/progress')) {
+      logger.info({
+        method: request.method,
+        path,
+        url: request.url,
+        contentType: request.headers.get('content-type'),
+      }, '[COURSES ONREQUEST] Progress request detected');
+    }
+  })
   // Get all courses (public)
   .use(optionalAuthMiddleware)
   .get(
