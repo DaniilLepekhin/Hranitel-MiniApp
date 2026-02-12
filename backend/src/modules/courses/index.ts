@@ -199,6 +199,8 @@ export const coursesModule = new Elysia({ prefix: '/courses', tags: ['Courses'] 
     async ({ params, body, user, set }) => {
       const { id } = params;
       const { currentDay, completedDay } = body;
+      
+      logger.info({ userId: user?.id, courseId: id, currentDay, completedDay }, 'Progress update requested');
 
       // Check if course exists
       const [course] = await db
