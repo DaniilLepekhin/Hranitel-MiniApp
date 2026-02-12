@@ -82,3 +82,33 @@ export const config = loadConfig();
 
 export const isDevelopment = config.NODE_ENV === 'development';
 export const isProduction = config.NODE_ENV === 'production';
+
+// 🔥 Время запуска backend (используется как версия для cache busting)
+const DEPLOY_VERSION = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12); // YYYYMMDDHHmm
+
+/**
+ * 🚀 WEBAPP URL с автоматической версией для обхода агрессивного кеша Telegram
+ * 
+ * @param path - Путь после домена (опционально), например '/courses' или '?tab=chats'
+ * @returns URL с версией вида: https://app.successkod.com/path?v=202602120900
+ * 
+ * @example
+ * getWebAppUrl() // https://app.successkod.com?v=202602120900
+ * getWebAppUrl('/courses') // https://app.successkod.com/courses?v=202602120900  
+ * getWebAppUrl('?tab=chats') // https://app.successkod.com?tab=chats&v=202602120900
+ */
+export function getWebAppUrl(path: string = ''): string {
+  const baseUrl = config.WEBAPP_URL;
+  
+  // Если path - это query параметры, начинающиеся с ?
+  if (path.startsWith('?')) {
+    return `${baseUrl}${path}&v=${DEPLOY_VERSION}`;
+  }
+  
+  // Если path - обычный путь
+  const fullPath = path.startsWith('/') ? path : (path ? `/${path}` : '');
+  const url = `${baseUrl}${fullPath}`;
+  const separator = url.includes('?') ? '&' : '?';
+  
+  return `${url}${separator}v=${DEPLOY_VERSION}`;
+}

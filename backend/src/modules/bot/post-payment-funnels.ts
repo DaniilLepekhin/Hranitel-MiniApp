@@ -12,6 +12,7 @@ import { TelegramService } from '@/services/telegram.service';
 import { logger } from '@/utils/logger';
 import { nanoid } from 'nanoid';
 import { getMoscowTimeInDays, getTomorrowMoscowTime } from '@/utils/moscow-time';
+import { getWebAppUrl } from '@/config';
 
 // Create telegram service instance (needs bot API from Grammy)
 // This will be initialized when bot module loads
@@ -164,9 +165,9 @@ export async function handleKeywordSuccess(userId: string, chatId: number) {
   const keyboard = new InlineKeyboard()
     .url('перейти в канал', 'https://t.me/+mwJ5e0d78GYzNDRi')
     .row()
-    .webApp('вступить в чат города', `${process.env.WEBAPP_URL}?tab=chats`)
+    .webApp('вступить в чат города', getWebAppUrl('?tab=chats'))
     .row()
-    .webApp('открыть штаб', process.env.WEBAPP_URL!)
+    .webApp('открыть штаб', getWebAppUrl())
     .row()
     .url('приложение', 'http://qr.numschool-web.ru/')
     .row()
@@ -1038,7 +1039,7 @@ export async function sendMenuMessage(chatId: number) {
     .row()
     .url('канал клуба', 'https://t.me/+mwJ5e0d78GYzNDRi')
     .row()
-    .webApp('все материалы здесь', process.env.WEBAPP_URL!)
+    .webApp('все материалы здесь', getWebAppUrl())
     .row()
     .text('Пройти тест: какой я персонаж', 'start_character_test')
     .row()

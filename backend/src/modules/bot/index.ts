@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia';
 import { Bot, InlineKeyboard, Keyboard } from 'grammy';
-import { config } from '@/config';
+import { config, getWebAppUrl } from '@/config';
 import { logger } from '@/utils/logger';
 import { webhookRateLimit } from '@/middlewares/rateLimit';
 import { db, users, courses, courseProgress, meditations, clubFunnelProgress } from '@/db';
@@ -2357,9 +2357,9 @@ bot.command('start', async (ctx) => {
         const keyboard = new InlineKeyboard()
           .url('перейти в канал', 'https://t.me/+mwJ5e0d78GYzNDRi')
           .row()
-          .webApp('вступить в чат города', `${process.env.WEBAPP_URL}?tab=chats`)
+          .webApp('вступить в чат города', getWebAppUrl('?tab=chats'))
           .row()
-          .webApp('открыть штаб', process.env.WEBAPP_URL!)
+          .webApp('открыть штаб', getWebAppUrl())
           .row()
           .url('приложение', 'http://qr.numschool-web.ru/')
           .row()
@@ -3861,7 +3861,7 @@ bot.command('menu', async (ctx) => {
 bot.command('app', async (ctx) => {
   try {
     const keyboard = new InlineKeyboard()
-      .webApp('🚀 Открыть приложение', config.WEBAPP_URL);
+      .webApp('🚀 Открыть приложение', getWebAppUrl());
 
     await telegramService.sendMessage(
       ctx.chat.id,
@@ -3921,7 +3921,7 @@ bot.command('today', async (ctx) => {
     });
 
     const keyboard = new InlineKeyboard()
-      .webApp('🚀 Продолжить обучение', config.WEBAPP_URL);
+      .webApp('🚀 Продолжить обучение', getWebAppUrl());
 
     await telegramService.sendMessage(ctx.chat.id, message, { reply_markup: keyboard });
   } catch (error) {
@@ -3986,7 +3986,7 @@ bot.command('meditate', async (ctx) => {
     const randomMeditation = meditationsList[Math.floor(Math.random() * meditationsList.length)];
 
     const keyboard = new InlineKeyboard()
-      .webApp('🧘 Начать медитацию', `${config.WEBAPP_URL}/meditations/${randomMeditation.id}`);
+      .webApp('🧘 Начать медитацию', getWebAppUrl(`/meditations/${randomMeditation.id}`));
 
     await telegramService.sendMessage(
       ctx.chat.id,
@@ -4581,7 +4581,7 @@ bot.callbackQuery('my_courses', async (ctx) => {
     await ctx.answerCallbackQuery();
 
     const keyboard = new InlineKeyboard()
-      .webApp('📚 Открыть курсы', `${config.WEBAPP_URL}/courses`);
+      .webApp('📚 Открыть курсы', getWebAppUrl('/courses'));
 
     await telegramService.sendMessage(
       ctx.chat!.id,
@@ -4598,7 +4598,7 @@ bot.callbackQuery('meditations', async (ctx) => {
     await ctx.answerCallbackQuery();
 
     const keyboard = new InlineKeyboard()
-      .webApp('🧘 Открыть медитации', `${config.WEBAPP_URL}/meditations`);
+      .webApp('🧘 Открыть медитации', getWebAppUrl('/meditations'));
 
     await telegramService.sendMessage(
       ctx.chat!.id,
