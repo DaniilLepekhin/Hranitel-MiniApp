@@ -8,16 +8,6 @@ import { coursesApi } from '@/lib/api';
 import { LessonRenderer, type LessonData } from '@/components/lessons';
 import { useTelegram } from '@/hooks/useTelegram';
 
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp?: {
-        initData?: string;
-      };
-    };
-  }
-}
-
 export default function LessonPage({
   params,
 }: {
