@@ -1,5 +1,5 @@
 // Service Worker для принудительной очистки кеша
-const CACHE_VERSION = 'v2.0.4-FORCE-RELOAD';
+const CACHE_VERSION = 'v2.0.5-EMERGENCY-RELOAD-' + Date.now();
 
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing NEW service worker', CACHE_VERSION);

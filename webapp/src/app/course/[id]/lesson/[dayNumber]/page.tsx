@@ -39,13 +39,12 @@ export default function LessonPage({
     onSuccess: async () => {
       console.log('[LessonPage] Progress updated successfully');
       haptic.notification('success');
-      // Wait for data to be refetched before redirecting
+      // Refetch course data to update completion status
       await queryClient.invalidateQueries({ queryKey: ['course', id] });
       console.log('[LessonPage] Queries invalidated, refetching...');
       await queryClient.refetchQueries({ queryKey: ['course', id] });
-      console.log('[LessonPage] Data refetched, redirecting...');
-      // Redirect back to course after data is updated
-      setTimeout(() => router.push(`/course/${id}`), 500);
+      console.log('[LessonPage] Data refetched - button should now hide');
+      // Don't redirect - let user see the completion badge and choose when to go back
     },
     onError: (error) => {
       console.error('[LessonPage] Failed to update progress:', error);
@@ -62,13 +61,18 @@ export default function LessonPage({
     }
   };
 
-  const isCompleted = course?.progress?.completedDays?.includes(lesson?.dayNumber || 0);
+  // Оптимистичное обновление: считаем урок завершённым, если мутация в процессе
+  // или если урок уже в списке completedDays
+  const isCompleted = 
+    updateProgressMutation.isPending || 
+    course?.progress?.completedDays?.includes(lesson?.dayNumber || 0);
   
   console.log('[LessonPage] Render state:', {
     dayNumber: lesson?.dayNumber,
     completedDays: course?.progress?.completedDays,
     isCompleted,
     isPending: updateProgressMutation.isPending,
+    optimisticComplete: updateProgressMutation.isPending,
   });
 
   if (isLoading) {
@@ -141,12 +145,33 @@ export default function LessonPage({
       </div>
 
       {/* Completion Status (if already completed) */}
-      {isCompleted && (
-        <div className="fixed bottom-4 left-4 right-4 p-4 rounded-xl bg-gradient-to-r from-green-500/90 to-green-600/90 backdrop-blur-sm border border-green-400/30 flex items-center gap-3 shadow-lg">
-          <CheckCircle className="w-6 h-6 text-white flex-shrink-0" />
-          <div className="flex-1">
-            <p className="font-semibold text-white">Урок завершён!</p>
-            <p className="text-white/80 text-sm">Вы уже прошли этот урок</p>
+      {isCompleted && !updateProgressMutation.isPending && (
+        <div className="fixed bottom-4 left-4 right-4 p-4 rounded-xl bg-gradient-to-r from-green-500/90 to-green-600/90 backdrop-blur-sm border border-green-400/30 shadow-lg animate-in slide-in-from-bottom duration-300">
+          <div className="flex items-center gap-3 mb-3">
+            <CheckCircle className="w-6 h-6 text-white flex-shrink-0" />
+            <div className="flex-1">
+              <p className="font-bold text-white">Урок завершён!</p>
+              <p className="text-white/90 text-sm">+20 Energy Points начислено</p>
+            </div>
+          </div>
+          <button
+            onClick={() => router.push(`/course/${id}`)}
+            className="w-full py-2.5 px-4 rounded-lg bg-white/20 hover:bg-white/30 text-white font-semibold transition-colors active:scale-95"
+          >
+            Вернуться к курсу
+          </button>
+        </div>
+      )}
+      
+      {/* Loading indicator during mutation */}
+      {updateProgressMutation.isPending && (
+        <div className="fixed bottom-4 left-4 right-4 p-4 rounded-xl bg-gradient-to-r from-[#d93547]/90 to-[#9c1723]/90 backdrop-blur-sm border border-[#d93547]/30 shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin flex-shrink-0" />
+            <div>
+              <p className="font-bold text-white">Сохранение прогресса...</p>
+              <p className="text-white/90 text-sm">Начисляем Energy Points</p>
+            </div>
           </div>
         </div>
       )}
