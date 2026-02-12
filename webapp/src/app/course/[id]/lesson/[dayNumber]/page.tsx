@@ -125,7 +125,12 @@ export default function LessonPage({
 
       {/* Content */}
       <div className="px-4 py-6">
-        <LessonRenderer lesson={lessonData} onComplete={handleComplete} isCompleted={isCompleted} />
+        <LessonRenderer 
+          lesson={lessonData} 
+          onComplete={handleComplete} 
+          isCompleted={isCompleted}
+          isPending={updateProgressMutation.isPending}
+        />
       </div>
 
       {/* Completion Status (if already completed) */}

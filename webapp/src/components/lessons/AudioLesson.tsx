@@ -10,6 +10,7 @@ interface AudioLessonProps {
   description?: string;
   onComplete?: () => void;
   isCompleted?: boolean;
+  isPending?: boolean;
   attachments?: { title: string; url: string; type?: string }[];
 }
 
@@ -19,6 +20,7 @@ export function AudioLesson({
   description,
   onComplete,
   isCompleted = false,
+  isPending = false,
   attachments = [],
 }: AudioLessonProps) {
   const { haptic } = useTelegram();
@@ -26,7 +28,6 @@ export function AudioLesson({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -42,8 +43,7 @@ export function AudioLesson({
 
     const handleEnded = () => {
       setIsPlaying(false);
-      if (!isCompleted && !isSubmitting) {
-        setIsSubmitting(true);
+      if (!isCompleted && !isPending) {
         onComplete?.();
         haptic.notification('success');
       }

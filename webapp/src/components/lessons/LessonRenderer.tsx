@@ -21,9 +21,10 @@ interface LessonRendererProps {
   lesson: LessonData;
   onComplete?: () => void;
   isCompleted?: boolean;
+  isPending?: boolean;
 }
 
-export function LessonRenderer({ lesson, onComplete, isCompleted = false }: LessonRendererProps) {
+export function LessonRenderer({ lesson, onComplete, isCompleted = false, isPending = false }: LessonRendererProps) {
   const { lessonType, title, content, videoUrl, rutubeUrl, audioUrl, pdfUrl, attachments } = lesson;
 
   switch (lessonType) {
@@ -44,6 +45,7 @@ export function LessonRenderer({ lesson, onComplete, isCompleted = false }: Less
           description={content}
           onComplete={onComplete}
           isCompleted={isCompleted}
+          isPending={isPending}
           pdfUrl={attachments?.[0]?.url} // First attachment as PDF for backward compatibility
         />
       );
@@ -64,6 +66,7 @@ export function LessonRenderer({ lesson, onComplete, isCompleted = false }: Less
           description={content}
           onComplete={onComplete}
           isCompleted={isCompleted}
+          isPending={isPending}
           attachments={attachments}
         />
       );
@@ -85,6 +88,7 @@ export function LessonRenderer({ lesson, onComplete, isCompleted = false }: Less
           attachments={attachments}
           onComplete={onComplete}
           isCompleted={isCompleted}
+          isPending={isPending}
         />
       );
 
@@ -96,6 +100,7 @@ export function LessonRenderer({ lesson, onComplete, isCompleted = false }: Less
           content={content || 'Содержимое урока отсутствует'}
           onComplete={onComplete}
           isCompleted={isCompleted}
+          isPending={isPending}
           attachments={attachments}
         />
       );

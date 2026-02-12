@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { CheckCircle, FileText } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 
@@ -9,6 +8,7 @@ interface TextLessonProps {
   content: string;
   onComplete?: () => void;
   isCompleted?: boolean;
+  isPending?: boolean;
   attachments?: { title: string; url: string; type?: string }[];
 }
 
@@ -17,14 +17,13 @@ export function TextLesson({
   content,
   onComplete,
   isCompleted = false,
+  isPending = false,
   attachments = [],
 }: TextLessonProps) {
   const { haptic } = useTelegram();
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleComplete = () => {
-    if (isCompleted || isSubmitting) return;
-    setIsSubmitting(true);
+    if (isCompleted || isPending) return;
     onComplete?.();
     haptic.notification('success');
   };
@@ -73,11 +72,11 @@ export function TextLesson({
       {!isCompleted && (
         <button
           onClick={handleComplete}
-          disabled={isSubmitting}
+          disabled={isPending}
           className="w-full mt-4 px-6 py-4 rounded-xl bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white font-bold shadow-lg hover:shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <CheckCircle className="w-5 h-5" />
-          <span>{isSubmitting ? 'Сохранение...' : 'Я прочитал(а) урок'}</span>
+          <span>{isPending ? 'Сохранение...' : 'Я прочитал(а) урок'}</span>
         </button>
       )}
 
