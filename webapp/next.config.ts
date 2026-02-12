@@ -1,5 +1,11 @@
 import type { NextConfig } from 'next';
 
+// 🚀 BUNDLE ANALYZER - для анализа размера бандла
+// Запуск: ANALYZE=true npm run build
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 const nextConfig: NextConfig = {
   output: 'standalone',
   reactStrictMode: true,
@@ -75,4 +81,4 @@ const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);

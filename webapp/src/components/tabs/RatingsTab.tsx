@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, memo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
 import { useTelegram } from '@/hooks/useTelegram';
@@ -18,6 +18,64 @@ const EnergyHistoryModal = dynamic(
 interface RatingsTabProps {
   onShopClick?: () => void;
 }
+
+// 🚀 ОПТИМИЗАЦИЯ: Мемоизированный компонент элемента рейтинга
+interface LeaderboardItemProps {
+  entry: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    username?: string;
+    experience?: number;
+  };
+  isCurrentUser: boolean;
+}
+
+const LeaderboardItem = memo(({ entry, isCurrentUser }: LeaderboardItemProps) => {
+  const displayName = entry.firstName && entry.lastName
+    ? `${entry.firstName} ${entry.lastName}`
+    : entry.username || 'Пользователь';
+  const energies = entry.experience || 0;
+
+  return (
+    <div
+      className="flex items-center justify-between gap-2"
+      style={{
+        fontFamily: 'Gilroy, sans-serif',
+        fontWeight: isCurrentUser ? 700 : 400,
+        fontSize: '14px',
+        lineHeight: 1.45,
+        letterSpacing: '-0.28px',
+        color: isCurrentUser ? '#9c1723' : '#2d2620',
+      }}
+    >
+      <span className="flex-1 truncate">{displayName}</span>
+      <span style={{ fontWeight: isCurrentUser ? 700 : 400, minWidth: '80px', textAlign: 'right' }}>
+        {energies.toLocaleString('ru-RU')} ⚡
+      </span>
+    </div>
+  );
+});
+
+LeaderboardItem.displayName = 'LeaderboardItem';
+
+// 🚀 ОПТИМИЗАЦИЯ: Мемоизированный компонент элемента города
+interface CityRatingItemProps {
+  item: {
+    city: string;
+    totalEnergies?: number;
+  };
+  index: number;
+}
+
+const CityRatingItem = memo(({ item, index }: CityRatingItemProps) => (
+  <div className="flex items-center justify-between" style={{ fontFamily: 'Gilroy, sans-serif', fontWeight: 400, fontSize: '10px', color: '#f7f1e8' }}>
+    <span className="truncate">{item.city}</span>
+    <span className="ml-1">{index + 1}</span>
+  </div>
+));
+
+CityRatingItem.displayName = 'CityRatingItem';
 
 export function RatingsTab({ onShopClick }: RatingsTabProps) {
   const { haptic, webApp } = useTelegram();
@@ -428,35 +486,13 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
           {/* Таблица рейтинга */}
           <div className="relative">
             <div className="space-y-1">
-              {displayedLeaderboard.map((entry, index) => {
-                const displayName = entry.firstName && entry.lastName
-                  ? `${entry.firstName} ${entry.lastName}`
-                  : entry.username || 'Пользователь';
-                const isCurrentUser = entry.id === user?.id;
-                const energies = entry.experience || 0; // experience хранит энергии
-
-                return (
-                  <div
-                    key={entry.id}
-                    className="flex items-center justify-between gap-2"
-                    style={{
-                      fontFamily: 'Gilroy, sans-serif',
-                      fontWeight: isCurrentUser ? 700 : 400,
-                      fontSize: '14px',
-                      lineHeight: 1.45,
-                      letterSpacing: '-0.28px',
-                      color: isCurrentUser ? '#9c1723' : '#2d2620',
-                    }}
-                  >
-                    <span className="flex-1 truncate">
-                      {displayName}
-                    </span>
-                    <span style={{ fontWeight: isCurrentUser ? 700 : 400, minWidth: '80px', textAlign: 'right' }}>
-                      {energies.toLocaleString('ru-RU')} ⚡
-                    </span>
-                  </div>
-                );
-              })}
+              {displayedLeaderboard.map((entry) => (
+                <LeaderboardItem
+                  key={entry.id}
+                  entry={entry}
+                  isCurrentUser={entry.id === user?.id}
+                />
+              ))}
             </div>
 
             {/* Градиент для fade эффекта если не развернуто */}
@@ -587,19 +623,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
                 {/* Список городов */}
                 <div className="space-y-0.5">
                   {cityRatings.slice(0, showFullCityRatings ? 50 : 5).map((item, index) => (
-                    <div
-                      key={item.city}
-                      className="flex items-center justify-between"
-                      style={{
-                        fontFamily: 'Gilroy, sans-serif',
-                        fontWeight: 400,
-                        fontSize: '10px',
-                        color: '#f7f1e8',
-                      }}
-                    >
-                      <span className="truncate">{item.city}</span>
-                      <span className="ml-1">{index + 1}</span>
-                    </div>
+                    <CityRatingItem key={item.city} item={item} index={index} />
                   ))}
                 </div>
               </div>
