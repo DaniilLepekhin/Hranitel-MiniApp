@@ -10,6 +10,7 @@ interface FileLessonProps {
   pdfUrl: string;
   attachments?: { title: string; url: string; type?: string }[];
   onComplete?: () => void;
+  isCompleted?: boolean;
 }
 
 export function FileLesson({
@@ -18,12 +19,14 @@ export function FileLesson({
   pdfUrl,
   attachments = [],
   onComplete,
+  isCompleted = false,
 }: FileLessonProps) {
   const { haptic } = useTelegram();
-  const [hasCompleted, setHasCompleted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleComplete = () => {
-    setHasCompleted(true);
+    if (isCompleted || isSubmitting) return;
+    setIsSubmitting(true);
     onComplete?.();
     haptic.notification('success');
   };
@@ -87,23 +90,24 @@ export function FileLesson({
       )}
 
       {/* Complete Button */}
-      {!hasCompleted && (
+      {!isCompleted && (
         <button
           onClick={handleComplete}
-          className="w-full mt-4 px-6 py-4 rounded-xl bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white font-bold shadow-lg hover:shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+          disabled={isSubmitting}
+          className="w-full mt-4 px-6 py-4 rounded-xl bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white font-bold shadow-lg hover:shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <CheckCircle className="w-5 h-5" />
-          <span>Я изучил(а) материал</span>
+          <span>{isSubmitting ? 'Сохранение...' : 'Я изучил(а) материал'}</span>
         </button>
       )}
 
       {/* Completion Status */}
-      {hasCompleted && (
-        <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-[#d93547]/10 to-[#9c1723]/10 border border-[#9c1723]/30 flex items-center gap-3">
-          <CheckCircle className="w-6 h-6 text-[#d93547] flex-shrink-0" />
+      {isCompleted && (
+        <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-green-500/10 to-green-600/10 border border-green-500/30 flex items-center gap-3">
+          <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
           <div>
             <p className="font-semibold text-[#2b2520]">Материал изучен!</p>
-            <p className="text-[#6b5a4a] text-sm">Energy Points начислены на ваш счёт</p>
+            <p className="text-[#6b5a4a] text-sm">Energy Points уже начислены</p>
           </div>
         </div>
       )}

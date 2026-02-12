@@ -26,6 +26,7 @@ interface DualVideoPlayerProps {
   title: string;
   description?: string;
   onComplete?: () => void;
+  isCompleted?: boolean;
   pdfUrl?: string;
 }
 
@@ -35,11 +36,12 @@ export function DualVideoPlayer({
   title,
   description,
   onComplete,
+  isCompleted = false,
   pdfUrl
 }: DualVideoPlayerProps) {
   const { haptic } = useTelegram();
   const [selectedSource, setSelectedSource] = useState<VideoSource | null>(null);
-  const [hasWatched, setHasWatched] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Load saved preference from localStorage
   useEffect(() => {
@@ -62,7 +64,8 @@ export function DualVideoPlayer({
   };
 
   const handleComplete = () => {
-    setHasWatched(true);
+    if (isCompleted || isSubmitting) return;
+    setIsSubmitting(true);
     onComplete?.();
     haptic.notification('success');
   };
@@ -213,22 +216,23 @@ export function DualVideoPlayer({
       )}
 
       {/* Complete Button */}
-      {!hasWatched && (
+      {!isCompleted && (
         <button
           onClick={handleComplete}
-          className="w-full mt-4 px-6 py-4 rounded-xl bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white font-bold shadow-lg hover:shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+          disabled={isSubmitting}
+          className="w-full mt-4 px-6 py-4 rounded-xl bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white font-bold shadow-lg hover:shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <CheckCircle className="w-5 h-5" />
-          <span>Я посмотрел(а) видео</span>
+          <span>{isSubmitting ? 'Сохранение...' : 'Я посмотрел(а) видео'}</span>
         </button>
       )}
 
-      {hasWatched && (
-        <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-[#d93547]/10 to-[#9c1723]/10 border border-[#9c1723]/30 flex items-center gap-3">
-          <CheckCircle className="w-6 h-6 text-[#d93547] flex-shrink-0" />
+      {isCompleted && (
+        <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-green-500/10 to-green-600/10 border border-green-500/30 flex items-center gap-3">
+          <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
           <div>
             <p className="font-semibold text-[#2b2520]">Видео просмотрено!</p>
-            <p className="text-[#6b5a4a] text-sm">Energy Points начислены на ваш счёт</p>
+            <p className="text-[#6b5a4a] text-sm">Energy Points уже начислены</p>
           </div>
         </div>
       )}

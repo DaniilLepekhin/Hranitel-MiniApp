@@ -9,6 +9,7 @@ interface AudioLessonProps {
   title: string;
   description?: string;
   onComplete?: () => void;
+  isCompleted?: boolean;
   attachments?: { title: string; url: string; type?: string }[];
 }
 
@@ -17,6 +18,7 @@ export function AudioLesson({
   title,
   description,
   onComplete,
+  isCompleted = false,
   attachments = [],
 }: AudioLessonProps) {
   const { haptic } = useTelegram();
@@ -24,7 +26,7 @@ export function AudioLesson({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [hasCompleted, setHasCompleted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -40,9 +42,11 @@ export function AudioLesson({
 
     const handleEnded = () => {
       setIsPlaying(false);
-      setHasCompleted(true);
-      onComplete?.();
-      haptic.notification('success');
+      if (!isCompleted && !isSubmitting) {
+        setIsSubmitting(true);
+        onComplete?.();
+        haptic.notification('success');
+      }
     };
 
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
@@ -160,12 +164,12 @@ export function AudioLesson({
       )}
 
       {/* Completion Status */}
-      {hasCompleted && (
-        <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-[#d93547]/10 to-[#9c1723]/10 border border-[#9c1723]/30 flex items-center gap-3">
-          <CheckCircle className="w-6 h-6 text-[#d93547] flex-shrink-0" />
+      {isCompleted && (
+        <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-green-500/10 to-green-600/10 border border-green-500/30 flex items-center gap-3">
+          <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
           <div>
             <p className="font-semibold text-[#2b2520]">Аудио прослушано!</p>
-            <p className="text-[#6b5a4a] text-sm">Energy Points начислены на ваш счёт</p>
+            <p className="text-[#6b5a4a] text-sm">Energy Points уже начислены</p>
           </div>
         </div>
       )}
