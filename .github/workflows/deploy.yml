@@ -45,8 +45,8 @@ jobs:
         working-directory: ./webapp
         run: npm run build
         env:
-          NEXT_PUBLIC_API_URL: https://hranitel.daniillepekhin.com
-          NEXT_PUBLIC_WEBAPP_URL: https://hranitel.daniillepekhin.com
+          NEXT_PUBLIC_API_URL: https://app.successkod.com
+          NEXT_PUBLIC_WEBAPP_URL: https://app.successkod.com
 
   deploy:
     runs-on: ubuntu-latest
@@ -90,10 +90,10 @@ jobs:
             export REDIS_URL="${{ secrets.REDIS_URL }}"
             export PORT="3002"
             export NODE_ENV="production"
-            export WEBAPP_URL="https://hranitel.daniillepekhin.com"
+            export WEBAPP_URL="https://app.successkod.com"
             export CORS_ORIGIN="${{ secrets.CORS_ORIGIN }}"
             export TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}"
-            export API_URL="https://hranitel.daniillepekhin.com"
+            export API_URL="https://app.successkod.com"
             export TELEGRAM_WEBHOOK_SECRET="${{ secrets.TELEGRAM_WEBHOOK_SECRET }}"
             export TELEGRAM_BOT_USERNAME="${{ secrets.TELEGRAM_BOT_USERNAME }}"
             export OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}"
@@ -114,7 +114,7 @@ jobs:
             echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> .env
             echo "OLD_DATABASE_URL=${{ secrets.OLD_DATABASE_URL }}" >> .env
             echo "GETCOURSE_SECRET=$GETCOURSE_SECRET" >> .env
-            echo "TELEGRAM_WEBHOOK_URL=https://hranitel.daniillepekhin.com" >> .env
+            echo "TELEGRAM_WEBHOOK_URL=https://app.successkod.com" >> .env
 
             # Install Bun if not exists
             if ! command -v bun &> /dev/null; then
@@ -260,7 +260,7 @@ jobs:
             echo "🤖 Re-setting Telegram webhook..."
             WEBHOOK_RESULT=$(curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/setWebhook" \
               -H "Content-Type: application/json" \
-              -d '{"url": "https://hranitel.daniillepekhin.com/api/v1/bot/webhook", "secret_token": "${{ secrets.TELEGRAM_WEBHOOK_SECRET }}", "allowed_updates": ["message", "inline_query", "callback_query", "my_chat_member", "chat_member"]}')
+              -d '{"url": "https://app.successkod.com/api/v1/bot/webhook", "secret_token": "${{ secrets.TELEGRAM_WEBHOOK_SECRET }}", "allowed_updates": ["message", "inline_query", "callback_query", "my_chat_member", "chat_member"]}')
             echo "Webhook result: $WEBHOOK_RESULT"
 
             # Frontend deployment
@@ -301,16 +301,23 @@ jobs:
             PORT=3003 pm2 start --name hranitel-frontend --cwd /var/www/hranitel/webapp/.next/standalone node -- server.js
             pm2 save
 
-            # Setup Nginx for hranitel.daniillepekhin.com
+            # Setup Nginx for app.successkod.com (main) and redirect from hranitel
             echo "🌐 Configuring Nginx..."
-            printf 'server {\n    server_name hranitel.daniillepekhin.com;\n    location / {\n        proxy_pass http://localhost:3003;\n        proxy_http_version 1.1;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection upgrade;\n        proxy_set_header Host $host;\n        proxy_cache_bypass $http_upgrade;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_read_timeout 300s;\n        proxy_connect_timeout 300s;\n        proxy_send_timeout 300s;\n    }\n    location /api/ {\n        proxy_pass http://localhost:3002/api/;\n        proxy_http_version 1.1;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection upgrade;\n        proxy_set_header Host $host;\n        proxy_cache_bypass $http_upgrade;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_read_timeout 300s;\n        proxy_connect_timeout 300s;\n        proxy_send_timeout 300s;\n    }\n    location /health {\n        proxy_pass http://localhost:3002/health;\n        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n    }\n    listen 80;\n}\n' > /etc/nginx/sites-available/hranitel
-
-            ln -sf /etc/nginx/sites-available/hranitel /etc/nginx/sites-enabled/
+            
+            # Main app.successkod.com config (should already exist, just verify)
+            if [ ! -f /etc/nginx/sites-available/app.successkod.com ]; then
+              echo "⚠️ Creating app.successkod.com config..."
+              printf 'server {\n    server_name app.successkod.com;\n    location / {\n        proxy_pass http://localhost:3003;\n        proxy_http_version 1.1;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection upgrade;\n        proxy_set_header Host $host;\n        proxy_cache_bypass $http_upgrade;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_read_timeout 300s;\n        proxy_connect_timeout 300s;\n        proxy_send_timeout 300s;\n    }\n    location /api/ {\n        proxy_pass http://localhost:3002/api/;\n        proxy_http_version 1.1;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection upgrade;\n        proxy_set_header Host $host;\n        proxy_cache_bypass $http_upgrade;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_read_timeout 300s;\n        proxy_connect_timeout 300s;\n        proxy_send_timeout 300s;\n    }\n    location /health {\n        proxy_pass http://localhost:3002/health;\n        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n    }\n    listen 80;\n}\n' > /etc/nginx/sites-available/app.successkod.com
+              ln -sf /etc/nginx/sites-available/app.successkod.com /etc/nginx/sites-enabled/
+            fi
+            
+            # Redirect hranitel.daniillepekhin.com to app.successkod.com
+            printf 'server {\n    server_name hranitel.daniillepekhin.com;\n    return 301 https://app.successkod.com$request_uri;\n    listen 80;\n}\n' > /etc/nginx/sites-available/hranitel-redirect
+            ln -sf /etc/nginx/sites-available/hranitel-redirect /etc/nginx/sites-enabled/
+            
             nginx -t && systemctl reload nginx
-
-            # Setup SSL with Certbot
-            echo "🔐 Setting up SSL..."
-            certbot --nginx -d hranitel.daniillepekhin.com --non-interactive --agree-tos --email admin@daniillepekhin.com 2>/dev/null || echo "⚠️ SSL setup skipped (may need DNS first)"
+            
+            echo "✅ Nginx configured: app.successkod.com (main), hranitel.daniillepekhin.com → redirect"
 
             # 📊 Final deployment report
             echo ""
@@ -318,10 +325,10 @@ jobs:
             echo "✅ DEPLOYMENT COMPLETED SUCCESSFULLY!"
             echo "════════════════════════════════════════════════════════════"
             echo ""
-            echo "🌐 Frontend: https://hranitel.daniillepekhin.com"
-            echo "🔌 Backend API: https://hranitel.daniillepekhin.com/api/"
-            echo "🏥 Health Check: https://hranitel.daniillepekhin.com/health"
-            echo "🏥 Readiness Check: https://hranitel.daniillepekhin.com/health/ready"
+            echo "🌐 Frontend: https://app.successkod.com"
+            echo "🔌 Backend API: https://app.successkod.com/api/"
+            echo "🏥 Health Check: https://app.successkod.com/health"
+            echo "🏥 Readiness Check: https://app.successkod.com/health/ready"
             echo ""
             echo "📊 Database Status:"
             psql "$DATABASE_URL" -c "SELECT COUNT(*) as total_users FROM users;" | head -3 | tail -1 | xargs echo "Total users:"
