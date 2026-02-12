@@ -12,7 +12,7 @@ export default function CoursesListPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['courses'],
-    queryFn: () => coursesApi.getAll(),
+    queryFn: () => coursesApi.list(),
   });
 
   const courses = data?.courses || [];
@@ -72,7 +72,7 @@ export default function CoursesListPage() {
             {courses.map((course) => (
               <button
                 key={course.id}
-                onClick={() => handleCourseClick(course.id, course.isLocked)}
+                onClick={() => handleCourseClick(course.id, course.isLocked || false)}
                 className={`w-full bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg transition-all active:scale-98 ${
                   course.isLocked ? 'opacity-70' : 'hover:shadow-xl'
                 }`}

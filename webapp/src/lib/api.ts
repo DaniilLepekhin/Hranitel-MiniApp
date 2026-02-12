@@ -487,9 +487,12 @@ export interface CourseDay {
   dayNumber: number;
   title: string;
   content?: string;
+  lessonType?: 'text' | 'video' | 'audio' | 'file';
   audioUrl?: string;
   videoUrl?: string;
+  rutubeUrl?: string;
   pdfUrl?: string;
+  attachments?: { title: string; url: string; type?: string }[];
   welcomeContent?: string;
   courseInfo?: string;
   meditationGuide?: string;
