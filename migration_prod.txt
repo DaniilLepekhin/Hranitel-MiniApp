@@ -1,0 +1,61 @@
+-- Migration for course enhancements
+-- Apply this on production server
+
+-- 1. Create enum (if not exists)
+DO $$ BEGIN
+  CREATE TYPE course_lesson_type AS ENUM ('text', 'video', 'audio', 'file');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+-- 2. Add lesson_type column (if not exists)
+DO $$ BEGIN
+  ALTER TABLE course_days ADD COLUMN lesson_type course_lesson_type DEFAULT 'text' NOT NULL;
+EXCEPTION
+  WHEN duplicate_column THEN null;
+END $$;
+
+-- 3. Add rutube_url column (if not exists)  
+DO $$ BEGIN
+  ALTER TABLE course_days ADD COLUMN rutube_url TEXT;
+EXCEPTION
+  WHEN duplicate_column THEN null;
+END $$;
+
+-- 4. Add attachments column (if not exists)
+DO $$ BEGIN
+  ALTER TABLE course_days ADD COLUMN attachments JSONB DEFAULT '[]'::jsonb;
+EXCEPTION
+  WHEN duplicate_column THEN null;
+END $$;
+
+-- 5. Update existing video lessons
+UPDATE course_days 
+SET lesson_type = 'video' 
+WHERE video_url IS NOT NULL AND lesson_type = 'text';
+
+-- 6. Update existing audio lessons
+UPDATE course_days 
+SET lesson_type = 'audio' 
+WHERE audio_url IS NOT NULL AND video_url IS NULL AND lesson_type = 'text';
+
+-- 7. Create index (if not exists)
+DO $$ BEGIN
+  CREATE INDEX course_days_lesson_type_idx ON course_days(lesson_type);
+EXCEPTION
+  WHEN duplicate_table THEN null;
+END $$;
+
+-- Verify migration
+SELECT 
+  'course_days' as table_name,
+  COUNT(*) as total_rows,
+  COUNT(CASE WHEN lesson_type = 'video' THEN 1 END) as video_lessons,
+  COUNT(CASE WHEN lesson_type = 'audio' THEN 1 END) as audio_lessons,
+  COUNT(CASE WHEN lesson_type = 'file' THEN 1 END) as file_lessons,
+  COUNT(CASE WHEN lesson_type = 'text' THEN 1 END) as text_lessons,
+  COUNT(CASE WHEN rutube_url IS NOT NULL THEN 1 END) as with_rutube,
+  COUNT(CASE WHEN attachments != '[]'::jsonb THEN 1 END) as with_attachments
+FROM course_days;
+
+SELECT '✅ Migration completed successfully!' as status;
