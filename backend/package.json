@@ -26,7 +26,7 @@
     "dayjs": "^1.11.13",
     "drizzle-orm": "^0.45.1",
     "elysia": "^1.4.19",
-    "grammy": "^1.35.0",
+    "grammy": "^1.40.0",
     "ioredis": "^5.8.2",
     "nanoid": "^5.0.9",
     "openai": "^4.77.0",
