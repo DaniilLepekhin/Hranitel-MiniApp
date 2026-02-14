@@ -46,6 +46,8 @@ export class RatingsService {
           id: users.id,
           telegramId: users.telegramId,
           firstName: users.firstName,
+          lastName: users.lastName,
+          username: users.username,
           energies: users.energies,
         })
         .from(users)
@@ -70,6 +72,8 @@ export class RatingsService {
         userId: u.id,
         telegramId: u.telegramId,
         firstName: u.firstName,
+        lastName: u.lastName,
+        username: u.username,
         name: u.firstName || 'Участник',
         energies: u.energies || 0,
         experience: u.energies || 0, // Frontend expects 'experience' field

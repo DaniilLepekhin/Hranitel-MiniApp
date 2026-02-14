@@ -75,7 +75,7 @@ export const ratingsRoutes = new Elysia({ prefix: '/ratings' })
           data: {
             balance,
             history,
-            leaderboard: personalRating,
+            leaderboard: personalRating.topUsers, // Frontend expects array, not object
             cityRatings,
             teamRatings,
             userPosition,
