@@ -232,6 +232,7 @@ export class RatingsService {
 
       return {
         personalRank,
+        globalRank: personalRank, // Алиас для совместимости с frontend
         cityRank,
         teamRank,
         decadeId,
