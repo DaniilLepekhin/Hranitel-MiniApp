@@ -36,7 +36,14 @@ export default function VideoPage() {
       queryClient.invalidateQueries({ queryKey: ['content', 'progress'] });
       queryClient.invalidateQueries({ queryKey: ['energies', 'balance'] });
 
-      webApp?.showAlert(`Отлично! Вы получили +${data.energiesEarned} Энергии за просмотр этого видео!`);
+      // Show beautiful popup with energy reward
+      if (data.energiesEarned > 0) {
+        webApp?.showPopup({
+          title: '⚡ Энергия начислена!',
+          message: `Отлично! Вы получили +${data.energiesEarned} Энергии за просмотр этого видео!`,
+          buttons: [{ type: 'close', text: 'Закрыть' }]
+        });
+      }
     },
     onError: (error: Error) => {
       haptic.notification('error');

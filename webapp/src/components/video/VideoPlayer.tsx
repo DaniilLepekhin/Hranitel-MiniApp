@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Maximize2, Minimize2, Volume2, VolumeX, CheckCircle } from 'lucide-react';
+import { Play, Pause, Maximize2, Minimize2, Volume2, VolumeX, CheckCircle, Zap } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import type { Video, VideoTimecode } from '@/lib/api';
 
@@ -300,11 +300,13 @@ export function VideoPlayer({ video, timecodes = [], onComplete, onTimeUpdate }:
       )}
 
       {hasWatched && (
-        <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-[#d93547]/10 to-[#9c1723]/10 border border-[#9c1723]/30 flex items-center gap-3">
-          <CheckCircle className="w-6 h-6 text-[#d93547] flex-shrink-0" />
-          <div>
-            <p className="font-semibold text-[#2b2520]">Видео просмотрено!</p>
-            <p className="text-[#6b5a4a] text-sm">Energy Points начислены на ваш счёт</p>
+        <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-500/50 flex items-center gap-3 shadow-sm">
+          <div className="flex-shrink-0 w-12 h-12 rounded-full bg-green-500 flex items-center justify-center">
+            <Zap className="w-7 h-7 text-white fill-white" />
+          </div>
+          <div className="flex-1">
+            <p className="font-bold text-green-700 text-lg">+20 Энергии начислена</p>
+            <p className="text-green-600 text-sm">Спасибо за просмотр! 🎉</p>
           </div>
         </div>
       )}
