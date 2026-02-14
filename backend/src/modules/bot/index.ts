@@ -4907,10 +4907,12 @@ bot.on('chat_member', async (ctx) => {
     const oldStatus = update.old_chat_member.status;
     const newStatus = update.new_chat_member.status;
 
-    // Проверяем только случаи когда пользователь вступает (был не участником, стал участником)
     const wasNotMember = ['left', 'kicked', 'restricted'].includes(oldStatus) || oldStatus === undefined;
     const isMemberNow = ['member', 'administrator', 'creator'].includes(newStatus);
+    const wasMember = ['member', 'administrator', 'creator'].includes(oldStatus);
+    const isNotMemberNow = ['left', 'kicked'].includes(newStatus);
 
+    // 📥 ВСТУПЛЕНИЕ: пользователь вступает (был не участником, стал участником)
     if (wasNotMember && isMemberNow) {
       logger.info({ chatId, userId, oldStatus, newStatus }, 'User joining chat, checking access...');
 
@@ -4927,6 +4929,14 @@ bot.on('chat_member', async (ctx) => {
 
       // 🛡️ Обычная проверка подписки для каналов/чатов города
       await subscriptionGuardService.handleJoinAttempt(chatId, userId);
+    }
+
+    // 📤 ВЫХОД: пользователь выходит (был участником, стал left/kicked)
+    if (wasMember && isNotMemberNow) {
+      logger.info({ chatId, userId, oldStatus, newStatus }, 'User leaving chat, updating records...');
+
+      // 🔟 Обработать выход из десятки (real-time sync)
+      await decadesService.handleDecadeLeave(chatId, userId);
     }
   } catch (error) {
     logger.error({ error }, 'Error in chat_member handler');

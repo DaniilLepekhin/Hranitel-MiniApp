@@ -695,11 +695,14 @@ class DecadesService {
   /**
    * Обработка входа в чат десятки
    */
-  async handleDecadeJoinAttempt(tgChatId: number, userTelegramId: number): Promise<void> {
-    if (!this.api) return;
+  async handleDecadeJoinAttempt(
+    tgChatId: number,
+    userTelegramId: number
+  ): Promise<{ isDecadeChat: boolean; allowed?: boolean }> {
+    if (!this.api) return { isDecadeChat: false };
 
     const isDecade = await this.isDecadeChat(tgChatId);
-    if (!isDecade) return;
+    if (!isDecade) return { isDecadeChat: false };
 
     const { allowed, reason } = await this.canJoinDecadeChat(tgChatId, userTelegramId);
 
@@ -724,6 +727,74 @@ class DecadesService {
         logger.error({ error, tgChatId, userTelegramId }, 'Error handling unauthorized decade join');
       }
     }
+
+    return { isDecadeChat: true, allowed };
+  }
+
+  /**
+   * Обработка выхода из чата десятки (real-time sync)
+   */
+  async handleDecadeLeave(tgChatId: number, userTelegramId: number): Promise<void> {
+    // Проверить что это чат десятки
+    const [decade] = await db
+      .select()
+      .from(decades)
+      .where(eq(decades.tgChatId, tgChatId))
+      .limit(1);
+
+    if (!decade) return; // Не чат десятки
+
+    // Найти активное членство
+    const [membership] = await db
+      .select()
+      .from(decadeMembers)
+      .where(
+        and(
+          eq(decadeMembers.decadeId, decade.id),
+          eq(decadeMembers.telegramId, userTelegramId),
+          isNull(decadeMembers.leftAt)
+        )
+      )
+      .limit(1);
+
+    if (!membership) {
+      logger.debug(
+        { tgChatId, userTelegramId, decadeId: decade.id },
+        'User left decade chat but no active membership found (might be unauthorized user)'
+      );
+      return; // Нет активного членства
+    }
+
+    // Обновить в транзакции
+    await db.transaction(async tx => {
+      // Пометить как вышедшего
+      await tx
+        .update(decadeMembers)
+        .set({ leftAt: new Date() })
+        .where(eq(decadeMembers.id, membership.id));
+
+      // Обновить счётчик
+      const newCount = Math.max(0, decade.currentMembers - 1);
+      await tx
+        .update(decades)
+        .set({
+          currentMembers: newCount,
+          isFull: false, // Освободилось место
+          updatedAt: new Date(),
+        })
+        .where(eq(decades.id, decade.id));
+    });
+
+    logger.info(
+      {
+        telegramId: userTelegramId,
+        decadeId: decade.id,
+        city: decade.city,
+        number: decade.number,
+        newCount: Math.max(0, decade.currentMembers - 1),
+      },
+      'User left decade - membership updated'
+    );
   }
 
   // ============================================================================
