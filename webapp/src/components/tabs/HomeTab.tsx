@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth';
 import { energiesApi } from '@/lib/api';
 import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
-import { DailyAnnouncement } from '@/components/ui/DailyAnnouncement';
+
 import { useTelegram } from '@/hooks/useTelegram';
 
 // Динамически определяем API URL на основе текущего домена
@@ -393,9 +393,6 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
           </div>
           {/* Линия */}
           <div className="w-full h-[1px] bg-[#2d2620]/20 mb-4" />
-
-          {/* 📅 Расписание февраля */}
-          <DailyAnnouncement />
 
           {/* Кнопка "Стать амбассадором" */}
           <div
