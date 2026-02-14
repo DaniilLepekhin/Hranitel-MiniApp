@@ -434,7 +434,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
 
           {/* Таблица рейтинга - ТОП-10 или полная */}
           <div className="space-y-2">
-            {(showFullLeaderboard ? displayedLeaderboard : displayedLeaderboard.slice(0, 10)).map((entry) => (
+            {(showFullLeaderboard ? displayedLeaderboard : displayedLeaderboard.slice(0, 10)).map((entry: any) => (
               <LeaderboardItem
                 key={entry.id}
                 entry={entry}
