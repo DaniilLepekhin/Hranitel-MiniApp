@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect, memo, useRef } from 'react';
+import { useState, useCallback, useEffect, memo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
-import { useVirtualizer } from '@tanstack/react-virtual';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { gamificationApi, energiesApi, ratingsApi } from '@/lib/api';
@@ -205,23 +204,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     }
   }, [haptic, webApp]);
 
-  // Показываем топ-10 или весь список в зависимости от showFullLeaderboard
-  const displayedLeaderboard = useMemo(() => {
-    if (showFullLeaderboard) {
-      return leaderboard;
-    }
-    return leaderboard.slice(0, 10);
-  }, [leaderboard, showFullLeaderboard]);
-
-  // 🚀 ОПТИМИЗАЦИЯ: Virtual List для рейтинга
-  const parentRef = useRef<HTMLDivElement>(null);
-  
-  const rowVirtualizer = useVirtualizer({
-    count: displayedLeaderboard.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 32, // Примерная высота строки
-    overscan: 5, // Рендерить 5 строк сверху/снизу для плавности
-  });
+  const displayedLeaderboard = leaderboard;
 
   return (
     <div className="min-h-screen w-full bg-[#f7f1e8] relative" style={{ WebkitOverflowScrolling: 'touch' }}>
@@ -449,57 +432,15 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
           {/* Разделитель */}
           <div className="w-full h-[1px] bg-[#2d2620]/20 mb-4" />
 
-          {/* 🚀 ОПТИМИЗАЦИЯ: Виртуальная таблица рейтинга */}
-          <div className="relative">
-            <div 
-              ref={parentRef}
-              className="overflow-auto"
-              style={{ 
-                height: showFullLeaderboard ? '500px' : '320px',
-                contain: 'strict',
-              }}
-            >
-              <div
-                style={{
-                  height: `${rowVirtualizer.getTotalSize()}px`,
-                  width: '100%',
-                  position: 'relative',
-                }}
-              >
-                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                  const entry = displayedLeaderboard[virtualRow.index];
-                  return (
-                    <div
-                      key={virtualRow.key}
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: `${virtualRow.size}px`,
-                        transform: `translateY(${virtualRow.start}px)`,
-                      }}
-                    >
-                      <LeaderboardItem
-                        entry={entry}
-                        isCurrentUser={entry.id === user?.id}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Градиент для fade эффекта если не развернуто */}
-            {!showFullLeaderboard && (
-              <div
-                className="absolute bottom-0 left-0 right-0 pointer-events-none"
-                style={{
-                  height: '100px',
-                  background: 'linear-gradient(to bottom, rgba(247,241,232,0) 0%, #f7f1e8 100%)',
-                }}
+          {/* Таблица рейтинга - ТОП-10 или полная */}
+          <div className="space-y-2">
+            {(showFullLeaderboard ? displayedLeaderboard : displayedLeaderboard.slice(0, 10)).map((entry) => (
+              <LeaderboardItem
+                key={entry.id}
+                entry={entry}
+                isCurrentUser={entry.id === user?.id}
               />
-            )}
+            ))}
           </div>
 
           {/* Кнопка Ваше место и Развернуть */}
@@ -517,21 +458,23 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
             >
               Ваше место: {userRank}
             </button>
-            <button
-              onClick={() => {
-                haptic.selection();
-                setShowFullLeaderboard(!showFullLeaderboard);
-              }}
-              style={{
-                fontFamily: 'Gilroy, sans-serif',
-                fontWeight: 400,
-                fontSize: '11px',
-                color: '#2d2620',
-                textDecoration: 'underline',
-              }}
-            >
-              {showFullLeaderboard ? 'Свернуть таблицу' : 'Развернуть таблицу'}
-            </button>
+            {displayedLeaderboard.length > 10 && (
+              <button
+                onClick={() => {
+                  haptic.selection();
+                  setShowFullLeaderboard(!showFullLeaderboard);
+                }}
+                style={{
+                  fontFamily: 'Gilroy, sans-serif',
+                  fontWeight: 400,
+                  fontSize: '11px',
+                  color: '#2d2620',
+                  textDecoration: 'underline',
+                }}
+              >
+                {showFullLeaderboard ? 'Показать только ТОП-10' : 'Показать весь рейтинг (100)'}
+              </button>
+            )}
           </div>
         </div>
 
