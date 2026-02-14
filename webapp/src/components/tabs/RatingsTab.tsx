@@ -205,7 +205,13 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     }
   }, [haptic, webApp]);
 
-  const displayedLeaderboard = leaderboard;
+  // Показываем топ-10 или весь список в зависимости от showFullLeaderboard
+  const displayedLeaderboard = useMemo(() => {
+    if (showFullLeaderboard) {
+      return leaderboard;
+    }
+    return leaderboard.slice(0, 10);
+  }, [leaderboard, showFullLeaderboard]);
 
   // 🚀 ОПТИМИЗАЦИЯ: Virtual List для рейтинга
   const parentRef = useRef<HTMLDivElement>(null);
