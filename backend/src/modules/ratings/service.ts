@@ -66,10 +66,13 @@ export class RatingsService {
       };
 
       const topUsers = allUsers.slice(0, 100).map((u, index) => ({
+        id: u.id, // Frontend expects 'id' not 'userId'
         userId: u.id,
         telegramId: u.telegramId,
+        firstName: u.firstName,
         name: u.firstName || 'Участник',
         energies: u.energies || 0,
+        experience: u.energies || 0, // Frontend expects 'experience' field
         rank: index + 1,
         total,
       }));
