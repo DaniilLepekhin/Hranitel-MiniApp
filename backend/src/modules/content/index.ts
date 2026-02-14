@@ -231,8 +231,12 @@ export const contentModule = new Elysia({ prefix: '/api/v1/content' })
       .limit(1);
 
     let progress;
+    let shouldAwardEnergy = false;
 
     if (existingProgress.length > 0) {
+      // Check if video was already watched (to prevent duplicate energy awards)
+      const alreadyWatched = existingProgress[0].watched;
+      
       // Update existing progress
       progress = await db
         .update(userContentProgress)
@@ -245,6 +249,9 @@ export const contentModule = new Elysia({ prefix: '/api/v1/content' })
         })
         .where(eq(userContentProgress.id, existingProgress[0].id))
         .returning();
+      
+      // Only award energy if this is the first completion
+      shouldAwardEnergy = !alreadyWatched;
     } else {
       // Create new progress record
       progress = await db
@@ -258,10 +265,13 @@ export const contentModule = new Elysia({ prefix: '/api/v1/content' })
           energiesEarned: energiesReward
         })
         .returning();
+      
+      // First time watching - award energy
+      shouldAwardEnergy = true;
     }
 
-    // Award Энергии пользователю
-    if (energiesReward > 0) {
+    // Award Энергии пользователю (only on first watch)
+    if (energiesReward > 0 && shouldAwardEnergy) {
       await energiesService.award(userId, energiesReward, `Просмотр видео: ${video[0].title}`, {
         videoId,
         videoTitle: video[0].title,
