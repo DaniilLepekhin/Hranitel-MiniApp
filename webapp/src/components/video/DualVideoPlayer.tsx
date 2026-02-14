@@ -241,8 +241,8 @@ export function DualVideoPlayer({
             <Zap className="w-7 h-7 text-white fill-white" />
           </div>
           <div className="flex-1">
-            <p className="font-bold text-green-700 text-lg">+20 Энергии начислена</p>
-            <p className="text-green-600 text-sm">Спасибо за просмотр! 🎉</p>
+            <p className="font-bold text-green-700 text-lg">Видео просмотрено</p>
+            <p className="text-green-600 text-sm">Энергия уже начислена 🎉</p>
           </div>
         </div>
       )}

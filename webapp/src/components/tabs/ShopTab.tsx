@@ -8,40 +8,7 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { Card } from '@/components/ui/Card';
 import { useRouter } from 'next/navigation';
-
-// API endpoints
-const shopApi = {
-  getItemsByCategory: async () => {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/shop/items/by-category`);
-    if (!response.ok) throw new Error('Failed to fetch shop items');
-    return response.json();
-  },
-
-  getUserBalance: async (userId: string) => {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/energies/balance?userId=${userId}`);
-    if (!response.ok) throw new Error('Failed to fetch balance');
-    return response.json();
-  },
-
-  purchaseItem: async (userId: string, itemId: string) => {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/shop/purchase`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, itemId }),
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to purchase item');
-    }
-    return response.json();
-  },
-
-  getUserPurchases: async (userId: string) => {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/shop/purchases?userId=${userId}`);
-    if (!response.ok) throw new Error('Failed to fetch purchases');
-    return response.json();
-  },
-};
+import { energiesApi, shopApi as apiShop } from '@/lib/api';
 
 type Category = 'elite' | 'secret' | 'savings';
 
@@ -78,17 +45,17 @@ export function ShopTab() {
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch shop items by category
   const { data: shopData, isLoading: itemsLoading } = useQuery({
     queryKey: ['shop', 'items-by-category'],
-    queryFn: shopApi.getItemsByCategory,
+    queryFn: () => fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/shop/items/by-category`).then(r => r.json()),
     enabled: !!user && !!token,
     retry: false,
     staleTime: 60 * 1000,
     placeholderData: { success: true, categories: { elite: [], secret: [], savings: [] } },
   });
 
-  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch user balance
+  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch user balance - USE CENTRALIZED API
   const { data: balanceData } = useQuery({
-    queryKey: ['ep', 'balance', user?.id],
-    queryFn: () => shopApi.getUserBalance(user!.id),
+    queryKey: ['energies', 'balance'],
+    queryFn: () => energiesApi.getBalance(),
     enabled: !!user && !!token,
     refetchInterval: 10000,
     retry: false,
@@ -98,7 +65,7 @@ export function ShopTab() {
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch user purchases
   const { data: purchasesData } = useQuery({
     queryKey: ['shop', 'purchases', user?.id],
-    queryFn: () => shopApi.getUserPurchases(user!.id),
+    queryFn: () => apiShop.getPurchases(user!.id),
     enabled: !!user && !!token,
     retry: false,
     staleTime: 60 * 1000,
@@ -107,10 +74,10 @@ export function ShopTab() {
 
   // Purchase mutation
   const purchaseMutation = useMutation({
-    mutationFn: (itemId: string) => shopApi.purchaseItem(user!.id, itemId),
+    mutationFn: (itemId: string) => apiShop.purchaseItem(user!.id, itemId),
     onSuccess: () => {
       haptic.notification('success');
-      queryClient.invalidateQueries({ queryKey: ['ep', 'balance'] });
+      queryClient.invalidateQueries({ queryKey: ['energies', 'balance'] });
       queryClient.invalidateQueries({ queryKey: ['shop', 'purchases'] });
       setShowPurchaseModal(false);
       setSelectedItem(null);

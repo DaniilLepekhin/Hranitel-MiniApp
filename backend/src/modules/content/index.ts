@@ -280,7 +280,7 @@ export const contentModule = new Elysia({ prefix: '/api/v1/content' })
 
     return {
       progress: progress[0],
-      energiesEarned: energiesReward
+      energiesEarned: shouldAwardEnergy ? energiesReward : 0 // Only return energies if actually awarded
     };
   }, {
     body: t.Object({
