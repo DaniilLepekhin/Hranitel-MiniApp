@@ -10,16 +10,19 @@ import { useAuthStore } from '@/store/auth';
 import { VideoPlayer } from '@/components/video/VideoPlayer';
 import { DualVideoPlayer } from '@/components/video/DualVideoPlayer';
 import { Card } from '@/components/ui/Card';
+import { EnergyRewardModal } from '@/components/ui/EnergyRewardModal';
 
 export default function VideoPage() {
   const router = useRouter();
   const params = useParams();
-  const { haptic, webApp } = useTelegram();
+  const { haptic } = useTelegram();
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const videoId = params.videoId as string;
 
   const [watchTime, setWatchTime] = useState(0);
+  const [showRewardModal, setShowRewardModal] = useState(false);
+  const [earnedEnergy, setEarnedEnergy] = useState(0);
 
   // Fetch video details with timecodes
   const { data: videoData, isLoading } = useQuery({
@@ -28,26 +31,37 @@ export default function VideoPage() {
     enabled: !!videoId,
   });
 
+  // Fetch user progress for this video
+  const { data: progressData } = useQuery({
+    queryKey: ['content', 'progress', user?.id],
+    queryFn: () => contentApi.getUserProgress(user!.id),
+    enabled: !!user?.id,
+  });
+
+  // Check if current video is already watched
+  const isVideoWatched = progressData?.progress?.some(
+    (p) => p.videoId === videoId && p.watched
+  ) ?? false;
+
   // Complete video mutation
   const completeMutation = useMutation({
     mutationFn: () => contentApi.completeVideo(user!.id, videoId, watchTime),
     onSuccess: (data) => {
       haptic.notification('success');
-      queryClient.invalidateQueries({ queryKey: ['content', 'progress'] });
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['content', 'progress', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['energies', 'balance'] });
 
-      // Show beautiful popup with energy reward
+      // Show beautiful custom modal with energy reward
       if (data.energiesEarned > 0) {
-        webApp?.showPopup({
-          title: '⚡ Энергия начислена!',
-          message: `Отлично! Вы получили +${data.energiesEarned} Энергии за просмотр этого видео!`,
-          buttons: [{ type: 'close', text: 'Закрыть' }]
-        });
+        setEarnedEnergy(data.energiesEarned);
+        setShowRewardModal(true);
       }
     },
     onError: (error: Error) => {
       haptic.notification('error');
-      webApp?.showAlert(`Ошибка: ${error.message}`);
+      alert(`Ошибка: ${error.message}`);
     },
   });
 
@@ -110,6 +124,8 @@ export default function VideoPage() {
           description={video.description || undefined}
           pdfUrl={video.pdfUrl || undefined}
           onComplete={handleComplete}
+          isCompleted={isVideoWatched}
+          isPending={completeMutation.isPending}
         />
       ) : (
         <>
@@ -118,6 +134,7 @@ export default function VideoPage() {
             timecodes={timecodes}
             onComplete={handleComplete}
             onTimeUpdate={handleTimeUpdate}
+            initialWatched={isVideoWatched}
           />
 
           {/* Video Info */}
@@ -155,6 +172,14 @@ export default function VideoPage() {
           </div>
         </Card>
       )}
+
+      {/* Energy Reward Modal */}
+      <EnergyRewardModal
+        isOpen={showRewardModal}
+        onClose={() => setShowRewardModal(false)}
+        energyAmount={earnedEnergy}
+        videoTitle={video?.title}
+      />
     </div>
   );
 }

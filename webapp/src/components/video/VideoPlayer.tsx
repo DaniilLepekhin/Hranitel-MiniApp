@@ -10,9 +10,10 @@ interface VideoPlayerProps {
   timecodes?: VideoTimecode[];
   onComplete?: () => void;
   onTimeUpdate?: (seconds: number) => void;
+  initialWatched?: boolean;
 }
 
-export function VideoPlayer({ video, timecodes = [], onComplete, onTimeUpdate }: VideoPlayerProps) {
+export function VideoPlayer({ video, timecodes = [], onComplete, onTimeUpdate, initialWatched = false }: VideoPlayerProps) {
   const { haptic } = useTelegram();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -22,7 +23,12 @@ export function VideoPlayer({ video, timecodes = [], onComplete, onTimeUpdate }:
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPipSupported, setIsPipSupported] = useState(false);
   const [isInPip, setIsInPip] = useState(false);
-  const [hasWatched, setHasWatched] = useState(false);
+  const [hasWatched, setHasWatched] = useState(initialWatched);
+
+  // Sync with external state
+  useEffect(() => {
+    setHasWatched(initialWatched);
+  }, [initialWatched]);
 
   // Check if Picture-in-Picture is supported
   useEffect(() => {
