@@ -27,15 +27,18 @@ interface LeaderboardItemProps {
     lastName?: string;
     username?: string;
     experience?: number;
+    rank?: number;
   };
   isCurrentUser: boolean;
+  rank?: number; // Номер места для отображения
 }
 
-const LeaderboardItem = memo(({ entry, isCurrentUser }: LeaderboardItemProps) => {
+const LeaderboardItem = memo(({ entry, isCurrentUser, rank }: LeaderboardItemProps) => {
   const displayName = entry.firstName && entry.lastName
     ? `${entry.firstName} ${entry.lastName}`
-    : entry.username || 'Пользователь';
+    : entry.firstName || entry.username || 'Пользователь';
   const energies = entry.experience || 0;
+  const displayRank = rank || entry.rank || 0;
 
   return (
     <div
@@ -49,7 +52,19 @@ const LeaderboardItem = memo(({ entry, isCurrentUser }: LeaderboardItemProps) =>
         color: isCurrentUser ? '#9c1723' : '#2d2620',
       }}
     >
-      <span className="flex-1 truncate">{displayName}</span>
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <span 
+          style={{ 
+            fontWeight: 700,
+            minWidth: '28px',
+            color: isCurrentUser ? '#9c1723' : '#6b5a4a',
+            fontSize: '13px'
+          }}
+        >
+          {displayRank}.
+        </span>
+        <span className="truncate">{displayName}</span>
+      </div>
       <span style={{ fontWeight: isCurrentUser ? 700 : 400, minWidth: '80px', textAlign: 'right' }}>
         {energies.toLocaleString('ru-RU')} ⚡
       </span>
@@ -434,11 +449,12 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
 
           {/* Таблица рейтинга - ТОП-10 или полная */}
           <div className="space-y-2">
-            {(showFullLeaderboard ? displayedLeaderboard : displayedLeaderboard.slice(0, 10)).map((entry: any) => (
+            {(showFullLeaderboard ? displayedLeaderboard : displayedLeaderboard.slice(0, 10)).map((entry: any, index: number) => (
               <LeaderboardItem
                 key={entry.id}
                 entry={entry}
                 isCurrentUser={entry.id === user?.id}
+                rank={index + 1}
               />
             ))}
           </div>
