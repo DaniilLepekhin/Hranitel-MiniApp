@@ -427,19 +427,30 @@ jobs:
             # Make scripts executable
             chmod +x "${SCRIPTS_DIR}/chat_open_morning.sh" 2>/dev/null || true
             chmod +x "${SCRIPTS_DIR}/chat_close_evening.sh" 2>/dev/null || true
+            chmod +x "${SCRIPTS_DIR}/city_chats_close_sunday.sh" 2>/dev/null || true
+            chmod +x "${SCRIPTS_DIR}/city_chats_open_monday.sh" 2>/dev/null || true
 
             # Chat schedule cron entries (Moscow time = UTC+3)
+            # Main additional channel (old logic):
             # 10:00 MSK = 07:00 UTC - Open chat
             # 22:00 MSK = 19:00 UTC - Close chat
             CRON_MORNING="0 7 * * * ${SCRIPTS_DIR}/chat_open_morning.sh"
             CRON_EVENING="0 19 * * * ${SCRIPTS_DIR}/chat_close_evening.sh"
+            
+            # City chats (new logic - weekly schedule):
+            # Sunday 10:00 MSK = 07:00 UTC - Close all city chats with message
+            # Monday 10:00 MSK = 07:00 UTC - Open all city chats (no message)
+            CRON_CITY_CLOSE="0 7 * * 0 ${SCRIPTS_DIR}/city_chats_close_sunday.sh"
+            CRON_CITY_OPEN="0 7 * * 1 ${SCRIPTS_DIR}/city_chats_open_monday.sh"
 
             # Remove old entries and add new ones
-            (crontab -l 2>/dev/null | grep -v "chat_open_morning.sh" | grep -v "chat_close_evening.sh"; echo "${CRON_MORNING}"; echo "${CRON_EVENING}") | crontab -
+            (crontab -l 2>/dev/null | grep -v "chat_open_morning.sh" | grep -v "chat_close_evening.sh" | grep -v "city_chats_close_sunday.sh" | grep -v "city_chats_open_monday.sh"; echo "${CRON_MORNING}"; echo "${CRON_EVENING}"; echo "${CRON_CITY_CLOSE}"; echo "${CRON_CITY_OPEN}") | crontab -
 
             echo "✅ Chat schedule cron jobs configured:"
-            echo "  - Morning (10:00 MSK / 07:00 UTC): chat_open_morning.sh"
-            echo "  - Evening (22:00 MSK / 19:00 UTC): chat_close_evening.sh"
+            echo "  - Main channel morning (10:00 MSK / 07:00 UTC): chat_open_morning.sh"
+            echo "  - Main channel evening (22:00 MSK / 19:00 UTC): chat_close_evening.sh"
+            echo "  - City chats Sunday close (10:00 MSK / 07:00 UTC): city_chats_close_sunday.sh"
+            echo "  - City chats Monday open (10:00 MSK / 07:00 UTC): city_chats_open_monday.sh"
 
             echo "📋 Current crontab:"
             crontab -l
