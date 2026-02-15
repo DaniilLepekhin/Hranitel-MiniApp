@@ -8,7 +8,6 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
 import { energiesApi, usersApi } from '@/lib/api';
 import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
-import { EnergyHistory } from '@/components/EnergyHistory';
 import { Edit2, X, Check } from 'lucide-react';
 
 // 🚀 ОПТИМИЗАЦИЯ: Lazy load модального окна подтверждения
@@ -582,11 +581,6 @@ export function ProfileTab() {
             )}
           </div>
         )}
-
-        {/* ===== ИСТОРИЯ ЭНЕРГИЙ ===== */}
-        <div className="mx-[30px] mb-6">
-          <EnergyHistory limit={10} />
-        </div>
 
         {/* ===== ССЫЛКИ ===== */}
         <div className="space-y-[20px] px-[30px]">
