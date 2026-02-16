@@ -59,7 +59,6 @@ const ALL_PROBUDIS_TASK_TYPES = [
   'probudis_guide',
   'probudis_results',
   'probudis_images',
-  'probudis_kristina',
   'probudis_success_story',
   'probudis_traps',
   'probudis_burning_topics',
@@ -69,7 +68,7 @@ const ALL_PROBUDIS_TASK_TYPES = [
   'probudis_day3',
   'probudis_day4',
   'probudis_day5',
-];
+] as const;
 
 export async function setProbudisFunnelType(telegramId: number): Promise<void> {
   if (!redis) return;
@@ -147,8 +146,9 @@ export async function startProbudisFunnel(userId: string, chatId: number, utmDat
       return;
     }
 
-    // Отменяем ВСЕ предыдущие задачи probudis воронки
-    await cancelProbudisFunnelTasks(parseInt(userId));
+    // Отменяем ВСЕ предыдущие задачи пользователя (start, women, probudis, club — любые)
+    await schedulerService.cancelAllUserTasks(parseInt(userId));
+    logger.info({ userId }, 'Cancelled ALL user tasks before starting probudis funnel');
 
     // Устанавливаем тип воронки в Redis
     await setProbudisFunnelType(parseInt(userId));
@@ -328,7 +328,7 @@ export async function sendProbudisSuccessStories(userId: string, chatId: number,
  */
 export async function cancelProbudisFunnelTasks(userId: number): Promise<void> {
   try {
-    await schedulerService.cancelUserTasksByTypes(userId, ALL_PROBUDIS_TASK_TYPES);
+    await schedulerService.cancelUserTasksByTypes(userId, [...ALL_PROBUDIS_TASK_TYPES]);
     logger.info({ userId }, 'All probudis funnel tasks cancelled');
   } catch (error) {
     logger.error({ error, userId }, 'Error cancelling probudis tasks');

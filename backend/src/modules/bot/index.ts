@@ -1472,59 +1472,56 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
       );
     }
     // =====================================================================
-    // 🌅 PROBUDIS FUNNEL - полная цепочка (как women)
+    // 🌅 PROBUDIS FUNNEL - полная цепочка
+    // Последовательность: билет → КОД ДЕНЕГ → гайд → результаты → 
+    // картинки 2026 → МЧС → 3 ловушки → горящие темы → Татьяна → 
+    // "не просто клуб" → day2 → day3 → day4 → day5
     // =====================================================================
+    // ШАГ 2: Билет (через 5 мин после первого сообщения ИЛИ по кнопке)
     else if (type === 'probudis_dogrev_5m') {
       const { utmData, isTestMode } = task.data || {};
       await probudisFunnel.sendProbudisDogrev(String(userId), chatId, utmData, isTestMode);
     }
+    // ШАГ 3: КОД ДЕНЕГ видео-отзывы (через 5 мин после билета)
     else if (type === 'probudis_success_stories') {
       const { utmData, isTestMode } = task.data || {};
       await probudisFunnel.sendProbudisSuccessStories(String(userId), chatId, utmData, isTestMode);
     }
+    // ШАГ 4: Нумерологический гайд (через 5 мин)
     else if (type === 'probudis_guide') {
-      // Нумерологический гайд (как women_guide_5min)
       const { utmData, isTestMode } = task.data || {};
       const guideKeyboard = new InlineKeyboard()
         .url('Скачать гайд ❤️', 'https://t.me/kristina_egiazarova_bot?start=leadmagnit180126');
 
-      await telegramService.sendPhoto(
-        chatId,
-        'https://t.me/mate_bot_open/9370',
-        {
-          caption:
-            `<b>Хотите узнать, что скрывает ваше число рождения? ✨</b>\n\n` +
-            `Кем вам <b>выгодно быть?</b>\n` +
-            `Где заложен <b>ваш масштаб? </b>\n` +
-            `Почему, едва почувствовав потолок —\n` +
-            `<b>что мешает раскрыть потенциал? </b>\n\n` +
-            `У каждого числа — <b>свой стиль, сила и слабости.</b>\n` +
-            `Гайд покажет, как раскрывается ваш <b>характер</b>\n` +
-            `в контексте <b>бизнеса и жизни </b>\n\n` +
-            `<b>31 ключ к себе</b> внутри гайда ⬇️`,
-          parse_mode: 'HTML',
-          reply_markup: guideKeyboard
-        }
-      );
+      await telegramService.sendPhoto(chatId, 'https://t.me/mate_bot_open/9370', {
+        caption:
+          `<b>Хотите узнать, что скрывает ваше число рождения? ✨</b>\n\n` +
+          `Кем вам <b>выгодно быть?</b>\n` +
+          `Где заложен <b>ваш масштаб? </b>\n` +
+          `Почему, едва почувствовав потолок —\n` +
+          `<b>что мешает раскрыть потенциал? </b>\n\n` +
+          `У каждого числа — <b>свой стиль, сила и слабости.</b>\n` +
+          `Гайд покажет, как раскрывается ваш <b>характер</b>\n` +
+          `в контексте <b>бизнеса и жизни </b>\n\n` +
+          `<b>31 ключ к себе</b> внутри гайда ⬇️`,
+        parse_mode: 'HTML',
+        reply_markup: guideKeyboard
+      });
 
+      // → через 5 мин: результаты участников
       const timeout = isTestMode ? 10 * 1000 : 5 * 60 * 1000;
       await schedulerService.schedule(
-        { type: 'probudis_results', userId, chatId, data: { utmData, isTestMode } },
-        timeout
+        { type: 'probudis_results', userId, chatId, data: { utmData, isTestMode } }, timeout
       );
     }
+    // ШАГ 5: Результаты участников марафона (через 5 мин)
     else if (type === 'probudis_results') {
-      // Результаты участников марафона (как women_results_10min)
       const { utmData, isTestMode } = task.data || {};
       const paymentUrl = getPaymentUrlFromUtm(utmData);
-
-      const resultsKeyboard = new InlineKeyboard()
-        .webApp('💫 хочу на марафон', paymentUrl);
+      const resultsKeyboard = new InlineKeyboard().webApp('💫 хочу на марафон', paymentUrl);
 
       await telegramService.sendVideo(chatId, 'https://t.me/mate_bot_open/9677', {});
-
-      await telegramService.sendMessage(
-        chatId,
+      await telegramService.sendMessage(chatId,
         `<b>🔥 РЕЗУЛЬТАТЫ УЧАСТНИКОВ МАРАФОНА «КОД ДЕНЕГ» 🔥</b>\n\n` +
         `Ты можешь продолжать думать, что «это просто не твоё время»…А можешь — как эти девушки — зайти в свой код и изменить всё.\n\n` +
         `📍 <b>Была "проклятым ребёнком", которую не принимали в семье</b>— Через 3 недели после марафона: доход вырос в 2,5 раза, мама впервые за много лет поздравила с днём рождения и подарила подарок.\n\n` +
@@ -1540,19 +1537,17 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         { parse_mode: 'HTML', reply_markup: resultsKeyboard }
       );
 
+      // → через 5 мин: картинки клуба 2026
       const timeout = isTestMode ? 10 * 1000 : 5 * 60 * 1000;
       await schedulerService.schedule(
-        { type: 'probudis_images', userId, chatId, data: { utmData, isTestMode } },
-        timeout
+        { type: 'probudis_images', userId, chatId, data: { utmData, isTestMode } }, timeout
       );
     }
+    // ШАГ 6: Картинки клуба 2026 "КАК СДЕЛАТЬ 2026 ГОД ЛУЧШИМ" (через 5 мин)
     else if (type === 'probudis_images') {
-      // Картинки клуба 2026 (как women_images_15min)
       const { utmData, isTestMode } = task.data || {};
       const paymentUrl = getPaymentUrlFromUtm(utmData);
-
-      const imagesKeyboard = new InlineKeyboard()
-        .webApp('иду с вами 😍', paymentUrl);
+      const imagesKeyboard = new InlineKeyboard().webApp('иду с вами 😍', paymentUrl);
 
       await telegramService.sendMediaGroup(chatId, [
         { type: 'photo', media: 'https://t.me/mate_bot_open/9666' },
@@ -1562,9 +1557,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         { type: 'photo', media: 'https://t.me/mate_bot_open/9670' },
         { type: 'photo', media: 'https://t.me/mate_bot_open/9671' }
       ]);
-
-      await telegramService.sendMessage(
-        chatId,
+      await telegramService.sendMessage(chatId,
         `<b>Вот так выглядит закрытый клуб внутри.</b>\n\n` +
         `Это не чат и не курс.\n` +
         `Это — <b>живая среда</b>, где ты перестаёшь быть одна.\n\n` +
@@ -1575,45 +1568,19 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         { parse_mode: 'HTML', reply_markup: imagesKeyboard }
       );
 
-      const timeout = isTestMode ? 10 * 1000 : 5 * 60 * 1000;
+      // → через 10 мин: история МЧС
+      const timeout = isTestMode ? 10 * 1000 : 10 * 60 * 1000;
       await schedulerService.schedule(
-        { type: 'probudis_kristina', userId, chatId, data: { utmData, isTestMode } },
-        timeout
+        { type: 'probudis_success_story', userId, chatId, data: { utmData, isTestMode } }, timeout
       );
     }
-    else if (type === 'probudis_kristina') {
-      // История Кристины (как women_kristina_25min)
-      const { utmData, isTestMode } = task.data || {};
-      const paymentUrl = getPaymentUrlFromUtm(utmData);
-
-      const kristinaKeyboard = new InlineKeyboard()
-        .webApp('Хочу на марафон ❤️', paymentUrl);
-
-      await telegramService.sendVideo(chatId, 'https://t.me/mate_bot_open/9655', {
-        caption:
-          `<b>Личная история Кристины Егиазаровой.</b>\n\n` +
-          `Основательница самого большого клуба предназначения в России — рассказывает, как нашла свой путь.\n\n` +
-          `Смотри и чувствуй, кто она на самом деле 🤍`,
-        parse_mode: 'HTML',
-        reply_markup: kristinaKeyboard
-      });
-
-      const timeout = isTestMode ? 10 * 1000 : 5 * 60 * 1000;
-      await schedulerService.schedule(
-        { type: 'probudis_success_story', userId, chatId, data: { utmData, isTestMode } },
-        timeout
-      );
-    }
+    // ШАГ 7: История МЧС (через 10 мин)
     else if (type === 'probudis_success_story') {
-      // История МЧС (как women_success_story)
       const { utmData, isTestMode } = task.data || {};
       const paymentUrl = getPaymentUrlFromUtm(utmData);
+      const successKeyboard = new InlineKeyboard().webApp('Запустить изменения 🔥', paymentUrl);
 
-      const successKeyboard = new InlineKeyboard()
-        .webApp('Запустить изменения 🔥', paymentUrl);
-
-      await telegramService.sendMessage(
-        chatId,
+      await telegramService.sendMessage(chatId,
         `<b>Путь от работы в МЧС с долгами к свободе и стабильности 🌟</b>\n\n` +
         `Расскажу историю Кристины, которая совмещала обучение цифровой психологии с основной работой — работой в МЧС.\n\n` +
         `✅ <b>Точка А:</b>\n` +
@@ -1628,19 +1595,17 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         { parse_mode: 'HTML', reply_markup: successKeyboard }
       );
 
-      const timeout = isTestMode ? 10 * 1000 : 5 * 60 * 1000;
+      // → через 20 мин: 3 ловушки
+      const timeout = isTestMode ? 10 * 1000 : 20 * 60 * 1000;
       await schedulerService.schedule(
-        { type: 'probudis_traps', userId, chatId, data: { utmData, isTestMode } },
-        timeout
+        { type: 'probudis_traps', userId, chatId, data: { utmData, isTestMode } }, timeout
       );
     }
+    // ШАГ 8: 3 ловушки (через 20 мин)
     else if (type === 'probudis_traps') {
-      // 3 ловушки (как women_traps_20min)
       const { utmData, isTestMode } = task.data || {};
       const paymentUrl = getPaymentUrlFromUtm(utmData);
-
-      const trapsKeyboard = new InlineKeyboard()
-        .webApp('Оформить подписку 🔥', paymentUrl);
+      const trapsKeyboard = new InlineKeyboard().webApp('Оформить подписку 🔥', paymentUrl);
 
       await telegramService.sendVideo(chatId, 'https://t.me/mate_bot_open/9250', {
         caption:
@@ -1663,16 +1628,15 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         reply_markup: trapsKeyboard
       });
 
-      const timeout = isTestMode ? 10 * 1000 : 5 * 60 * 1000;
+      // → через 20 мин: горящие темы
+      const timeout = isTestMode ? 10 * 1000 : 20 * 60 * 1000;
       await schedulerService.schedule(
-        { type: 'probudis_burning_topics', userId, chatId, data: { utmData, isTestMode } },
-        timeout
+        { type: 'probudis_burning_topics', userId, chatId, data: { utmData, isTestMode } }, timeout
       );
     }
+    // ШАГ 9: Горящие темы (через 20 мин или по кнопке "я не готов")
     else if (type === 'probudis_burning_topics') {
-      // Горящие темы (как women_burning_topics)
       const { utmData, isTestMode } = task.data || {};
-
       const topicsKeyboard = new InlineKeyboard()
         .text('💸 Деньги и финансы', 'topic_money')
         .row()
@@ -1684,32 +1648,27 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         .row()
         .text('⚡️ Энергия и здоровье', 'topic_energy');
 
-      await telegramService.sendMessage(
-        chatId,
+      await telegramService.sendMessage(chatId,
         `<b>Что горит прямо сейчас? 🔥</b>\n\n` +
         `Только честно.\n` +
         `Чтобы не грузить лишним — выбери, что сейчас важнее всего 👇`,
         { parse_mode: 'HTML', reply_markup: topicsKeyboard }
       );
 
+      // → через 60 мин: Татьяна энергия
       const timeout = isTestMode ? 15 * 1000 : 60 * 60 * 1000;
       await schedulerService.schedule(
-        { type: 'probudis_energy_tatiana', userId, chatId, data: { utmData, isTestMode } },
-        timeout
+        { type: 'probudis_energy_tatiana', userId, chatId, data: { utmData, isTestMode } }, timeout
       );
     }
+    // ШАГ 10: Татьяна энергия (через 60 мин)
     else if (type === 'probudis_energy_tatiana') {
-      // Видео Татьяна (как women_energy_tatiana)
       const { utmData, isTestMode } = task.data || {};
       const paymentUrl = getPaymentUrlFromUtm(utmData);
-
-      const energyKeyboard = new InlineKeyboard()
-        .webApp('❤️ я с вами', paymentUrl);
+      const energyKeyboard = new InlineKeyboard().webApp('❤️ я с вами', paymentUrl);
 
       await telegramService.sendVideo(chatId, 'https://t.me/mate_bot_open/9680', {});
-
-      await telegramService.sendMessage(
-        chatId,
+      await telegramService.sendMessage(chatId,
         `<b>НИ НА ЧТО НЕТ ЭНЕРГИИ‼️ Цели не зажигают! Знакомо?</b>\n\n` +
         `Татьяна тоже через это прошла: работала менеджером по закупкам, чувствовала себя загнанной белкой в колесе. А сейчас сама нанимает людей себе в команду.\n\n` +
         `Свобода — это не просто состояние. Это — результат пути, который начался с одного решения: больше не быть в этом одной.\n\n` +
@@ -1719,26 +1678,23 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         { parse_mode: 'HTML', reply_markup: energyKeyboard }
       );
 
+      // → через 60 мин: "не просто клуб"
       const timeout = isTestMode ? 15 * 1000 : 60 * 60 * 1000;
       await schedulerService.schedule(
-        { type: 'probudis_payment_reminder', userId, chatId, data: { utmData, isTestMode } },
-        timeout
+        { type: 'probudis_payment_reminder', userId, chatId, data: { utmData, isTestMode } }, timeout
       );
     }
+    // ШАГ 11: "Это не просто клуб" (через 60 мин)
     else if (type === 'probudis_payment_reminder') {
-      // "Это не просто клуб" (как women_payment_reminder)
       const { utmData, isTestMode } = task.data || {};
       const paymentUrl = getPaymentUrlFromUtm(utmData);
-
       const paymentKeyboard = new InlineKeyboard()
         .webApp('Оформить подписку ❤️', paymentUrl)
         .row()
         .text('я не готов 🤔', 'not_ready_3');
 
       await telegramService.sendVideo(chatId, 'https://t.me/mate_bot_open/9348');
-
-      await telegramService.sendMessage(
-        chatId,
+      await telegramService.sendMessage(chatId,
         `<b>Это не просто клуб.\n` +
         `Это точка, где меняется траектория дохода.</b>\n\n` +
         `Мы видим, что ты заглянула внутрь, но ещё сомневаешься.\n` +
@@ -1760,20 +1716,17 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         { parse_mode: 'HTML', reply_markup: paymentKeyboard }
       );
 
-      // День 2 — на следующий день в 10:00 МСК
+      // → День 2: на следующий день в 10:00 МСК
       const delayToDay2 = isTestMode ? 20 * 1000 : getDelayUntilMoscowTime(10, 0);
       await schedulerService.schedule(
-        { type: 'probudis_day2', userId, chatId, data: { utmData, isTestMode } },
-        delayToDay2
+        { type: 'probudis_day2', userId, chatId, data: { utmData, isTestMode } }, delayToDay2
       );
     }
+    // DAY 2
     else if (type === 'probudis_day2') {
-      // День 2 (как women_day2_reminder)
       const { utmData, isTestMode } = task.data || {};
       const paymentUrl = getPaymentUrlFromUtm(utmData);
-
-      const day2Keyboard = new InlineKeyboard()
-        .webApp('Оформить подписку ❤️', paymentUrl);
+      const day2Keyboard = new InlineKeyboard().webApp('Оформить подписку ❤️', paymentUrl);
 
       await telegramService.sendVideo(chatId, 'https://t.me/mate_bot_open/9349', {
         caption:
@@ -1796,17 +1749,14 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
 
       const timeout = isTestMode ? 20 * 1000 : 25 * 60 * 60 * 1000;
       await schedulerService.schedule(
-        { type: 'probudis_day3', userId, chatId, data: { utmData, isTestMode } },
-        timeout
+        { type: 'probudis_day3', userId, chatId, data: { utmData, isTestMode } }, timeout
       );
     }
+    // DAY 3
     else if (type === 'probudis_day3') {
-      // День 3 (как women_day3_reminder)
       const { utmData, isTestMode } = task.data || {};
       const paymentUrl = getPaymentUrlFromUtm(utmData);
-
-      const day3Keyboard = new InlineKeyboard()
-        .webApp('Оформить подписку ❤️', paymentUrl);
+      const day3Keyboard = new InlineKeyboard().webApp('Оформить подписку ❤️', paymentUrl);
 
       await telegramService.sendVideo(chatId, 'https://t.me/mate_bot_open/9350', {
         caption:
@@ -1825,17 +1775,14 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
 
       const timeout = isTestMode ? 20 * 1000 : 24 * 60 * 60 * 1000;
       await schedulerService.schedule(
-        { type: 'probudis_day4', userId, chatId, data: { utmData, isTestMode } },
-        timeout
+        { type: 'probudis_day4', userId, chatId, data: { utmData, isTestMode } }, timeout
       );
     }
+    // DAY 4
     else if (type === 'probudis_day4') {
-      // День 4 (как women_day4_reminder)
       const { utmData, isTestMode } = task.data || {};
       const paymentUrl = getPaymentUrlFromUtm(utmData);
-
-      const day4Keyboard = new InlineKeyboard()
-        .webApp('Оформить подписку ❤️', paymentUrl);
+      const day4Keyboard = new InlineKeyboard().webApp('Оформить подписку ❤️', paymentUrl);
 
       await telegramService.sendVideo(chatId, 'https://t.me/mate_bot_open/9351', {
         caption:
@@ -1856,17 +1803,14 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
 
       const timeout = isTestMode ? 20 * 1000 : 24 * 60 * 60 * 1000;
       await schedulerService.schedule(
-        { type: 'probudis_day5', userId, chatId, data: { utmData, isTestMode } },
-        timeout
+        { type: 'probudis_day5', userId, chatId, data: { utmData, isTestMode } }, timeout
       );
     }
+    // DAY 5 - финальное
     else if (type === 'probudis_day5') {
-      // День 5 - финальное (как women_day5_final)
       const { utmData } = task.data || {};
       const paymentUrl = getPaymentUrlFromUtm(utmData);
-
-      const day5Keyboard = new InlineKeyboard()
-        .webApp('Оформить подписку ❤️', paymentUrl);
+      const day5Keyboard = new InlineKeyboard().webApp('Оформить подписку ❤️', paymentUrl);
 
       await telegramService.sendPhoto(chatId, 'https://t.me/mate_bot_open/9352', {
         caption:
@@ -3060,20 +3004,8 @@ bot.command('start', async (ctx) => {
       return;
     }
 
-    // 🧹 Очистка всех запланированных задач при перезапуске /start (обычная + club воронка)
-    // ⚡ Используем batch метод для эффективности
-    await schedulerService.cancelUserTasksByTypes(userId, [
-      'start_reminder',
-      'five_min_reminder',
-      'burning_question_reminder',
-      'payment_reminder',
-      'final_reminder',
-      'day2_reminder',
-      'day3_reminder',
-      'day4_reminder',
-      'day5_final',
-      'club_auto_progress',
-    ]);
+    // 🧹 Очистка ВСЕХ запланированных задач при перезапуске /start (start, women, probudis, club — любые)
+    await schedulerService.cancelAllUserTasks(userId);
 
     // Сбрасываем тестовый режим club воронки (если был включён)
     clubFunnel.setTestMode(false);

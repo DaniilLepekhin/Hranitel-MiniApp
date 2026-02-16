@@ -79,6 +79,22 @@ export interface ScheduledTask {
     | 'numerology_guide_reminder' // Гайд по нумерологии
     | 'energy_tatiana_reminder'  // Видео об энергии (Татьяна) через 60 мин после топиков
 
+    // 🌅 Probudis funnel (pre-payment)
+    | 'probudis_dogrev_5m'         // Билет через 5 мин после первого видео
+    | 'probudis_success_stories'   // КОД ДЕНЕГ видео-отзывы через 5 мин после билета
+    | 'probudis_guide'             // Нумерологический гайд через 5 мин
+    | 'probudis_results'           // Результаты участников через 5 мин
+    | 'probudis_images'            // Картинки 2026 через 5 мин
+    | 'probudis_success_story'     // МЧС история через 10 мин
+    | 'probudis_traps'             // 3 ловушки через 20 мин
+    | 'probudis_burning_topics'    // Горящие темы через 20 мин
+    | 'probudis_energy_tatiana'    // Татьяна энергия через 60 мин
+    | 'probudis_payment_reminder'  // "Не просто клуб" через 60 мин
+    | 'probudis_day2'              // День 2 в 10:00 МСК
+    | 'probudis_day3'              // День 3 через 25ч
+    | 'probudis_day4'              // День 4 через 24ч
+    | 'probudis_day5'              // День 5 через 24ч (финальное)
+
     // 🧪 Test funnel types (for admin testing with fast timers)
     | 'test_start_reminder'
     | 'test_numerology_guide'

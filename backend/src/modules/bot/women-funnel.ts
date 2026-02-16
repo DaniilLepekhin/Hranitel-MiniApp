@@ -84,6 +84,10 @@ export async function startWomenFunnel(userId: string, chatId: number, utmData?:
       return;
     }
 
+    // Отменяем ВСЕ предыдущие задачи пользователя (start, women, probudis, club — любые)
+    await schedulerService.cancelAllUserTasks(parseInt(userId));
+    logger.info({ userId }, 'Cancelled ALL user tasks before starting women funnel');
+
     // Устанавливаем тип воронки в Redis
     await setWomenFunnelType(parseInt(userId));
 
