@@ -84,6 +84,10 @@ export async function startProbudisFunnel(userId: string, chatId: number, utmDat
       return;
     }
 
+    // 🧹 Отменяем все предыдущие задачи probudis воронки при новом запуске
+    await cancelProbudisFunnelTasks(parseInt(userId));
+    logger.info({ userId }, 'Cancelled all previous probudis funnel tasks');
+
     // Устанавливаем тип воронки в Redis
     await setProbudisFunnelType(parseInt(userId));
 
