@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia';
 import { db } from '@/db';
-import { users, payments, paymentAnalytics, giftSubscriptions } from '@/db/schema';
+import { users, payments, paymentAnalytics, giftSubscriptions, decadeMembers } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { startOnboardingAfterPayment, handleGiftPaymentSuccess } from '@/modules/bot/post-payment-funnels';
@@ -374,6 +374,36 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
           logger.info({ telegramId: telegram_id }, 'User unbanned from all chats after payment');
         } catch (error) {
           logger.error({ error, telegramId: telegram_id }, 'Failed to unban user from chats');
+          // Don't fail the webhook - payment is already processed
+        }
+
+        // 🔄 Restore user to decade if they were removed (e.g., due to expired subscription)
+        try {
+          const [previousMembership] = await db
+            .select()
+            .from(decadeMembers)
+            .where(eq(decadeMembers.userId, user.id))
+            .orderBy(desc(decadeMembers.joinedAt))
+            .limit(1);
+
+          if (previousMembership && previousMembership.leftAt) {
+            // User was in a decade but left - restore them
+            await db
+              .update(decadeMembers)
+              .set({ leftAt: null })
+              .where(eq(decadeMembers.id, previousMembership.id));
+            
+            logger.info(
+              { 
+                telegramId: telegram_id, 
+                userId: user.id, 
+                decadeId: previousMembership.decadeId 
+              }, 
+              'Restored user to previous decade after payment'
+            );
+          }
+        } catch (error) {
+          logger.error({ error, telegramId: telegram_id }, 'Failed to restore user to decade');
           // Don't fail the webhook - payment is already processed
         }
 

@@ -12,7 +12,7 @@
 import { Elysia, t } from 'elysia';
 import { db } from '@/db';
 import { users, paymentAnalytics, clubFunnelProgress, videos, contentItems, decades, decadeMembers, leaderTestResults } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { startOnboardingAfterPayment } from '@/modules/bot/post-payment-funnels';
 import { subscriptionGuardService } from '@/services/subscription-guard.service';
@@ -504,6 +504,35 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         logger.info({ telegram_id, userId: user.id }, 'Awarded 500 energy for manual payment');
       } catch (error) {
         logger.error({ error, telegram_id }, 'Failed to award energy for manual payment');
+      }
+
+      // 🔄 Восстановить в десятку, если пользователь был исключён
+      try {
+        const [previousMembership] = await db
+          .select()
+          .from(decadeMembers)
+          .where(eq(decadeMembers.userId, user.id))
+          .orderBy(desc(decadeMembers.joinedAt))
+          .limit(1);
+
+        if (previousMembership && previousMembership.leftAt) {
+          // Пользователь был в десятке, но вышел - восстанавливаем его
+          await db
+            .update(decadeMembers)
+            .set({ leftAt: null })
+            .where(eq(decadeMembers.id, previousMembership.id));
+          
+          logger.info(
+            { 
+              telegram_id, 
+              userId: user.id, 
+              decadeId: previousMembership.decadeId 
+            }, 
+            'Restored user to previous decade after payment'
+          );
+        }
+      } catch (error) {
+        logger.error({ error, telegram_id }, 'Failed to restore user to decade');
       }
 
       // Отправляем сообщение с видео (как после реальной оплаты)
