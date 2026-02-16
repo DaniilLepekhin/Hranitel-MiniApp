@@ -254,6 +254,16 @@ function addUtmToPaymentUrl(baseUrl: string, utmData: UtmData): string {
   return url.toString();
 }
 
+// Хелпер для построения payment URL из UTM данных scheduler task
+function getPaymentUrlFromUtm(utmData?: Record<string, string>): string {
+  let paymentUrl = 'https://app.successkod.com/payment_form_club.html';
+  if (utmData && Object.keys(utmData).length > 0) {
+    const params = new URLSearchParams(utmData as Record<string, string>);
+    paymentUrl = `${paymentUrl}?${params.toString()}`;
+  }
+  return paymentUrl;
+}
+
 // Task processor callback for scheduled tasks
 async function processScheduledTask(task: ScheduledTask): Promise<void> {
   const { type, userId, chatId, data } = task;
@@ -1461,38 +1471,421 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
     }
-    // 🆕 Probudis funnel - dogrev (5 minutes after first message)
+    // =====================================================================
+    // 🌅 PROBUDIS FUNNEL - полная цепочка (как women)
+    // =====================================================================
     else if (type === 'probudis_dogrev_5m') {
-      const utmData = task.data?.utmData || {};
-      await probudisFunnel.sendProbudisDogrev(String(userId), chatId, utmData);
-
-      // Через 5 минут - история успеха (success stories)
-      await schedulerService.schedule(
-        {
-          type: 'probudis_success_stories',
-          userId,
-          chatId,
-          data: { utmData },
-        },
-        5 * 60 * 1000 // 5 минут
-      );
+      const { utmData, isTestMode } = task.data || {};
+      await probudisFunnel.sendProbudisDogrev(String(userId), chatId, utmData, isTestMode);
     }
     else if (type === 'probudis_success_stories') {
-      // История успеха через 5 минут после догрева
-      const utmData = task.data?.utmData || {};
-      await probudisFunnel.sendProbudisSuccessStories(String(userId), chatId, utmData);
+      const { utmData, isTestMode } = task.data || {};
+      await probudisFunnel.sendProbudisSuccessStories(String(userId), chatId, utmData, isTestMode);
+    }
+    else if (type === 'probudis_guide') {
+      // Нумерологический гайд (как women_guide_5min)
+      const { utmData, isTestMode } = task.data || {};
+      const guideKeyboard = new InlineKeyboard()
+        .url('Скачать гайд ❤️', 'https://t.me/kristina_egiazarova_bot?start=leadmagnit180126');
 
-      // Дальнейшие сообщения по таймингу как в START воронке
-      // Через 5 минут - нумерологический гайд
-      await schedulerService.schedule(
+      await telegramService.sendPhoto(
+        chatId,
+        'https://t.me/mate_bot_open/9370',
         {
-          type: 'numerology_guide_reminder',
-          userId,
-          chatId,
-          data: task.data,
-        },
-        5 * 60 * 1000 // 5 минут
+          caption:
+            `<b>Хотите узнать, что скрывает ваше число рождения? ✨</b>\n\n` +
+            `Кем вам <b>выгодно быть?</b>\n` +
+            `Где заложен <b>ваш масштаб? </b>\n` +
+            `Почему, едва почувствовав потолок —\n` +
+            `<b>что мешает раскрыть потенциал? </b>\n\n` +
+            `У каждого числа — <b>свой стиль, сила и слабости.</b>\n` +
+            `Гайд покажет, как раскрывается ваш <b>характер</b>\n` +
+            `в контексте <b>бизнеса и жизни </b>\n\n` +
+            `<b>31 ключ к себе</b> внутри гайда ⬇️`,
+          parse_mode: 'HTML',
+          reply_markup: guideKeyboard
+        }
       );
+
+      const timeout = isTestMode ? 10 * 1000 : 5 * 60 * 1000;
+      await schedulerService.schedule(
+        { type: 'probudis_results', userId, chatId, data: { utmData, isTestMode } },
+        timeout
+      );
+    }
+    else if (type === 'probudis_results') {
+      // Результаты участников марафона (как women_results_10min)
+      const { utmData, isTestMode } = task.data || {};
+      const paymentUrl = getPaymentUrlFromUtm(utmData);
+
+      const resultsKeyboard = new InlineKeyboard()
+        .webApp('💫 хочу на марафон', paymentUrl);
+
+      await telegramService.sendVideo(chatId, 'https://t.me/mate_bot_open/9677', {});
+
+      await telegramService.sendMessage(
+        chatId,
+        `<b>🔥 РЕЗУЛЬТАТЫ УЧАСТНИКОВ МАРАФОНА «КОД ДЕНЕГ» 🔥</b>\n\n` +
+        `Ты можешь продолжать думать, что «это просто не твоё время»…А можешь — как эти девушки — зайти в свой код и изменить всё.\n\n` +
+        `📍 <b>Была "проклятым ребёнком", которую не принимали в семье</b>— Через 3 недели после марафона: доход вырос в 2,5 раза, мама впервые за много лет поздравила с днём рождения и подарила подарок.\n\n` +
+        `📍 <b>Осталась без работы, с тревогой, страхом и денежным потолком</b>— Сейчас: стабильный доход от 100.000 ₽, работает с удовольствием и спит спокойно.\n\n` +
+        `📍 <b>Чувствовала себя "зажатой", лишний вес, страх перед деньгами</b>— Итог: минус 8 кг, новая энергия и доход 550.000 ₽\n\n` +
+        `❗ Эти девушки не получили «волшебную таблетку». Они просто нашли себя.\n\n` +
+        `На марафоне <b>«Код денег»</b> ты:\n` +
+        `🔓 Расшифруешь, что мешает тебе расти\n` +
+        `💎 Узнаешь, в чём твоя сила и путь\n` +
+        `📈 Получишь личный план выхода на новый уровень\n\n` +
+        `✨ Энергия. Деньги. Уважение. Спокойствие.\n` +
+        `Всё начинается <b>с тебя и твоего кода 🔽</b>`,
+        { parse_mode: 'HTML', reply_markup: resultsKeyboard }
+      );
+
+      const timeout = isTestMode ? 10 * 1000 : 5 * 60 * 1000;
+      await schedulerService.schedule(
+        { type: 'probudis_images', userId, chatId, data: { utmData, isTestMode } },
+        timeout
+      );
+    }
+    else if (type === 'probudis_images') {
+      // Картинки клуба 2026 (как women_images_15min)
+      const { utmData, isTestMode } = task.data || {};
+      const paymentUrl = getPaymentUrlFromUtm(utmData);
+
+      const imagesKeyboard = new InlineKeyboard()
+        .webApp('иду с вами 😍', paymentUrl);
+
+      await telegramService.sendMediaGroup(chatId, [
+        { type: 'photo', media: 'https://t.me/mate_bot_open/9666' },
+        { type: 'photo', media: 'https://t.me/mate_bot_open/9667' },
+        { type: 'photo', media: 'https://t.me/mate_bot_open/9668' },
+        { type: 'photo', media: 'https://t.me/mate_bot_open/9669' },
+        { type: 'photo', media: 'https://t.me/mate_bot_open/9670' },
+        { type: 'photo', media: 'https://t.me/mate_bot_open/9671' }
+      ]);
+
+      await telegramService.sendMessage(
+        chatId,
+        `<b>Вот так выглядит закрытый клуб внутри.</b>\n\n` +
+        `Это не чат и не курс.\n` +
+        `Это — <b>живая среда</b>, где ты перестаёшь быть одна.\n\n` +
+        `<b>2026 год будет решающим.</b>\n` +
+        `Ты либо войдёшь в свою силу.\n` +
+        `Либо останешься там же, где сейчас.\n\n` +
+        `Готова идти? 🔽`,
+        { parse_mode: 'HTML', reply_markup: imagesKeyboard }
+      );
+
+      const timeout = isTestMode ? 10 * 1000 : 5 * 60 * 1000;
+      await schedulerService.schedule(
+        { type: 'probudis_kristina', userId, chatId, data: { utmData, isTestMode } },
+        timeout
+      );
+    }
+    else if (type === 'probudis_kristina') {
+      // История Кристины (как women_kristina_25min)
+      const { utmData, isTestMode } = task.data || {};
+      const paymentUrl = getPaymentUrlFromUtm(utmData);
+
+      const kristinaKeyboard = new InlineKeyboard()
+        .webApp('Хочу на марафон ❤️', paymentUrl);
+
+      await telegramService.sendVideo(chatId, 'https://t.me/mate_bot_open/9655', {
+        caption:
+          `<b>Личная история Кристины Егиазаровой.</b>\n\n` +
+          `Основательница самого большого клуба предназначения в России — рассказывает, как нашла свой путь.\n\n` +
+          `Смотри и чувствуй, кто она на самом деле 🤍`,
+        parse_mode: 'HTML',
+        reply_markup: kristinaKeyboard
+      });
+
+      const timeout = isTestMode ? 10 * 1000 : 5 * 60 * 1000;
+      await schedulerService.schedule(
+        { type: 'probudis_success_story', userId, chatId, data: { utmData, isTestMode } },
+        timeout
+      );
+    }
+    else if (type === 'probudis_success_story') {
+      // История МЧС (как women_success_story)
+      const { utmData, isTestMode } = task.data || {};
+      const paymentUrl = getPaymentUrlFromUtm(utmData);
+
+      const successKeyboard = new InlineKeyboard()
+        .webApp('Запустить изменения 🔥', paymentUrl);
+
+      await telegramService.sendMessage(
+        chatId,
+        `<b>Путь от работы в МЧС с долгами к свободе и стабильности 🌟</b>\n\n` +
+        `Расскажу историю Кристины, которая совмещала обучение цифровой психологии с основной работой — работой в МЧС.\n\n` +
+        `✅ <b>Точка А:</b>\n` +
+        `– 30 лет, работа за 27 500 ₽\n` +
+        `– Долги 1,5 млн ₽, сложные отношения, зависимость от мамы и алкоголя\n` +
+        `– Не занималась собой, не могла сказать «нет»\n\n` +
+        `✅ <b>Точка Б:</b>\n` +
+        `— Рассталась с токсичным мужчиной\n` +
+        `— Занимается спортом, наладила отношения с родными\n` +
+        `— Доход вырос до 1,7 млн ₽\n\n` +
+        `Запусти цепочку изменений в своей жизни и активируй свой код успеха на марафоне КОД ДЕНЕГ 🔽`,
+        { parse_mode: 'HTML', reply_markup: successKeyboard }
+      );
+
+      const timeout = isTestMode ? 10 * 1000 : 5 * 60 * 1000;
+      await schedulerService.schedule(
+        { type: 'probudis_traps', userId, chatId, data: { utmData, isTestMode } },
+        timeout
+      );
+    }
+    else if (type === 'probudis_traps') {
+      // 3 ловушки (как women_traps_20min)
+      const { utmData, isTestMode } = task.data || {};
+      const paymentUrl = getPaymentUrlFromUtm(utmData);
+
+      const trapsKeyboard = new InlineKeyboard()
+        .webApp('Оформить подписку 🔥', paymentUrl);
+
+      await telegramService.sendVideo(chatId, 'https://t.me/mate_bot_open/9250', {
+        caption:
+          `<b>3 главные ловушки эксперта в мягких нишах.</b>\n\n` +
+          `Оставаться в одиночке.\n` +
+          `Копить знания без внедрения.\n` +
+          `Объяснять стагнацию «рынком», а не отсутствием среды.\n\n` +
+          `Одни продолжают искать причины.\n` +
+          `Другие — заходят в поле и двигаются по этапам.\n\n` +
+          `А ты из каких?\n\n` +
+          `В клубе «КОД УСПЕХА» не мотивируют словами.\n` +
+          `Здесь:\n` +
+          `— дают обучение по мягким нишам,\n` +
+          `— проводят по этапам,\n` +
+          `— ставят в десятки,\n` +
+          `— фиксируют рост и статус.\n\n` +
+          `Оформи подписку — и получи доступ ко всей экосистеме клуба\n` +
+          `сразу после оплаты 👇`,
+        parse_mode: 'HTML',
+        reply_markup: trapsKeyboard
+      });
+
+      const timeout = isTestMode ? 10 * 1000 : 5 * 60 * 1000;
+      await schedulerService.schedule(
+        { type: 'probudis_burning_topics', userId, chatId, data: { utmData, isTestMode } },
+        timeout
+      );
+    }
+    else if (type === 'probudis_burning_topics') {
+      // Горящие темы (как women_burning_topics)
+      const { utmData, isTestMode } = task.data || {};
+
+      const topicsKeyboard = new InlineKeyboard()
+        .text('💸 Деньги и финансы', 'topic_money')
+        .row()
+        .text('💼 Работа и карьера', 'topic_career')
+        .row()
+        .text('❤️ Отношения', 'topic_relationships')
+        .row()
+        .text('🎯 Цель и смысл', 'topic_purpose')
+        .row()
+        .text('⚡️ Энергия и здоровье', 'topic_energy');
+
+      await telegramService.sendMessage(
+        chatId,
+        `<b>Что горит прямо сейчас? 🔥</b>\n\n` +
+        `Только честно.\n` +
+        `Чтобы не грузить лишним — выбери, что сейчас важнее всего 👇`,
+        { parse_mode: 'HTML', reply_markup: topicsKeyboard }
+      );
+
+      const timeout = isTestMode ? 15 * 1000 : 60 * 60 * 1000;
+      await schedulerService.schedule(
+        { type: 'probudis_energy_tatiana', userId, chatId, data: { utmData, isTestMode } },
+        timeout
+      );
+    }
+    else if (type === 'probudis_energy_tatiana') {
+      // Видео Татьяна (как women_energy_tatiana)
+      const { utmData, isTestMode } = task.data || {};
+      const paymentUrl = getPaymentUrlFromUtm(utmData);
+
+      const energyKeyboard = new InlineKeyboard()
+        .webApp('❤️ я с вами', paymentUrl);
+
+      await telegramService.sendVideo(chatId, 'https://t.me/mate_bot_open/9680', {});
+
+      await telegramService.sendMessage(
+        chatId,
+        `<b>НИ НА ЧТО НЕТ ЭНЕРГИИ‼️ Цели не зажигают! Знакомо?</b>\n\n` +
+        `Татьяна тоже через это прошла: работала менеджером по закупкам, чувствовала себя загнанной белкой в колесе. А сейчас сама нанимает людей себе в команду.\n\n` +
+        `Свобода — это не просто состояние. Это — результат пути, который начался с одного решения: больше не быть в этом одной.\n\n` +
+        `И ты тоже не одна. Мы рядом. ❤️\n\n` +
+        `Пройди свой путь не из одиночества, а в поле.\n` +
+        `Нажми на кнопку и зайди в клуб 👇`,
+        { parse_mode: 'HTML', reply_markup: energyKeyboard }
+      );
+
+      const timeout = isTestMode ? 15 * 1000 : 60 * 60 * 1000;
+      await schedulerService.schedule(
+        { type: 'probudis_payment_reminder', userId, chatId, data: { utmData, isTestMode } },
+        timeout
+      );
+    }
+    else if (type === 'probudis_payment_reminder') {
+      // "Это не просто клуб" (как women_payment_reminder)
+      const { utmData, isTestMode } = task.data || {};
+      const paymentUrl = getPaymentUrlFromUtm(utmData);
+
+      const paymentKeyboard = new InlineKeyboard()
+        .webApp('Оформить подписку ❤️', paymentUrl)
+        .row()
+        .text('я не готов 🤔', 'not_ready_3');
+
+      await telegramService.sendVideo(chatId, 'https://t.me/mate_bot_open/9348');
+
+      await telegramService.sendMessage(
+        chatId,
+        `<b>Это не просто клуб.\n` +
+        `Это точка, где меняется траектория дохода.</b>\n\n` +
+        `Мы видим, что ты заглянула внутрь, но ещё сомневаешься.\n` +
+        `И это нормально.\n` +
+        `Обычно в такие моменты интуиция уже всё поняла — нужно пространство, где рост перестаёт быть одиночным.\n\n` +
+        `Внутри клуба <b>«Код Успеха»</b> тебя ждёт:\n\n` +
+        `<b>Среда, в которой растут</b>\n` +
+        `Здесь не говорят «просто старайся» и не обесценивают путь.\n` +
+        `Это поле людей из мягких ниш, которые действуют, поддерживают и идут вперёд — без давления и сравнений.\n\n` +
+        `<b>Живые встречи в твоём городе и за его пределами — у нас 60+ чатов по городам и странам. Девушки встречаются, пьют чай, обнимаются, делятся самым важным. Настоящая реальная связь.</b>\n\n` +
+        `<b>Практики и эфиры</b> с психологами, коучами, сексологами — мы не грузим «теорией». Только то, что помогает прямо сейчас: пережить, отпустить, выбрать, начать с новой опоры.\n\n` +
+        `<b>Обучение, эфиры и разборы</b>\n` +
+        `Деньги, продажи, состояние, идентичность, масштаб. Мини-курсы и живые эфиры с Кристиной — только то, что можно встроить и применить.\n\n` +
+        `<b>Приложение для внутреннего компаса</b> – слушай своё состояние, получай персональные рекомендации и следи, как меняется твоя энергия, фокус и эмоции.\n\n` +
+        `🤍 Это пространство, где потенциал переводят в действия, а действия — в устойчивый доход.\n\n` +
+        `Присоединяйся.\n` +
+        `Доступ к клубу откроется в этом чат-боте сразу после оплаты.\n\n` +
+        `<u>Обращаем ваше внимание, что клуб работает по системе ежемесячных автоплатежей, которые вы можете отключить при необходимости.</u>`,
+        { parse_mode: 'HTML', reply_markup: paymentKeyboard }
+      );
+
+      // День 2 — на следующий день в 10:00 МСК
+      const delayToDay2 = isTestMode ? 20 * 1000 : getDelayUntilMoscowTime(10, 0);
+      await schedulerService.schedule(
+        { type: 'probudis_day2', userId, chatId, data: { utmData, isTestMode } },
+        delayToDay2
+      );
+    }
+    else if (type === 'probudis_day2') {
+      // День 2 (как women_day2_reminder)
+      const { utmData, isTestMode } = task.data || {};
+      const paymentUrl = getPaymentUrlFromUtm(utmData);
+
+      const day2Keyboard = new InlineKeyboard()
+        .webApp('Оформить подписку ❤️', paymentUrl);
+
+      await telegramService.sendVideo(chatId, 'https://t.me/mate_bot_open/9349', {
+        caption:
+          `Не всем нужен шум.\n` +
+          `И не всем заходят громкие обещания.\n\n` +
+          `Зато почти всем знакомо ощущение, что деньги идут нестабильно, хотя ты стараешься и вроде всё делаешь правильно 🤷‍♀️\n` +
+          `Значит, дело не в усилиях — а в среде и настройке 👀\n\n` +
+          `<b>Наш фокус на 2026 год</b> —помочь расти в финансах через окружение, спринты и инструменты, которые реально используются, а не откладываются «на потом» 🚀\n\n` +
+          `<b>Клуб «Код Успеха» — это когда:</b>\n` +
+          `— <b>застрял и не понимаешь, куда дальше</b> → смотришь эфиры, разбираешь кейсы, начинаешь видеть картину 🧠\n` +
+          `— <b>нужен совет, партнёр или контакт</b> → спрашиваешь у людей, у которых уже работает 🤝\n` +
+          `— <b>хочется системности</b> → проходишь курсы и внедряешь шаг за шагом, без перегруза 📚\n` +
+          `— <b>нужен импульс и фокус</b> → идёшь в десятку и не буксуешь в одиночку ⏱️\n` +
+          `— <b>не хватает живого общения</b> → встречаешься офлайн с людьми на одной волне 🔥\n\n` +
+          `Вход в клуб открыт.\n` +
+          `Мы видим, что ты всё ещё не с нами 👀`,
+        parse_mode: 'HTML',
+        reply_markup: day2Keyboard
+      });
+
+      const timeout = isTestMode ? 20 * 1000 : 25 * 60 * 60 * 1000;
+      await schedulerService.schedule(
+        { type: 'probudis_day3', userId, chatId, data: { utmData, isTestMode } },
+        timeout
+      );
+    }
+    else if (type === 'probudis_day3') {
+      // День 3 (как women_day3_reminder)
+      const { utmData, isTestMode } = task.data || {};
+      const paymentUrl = getPaymentUrlFromUtm(utmData);
+
+      const day3Keyboard = new InlineKeyboard()
+        .webApp('Оформить подписку ❤️', paymentUrl);
+
+      await telegramService.sendVideo(chatId, 'https://t.me/mate_bot_open/9350', {
+        caption:
+          `Ничего уговаривать не будем.\n` +
+          `Можно, конечно, «<b>пойдёмте отсюда</b>» —\n` +
+          `так когда-то сказала Фрося 🙂\n` +
+          `А потом оказалось, что «приходите завтра»\n` +
+          `иногда переводится как «уже поздно».\n\n` +
+          `А можно остаться и спокойно посмотреть,\n` +
+          `почему тут собираются люди, у которых с цифрами всё уже более-менее в порядке 👀\n\n` +
+          `Доступ в клуб ещё открыт.\n` +
+          `Ненадолго 🤫`,
+        parse_mode: 'HTML',
+        reply_markup: day3Keyboard
+      });
+
+      const timeout = isTestMode ? 20 * 1000 : 24 * 60 * 60 * 1000;
+      await schedulerService.schedule(
+        { type: 'probudis_day4', userId, chatId, data: { utmData, isTestMode } },
+        timeout
+      );
+    }
+    else if (type === 'probudis_day4') {
+      // День 4 (как women_day4_reminder)
+      const { utmData, isTestMode } = task.data || {};
+      const paymentUrl = getPaymentUrlFromUtm(utmData);
+
+      const day4Keyboard = new InlineKeyboard()
+        .webApp('Оформить подписку ❤️', paymentUrl);
+
+      await telegramService.sendVideo(chatId, 'https://t.me/mate_bot_open/9351', {
+        caption:
+          `<b>А вдруг я иду не туда?</b>\n\n` +
+          `POV: момент,\n` +
+          `когда ты понимаешь,\n` +
+          `что быть счастливым — это выбор, а не случайность.\n\n` +
+          `Можно дальше идти «как идётся» 🤷‍♀️\n` +
+          `Можно привыкнуть и не задавать вопросы.\n\n` +
+          `А можно выбрать среду,\n` +
+          `где становится спокойнее внутри\n` +
+          `и яснее в голове 🙂\n\n` +
+          `Если эта мысль уже щёлкнула —\n` +
+          `значит, дверь в клуб не случайно ещё открыта 👀`,
+        parse_mode: 'HTML',
+        reply_markup: day4Keyboard
+      });
+
+      const timeout = isTestMode ? 20 * 1000 : 24 * 60 * 60 * 1000;
+      await schedulerService.schedule(
+        { type: 'probudis_day5', userId, chatId, data: { utmData, isTestMode } },
+        timeout
+      );
+    }
+    else if (type === 'probudis_day5') {
+      // День 5 - финальное (как women_day5_final)
+      const { utmData } = task.data || {};
+      const paymentUrl = getPaymentUrlFromUtm(utmData);
+
+      const day5Keyboard = new InlineKeyboard()
+        .webApp('Оформить подписку ❤️', paymentUrl);
+
+      await telegramService.sendPhoto(chatId, 'https://t.me/mate_bot_open/9352', {
+        caption:
+          `<b>Не сейчас.\n` +
+          `Не сейчас.\n` +
+          `Не сейчас.\n` +
+          `Ну всё… я опоздал.</b>\n\n` +
+          `Это обычно происходит так:\n` +
+          `сначала «гляну позже»,\n` +
+          `потом «вечером разберусь»,\n` +
+          `а потом — <i>доступ в клуб уже закрыт.</i>\n\n` +
+          `Мы не торопим и не дёргаем.\n` +
+          `Просто честно напоминаем:\n` +
+          `<b>через 4 часа вход закроется.</b>\n\n` +
+          `Если давно было ощущение «надо бы зайти» —\n` +
+          `вот это оно и есть 🙂`,
+        parse_mode: 'HTML',
+        reply_markup: day5Keyboard
+      });
     }
     // 🧪 TEST: Ускоренная тестовая воронка /start (ПОЛНЫЕ тексты, ускоренные таймеры)
     else if (type === 'test_start_reminder') {
@@ -3784,10 +4177,15 @@ bot.callbackQuery('probudis_learn_more', async (ctx) => {
     await schedulerService.cancelUserTasksByTypes(userId, ['probudis_dogrev_5m']);
 
     // Get UTM data from user metadata
-    const utmData = await getUtmFromUser(userId);
+    const rawUtm = await getUtmFromUser(userId);
+    const utmData: Record<string, string> = {};
+    if (rawUtm.utm_campaign) utmData.utm_campaign = rawUtm.utm_campaign;
+    if (rawUtm.utm_medium) utmData.utm_medium = rawUtm.utm_medium;
+    if (rawUtm.utm_source) utmData.utm_source = rawUtm.utm_source;
+    if (rawUtm.utm_content) utmData.utm_content = rawUtm.utm_content;
 
-    // Send step 2 immediately
-    await probudisFunnel.sendProbudisDogrev(String(userId), chatId, utmData);
+    // Send step 2 immediately (isTestMode = false)
+    await probudisFunnel.sendProbudisDogrev(String(userId), chatId, utmData, false);
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in probudis_learn_more callback');
   }
