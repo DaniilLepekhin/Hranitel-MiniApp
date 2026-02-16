@@ -18,6 +18,8 @@ import * as funnels from './post-payment-funnels';
 import * as clubFunnel from './club-funnel';
 // 🆕 Women funnel (women empowerment pre-payment funnel)
 import * as womenFunnel from './women-funnel';
+// 🆕 Probudis funnel (awakening pre-payment funnel)
+import * as probudisFunnel from './probudis-funnel';
 
 // Initialize bot
 export const bot = new Bot(config.TELEGRAM_BOT_TOKEN);
@@ -66,6 +68,8 @@ funnels.initTelegramService(bot.api);
 clubFunnel.initClubFunnelTelegramService(bot.api);
 // Initialize telegram service for women funnel
 womenFunnel.initWomenFunnelTelegramService(bot.api);
+// Initialize telegram service for probudis funnel
+probudisFunnel.initProbudisFunnelTelegramService(bot.api);
 // Initialize subscription guard service
 subscriptionGuardService.init(bot.api);
 // Initialize decades service
@@ -145,11 +149,11 @@ function parseUtmFromPayload(payload: string | undefined): UtmData {
 
   // Зарезервированные payload'ы - НЕ парсим как UTM
   const reservedPayloads = [
-    'club', 'women', 'test_start_full', 'test_club_full', 'test_women_full', 'test_start', 'test_club', 'test_women', 'test'
+    'club', 'women', 'probudis', 'test_start_full', 'test_club_full', 'test_women_full', 'test_probudis_full', 'test_start', 'test_club', 'test_women', 'test_probudis', 'test'
   ];
 
   // Проверяем на зарезервированные префиксы
-  if (payload.startsWith('present_') || payload.startsWith('gift_')) {
+  if (payload.startsWith('present_') || payload.startsWith('gift_') || payload.startsWith('probudis_')) {
     return {};
   }
 
@@ -1457,6 +1461,39 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         }
       );
     }
+    // 🆕 Probudis funnel - dogrev (5 minutes after first message)
+    else if (type === 'probudis_dogrev_5m') {
+      const utmData = task.data?.utmData || {};
+      await probudisFunnel.sendProbudisDogrev(String(userId), chatId, utmData);
+
+      // Через 5 минут - история успеха (success stories)
+      await schedulerService.schedule(
+        {
+          type: 'probudis_success_stories',
+          userId,
+          chatId,
+          data: { utmData },
+        },
+        5 * 60 * 1000 // 5 минут
+      );
+    }
+    else if (type === 'probudis_success_stories') {
+      // История успеха через 5 минут после догрева
+      const utmData = task.data?.utmData || {};
+      await probudisFunnel.sendProbudisSuccessStories(String(userId), chatId, utmData);
+
+      // Дальнейшие сообщения по таймингу как в START воронке
+      // Через 5 минут - нумерологический гайд
+      await schedulerService.schedule(
+        {
+          type: 'numerology_guide_reminder',
+          userId,
+          chatId,
+          data: task.data,
+        },
+        5 * 60 * 1000 // 5 минут
+      );
+    }
     // 🧪 TEST: Ускоренная тестовая воронка /start (ПОЛНЫЕ тексты, ускоренные таймеры)
     else if (type === 'test_start_reminder') {
       // СООБЩЕНИЕ 2 - Тестовое напоминание (10 сек вместо 120)
@@ -2326,6 +2363,98 @@ bot.command('start', async (ctx) => {
 
       // Запускаем women воронку
       await womenFunnel.startWomenFunnel(String(userId), chatId, womenUtmData);
+      return;
+    }
+
+    // 🆕 PROBUDIS FUNNEL - "КОД УСПЕХА. ГЛАВА: ПРОБУЖДЕНИЕ"
+    if (startPayload === 'probudis' || startPayload?.startsWith('probudis_')) {
+      // Probudis funnel для пользователей С подпиской - показываем первое видео с кнопкой Меню
+      if (user && user.isPro) {
+        const menuKeyboard = new InlineKeyboard()
+          .text('📱 Меню', 'open_menu');
+
+        await bot.api.sendVideo(
+          chatId,
+          'https://t.me/mate_bot_open/9865',
+          {
+            caption:
+              `Добро пожаловать в <b>«КОД УСПЕХА. ГЛАВА: ПРОБУЖДЕНИЕ»</b> ✨\n\n` +
+              `Это твоя точка входа в новую реальность —\n` +
+              `где ты перестаёшь ждать «правильного момента»\n` +
+              `и начинаешь <b>создавать жизнь по собственным правилам.</b>\n\n` +
+              `В этом клубе ты найдёшь:\n` +
+              `💎 Поддержку сообщества, которое идёт рядом\n` +
+              `🔥 Инструменты для роста и трансформации\n` +
+              `🌟 Пространство для раскрытия твоего потенциала\n\n` +
+              `Ты уже с нами. Добро пожаловать домой 🤍`,
+            parse_mode: 'HTML',
+            reply_markup: menuKeyboard,
+          }
+        );
+
+        logger.info({ userId }, 'Probudis funnel video sent to subscribed user');
+        return;
+      }
+
+      // Probudis funnel для пользователей БЕЗ подписки - запускаем полную воронку
+      // Парсим UTM из payload: probudis_MEDIUM_SOURCE_CONTENT
+      let utmMedium: string | null = null;
+      let utmSource: string | null = null;
+      let utmContent: string | null = null;
+
+      if (startPayload !== 'probudis') {
+        const parts = startPayload.substring(9).split('_'); // убираем "probudis_" и разбиваем по "_"
+        utmMedium = parts[0] || null; // первая часть = medium (insta, tgchannel, etc.)
+        utmSource = parts[1] || null; // вторая часть = source
+        utmContent = parts.slice(2).join('_') || null; // остальное = content
+      }
+
+      // Get or create user in database
+      let probudisUser = user; // Reuse user from above query
+      if (!probudisUser) {
+        // Create new user
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            telegramId: userId,
+            username: ctx.from?.username || null,
+            firstName: ctx.from?.first_name || null,
+            lastName: ctx.from?.last_name || null,
+          })
+          .returning();
+        probudisUser = newUser;
+      }
+
+      // Сохраняем utm_campaign для probudis воронки в metadata
+      const probudisUtmData = {
+        utm_campaign: 'probudis',
+        utm_medium: utmMedium,
+        utm_source: utmSource,
+        utm_content: utmContent,
+      };
+
+      // Получаем текущий metadata и добавляем UTM
+      const currentMetadata = (probudisUser.metadata as Record<string, unknown>) || {};
+      const updatedMetadata = {
+        ...currentMetadata,
+        utm_campaign: probudisUtmData.utm_campaign,
+        utm_medium: probudisUtmData.utm_medium,
+        utm_source: probudisUtmData.utm_source,
+        utm_content: probudisUtmData.utm_content,
+        probudis_funnel_started_at: new Date().toISOString(),
+      };
+
+      await db
+        .update(users)
+        .set({
+          metadata: updatedMetadata,
+        })
+        .where(eq(users.telegramId, userId));
+
+      logger.info({ userId, utm: probudisUtmData }, 'Starting probudis funnel for non-subscribed user');
+
+      // Запускаем probudis воронку
+      await probudisFunnel.startProbudisFunnel(String(userId), chatId, probudisUtmData);
       return;
     }
 
@@ -3633,6 +3762,29 @@ bot.callbackQuery('menu_gift_subscription', async (ctx) => {
   }
 });
 
+// 🆕 Probudis funnel - "Узнать подробнее" button (immediately sends step 2)
+bot.callbackQuery('probudis_learn_more', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+
+    const userId = ctx.from.id;
+    const chatId = ctx.chat.id;
+
+    logger.info({ userId, chatId }, 'User clicked "Узнать подробнее" in probudis funnel');
+
+    // Cancel scheduled dogrev (user clicked immediately)
+    await schedulerService.cancelUserTasksByTypes(userId, ['probudis_dogrev_5m']);
+
+    // Get UTM data from user metadata
+    const utmData = await getUtmFromUser(userId);
+
+    // Send step 2 immediately
+    await probudisFunnel.sendProbudisDogrev(String(userId), chatId, utmData);
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in probudis_learn_more callback');
+  }
+});
+
 // Handle topic selection buttons (old reply keyboard - keep for backward compatibility)
 bot.hears('🔮 где мои деньги в 2026 году', async (ctx) => {
   // 🛡️ Игнорируем сообщения в групповых чатах (только личные сообщения)
@@ -4359,6 +4511,86 @@ bot.command('test_women_full', async (ctx) => {
   }
 });
 
+// /test_probudis - тест первого сообщения probudis воронки (без таймеров)
+bot.command('test_probudis', async (ctx) => {
+  try {
+    const userId = ctx.from!.id;
+    const chatId = ctx.chat.id;
+
+    logger.info({ userId }, 'User testing probudis funnel (first message only)');
+
+    // Получаем или создаем пользователя
+    let [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.telegramId, userId))
+      .limit(1);
+
+    if (!user) {
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          telegramId: userId,
+          username: ctx.from?.username || null,
+          firstName: ctx.from?.first_name || null,
+          lastName: ctx.from?.last_name || null,
+        })
+        .returning();
+      user = newUser;
+    }
+
+    // Отменяем все предыдущие задачи
+    await schedulerService.cancelAllUserTasks(userId);
+
+    // Запускаем probudis воронку БЕЗ догрева (только первое сообщение)
+    await probudisFunnel.startProbudisFunnel(String(userId), chatId, { utm_campaign: 'test' });
+
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in /test_probudis command');
+    await ctx.reply('❌ Ошибка при тестировании probudis воронки');
+  }
+});
+
+// /test_probudis_full - ПОЛНЫЙ тест probudis воронки с ускоренными таймерами
+bot.command('test_probudis_full', async (ctx) => {
+  try {
+    const userId = ctx.from!.id;
+    const chatId = ctx.chat.id;
+
+    logger.info({ userId }, 'User testing FULL probudis funnel with fast timers');
+
+    // Получаем или создаем пользователя
+    let [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.telegramId, userId))
+      .limit(1);
+
+    if (!user) {
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          telegramId: userId,
+          username: ctx.from?.username || null,
+          firstName: ctx.from?.first_name || null,
+          lastName: ctx.from?.last_name || null,
+        })
+        .returning();
+      user = newUser;
+    }
+
+    // Отменяем все предыдущие задачи
+    await schedulerService.cancelAllUserTasks(userId);
+
+    // Запускаем probudis воронку с флагом тестового режима (ускоренные таймеры)
+    await probudisFunnel.startProbudisFunnel(String(userId), chatId, { utm_campaign: 'test' }, true);
+
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in /test_probudis_full command');
+    await ctx.reply('❌ Ошибка при тестировании probudis воронки');
+  }
+});
+
 // /admin - показать список тестовых команд
 bot.command('admin', async (ctx) => {
   try {
@@ -4374,15 +4606,18 @@ bot.command('admin', async (ctx) => {
       '<b>Быстрый просмотр (без таймеров):</b>\n' +
       '/test_start - первое сообщение воронки /start\n' +
       '/test_club - первое сообщение club воронки\n' +
-      '/test_women - первое сообщение women воронки\n\n' +
+      '/test_women - первое сообщение women воронки\n' +
+      '/test_probudis - первое сообщение probudis воронки\n\n' +
       '<b>Полный тест (ускоренные таймеры):</b>\n' +
       '/test_start_full - вся воронка /start (таймеры 10-35 сек)\n' +
       '/test_club_full - вся club воронка (таймеры 10-15 сек)\n' +
-      '/test_women_full - вся women воронка (таймер 10 сек)\n\n' +
+      '/test_women_full - вся women воронка (таймер 10 сек)\n' +
+      '/test_probudis_full - вся probudis воронка (таймер 10 сек)\n\n' +
       '<b>Ссылки для реального теста:</b>\n' +
       '• Обычная: t.me/hranitelkodbot?start=test\n' +
       '• Club: t.me/hranitelkodbot?start=club\n' +
-      '• Women: t.me/hranitelkodbot?start=women\n\n' +
+      '• Women: t.me/hranitelkodbot?start=women\n' +
+      '• Probudis: t.me/hranitelkodbot?start=probudis\n\n' +
       '<i>⚠️ Тесты не влияют на ваш статус оплаты</i>',
       { parse_mode: 'HTML' }
     );
