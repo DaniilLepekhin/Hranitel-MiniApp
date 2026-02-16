@@ -1909,6 +1909,9 @@ bot.command('start', async (ctx) => {
     // 🆕 Check for gift activation link (start=present_{recipient_tg_id})
     const startPayload = ctx.match;
 
+    // 🔍 DEBUG: Log the received payload
+    logger.info({ userId, chatId, startPayload }, '🔍 /start command received with payload');
+
     // 📊 Парсим и сохраняем UTM метки из deep link (first touch attribution)
     const utmData = parseUtmFromPayload(startPayload);
     if (Object.keys(utmData).length > 0) {
@@ -2368,8 +2371,11 @@ bot.command('start', async (ctx) => {
 
     // 🆕 PROBUDIS FUNNEL - "КОД УСПЕХА. ГЛАВА: ПРОБУЖДЕНИЕ"
     if (startPayload === 'probudis' || startPayload?.startsWith('probudis_')) {
+      logger.info({ userId, startPayload, hasPro: user?.isPro }, '🌅 Probudis funnel triggered');
+      
       // Probudis funnel для пользователей С подпиской - показываем первое видео с кнопкой Меню
       if (user && user.isPro) {
+        logger.info({ userId }, '🌅 Probudis: User has subscription, showing welcome video');
         const menuKeyboard = new InlineKeyboard()
           .text('📱 Меню', 'open_menu');
 
@@ -2451,10 +2457,12 @@ bot.command('start', async (ctx) => {
         })
         .where(eq(users.telegramId, userId));
 
-      logger.info({ userId, utm: probudisUtmData }, 'Starting probudis funnel for non-subscribed user');
+      logger.info({ userId, utm: probudisUtmData }, '🌅 Starting probudis funnel for non-subscribed user');
 
       // Запускаем probudis воронку
       await probudisFunnel.startProbudisFunnel(String(userId), chatId, probudisUtmData);
+      
+      logger.info({ userId }, '🌅 Probudis funnel started, returning from /start handler');
       return;
     }
 
