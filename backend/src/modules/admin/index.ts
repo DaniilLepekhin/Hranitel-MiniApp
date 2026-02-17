@@ -964,9 +964,19 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         throw new Error('Unauthorized');
       }
 
-      const { decade_id } = body;
+      const { decade_id, new_chat_id } = body;
 
       try {
+        // Если передан новый chat_id — сначала обновляем его (миграция group->supergroup)
+        if (new_chat_id) {
+          const chatIdNum = typeof new_chat_id === 'string' ? parseInt(new_chat_id, 10) : new_chat_id;
+          const updateResult = await decadesService.updateChatId(decade_id, chatIdNum);
+          if (!updateResult.success) {
+            set.status = 400;
+            return updateResult;
+          }
+        }
+
         const result = await decadesService.refreshInviteLink(decade_id);
 
         if (!result.success) {
@@ -988,10 +998,11 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
     {
       body: t.Object({
         decade_id: t.String({ description: 'ID десятки' }),
+        new_chat_id: t.Optional(t.Union([t.Number(), t.String()], { description: 'Новый Telegram chat ID (если чат мигрировал в супергруппу)' })),
       }),
       detail: {
         summary: 'Обновить инвайт-ссылку десятки',
-        description: 'Создаёт новую инвайт-ссылку для чата десятки через Telegram API',
+        description: 'Создаёт новую инвайт-ссылку для чата десятки через Telegram API. Можно передать new_chat_id при миграции.',
       },
     }
   );

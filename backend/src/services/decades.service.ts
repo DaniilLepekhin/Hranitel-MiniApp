@@ -1064,6 +1064,38 @@ class DecadesService {
   }
 
   /**
+   * Получить информацию о чате через Telegram API
+   */
+  async getChatInfo(chatId: number): Promise<{ success: boolean; chat?: any; error?: string }> {
+    if (!this.api) {
+      return { success: false, error: 'API not initialized' };
+    }
+    try {
+      const chat = await this.api.getChat(chatId);
+      return { success: true, chat };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Обновить tg_chat_id десятки (при миграции group -> supergroup)
+   */
+  async updateChatId(decadeId: string, newChatId: number): Promise<{ success: boolean; error?: string }> {
+    try {
+      await db
+        .update(decades)
+        .set({ tgChatId: newChatId, updatedAt: new Date() })
+        .where(eq(decades.id, decadeId));
+
+      logger.info({ decadeId, newChatId }, 'Decade chat ID updated');
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * Обновить инвайт-ссылку десятки (создать новую через Telegram API)
    */
   async refreshInviteLink(decadeId: string): Promise<{ success: boolean; inviteLink?: string; error?: string }> {
