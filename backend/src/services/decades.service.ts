@@ -1118,18 +1118,27 @@ class DecadesService {
     }
 
     try {
-      const link = await this.api.createChatInviteLink(decade.tgChatId, {
-        creates_join_request: false,
-      });
+      let inviteLink: string;
+      try {
+        // Попробуем createChatInviteLink (работает для supergroups)
+        const link = await this.api.createChatInviteLink(decade.tgChatId, {
+          creates_join_request: false,
+        });
+        inviteLink = link.invite_link;
+      } catch (createError: any) {
+        // Если не работает — пробуем exportChatInviteLink (для обычных групп)
+        logger.warn({ createError: createError.message, decadeId }, 'createChatInviteLink failed, trying exportChatInviteLink');
+        inviteLink = await this.api.exportChatInviteLink(decade.tgChatId);
+      }
 
       await db
         .update(decades)
-        .set({ inviteLink: link.invite_link, updatedAt: new Date() })
+        .set({ inviteLink, updatedAt: new Date() })
         .where(eq(decades.id, decadeId));
 
-      logger.info({ decadeId, city: decade.city, number: decade.number, newLink: link.invite_link }, 'Decade invite link refreshed');
+      logger.info({ decadeId, city: decade.city, number: decade.number, newLink: inviteLink }, 'Decade invite link refreshed');
 
-      return { success: true, inviteLink: link.invite_link };
+      return { success: true, inviteLink };
     } catch (error: any) {
       logger.error({ error, decadeId }, 'Failed to refresh invite link');
       return { success: false, error: error.message };
