@@ -36,7 +36,7 @@ function getTelegramService(): TelegramService {
 // КОНСТАНТЫ
 // ============================================================================
 
-const FIRST_VIDEO_URL = 'https://t.me/mate_bot_open/9876';
+const FIRST_VIDEO_URL = 'https://t.me/mate_bot_open/9877';
 const WEBAPP_PURCHASE_URL = 'https://app.successkod.com/payment_form_club.html';
 
 // Таймауты
