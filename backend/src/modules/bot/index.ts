@@ -1558,13 +1558,33 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         { type: 'photo', media: 'https://t.me/mate_bot_open/9671' }
       ]);
       await telegramService.sendMessage(chatId,
-        `<b>Вот так выглядит закрытый клуб внутри.</b>\n\n` +
-        `Это не чат и не курс.\n` +
-        `Это — <b>живая среда</b>, где ты перестаёшь быть одна.\n\n` +
-        `<b>2026 год будет решающим.</b>\n` +
-        `Ты либо войдёшь в свою силу.\n` +
-        `Либо останешься там же, где сейчас.\n\n` +
-        `Готова идти? 🔽`,
+        `<b>КАК СДЕЛАТЬ 2026 ГОД ЛУЧШИМ В ТВОЕЙ ЖИЗНИ? ✨\n` +
+        `Ответ здесь.</b>\n\n` +
+        `2026 становится другим не потому, что повезло.\n` +
+        `А потому что у тебя есть <b>основа:\n` +
+        `кто ты • на чём зарабатываешь • куда идёшь 🧭</b>\n\n` +
+        `Именно для этого мы сделали\n` +
+        `<b>марафон «КОД ДЕНЕГ» — 30 дней 💰</b>\n\n` +
+        `<b>Тебе сюда, если:</b>\n` +
+        `— чувствуешь, что выросла, а доход не догнал\n` +
+        `— деньги приходят нестабильно, несмотря на усилия\n` +
+        `— устала тащить всё одна и хочешь систему\n` +
+        `— хочешь <b>двигаться</b>, а не бесконечно разбираться\n\n` +
+        `<b>Что будет на марафоне 👇\n` +
+        `4 ключевых эфира + месяц в клубе:</b>\n\n` +
+        `— стиль и позиционирование ✨\n` +
+        `— разбор слепых зон и утечек денег\n` +
+        `— сборка <b>одного продукта</b> на год\n` +
+        `— <b>дорожная карта из точки А в точку Б 🗺</b>\n\n` +
+        `включение в <b>Десятки</b> и клубную среду 🤍\n\n` +
+        `<b>В результате ты получаешь:</b>\n` +
+        `— фокус и структуру\n` +
+        `— движение без выгорания\n` +
+        `— поддержку и среду\n` +
+        `— эфиры, разборы, практики и подкасты\n\n` +
+        `<b>Продажи открыты.\n` +
+        `📍 Старт марафона — 1 февраля.</b>\n\n` +
+        `Если хочешь, чтобы 2026 действительно стал твоим годом —<b> жми кнопку ниже</b> 👇`,
         { parse_mode: 'HTML', reply_markup: imagesKeyboard }
       );
 
@@ -1578,7 +1598,7 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
     else if (type === 'probudis_success_story') {
       const { utmData, isTestMode } = task.data || {};
       const paymentUrl = getPaymentUrlFromUtm(utmData);
-      const successKeyboard = new InlineKeyboard().webApp('Запустить изменения 🔥', paymentUrl);
+      const successKeyboard = new InlineKeyboard().webApp('🌟 иду на марафон', paymentUrl);
 
       await telegramService.sendMessage(chatId,
         `<b>Путь от работы в МЧС с долгами к свободе и стабильности 🌟</b>\n\n` +
@@ -1605,7 +1625,10 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
     else if (type === 'probudis_traps') {
       const { utmData, isTestMode } = task.data || {};
       const paymentUrl = getPaymentUrlFromUtm(utmData);
-      const trapsKeyboard = new InlineKeyboard().webApp('Оформить подписку 🔥', paymentUrl);
+      const trapsKeyboard = new InlineKeyboard()
+        .webApp('оформить подписку ❤️', paymentUrl)
+        .row()
+        .text('я не готов 🤔', 'probudis_not_ready');
 
       await telegramService.sendVideo(chatId, 'https://t.me/mate_bot_open/9250', {
         caption:
@@ -3417,6 +3440,50 @@ bot.callbackQuery('not_ready_3', async (ctx) => {
     );
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in not_ready_3 callback');
+  }
+});
+
+// 🌅 PROBUDIS: "я не готов" на шаге 8 (ловушки) → досрочно запускает шаг 9 (горящие темы)
+bot.callbackQuery('probudis_not_ready', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const userId = ctx.from!.id;
+    const chatId = ctx.chat!.id;
+
+    logger.info({ userId }, '🌅 Probudis: user clicked "я не готов" on traps step, sending burning topics');
+
+    // Отменяем запланированный probudis_burning_topics (он придёт досрочно)
+    await schedulerService.cancelUserTasksByType(userId, 'probudis_burning_topics');
+
+    // Получаем UTM из metadata пользователя
+    const utmData = await getUtmFromUser(userId);
+
+    // Отправляем горящие темы сразу
+    const topicsKeyboard = new InlineKeyboard()
+      .text('💸 Деньги и финансы', 'topic_money')
+      .row()
+      .text('💼 Работа и карьера', 'topic_career')
+      .row()
+      .text('❤️ Отношения', 'topic_relationships')
+      .row()
+      .text('🎯 Цель и смысл', 'topic_purpose')
+      .row()
+      .text('⚡️ Энергия и здоровье', 'topic_energy');
+
+    await telegramService.sendMessage(chatId,
+      `<b>Что горит прямо сейчас? 🔥</b>\n\n` +
+      `Только честно.\n` +
+      `Чтобы не грузить лишним — выбери, что сейчас важнее всего 👇`,
+      { parse_mode: 'HTML', reply_markup: topicsKeyboard }
+    );
+
+    // → через 60 мин: Татьяна энергия
+    await schedulerService.schedule(
+      { type: 'probudis_energy_tatiana', userId, chatId, data: { utmData } },
+      60 * 60 * 1000
+    );
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in probudis_not_ready callback');
   }
 });
 
