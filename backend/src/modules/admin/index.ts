@@ -954,6 +954,33 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
   )
 
   /**
+   * 🔍 Получить информацию о чате
+   */
+  .post(
+    '/get-chat-info',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { chat_id } = body;
+      const chatIdNum = typeof chat_id === 'string' ? parseInt(chat_id, 10) : chat_id;
+
+      const result = await decadesService.getChatInfo(chatIdNum);
+      if (!result.success) {
+        set.status = 400;
+      }
+      return result;
+    },
+    {
+      body: t.Object({
+        chat_id: t.Union([t.Number(), t.String()], { description: 'Telegram Chat ID' }),
+      }),
+    }
+  )
+
+  /**
    * 🔗 Обновить инвайт-ссылку десятки
    */
   .post(
