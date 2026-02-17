@@ -16,6 +16,7 @@ import { eq, desc } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { startOnboardingAfterPayment } from '@/modules/bot/post-payment-funnels';
 import { subscriptionGuardService } from '@/services/subscription-guard.service';
+import { decadesService } from '@/services/decades.service';
 
 // n8n webhook для генерации ссылки на оплату Lava
 const N8N_LAVA_WEBHOOK_URL = 'https://n8n4.daniillepekhin.ru/webhook/lava_club2';
@@ -948,6 +949,49 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       detail: {
         summary: 'Разблокировать пользователя',
         description: 'Разблокирует пользователя во всех защищённых каналах и городских чатах',
+      },
+    }
+  )
+
+  /**
+   * 🔗 Обновить инвайт-ссылку десятки
+   */
+  .post(
+    '/refresh-decade-link',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { decade_id } = body;
+
+      try {
+        const result = await decadesService.refreshInviteLink(decade_id);
+
+        if (!result.success) {
+          set.status = 400;
+          return result;
+        }
+
+        return {
+          success: true,
+          message: `Ссылка обновлена`,
+          inviteLink: result.inviteLink,
+        };
+      } catch (error: any) {
+        logger.error({ error, decade_id }, 'Failed to refresh decade link');
+        set.status = 500;
+        return { success: false, error: error.message };
+      }
+    },
+    {
+      body: t.Object({
+        decade_id: t.String({ description: 'ID десятки' }),
+      }),
+      detail: {
+        summary: 'Обновить инвайт-ссылку десятки',
+        description: 'Создаёт новую инвайт-ссылку для чата десятки через Telegram API',
       },
     }
   );

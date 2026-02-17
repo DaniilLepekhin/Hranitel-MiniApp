@@ -1062,6 +1062,47 @@ class DecadesService {
 
     return activeDecades;
   }
+
+  /**
+   * Обновить инвайт-ссылку десятки (создать новую через Telegram API)
+   */
+  async refreshInviteLink(decadeId: string): Promise<{ success: boolean; inviteLink?: string; error?: string }> {
+    if (!this.api) {
+      return { success: false, error: 'API not initialized' };
+    }
+
+    const [decade] = await db
+      .select()
+      .from(decades)
+      .where(eq(decades.id, decadeId))
+      .limit(1);
+
+    if (!decade) {
+      return { success: false, error: 'Десятка не найдена' };
+    }
+
+    if (!decade.tgChatId) {
+      return { success: false, error: 'У десятки нет tg_chat_id' };
+    }
+
+    try {
+      const link = await this.api.createChatInviteLink(decade.tgChatId, {
+        creates_join_request: false,
+      });
+
+      await db
+        .update(decades)
+        .set({ inviteLink: link.invite_link, updatedAt: new Date() })
+        .where(eq(decades.id, decadeId));
+
+      logger.info({ decadeId, city: decade.city, number: decade.number, newLink: link.invite_link }, 'Decade invite link refreshed');
+
+      return { success: true, inviteLink: link.invite_link };
+    } catch (error: any) {
+      logger.error({ error, decadeId }, 'Failed to refresh invite link');
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 export const decadesService = new DecadesService();
