@@ -1195,54 +1195,49 @@ class DecadesService {
     }
 
     try {
-      // Пытаемся setChatTitle с тем же названием — это может вызвать миграцию
-      // Telegram вернёт error с migrate_to_chat_id или обработает в webhook
-      const currentTitle = decade.chatTitle || `Десятка №${decade.number} города ${decade.city}`;
-      
-      try {
-        await this.api.setChatTitle(decade.tgChatId, currentTitle);
-      } catch (migrateError: any) {
-        const errorMsg = migrateError?.message || String(migrateError);
-        
-        // Telegram возвращает migrate_to_chat_id в параметрах ошибки
-        const migrateMatch = errorMsg.match(/migrate_to_chat_id.*?(-?\d+)/);
-        if (migrateMatch) {
-          const newChatId = parseInt(migrateMatch[1]);
-          await this.handleChatMigration(decade.tgChatId, newChatId);
-          
-          // Теперь пробуем создать ссылку с новым ID
-          const linkResult = await this.refreshInviteLink(decadeId);
-          return { 
-            success: true, 
-            newChatId, 
-            inviteLink: linkResult.inviteLink 
-          };
-        }
-        
-        // Парсим response_parameters из grammY
-        if (migrateError?.payload?.parameters?.migrate_to_chat_id) {
-          const newChatId = migrateError.payload.parameters.migrate_to_chat_id;
-          await this.handleChatMigration(decade.tgChatId, newChatId);
-          
-          const linkResult = await this.refreshInviteLink(decadeId);
-          return { 
-            success: true, 
-            newChatId, 
-            inviteLink: linkResult.inviteLink 
-          };
-        }
+      // Пытаемся несколько методов для обнаружения нового chat_id
+      const methods = [
+        () => this.api!.setChatTitle(decade.tgChatId, decade.chatTitle || `Десятка №${decade.number} города ${decade.city}`),
+        () => this.api!.sendMessage(decade.tgChatId, '🔄 Проверка связи...'),
+        () => this.api!.exportChatInviteLink(decade.tgChatId),
+      ];
 
-        // Если ошибка другая — пробрасываем
-        throw migrateError;
+      for (const method of methods) {
+        try {
+          await method();
+          // Если метод прошёл — чат работает, пробуем ссылку
+          const linkResult = await this.refreshInviteLink(decadeId);
+          return { success: linkResult.success, inviteLink: linkResult.inviteLink, error: linkResult.error };
+        } catch (err: any) {
+          // Ищем migrate_to_chat_id в любом месте ошибки
+          const errStr = JSON.stringify(err);
+          const migrateMatch = errStr.match(/migrate_to_chat_id["\s:]+(-?\d+)/);
+          
+          if (migrateMatch) {
+            const newChatId = parseInt(migrateMatch[1]);
+            logger.info({ decadeId, oldChatId: decade.tgChatId, newChatId }, 'Found new chat_id from error response!');
+            await this.handleChatMigration(decade.tgChatId, newChatId);
+            
+            const linkResult = await this.refreshInviteLink(decadeId);
+            return { success: true, newChatId, inviteLink: linkResult.inviteLink };
+          }
+
+          // grammY HttpError может иметь parameters
+          if (err?.error?.parameters?.migrate_to_chat_id) {
+            const newChatId = err.error.parameters.migrate_to_chat_id;
+            logger.info({ decadeId, oldChatId: decade.tgChatId, newChatId }, 'Found new chat_id from grammY error parameters!');
+            await this.handleChatMigration(decade.tgChatId, newChatId);
+            
+            const linkResult = await this.refreshInviteLink(decadeId);
+            return { success: true, newChatId, inviteLink: linkResult.inviteLink };
+          }
+
+          // Продолжаем к следующему методу
+          logger.debug({ err: err?.message, method: method.toString().substring(0, 50) }, 'Method failed, trying next');
+        }
       }
 
-      // Если setChatTitle прошёл без ошибки — чат не мигрировал, пробуем ссылку
-      const linkResult = await this.refreshInviteLink(decadeId);
-      return { 
-        success: linkResult.success, 
-        inviteLink: linkResult.inviteLink,
-        error: linkResult.error 
-      };
+      return { success: false, error: 'Не удалось обнаружить новый chat_id. Возможно чат полностью мигрировал и бот не знает новый ID. Попросите лидера написать что-нибудь в чат — бот увидит новый ID автоматически.' };
     } catch (error: any) {
       logger.error({ error, decadeId }, 'Error in forceMigrateAndDiscover');
       return { success: false, error: error.message };
