@@ -40,6 +40,20 @@ function getMoscowDayOfWeek(): number {
   return moscowNow.getUTCDay();
 }
 
+/** Получить понедельник 00:00 МСК текущей недели */
+function getMoscowWeekStart(): Date {
+  const now = new Date();
+  const moscowNow = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+  // getUTCDay(): 0=Вс, 1=Пн, ..., 6=Сб
+  let daysSinceMonday = moscowNow.getUTCDay() - 1; // Пн=0, Вт=1, ..., Сб=5, Вс=-1
+  if (daysSinceMonday < 0) daysSinceMonday = 6; // Воскресенье = 6 дней после понедельника
+  // Обнуляем до полуночи МСК
+  moscowNow.setUTCHours(0, 0, 0, 0);
+  moscowNow.setUTCDate(moscowNow.getUTCDate() - daysSinceMonday);
+  // Переводим обратно в UTC (МСК - 3ч)
+  return new Date(moscowNow.getTime() - 3 * 60 * 60 * 1000);
+}
+
 interface HashtagRule {
   hashtags: string[]; // Список хештегов (например, ['#отчет', '#дз'])
   reward: number; // Награда в Энергии
@@ -119,7 +133,7 @@ export class HashtagParserService {
   }
 
   /**
-   * Проверить недельный лимит (7 календарных дней по МСК)
+   * Проверить недельный лимит (Пн-Вс по МСК, сброс в понедельник 00:00 МСК)
    */
   private async checkWeeklyLimit(
     userId: string,
@@ -127,7 +141,7 @@ export class HashtagParserService {
     maxCount?: number
   ): Promise<boolean> {
     try {
-      const weekAgoMidnightMSK = getMoscowMidnightDaysAgo(7);
+      const weekAgoMidnightMSK = getMoscowWeekStart();
 
       const weekTransactions = await db
         .select()
