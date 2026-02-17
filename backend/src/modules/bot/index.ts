@@ -48,6 +48,16 @@ bot.use(async (ctx, next) => {
       return;
     }
 
+    // 🔄 Автоматическое обнаружение миграции: если сообщение содержит migrate_to/from_chat_id
+    if (ctx.message?.migrate_to_chat_id) {
+      await next(); // Пропускаем в обработчик миграции
+      return;
+    }
+    if (ctx.message?.migrate_from_chat_id) {
+      await next(); // Пропускаем в обработчик миграции
+      return;
+    }
+
     // 🎮 ГЕЙМИФИКАЦИЯ: Парсим хештеги в сообщениях
     if (ctx.message && (ctx.message.text || ctx.message.caption)) {
       await hashtagParserService.processGroupMessage(ctx);
@@ -5581,6 +5591,37 @@ bot.on('my_chat_member', async (ctx) => {
     }
   } catch (error) {
     logger.error({ error }, 'Error in my_chat_member handler');
+  }
+});
+
+// 🔄 Обработчик миграции группы → супергруппы
+// Telegram отправляет это сообщение когда группа мигрирует, содержит новый chat_id
+bot.on('message:migrate_to_chat_id', async (ctx) => {
+  try {
+    const oldChatId = ctx.chat.id;
+    const newChatId = ctx.message.migrate_to_chat_id;
+
+    logger.info({ oldChatId, newChatId }, 'Chat migrated from group to supergroup');
+
+    // Обновляем chat_id десятки если это десятка
+    await decadesService.handleChatMigration(oldChatId, newChatId);
+  } catch (error) {
+    logger.error({ error, chatId: ctx.chat?.id }, 'Error handling chat migration');
+  }
+});
+
+// Обработчик migrate_from_chat_id (вызывается в новом чате)
+bot.on('message:migrate_from_chat_id', async (ctx) => {
+  try {
+    const newChatId = ctx.chat.id;
+    const oldChatId = ctx.message.migrate_from_chat_id;
+
+    logger.info({ oldChatId, newChatId }, 'Chat migration received in new supergroup');
+
+    // На всякий случай дублируем — обновляем chat_id десятки
+    await decadesService.handleChatMigration(oldChatId, newChatId);
+  } catch (error) {
+    logger.error({ error, chatId: ctx.chat?.id }, 'Error handling migrate_from_chat_id');
   }
 });
 

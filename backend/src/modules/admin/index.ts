@@ -954,6 +954,34 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
   )
 
   /**
+   * 🔍 Сканировать все десятки на мигрированные чаты
+   */
+  .post(
+    '/scan-migrated-decades',
+    async ({ headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const result = await decadesService.scanMigratedChats();
+      return {
+        success: true,
+        ok_count: result.ok.length,
+        migrated_count: result.migrated.length,
+        error_count: result.errors.length,
+        ...result,
+      };
+    },
+    {
+      detail: {
+        summary: 'Сканировать мигрированные десятки',
+        description: 'Проверяет все активные десятки на миграцию group→supergroup и обновляет chat_id',
+      },
+    }
+  )
+
+  /**
    * 🔍 Получить информацию о чате
    */
   .post(

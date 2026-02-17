@@ -1064,6 +1064,102 @@ class DecadesService {
   }
 
   /**
+   * Обработать миграцию группы → супергруппы
+   * Обновляет tg_chat_id десятки и создаёт новую инвайт-ссылку
+   */
+  async handleChatMigration(oldChatId: number, newChatId: number): Promise<void> {
+    try {
+      const [decade] = await db
+        .select()
+        .from(decades)
+        .where(eq(decades.tgChatId, oldChatId))
+        .limit(1);
+
+      if (!decade) {
+        logger.debug({ oldChatId, newChatId }, 'Migrated chat is not a decade, ignoring');
+        return;
+      }
+
+      // Обновляем chat_id
+      await db
+        .update(decades)
+        .set({ tgChatId: newChatId, updatedAt: new Date() })
+        .where(eq(decades.id, decade.id));
+
+      logger.info(
+        { decadeId: decade.id, city: decade.city, number: decade.number, oldChatId, newChatId },
+        'Decade chat ID updated after migration'
+      );
+
+      // Создаём новую инвайт-ссылку
+      if (this.api) {
+        try {
+          const link = await this.api.createChatInviteLink(newChatId, {
+            creates_join_request: false,
+          });
+
+          await db
+            .update(decades)
+            .set({ inviteLink: link.invite_link, updatedAt: new Date() })
+            .where(eq(decades.id, decade.id));
+
+          logger.info(
+            { decadeId: decade.id, newLink: link.invite_link },
+            'New invite link created after migration'
+          );
+        } catch (linkError) {
+          logger.error({ linkError, decadeId: decade.id, newChatId }, 'Failed to create invite link after migration');
+        }
+      }
+    } catch (error) {
+      logger.error({ error, oldChatId, newChatId }, 'Error handling chat migration');
+    }
+  }
+
+  /**
+   * Проактивно проверить все десятки на мигрированные чаты
+   * Для каждой десятки пытается getChat — если ошибка "upgraded", помечает как проблемную
+   */
+  async scanMigratedChats(): Promise<{ ok: string[]; migrated: string[]; errors: string[] }> {
+    if (!this.api) {
+      return { ok: [], migrated: [], errors: ['API not initialized'] };
+    }
+
+    const allDecades = await db
+      .select()
+      .from(decades)
+      .where(eq(decades.isActive, true));
+
+    const ok: string[] = [];
+    const migrated: string[] = [];
+    const errors: string[] = [];
+
+    for (const decade of allDecades) {
+      try {
+        const chat = await this.api.getChat(decade.tgChatId);
+
+        // Проверяем, совпадает ли ID (Telegram может вернуть чат с другим ID)
+        if (chat.id !== decade.tgChatId) {
+          // Chat ID изменился!
+          await this.handleChatMigration(decade.tgChatId, chat.id);
+          migrated.push(`${decade.city} №${decade.number}: ${decade.tgChatId} → ${chat.id}`);
+        } else {
+          ok.push(`${decade.city} №${decade.number}`);
+        }
+      } catch (error: any) {
+        const errorMsg = error?.message || String(error);
+        if (errorMsg.includes('upgraded to a supergroup')) {
+          migrated.push(`${decade.city} №${decade.number}: МИГРИРОВАЛА (старый ID ${decade.tgChatId}, новый неизвестен)`);
+        } else {
+          errors.push(`${decade.city} №${decade.number}: ${errorMsg}`);
+        }
+      }
+    }
+
+    return { ok, migrated, errors };
+  }
+
+  /**
    * Получить информацию о чате через Telegram API
    */
   async getChatInfo(chatId: number): Promise<{ success: boolean; chat?: any; error?: string }> {
