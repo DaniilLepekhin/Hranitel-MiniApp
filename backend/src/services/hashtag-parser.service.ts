@@ -7,7 +7,38 @@ import { energiesService } from '@/modules/energy-points/service';
 /**
  * Сервис для парсинга хештегов в чатах и начисления Энергии
  * По документу "Геймификация для дани.pdf"
+ * 
+ * Все лимиты привязаны к московскому времени (UTC+3):
+ * - daily: сброс в 00:00 МСК
+ * - every_3_days: 3 календарных дня по МСК
+ * - weekly: 7 календарных дней по МСК
+ * - weekendOnly: Сб/Вс по МСК
  */
+
+/** Получить текущую полночь по Москве (начало сегодняшнего дня МСК) */
+function getMoscowMidnight(): Date {
+  const now = new Date();
+  // МСК = UTC+3
+  const moscowNow = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+  // Обнуляем время до полуночи в МСК
+  moscowNow.setUTCHours(0, 0, 0, 0);
+  // Переводим обратно в UTC (вычитаем 3 часа) — это 21:00 UTC предыдущего дня
+  return new Date(moscowNow.getTime() - 3 * 60 * 60 * 1000);
+}
+
+/** Получить полночь по Москве N дней назад */
+function getMoscowMidnightDaysAgo(days: number): Date {
+  const midnight = getMoscowMidnight();
+  midnight.setDate(midnight.getDate() - days);
+  return midnight;
+}
+
+/** Получить текущий день недели по Москве (0=Вс, 6=Сб) */
+function getMoscowDayOfWeek(): number {
+  const now = new Date();
+  const moscowNow = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+  return moscowNow.getUTCDay();
+}
 
 interface HashtagRule {
   hashtags: string[]; // Список хештегов (например, ['#отчет', '#дз'])
@@ -15,17 +46,16 @@ interface HashtagRule {
   requiresMedia?: boolean; // Требуется ли медиафайл (фото/видео)
   limitType: 'daily' | 'weekly' | 'weekly_max' | 'every_3_days'; // Тип лимита
   limitValue?: number; // Значение лимита (для weekly_max)
-  cooldownHours?: number; // Кулдаун в часах (для daily с 20-часовым лимитом)
   weekendOnly?: boolean; // Только Сб/Вс (для #практика)
   description: string; // Описание действия
 }
 
-// Награды за #созвон + #сторис (комбо-система, раз в 3 дня)
+// Награды за #созвон + #сторис (комбо-система, раз в 3 календарных дня по МСК)
 const SOZVON_STORIS_REWARDS = {
   comboReward: 300,     // #созвон + #сторис вместе
   sozvonOnly: 100,      // только #созвон
   storisOnly: 200,      // только #сторис
-  cooldownHours: 72,    // раз в 3 дня
+  cooldownDays: 3,      // раз в 3 календарных дня по МСК
   comboDescription: 'Созвон + Stories',
   sozvonDescription: 'Участие в Созвоне',
   storisDescription: 'Отметка в Stories',
@@ -36,8 +66,7 @@ const DECADE_RULES: HashtagRule[] = [
   {
     hashtags: ['#отчет', '#дз'],
     reward: 50,
-    limitType: 'daily',
-    cooldownHours: 20, // Строго 1 раз в 20 часов
+    limitType: 'daily', // Сброс в 00:00 МСК
     description: 'Ежедневный отчет',
   },
 ];
@@ -64,43 +93,11 @@ const CITY_RULES: HashtagRule[] = [
 
 export class HashtagParserService {
   /**
-   * Проверить cooldown для действия
-   */
-  private async checkCooldown(
-    userId: string,
-    reason: string,
-    cooldownHours: number
-  ): Promise<boolean> {
-    try {
-      const cooldownDate = new Date();
-      cooldownDate.setHours(cooldownDate.getHours() - cooldownHours);
-
-      const recentTransactions = await db
-        .select()
-        .from(energyTransactions)
-        .where(
-          and(
-            eq(energyTransactions.userId, userId),
-            eq(energyTransactions.reason, reason),
-            gte(energyTransactions.createdAt, cooldownDate)
-          )
-        )
-        .limit(1);
-
-      return recentTransactions.length === 0;
-    } catch (error) {
-      logger.error('[HashtagParser] Error checking cooldown:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Проверить дневной лимит
+   * Проверить дневной лимит (сброс в 00:00 МСК)
    */
   private async checkDailyLimit(userId: string, reason: string): Promise<boolean> {
     try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const todayMidnightMSK = getMoscowMidnight();
 
       const todayTransactions = await db
         .select()
@@ -109,7 +106,7 @@ export class HashtagParserService {
           and(
             eq(energyTransactions.userId, userId),
             eq(energyTransactions.reason, reason),
-            gte(energyTransactions.createdAt, today)
+            gte(energyTransactions.createdAt, todayMidnightMSK)
           )
         )
         .limit(1);
@@ -122,7 +119,7 @@ export class HashtagParserService {
   }
 
   /**
-   * Проверить недельный лимит
+   * Проверить недельный лимит (7 календарных дней по МСК)
    */
   private async checkWeeklyLimit(
     userId: string,
@@ -130,8 +127,7 @@ export class HashtagParserService {
     maxCount?: number
   ): Promise<boolean> {
     try {
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
+      const weekAgoMidnightMSK = getMoscowMidnightDaysAgo(7);
 
       const weekTransactions = await db
         .select()
@@ -140,7 +136,7 @@ export class HashtagParserService {
           and(
             eq(energyTransactions.userId, userId),
             eq(energyTransactions.reason, reason),
-            gte(energyTransactions.createdAt, weekAgo)
+            gte(energyTransactions.createdAt, weekAgoMidnightMSK)
           )
         );
 
@@ -156,12 +152,11 @@ export class HashtagParserService {
   }
 
   /**
-   * Проверить лимит раз в 3 дня (72 часа)
+   * Проверить лимит раз в 3 календарных дня (по МСК)
    */
   private async checkEvery3DaysLimit(userId: string, reason: string): Promise<boolean> {
     try {
-      const threeDaysAgo = new Date();
-      threeDaysAgo.setHours(threeDaysAgo.getHours() - 72);
+      const threeDaysAgoMidnightMSK = getMoscowMidnightDaysAgo(3);
 
       const recentTransactions = await db
         .select()
@@ -170,7 +165,7 @@ export class HashtagParserService {
           and(
             eq(energyTransactions.userId, userId),
             eq(energyTransactions.reason, reason),
-            gte(energyTransactions.createdAt, threeDaysAgo)
+            gte(energyTransactions.createdAt, threeDaysAgoMidnightMSK)
           )
         )
         .limit(1);
@@ -214,22 +209,11 @@ export class HashtagParserService {
         const matchedHashtag = rule.hashtags.find((tag) => hashtags.includes(tag));
         if (!matchedHashtag) continue;
 
-        // Проверяем cooldown (20 часов для #отчет)
-        if (rule.cooldownHours) {
-          const canAward = await this.checkCooldown(userId, rule.description, rule.cooldownHours);
-          if (!canAward) {
-            logger.info(
-              `[HashtagParser] User ${userId} tried to submit ${matchedHashtag} too soon (cooldown)`
-            );
-            continue;
-          }
-        }
-
-        // Проверяем дневной лимит
+        // Проверяем дневной лимит (сброс в 00:00 МСК)
         if (rule.limitType === 'daily') {
           const canAward = await this.checkDailyLimit(userId, rule.description);
           if (!canAward) {
-            logger.info(`[HashtagParser] User ${userId} already submitted ${matchedHashtag} today`);
+            logger.info(`[HashtagParser] User ${userId} already submitted ${matchedHashtag} today (MSK)`);
             continue;
           }
         }
@@ -418,9 +402,9 @@ export class HashtagParserService {
         const matchedHashtag = rule.hashtags.find((tag) => hashtags.includes(tag));
         if (!matchedHashtag) continue;
 
-        // Проверяем ограничение "только выходные" (Сб/Вс)
+        // Проверяем ограничение "только выходные" (Сб/Вс по МСК)
         if (rule.weekendOnly) {
-          const dayOfWeek = new Date().getDay(); // 0=Вс, 6=Сб
+          const dayOfWeek = getMoscowDayOfWeek(); // 0=Вс, 6=Сб (по МСК)
           if (dayOfWeek !== 0 && dayOfWeek !== 6) {
             logger.info(
               `[HashtagParser] User ${userId} submitted ${matchedHashtag} on weekday (only Sat/Sun allowed)`
