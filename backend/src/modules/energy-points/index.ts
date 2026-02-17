@@ -195,12 +195,12 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/v1/energies', tags:
    * POST /api/energies/triggers/lesson-view
    * Триггер: Просмотр урока (+50 Энергии)
    */
-  .post(
+   .post(
     '/triggers/lesson-view',
     async ({ body }) => {
       try {
-        const { userId, lessonId } = body;
-        const result = await energyPointsService.awardLessonView(userId, lessonId);
+        const { userId, lessonId, lessonTitle } = body;
+        const result = await energyPointsService.awardLessonView(userId, lessonId, lessonTitle);
         return result;
       } catch (error) {
         logger.error('[Energies API] Error in lesson view trigger:', error);
@@ -214,6 +214,7 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/v1/energies', tags:
       body: t.Object({
         userId: t.String(),
         lessonId: t.String(),
+        lessonTitle: t.Optional(t.String()),
       }),
     }
   )

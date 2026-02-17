@@ -6,10 +6,11 @@ import {
   videos,
   videoTimecodes,
   userContentProgress,
-  practiceContent
+  practiceContent,
+  energyTransactions,
+  users
 } from '../../db/schema';
 import { eq, and, desc, asc, sql } from 'drizzle-orm';
-import { energyTransactions } from '../../db/schema';
 import { energiesService } from '../energy-points/service';
 
 export const contentModule = new Elysia({ prefix: '/api/v1/content' })
@@ -230,56 +231,77 @@ export const contentModule = new Elysia({ prefix: '/api/v1/content' })
       ))
       .limit(1);
 
-    let progress;
     let shouldAwardEnergy = false;
 
     if (existingProgress.length > 0) {
-      // Check if video was already watched (to prevent duplicate energy awards)
-      const alreadyWatched = existingProgress[0].watched;
-      
-      // Update existing progress
-      progress = await db
-        .update(userContentProgress)
-        .set({
-          watched: true,
-          watchTimeSeconds: watchTimeSeconds,
-          completedAt: new Date(),
-          energiesEarned: energiesReward,
-          updatedAt: new Date()
-        })
-        .where(eq(userContentProgress.id, existingProgress[0].id))
-        .returning();
-      
       // Only award energy if this is the first completion
-      shouldAwardEnergy = !alreadyWatched;
+      shouldAwardEnergy = !existingProgress[0].watched;
     } else {
-      // Create new progress record
-      progress = await db
-        .insert(userContentProgress)
-        .values({
-          userId,
-          videoId,
-          watched: true,
-          watchTimeSeconds: watchTimeSeconds || 0,
-          completedAt: new Date(),
-          energiesEarned: energiesReward
-        })
-        .returning();
-      
       // First time watching - award energy
       shouldAwardEnergy = true;
     }
 
-    // Award Энергии пользователю (only on first watch)
-    if (energiesReward > 0 && shouldAwardEnergy) {
-      await energiesService.award(userId, energiesReward, `Просмотр видео: ${video[0].title}`, {
-        videoId,
-        videoTitle: video[0].title,
-      });
-    }
+    // Обёрнуто в одну транзакцию: progress + award атомарны
+    const result = await db.transaction(async (tx) => {
+      let progress;
+
+      if (existingProgress.length > 0) {
+        // Update existing progress
+        progress = await tx
+          .update(userContentProgress)
+          .set({
+            watched: true,
+            watchTimeSeconds: watchTimeSeconds,
+            completedAt: new Date(),
+            energiesEarned: shouldAwardEnergy ? energiesReward : existingProgress[0].energiesEarned,
+            updatedAt: new Date()
+          })
+          .where(eq(userContentProgress.id, existingProgress[0].id))
+          .returning();
+      } else {
+        // Create new progress record
+        progress = await tx
+          .insert(userContentProgress)
+          .values({
+            userId,
+            videoId,
+            watched: true,
+            watchTimeSeconds: watchTimeSeconds || 0,
+            completedAt: new Date(),
+            energiesEarned: shouldAwardEnergy ? energiesReward : 0
+          })
+          .returning();
+      }
+
+      // Award Энергии пользователю (only on first watch) — в той же транзакции
+      if (energiesReward > 0 && shouldAwardEnergy) {
+        const expiresAt = new Date();
+        expiresAt.setMonth(expiresAt.getMonth() + 6);
+
+        await tx.insert(energyTransactions).values({
+          userId,
+          amount: energiesReward,
+          type: 'income',
+          reason: `Просмотр видео: ${video[0].title}`,
+          metadata: { videoId, videoTitle: video[0].title },
+          expiresAt,
+          isExpired: false,
+        });
+
+        const user = await tx.select().from(users).where(eq(users.id, userId)).limit(1);
+        if (user.length > 0) {
+          await tx
+            .update(users)
+            .set({ energies: (user[0].energies || 0) + energiesReward })
+            .where(eq(users.id, userId));
+        }
+      }
+
+      return progress;
+    });
 
     return {
-      progress: progress[0],
+      progress: result[0],
       energiesEarned: shouldAwardEnergy ? energiesReward : 0 // Only return energies if actually awarded
     };
   }, {

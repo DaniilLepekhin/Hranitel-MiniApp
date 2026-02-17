@@ -328,7 +328,8 @@ export const coursesModule = new Elysia({ prefix: '/courses', tags: ['Courses'] 
       if (isNewCompletion && completedDay) {
         try {
           const lessonId = `${id}:day${completedDay}`;
-          await energiesService.awardLessonView(user.id, lessonId);
+          const lessonTitle = `${course.title}, день ${completedDay}`;
+          await energiesService.awardLessonView(user.id, lessonId, lessonTitle);
           logger.info(
             { userId: user.id, courseId: id, dayNumber: completedDay },
             'Awarded 20 energy for lesson completion'
