@@ -187,7 +187,17 @@ export default function PracticePage() {
         return (
           <Card
             className="mb-6 p-5 hover:scale-[1.02] transition-all cursor-pointer bg-gradient-to-br from-[#d93547]/10 to-[#9c1723]/10 border-2 border-[#d93547]"
-            onClick={handlePlayAudio}
+            onClick={() => {
+              const firstVideo = videos[0];
+              // Если есть RuTube URL - переходим на страницу видео с выбором плеера
+              if (firstVideo?.rutubeUrl) {
+                haptic.impact('light');
+                router.push(`/video/${firstVideo.id}`);
+              } else {
+                // Иначе открываем в медиаплеере
+                handlePlayAudio();
+              }
+            }}
           >
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#d93547] to-[#9c1723] flex items-center justify-center shadow-lg flex-shrink-0">
