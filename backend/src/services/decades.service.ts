@@ -1175,6 +1175,81 @@ class DecadesService {
   }
 
   /**
+   * Попытаться принудительно мигрировать чат и обнаружить новый ID
+   * Отправляем setChatTitle — это вызывает миграцию group→supergroup
+   * Telegram в ответе или webhook вернёт новый chat_id
+   */
+  async forceMigrateAndDiscover(decadeId: string): Promise<{ success: boolean; newChatId?: number; inviteLink?: string; error?: string }> {
+    if (!this.api) {
+      return { success: false, error: 'API not initialized' };
+    }
+
+    const [decade] = await db
+      .select()
+      .from(decades)
+      .where(eq(decades.id, decadeId))
+      .limit(1);
+
+    if (!decade) {
+      return { success: false, error: 'Десятка не найдена' };
+    }
+
+    try {
+      // Пытаемся setChatTitle с тем же названием — это может вызвать миграцию
+      // Telegram вернёт error с migrate_to_chat_id или обработает в webhook
+      const currentTitle = decade.chatTitle || `Десятка №${decade.number} города ${decade.city}`;
+      
+      try {
+        await this.api.setChatTitle(decade.tgChatId, currentTitle);
+      } catch (migrateError: any) {
+        const errorMsg = migrateError?.message || String(migrateError);
+        
+        // Telegram возвращает migrate_to_chat_id в параметрах ошибки
+        const migrateMatch = errorMsg.match(/migrate_to_chat_id.*?(-?\d+)/);
+        if (migrateMatch) {
+          const newChatId = parseInt(migrateMatch[1]);
+          await this.handleChatMigration(decade.tgChatId, newChatId);
+          
+          // Теперь пробуем создать ссылку с новым ID
+          const linkResult = await this.refreshInviteLink(decadeId);
+          return { 
+            success: true, 
+            newChatId, 
+            inviteLink: linkResult.inviteLink 
+          };
+        }
+        
+        // Парсим response_parameters из grammY
+        if (migrateError?.payload?.parameters?.migrate_to_chat_id) {
+          const newChatId = migrateError.payload.parameters.migrate_to_chat_id;
+          await this.handleChatMigration(decade.tgChatId, newChatId);
+          
+          const linkResult = await this.refreshInviteLink(decadeId);
+          return { 
+            success: true, 
+            newChatId, 
+            inviteLink: linkResult.inviteLink 
+          };
+        }
+
+        // Если ошибка другая — пробрасываем
+        throw migrateError;
+      }
+
+      // Если setChatTitle прошёл без ошибки — чат не мигрировал, пробуем ссылку
+      const linkResult = await this.refreshInviteLink(decadeId);
+      return { 
+        success: linkResult.success, 
+        inviteLink: linkResult.inviteLink,
+        error: linkResult.error 
+      };
+    } catch (error: any) {
+      logger.error({ error, decadeId }, 'Error in forceMigrateAndDiscover');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * Обновить tg_chat_id десятки (при миграции group -> supergroup)
    */
   async updateChatId(decadeId: string, newChatId: number): Promise<{ success: boolean; error?: string }> {

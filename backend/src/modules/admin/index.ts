@@ -954,6 +954,35 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
   )
 
   /**
+   * 🔄 Принудительно мигрировать чат десятки и обнаружить новый ID
+   */
+  .post(
+    '/force-migrate-decade',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { decade_id } = body;
+      const result = await decadesService.forceMigrateAndDiscover(decade_id);
+      if (!result.success) {
+        set.status = 400;
+      }
+      return result;
+    },
+    {
+      body: t.Object({
+        decade_id: t.String({ description: 'ID десятки' }),
+      }),
+      detail: {
+        summary: 'Принудительно мигрировать десятку',
+        description: 'Пытается вызвать миграцию group→supergroup и обнаружить новый chat_id',
+      },
+    }
+  )
+
+  /**
    * 🔍 Сканировать все десятки на мигрированные чаты
    */
   .post(
