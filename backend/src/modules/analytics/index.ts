@@ -140,6 +140,24 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
           throw new Error('Invalid telegram_id');
         }
 
+        // 🆕 Проверка 3-месячного кулдауна (подстраховка на бэкенде)
+        const existingUser = await db.query.users.findFirst({
+          where: eq(users.telegramId, tgIdNum),
+        });
+        if (existingUser && !existingUser.isPro && existingUser.subscriptionExpires) {
+          const expiryDate = new Date(existingUser.subscriptionExpires);
+          const cooldownEnd = new Date(expiryDate.getTime() + 90 * 24 * 60 * 60 * 1000);
+          if (new Date() < cooldownEnd) {
+            logger.warn({ telegram_id: tgIdNum, cooldownEnd }, '🚫 Payment attempt blocked: 3-month cooldown active');
+            set.status = 403;
+            return {
+              success: false,
+              error: 'cooldown_active',
+              message: 'Повторная оплата недоступна. С момента отмены подписки ещё не прошло 3 месяца.',
+            };
+          }
+        }
+
         await db.insert(paymentAnalytics).values({
           telegramId: tgIdNum,
           eventType: 'payment_attempt',
@@ -368,4 +386,69 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
         description: 'Logs when a user opens the gift payment form, linking gifter to recipient',
       },
     }
+  )
+  // 🆕 Check 3-month cooldown for ex-subscribers
+  .get(
+    '/check-cooldown',
+    async ({ query, set }) => {
+      try {
+        const telegramId = parseInt(query.telegram_id, 10);
+        if (isNaN(telegramId)) {
+          set.status = 400;
+          return { success: false, error: 'Invalid telegram_id' };
+        }
+
+        const user = await db.query.users.findFirst({
+          where: eq(users.telegramId, telegramId),
+        });
+
+        // Нет пользователя или никогда не платил — кулдауна нет
+        if (!user || !user.subscriptionExpires) {
+          return { success: true, blocked: false };
+        }
+
+        // Активная подписка — кулдауна нет
+        if (user.isPro) {
+          return { success: true, blocked: false };
+        }
+
+        // isPro = false + subscriptionExpires существует = бывший подписчик
+        // Кулдаун: 90 дней с момента истечения подписки
+        const expiryDate = new Date(user.subscriptionExpires);
+        const cooldownEnd = new Date(expiryDate.getTime() + 90 * 24 * 60 * 60 * 1000);
+        const now = new Date();
+
+        if (now < cooldownEnd) {
+          // Форматируем дату для отображения: DD.MM.YYYY
+          const day = String(cooldownEnd.getDate()).padStart(2, '0');
+          const month = String(cooldownEnd.getMonth() + 1).padStart(2, '0');
+          const year = cooldownEnd.getFullYear();
+          const unlockDate = `${day}.${month}.${year}`;
+
+          return {
+            success: true,
+            blocked: true,
+            unlock_date: unlockDate,
+            first_name: user.firstName || null,
+          };
+        }
+
+        // Кулдаун прошёл
+        return { success: true, blocked: false };
+      } catch (error) {
+        logger.error({ error, query }, 'Failed to check cooldown');
+        set.status = 500;
+        return { success: false, error: 'Failed to check cooldown' };
+      }
+    },
+    {
+      query: t.Object({
+        telegram_id: t.String(),
+      }),
+      detail: {
+        summary: 'Check 3-month cooldown for ex-subscribers',
+        description: 'Returns whether the user is blocked from re-subscribing due to 3-month cooldown after subscription expiry',
+      },
+    }
   );
+
