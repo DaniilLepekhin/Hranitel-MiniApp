@@ -4,6 +4,7 @@ import { paymentAnalytics, payments, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { alertsService } from '@/services/alerts.service';
+import { schedulerService } from '@/services/scheduler.service';
 
 export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analytics'] })
   // Track form open event
@@ -166,6 +167,19 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
           },
           'Payment attempt tracked'
         );
+
+        // 🆕 Планируем проверку "оплата не завершена" через 10 мин
+        // Отменяем предыдущую такую задачу (если пользователь нажал "оплатить" несколько раз)
+        await schedulerService.cancelUserTasksByType(tgIdNum, 'payment_not_completed');
+        await schedulerService.schedule(
+          {
+            type: 'payment_not_completed',
+            userId: tgIdNum,
+            chatId: tgIdNum, // В личных чатах chatId = telegramId
+          },
+          10 * 60 * 1000 // 10 минут
+        );
+        logger.info({ telegram_id: tgIdNum }, 'Scheduled payment_not_completed check in 10 min');
 
         return {
           success: true,

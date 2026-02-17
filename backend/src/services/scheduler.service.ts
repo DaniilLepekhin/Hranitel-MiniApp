@@ -95,6 +95,9 @@ export interface ScheduledTask {
     | 'probudis_day4'              // День 4 через 24ч
     | 'probudis_day5'              // День 5 через 24ч (финальное)
 
+    // 🆕 Payment abandoned reminder (не привязано к воронке)
+    | 'payment_not_completed'      // Через 10 мин после payment_attempt, если нет payment_success
+
     // 🧪 Test funnel types (for admin testing with fast timers)
     | 'test_start_reminder'
     | 'test_numerology_guide'
