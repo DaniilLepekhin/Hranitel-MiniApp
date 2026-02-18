@@ -516,7 +516,9 @@ export class HashtagParserService {
       } else {
         // Проверяем по белому списку городских чатов (из city_chats_ik)
         const cityChatIds = await subscriptionGuardService.getCityChatIds();
-        const isCityChat = cityChatIds.includes(chatId);
+
+        // Если whitelist доступен — проверяем строго; если нет (OLD_DATABASE_URL не задана) — fallback на старое поведение
+        const isCityChat = cityChatIds.length > 0 ? cityChatIds.includes(chatId) : true;
 
         if (isCityChat) {
           await this.processCityMessage(ctx, user.id, userTelegramId);
