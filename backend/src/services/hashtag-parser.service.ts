@@ -1,6 +1,6 @@
-import { db } from '@/db';
+import { db, rawDb } from '@/db';
 import { users, energyTransactions, decades } from '@/db/schema';
-import { eq, and, gte, sql } from 'drizzle-orm';
+import { eq, and, gte } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { energiesService } from '@/modules/energy-points/service';
 
@@ -120,15 +120,15 @@ export class HashtagParserService {
     }
 
     try {
-      const result = await db.execute(
-        sql`SELECT platform_id FROM city_chats_ik WHERE platform_id IS NOT NULL`
-      );
-      const rows = (result.rows ?? result) as any[];
-      const chatIds = rows.map((r: any) => Number(r.platform_id)).filter((id: number) => !isNaN(id));
+      // Use raw postgres client (not drizzle) — city_chats_ik is not in drizzle schema
+      const rows = await rawDb<{ platform_id: string | number }[]>`
+        SELECT platform_id FROM city_chats_ik WHERE platform_id IS NOT NULL
+      `;
+      const chatIds = rows.map((r) => Number(r.platform_id)).filter((id) => !isNaN(id));
 
       this.cityChatIdsCache = chatIds;
       this.cityChatIdsCacheTime = now;
-      logger.info(`[HashtagParser] Cached ${chatIds.length} city chat IDs`);
+      logger.info(`[HashtagParser] Cached ${chatIds.length} city chat IDs (sample: ${chatIds.slice(0, 3).join(', ')})`);
       return chatIds;
     } catch (error) {
       logger.error('[HashtagParser] Error fetching city chat IDs:', error);
@@ -512,8 +512,13 @@ export class HashtagParserService {
     try {
       const chatId = ctx.chat?.id;
       const userTelegramId = ctx.from?.id;
+      const text = ctx.message?.text || ctx.message?.caption || '';
 
       if (!chatId || !userTelegramId) return;
+
+      // Быстрая проверка: есть ли хештеги вообще (чтобы не делать запросы впустую)
+      const hasHashtags = /#[а-яА-Яa-zA-Z0-9_]+/.test(text);
+      if (!hasHashtags) return;
 
       // Получаем информацию о пользователе из БД
       const [user] = await db
@@ -546,6 +551,8 @@ export class HashtagParserService {
         // Верификация: проверяем chat_id по белому списку городских чатов (таблица city_chats_ik в основной БД)
         const cityChatIds = await this.getCityChatIds();
         const isCityChat = cityChatIds.includes(chatId);
+
+        logger.info(`[HashtagParser] City check: chatId=${chatId} (type: ${typeof chatId}), cachedCount=${cityChatIds.length}, match=${isCityChat}`);
 
         if (isCityChat) {
           await this.processCityMessage(ctx, user.id, userTelegramId);

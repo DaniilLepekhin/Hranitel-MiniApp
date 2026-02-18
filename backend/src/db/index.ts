@@ -19,6 +19,9 @@ const poolConfig: postgres.Options<{}> = {
 // Primary database connection (for writes and critical reads)
 const queryClient = postgres(config.DATABASE_URL, poolConfig);
 
+// Export raw postgres client for queries on tables not in drizzle schema (e.g. city_chats_ik)
+export const rawDb = queryClient;
+
 // Read replica connection (for SELECT queries to offload primary)
 // Falls back to primary if READ_REPLICA_URL not configured
 const readReplicaClient = config.READ_REPLICA_URL
