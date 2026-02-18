@@ -783,13 +783,13 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
 
       const { sql: sqlQuery } = body;
 
-      // Разрешаем только безопасные ALTER TABLE операции
-      const safePrefixes = ['ALTER TABLE', 'SELECT'];
+      // Разрешаем безопасные SQL операции
+      const safePrefixes = ['ALTER TABLE', 'SELECT', 'INSERT', 'UPDATE'];
       const isSafe = safePrefixes.some(prefix => sqlQuery.toUpperCase().trim().startsWith(prefix));
 
       if (!isSafe) {
         set.status = 400;
-        return { success: false, error: 'Только ALTER TABLE и SELECT запросы разрешены' };
+        return { success: false, error: 'Только SELECT, INSERT, UPDATE и ALTER TABLE запросы разрешены' };
       }
 
       try {
