@@ -69,17 +69,31 @@ const TransactionItem = memo(({ transaction }: { transaction: Transaction }) => 
           >
             {formattedDate} в {formattedTime}
           </p>
-          {transaction.metadata?.lessonId ? (
+          {transaction.metadata?.hashtag ? (
             <p
               style={{
                 fontFamily: 'Gilroy, sans-serif',
-                fontWeight: 400,
-                fontSize: '10px',
-                color: '#6b5a4a',
+                fontWeight: 500,
+                fontSize: '11px',
+                color: '#9c1723',
                 marginTop: '2px',
               }}
             >
-              Урок #{String(transaction.metadata.lessonId)}
+              {String(transaction.metadata.hashtag)}
+              {transaction.metadata.chat_type === 'decade' ? ' (десятка)' : transaction.metadata.chat_type === 'city' ? ' (город)' : ''}
+            </p>
+          ) : null}
+          {transaction.metadata?.leaderBonus ? (
+            <p
+              style={{
+                fontFamily: 'Gilroy, sans-serif',
+                fontWeight: 500,
+                fontSize: '10px',
+                color: '#b8860b',
+                marginTop: '2px',
+              }}
+            >
+              x{String(transaction.metadata.multiplier)} бонус лидера
             </p>
           ) : null}
         </div>
