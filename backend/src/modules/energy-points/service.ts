@@ -1,9 +1,10 @@
 import { db } from '@/db';
-import { energyTransactions, users } from '@/db/schema';
-import { eq, desc, and, gte, lt, sql, inArray } from 'drizzle-orm';
+import { energyTransactions, users, decadeMembers } from '@/db/schema';
+import { eq, desc, and, gte, lt, sql, inArray, isNull } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 
 const ENERGY_LIFETIME_MONTHS = 6; // Срок жизни баллов по документу "Геймификация"
+const LEADER_MULTIPLIER = 2; // x2 множитель для лидеров десяток (бадди)
 
 /** Получить текущую полночь по Москве (начало сегодняшнего дня МСК) */
 function getMoscowMidnight(): Date {
@@ -22,8 +23,42 @@ export class EnergyPointsService {
    * Income-транзакции получают expires_at = created_at + 6 месяцев
    * Используем SELECT ... FOR UPDATE для блокировки строки пользователя
    */
+  /**
+   * Проверить, является ли пользователь лидером (бадди) активной десятки
+   * Результат кэшируется на 5 минут для производительности
+   */
+  private leaderCache = new Map<string, { isLeader: boolean; cachedAt: number }>();
+  private static LEADER_CACHE_TTL = 5 * 60 * 1000; // 5 минут
+
+  async isDecadeLeader(userId: string): Promise<boolean> {
+    const cached = this.leaderCache.get(userId);
+    if (cached && (Date.now() - cached.cachedAt) < EnergyPointsService.LEADER_CACHE_TTL) {
+      return cached.isLeader;
+    }
+
+    const [membership] = await db
+      .select({ isLeader: decadeMembers.isLeader })
+      .from(decadeMembers)
+      .where(
+        and(
+          eq(decadeMembers.userId, userId),
+          eq(decadeMembers.isLeader, true),
+          isNull(decadeMembers.leftAt)
+        )
+      )
+      .limit(1);
+
+    const isLeader = !!membership;
+    this.leaderCache.set(userId, { isLeader, cachedAt: Date.now() });
+    return isLeader;
+  }
+
   async award(userId: string, amount: number, reason: string, metadata?: Record<string, any>) {
     try {
+      // Проверяем, является ли пользователь лидером десятки (бадди) — x2 множитель
+      const isLeader = await this.isDecadeLeader(userId);
+      const finalAmount = isLeader ? amount * LEADER_MULTIPLIER : amount;
+
       const expiresAt = new Date();
       expiresAt.setMonth(expiresAt.getMonth() + ENERGY_LIFETIME_MONTHS);
 
@@ -43,10 +78,13 @@ export class EnergyPointsService {
         // Создаем запись о транзакции с expires_at
         await tx.insert(energyTransactions).values({
           userId,
-          amount,
+          amount: finalAmount,
           type: 'income',
           reason,
-          metadata: metadata || {},
+          metadata: {
+            ...(metadata || {}),
+            ...(isLeader ? { leaderBonus: true, originalAmount: amount, multiplier: LEADER_MULTIPLIER } : {}),
+          },
           expiresAt,
           isExpired: false,
         });
@@ -54,13 +92,17 @@ export class EnergyPointsService {
         // Атомарно обновляем баланс
         await tx
           .update(users)
-          .set({ energies: currentBalance + amount })
+          .set({ energies: currentBalance + finalAmount })
           .where(eq(users.id, userId));
       });
 
-      logger.info(`[Energies] Awarded ${amount} to user ${userId} for: ${reason} (expires: ${expiresAt.toISOString()})`);
+      if (isLeader) {
+        logger.info(`[Energies] Awarded ${finalAmount} (x${LEADER_MULTIPLIER} leader bonus, base ${amount}) to user ${userId} for: ${reason}`);
+      } else {
+        logger.info(`[Energies] Awarded ${finalAmount} to user ${userId} for: ${reason} (expires: ${expiresAt.toISOString()})`);
+      }
 
-      return { success: true, amount, reason };
+      return { success: true, amount: finalAmount, reason };
     } catch (error) {
       logger.error('[Energies] Error awarding points:', error);
       throw new Error('Failed to award energy points');
