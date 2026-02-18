@@ -36,6 +36,12 @@ await bot.api.setMyCommands([]);
 bot.use(async (ctx, next) => {
   const chatId = ctx.chat?.id;
   if (chatId && chatId < 0) {
+    // 🔍 DEBUG: логируем ВСЕ входящие сообщения из групп (временно)
+    const debugText = ctx.message?.text || ctx.message?.caption || '';
+    if (debugText && /#/.test(debugText)) {
+      logger.info(`[BOT_GROUP_DEBUG] chatId=${chatId}, from=${ctx.from?.id}, text="${debugText.substring(0, 100)}"`);
+    }
+
     // Пропускаем команду /create_decade для групп
     const text = ctx.message?.text || '';
     if (text.startsWith('/create_decade')) {
