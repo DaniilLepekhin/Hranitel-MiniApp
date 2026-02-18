@@ -3,7 +3,8 @@ import { users, energyTransactions, decades } from '@/db/schema';
 import { eq, and, gte } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { energiesService } from '@/modules/energy-points/service';
-import { subscriptionGuardService } from '@/services/subscription-guard.service';
+// TODO: восстановить верификацию городских чатов когда OLD_DATABASE_URL будет на сервере
+// import { subscriptionGuardService } from '@/services/subscription-guard.service';
 
 /**
  * Сервис для парсинга хештегов в чатах и начисления Энергии
@@ -514,17 +515,9 @@ export class HashtagParserService {
       if (isDecadeChat) {
         await this.processDecadeMessage(ctx, user.id, userTelegramId);
       } else {
-        // Проверяем по белому списку городских чатов (из city_chats_ik)
-        const cityChatIds = await subscriptionGuardService.getCityChatIds();
-
-        // Если whitelist доступен — проверяем строго; если нет (OLD_DATABASE_URL не задана) — fallback на старое поведение
-        const isCityChat = cityChatIds.length > 0 ? cityChatIds.includes(chatId) : true;
-
-        if (isCityChat) {
-          await this.processCityMessage(ctx, user.id, userTelegramId);
-        } else {
-          logger.debug(`[HashtagParser] Chat ${chatId} is not a decade or verified city chat — ignoring`);
-        }
+        // Любой не-десяточный групповой чат — обрабатываем как городской
+        logger.info(`[HashtagParser] Processing city message from chat ${chatId} for user ${userTelegramId}`);
+        await this.processCityMessage(ctx, user.id, userTelegramId);
       }
     } catch (error) {
       logger.error('[HashtagParser] Error processing group message:', error);
