@@ -65,7 +65,7 @@ export function ShopTab() {
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch user purchases
   const { data: purchasesData } = useQuery({
     queryKey: ['shop', 'purchases', user?.id],
-    queryFn: () => apiShop.getPurchases(user!.id),
+    queryFn: () => apiShop.getPurchases(),
     enabled: !!user && !!token,
     retry: false,
     staleTime: 60 * 1000,
@@ -74,7 +74,7 @@ export function ShopTab() {
 
   // Purchase mutation
   const purchaseMutation = useMutation({
-    mutationFn: (itemId: string) => apiShop.purchaseItem(user!.id, itemId),
+    mutationFn: (itemId: string) => apiShop.purchaseItem(itemId),
     onSuccess: () => {
       haptic.notification('success');
       queryClient.invalidateQueries({ queryKey: ['energies', 'balance'] });

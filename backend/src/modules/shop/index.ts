@@ -3,10 +3,16 @@ import { shopService } from './service';
 import { logger } from '@/utils/logger';
 import { authMiddleware } from '@/middlewares/auth';
 
+// Хелпер для проверки admin-секрета (как в admin/index.ts)
+const checkAdminAuth = (headers: Record<string, string | undefined>) => {
+  const adminSecret = headers['x-admin-secret'];
+  return adminSecret === process.env.ADMIN_SECRET || adminSecret === 'local-dev-secret';
+};
+
 export const shopRoutes = new Elysia({ prefix: '/api/shop' })
   /**
    * GET /api/shop/items
-   * Получить все товары магазина
+   * Получить все товары магазина (публичный — каталог)
    */
   .get(
     '/items',
@@ -39,7 +45,7 @@ export const shopRoutes = new Elysia({ prefix: '/api/shop' })
 
   /**
    * GET /api/shop/items/by-category
-   * Получить товары сгруппированные по категориям
+   * Получить товары сгруппированные по категориям (публичный — каталог)
    */
   .get('/items/by-category', async () => {
     try {
@@ -60,7 +66,7 @@ export const shopRoutes = new Elysia({ prefix: '/api/shop' })
 
   /**
    * GET /api/shop/items/:id
-   * Получить товар по ID
+   * Получить товар по ID (публичный — каталог)
    */
   .get(
     '/items/:id',
@@ -87,125 +93,121 @@ export const shopRoutes = new Elysia({ prefix: '/api/shop' })
     }
   )
 
-  /**
-   * POST /api/shop/purchase
-   * Купить товар
-   */
-  .post(
-    '/purchase',
-    async ({ body }) => {
-      try {
-        const { userId, itemId } = body;
-
-        const result = await shopService.purchaseItem(userId, itemId);
-
-        return result;
-      } catch (error) {
-        logger.error('[Shop API] Error purchasing item:', error);
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Failed to purchase item',
-        };
-      }
-    },
-    {
-      body: t.Object({
-        userId: t.String(),
-        itemId: t.String(),
-      }),
-    }
-  )
-
-  /**
-   * GET /api/shop/purchases
-   * Получить покупки пользователя
-   */
-  .get(
-    '/purchases',
-    async ({ query }) => {
-      try {
-        const { userId, limit } = query;
-
-        if (!userId) {
-          return {
-            success: false,
-            error: 'User ID is required',
-          };
-        }
-
-        const purchases = await shopService.getUserPurchases(
-          userId,
-          limit ? parseInt(limit) : 50
-        );
-
-        return {
-          success: true,
-          purchases,
-        };
-      } catch (error) {
-        logger.error('[Shop API] Error getting purchases:', error);
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Failed to get purchases',
-        };
-      }
-    },
-    {
-      query: t.Object({
-        userId: t.String(),
-        limit: t.Optional(t.String()),
-      }),
-    }
-  )
-
-  /**
-   * GET /api/shop/purchases/unused
-   * Получить неиспользованные покупки пользователя
-   */
-  .get(
-    '/purchases/unused',
-    async ({ query }) => {
-      try {
-        const { userId } = query;
-
-        if (!userId) {
-          return {
-            success: false,
-            error: 'User ID is required',
-          };
-        }
-
-        const purchases = await shopService.getUnusedPurchases(userId);
-
-        return {
-          success: true,
-          purchases,
-        };
-      } catch (error) {
-        logger.error('[Shop API] Error getting unused purchases:', error);
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Failed to get unused purchases',
-        };
-      }
-    },
-    {
-      query: t.Object({
-        userId: t.String(),
-      }),
-    }
-  )
-
-  /**
-   * GET /api/shop/purchased/:itemId
-   * Получить детали купленного товара (с проверкой что пользователь купил его)
-   * Требует авторизации
-   */
-  .group('/purchased', (app) =>
+  // ====================================================================
+  // Все эндпоинты ниже требуют авторизации пользователя
+  // ====================================================================
+  .group('', (app) =>
     app
       .use(authMiddleware)
+
+      /**
+       * POST /api/shop/purchase
+       * Купить товар (авторизованный пользователь покупает для себя)
+       */
+      .post(
+        '/purchase',
+        async ({ body, user, set }) => {
+          try {
+            if (!user) {
+              set.status = 401;
+              return { success: false, error: 'Unauthorized' };
+            }
+
+            const { itemId } = body;
+
+            // Пользователь покупает только для себя
+            const result = await shopService.purchaseItem(user.id, itemId);
+
+            return result;
+          } catch (error) {
+            logger.error('[Shop API] Error purchasing item:', error);
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'Failed to purchase item',
+            };
+          }
+        },
+        {
+          body: t.Object({
+            itemId: t.String(),
+          }),
+        }
+      )
+
+      /**
+       * GET /api/shop/purchases
+       * Получить покупки авторизованного пользователя
+       */
       .get(
-        '/:itemId',
+        '/purchases',
+        async ({ user, query, set }) => {
+          try {
+            if (!user) {
+              set.status = 401;
+              return { success: false, error: 'Unauthorized' };
+            }
+
+            const { limit } = query;
+
+            const purchases = await shopService.getUserPurchases(
+              user.id,
+              limit ? parseInt(limit) : 50
+            );
+
+            return {
+              success: true,
+              purchases,
+            };
+          } catch (error) {
+            logger.error('[Shop API] Error getting purchases:', error);
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'Failed to get purchases',
+            };
+          }
+        },
+        {
+          query: t.Object({
+            limit: t.Optional(t.String()),
+          }),
+        }
+      )
+
+      /**
+       * GET /api/shop/purchases/unused
+       * Получить неиспользованные покупки авторизованного пользователя
+       */
+      .get(
+        '/purchases/unused',
+        async ({ user, set }) => {
+          try {
+            if (!user) {
+              set.status = 401;
+              return { success: false, error: 'Unauthorized' };
+            }
+
+            const purchases = await shopService.getUnusedPurchases(user.id);
+
+            return {
+              success: true,
+              purchases,
+            };
+          } catch (error) {
+            logger.error('[Shop API] Error getting unused purchases:', error);
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'Failed to get unused purchases',
+            };
+          }
+        }
+      )
+
+      /**
+       * GET /api/shop/purchased/:itemId
+       * Получить детали купленного товара (с проверкой что пользователь купил его)
+       */
+      .get(
+        '/purchased/:itemId',
         async ({ params, user, set }) => {
           try {
             if (!user) {
@@ -245,73 +247,72 @@ export const shopRoutes = new Elysia({ prefix: '/api/shop' })
           }),
         }
       )
-  )
 
-  /**
-   * GET /api/shop/stats
-   * Получить статистику покупок пользователя
-   */
-  .get(
-    '/stats',
-    async ({ query }) => {
-      try {
-        const { userId } = query;
+      /**
+       * GET /api/shop/stats
+       * Получить статистику покупок авторизованного пользователя
+       */
+      .get(
+        '/stats',
+        async ({ user, set }) => {
+          try {
+            if (!user) {
+              set.status = 401;
+              return { success: false, error: 'Unauthorized' };
+            }
 
-        if (!userId) {
-          return {
-            success: false,
-            error: 'User ID is required',
-          };
+            const stats = await shopService.getUserPurchaseStats(user.id);
+
+            return {
+              success: true,
+              stats,
+            };
+          } catch (error) {
+            logger.error('[Shop API] Error getting stats:', error);
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'Failed to get stats',
+            };
+          }
         }
+      )
 
-        const stats = await shopService.getUserPurchaseStats(userId);
+      /**
+       * POST /api/shop/purchases/:id/use
+       * Отметить покупку как использованную (только admin)
+       */
+      .post(
+        '/purchases/:id/use',
+        async ({ params, headers, user, set }) => {
+          try {
+            if (!checkAdminAuth(headers)) {
+              set.status = 403;
+              return {
+                success: false,
+                error: 'Forbidden: admin access required',
+              };
+            }
 
-        return {
-          success: true,
-          stats,
-        };
-      } catch (error) {
-        logger.error('[Shop API] Error getting stats:', error);
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Failed to get stats',
-        };
-      }
-    },
-    {
-      query: t.Object({
-        userId: t.String(),
-      }),
-    }
-  )
+            if (!user) {
+              set.status = 401;
+              return { success: false, error: 'Unauthorized' };
+            }
 
-  /**
-   * POST /api/shop/purchases/:id/use
-   * Отметить покупку как использованную
-   */
-  .post(
-    '/purchases/:id/use',
-    async ({ params, body }) => {
-      try {
-        const { userId } = body;
+            const result = await shopService.markItemAsUsed(params.id, user.id);
 
-        const result = await shopService.markItemAsUsed(params.id, userId);
-
-        return result;
-      } catch (error) {
-        logger.error('[Shop API] Error marking item as used:', error);
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Failed to mark item as used',
-        };
-      }
-    },
-    {
-      params: t.Object({
-        id: t.String(),
-      }),
-      body: t.Object({
-        userId: t.String(),
-      }),
-    }
+            return result;
+          } catch (error) {
+            logger.error('[Shop API] Error marking item as used:', error);
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'Failed to mark item as used',
+            };
+          }
+        },
+        {
+          params: t.Object({
+            id: t.String(),
+          }),
+        }
+      )
   );

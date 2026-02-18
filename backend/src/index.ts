@@ -238,6 +238,12 @@ logger.info(
   `🚀 КОД ДЕНЕГ 4.0 Backend is running`
 );
 
+// Seed shop items (idempotent — only creates missing items)
+import { shopService } from '@/modules/shop/service';
+shopService.ensureDefaultItems().catch((error) => {
+  logger.error({ error }, 'Failed to seed shop items');
+});
+
 // Telegram webhook setup + health monitoring
 import { alertsService } from '@/services/alerts.service';
 import { subscriptionGuardService } from '@/services/subscription-guard.service';

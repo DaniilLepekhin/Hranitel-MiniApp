@@ -5,10 +5,22 @@ import { logger } from '@/utils/logger';
 
 const ENERGY_LIFETIME_MONTHS = 6; // Срок жизни баллов по документу "Геймификация"
 
+/** Получить текущую полночь по Москве (начало сегодняшнего дня МСК) */
+function getMoscowMidnight(): Date {
+  const now = new Date();
+  // МСК = UTC+3
+  const moscowNow = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+  // Обнуляем время до полуночи в МСК
+  moscowNow.setUTCHours(0, 0, 0, 0);
+  // Переводим обратно в UTC (вычитаем 3 часа) — это 21:00 UTC предыдущего дня
+  return new Date(moscowNow.getTime() - 3 * 60 * 60 * 1000);
+}
+
 export class EnergyPointsService {
   /**
-   * Начислить Энергии
+   * Начислить Энергии (АТОМАРНО)
    * Income-транзакции получают expires_at = created_at + 6 месяцев
+   * Используем SELECT ... FOR UPDATE для блокировки строки пользователя
    */
   async award(userId: string, amount: number, reason: string, metadata?: Record<string, any>) {
     try {
@@ -16,6 +28,17 @@ export class EnergyPointsService {
       expiresAt.setMonth(expiresAt.getMonth() + ENERGY_LIFETIME_MONTHS);
 
       await db.transaction(async (tx) => {
+        // Блокируем строку пользователя (FOR UPDATE) — предотвращает параллельные изменения
+        const [user] = await tx.execute(
+          sql`SELECT id, energies FROM users WHERE id = ${userId} FOR UPDATE`
+        );
+
+        if (!user) {
+          throw new Error(`User ${userId} not found`);
+        }
+
+        const currentBalance = (user as any).energies || 0;
+
         // Создаем запись о транзакции с expires_at
         await tx.insert(energyTransactions).values({
           userId,
@@ -27,15 +50,11 @@ export class EnergyPointsService {
           isExpired: false,
         });
 
-        // Обновляем баланс пользователя
-        const user = await tx.select().from(users).where(eq(users.id, userId)).limit(1);
-        if (user.length > 0) {
-          const currentBalance = user[0].energies || 0;
-          await tx
-            .update(users)
-            .set({ energies: currentBalance + amount })
-            .where(eq(users.id, userId));
-        }
+        // Атомарно обновляем баланс
+        await tx
+          .update(users)
+          .set({ energies: currentBalance + amount })
+          .where(eq(users.id, userId));
       });
 
       logger.info(`[Energies] Awarded ${amount} to user ${userId} for: ${reason} (expires: ${expiresAt.toISOString()})`);
@@ -48,17 +67,34 @@ export class EnergyPointsService {
   }
 
   /**
-   * Списать Энергии
+   * Списать Энергии (АТОМАРНО)
    * Expense-транзакции не имеют expires_at (списание не истекает)
+   * Используем SELECT ... FOR UPDATE + проверку баланса внутри транзакции
+   * Исключает уход баланса в минус при параллельных запросах
    */
   async spend(userId: string, amount: number, reason: string, metadata?: Record<string, any>) {
     try {
-      const balance = await this.getBalance(userId);
-      if (balance < amount) {
-        throw new Error('Insufficient energy points');
-      }
+      let newBalance: number;
 
       await db.transaction(async (tx) => {
+        // Блокируем строку пользователя (FOR UPDATE) — предотвращает параллельные списания
+        const [user] = await tx.execute(
+          sql`SELECT id, energies FROM users WHERE id = ${userId} FOR UPDATE`
+        );
+
+        if (!user) {
+          throw new Error(`User ${userId} not found`);
+        }
+
+        const currentBalance = (user as any).energies || 0;
+
+        // Проверка баланса ВНУТРИ транзакции (после блокировки)
+        if (currentBalance < amount) {
+          throw new Error('Insufficient energy points');
+        }
+
+        newBalance = currentBalance - amount;
+
         await tx.insert(energyTransactions).values({
           userId,
           amount,
@@ -70,16 +106,16 @@ export class EnergyPointsService {
           isExpired: false,
         });
 
-        // Обновляем баланс пользователя
+        // Атомарно обновляем баланс
         await tx
           .update(users)
-          .set({ energies: balance - amount })
+          .set({ energies: newBalance })
           .where(eq(users.id, userId));
       });
 
       logger.info(`[Energies] Spent ${amount} from user ${userId} for: ${reason}`);
 
-      return { success: true, amount, reason, newBalance: balance - amount };
+      return { success: true, amount, reason, newBalance: newBalance! };
     } catch (error) {
       logger.error('[Energies] Error spending points:', error);
       throw error;
@@ -162,15 +198,13 @@ export class EnergyPointsService {
           .set({ isExpired: true })
           .where(inArray(energyTransactions.id, expiredIds));
 
-        // Уменьшить балансы пользователей
+        // Уменьшить балансы пользователей (с блокировкой строки)
         for (const [userId, expiredAmount] of userAmounts) {
-          const [user] = await dbTx
-            .select({ energies: users.energies })
-            .from(users)
-            .where(eq(users.id, userId))
-            .limit(1);
+          const [user] = await dbTx.execute(
+            sql`SELECT id, energies FROM users WHERE id = ${userId} FOR UPDATE`
+          );
 
-          const newBalance = Math.max(0, (user?.energies || 0) - expiredAmount);
+          const newBalance = Math.max(0, ((user as any)?.energies || 0) - expiredAmount);
           await dbTx
             .update(users)
             .set({ energies: newBalance })
@@ -193,10 +227,9 @@ export class EnergyPointsService {
    * Триггеры начисления Энергии по ТЗ
    */
 
-  // Ежедневный вход (+10 EP)
+  // Ежедневный вход (+10 EP) — использует московское время (UTC+3)
   async awardDailyLogin(userId: string) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const todayMidnightMSK = getMoscowMidnight();
 
     const todayTransactions = await db
       .select()
@@ -205,7 +238,7 @@ export class EnergyPointsService {
         and(
           eq(energyTransactions.userId, userId),
           eq(energyTransactions.reason, 'Ежедневный вход'),
-          gte(energyTransactions.createdAt, today)
+          gte(energyTransactions.createdAt, todayMidnightMSK)
         )
       )
       .limit(1);
@@ -218,7 +251,7 @@ export class EnergyPointsService {
   }
 
   // Просмотр урока (+20 EP по документу "Геймификация")
-  // Защита от повторного начисления за один урок
+  // Защита от повторного начисления за один урок (дедупликация по lessonId в metadata)
   async awardLessonView(userId: string, lessonId: string, lessonTitle?: string) {
     // Проверяем, не начисляли ли уже за этот урок
     // Ищем по lessonId в metadata (reason мог измениться)
@@ -242,13 +275,47 @@ export class EnergyPointsService {
     return this.award(userId, 20, reason, { lessonId, lessonTitle });
   }
 
-  // Воскресная практика (+50 EP)
+  // Воскресная практика (+50 EP) — дедупликация по practiceId
   async awardSundayPractice(userId: string, practiceId: string) {
+    const existing = await db
+      .select()
+      .from(energyTransactions)
+      .where(
+        and(
+          eq(energyTransactions.userId, userId),
+          eq(energyTransactions.reason, 'Воскресная практика'),
+          sql`metadata->>'practiceId' = ${practiceId}`
+        )
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      logger.info(`[Energies] Sunday practice ${practiceId} already awarded for user ${userId}`);
+      return { success: false, message: 'Already awarded for this practice' };
+    }
+
     return this.award(userId, 50, 'Воскресная практика', { practiceId });
   }
 
-  // Просмотр записи эфира
+  // Просмотр записи эфира — дедупликация по recordingId
   async awardStreamRecording(userId: string, recordingId: string) {
+    const existing = await db
+      .select()
+      .from(energyTransactions)
+      .where(
+        and(
+          eq(energyTransactions.userId, userId),
+          eq(energyTransactions.reason, 'Просмотр записи эфира'),
+          sql`metadata->>'recordingId' = ${recordingId}`
+        )
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      logger.info(`[Energies] Stream recording ${recordingId} already awarded for user ${userId}`);
+      return { success: false, message: 'Already awarded for this recording' };
+    }
+
     return this.award(userId, 20, 'Просмотр записи эфира', { recordingId });
   }
 
@@ -257,18 +324,73 @@ export class EnergyPointsService {
     return this.awardStreamRecording(userId, streamId);
   }
 
-  // Отчет недели (+100 EP)
+  // Отчет недели (+100 EP) — дедупликация по weekNumber
   async awardWeeklyReport(userId: string, weekNumber: number) {
+    const existing = await db
+      .select()
+      .from(energyTransactions)
+      .where(
+        and(
+          eq(energyTransactions.userId, userId),
+          eq(energyTransactions.reason, 'Сдача отчета недели'),
+          sql`(metadata->>'weekNumber')::int = ${weekNumber}`
+        )
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      logger.info(`[Energies] Weekly report week ${weekNumber} already awarded for user ${userId}`);
+      return { success: false, message: 'Already awarded for this week' };
+    }
+
     return this.award(userId, 100, 'Сдача отчета недели', { weekNumber });
   }
 
-  // Продление подписки (+500 EP по документу "Геймификация")
+  // Продление подписки (+500 EP по документу "Геймификация") — дедупликация: макс 1 раз в 25 дней
   async awardSubscriptionRenewal(userId: string) {
+    // Проверяем что за последние 25 дней не было начисления за продление
+    const twentyFiveDaysAgo = new Date();
+    twentyFiveDaysAgo.setDate(twentyFiveDaysAgo.getDate() - 25);
+
+    const existing = await db
+      .select()
+      .from(energyTransactions)
+      .where(
+        and(
+          eq(energyTransactions.userId, userId),
+          eq(energyTransactions.reason, 'Продление подписки'),
+          gte(energyTransactions.createdAt, twentyFiveDaysAgo)
+        )
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      logger.info(`[Energies] Subscription renewal already awarded recently for user ${userId}`);
+      return { success: false, message: 'Already awarded for subscription renewal recently' };
+    }
+
     return this.award(userId, 500, 'Продление подписки');
   }
 
-  // Закрытие месяца (+500 EP)
+  // Закрытие месяца (+500 EP) — дедупликация по monthNumber
   async awardMonthCompletion(userId: string, monthNumber: number) {
+    const existing = await db
+      .select()
+      .from(energyTransactions)
+      .where(
+        and(
+          eq(energyTransactions.userId, userId),
+          eq(energyTransactions.reason, 'Закрытие месяца'),
+          sql`(metadata->>'monthNumber')::int = ${monthNumber}`
+        )
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      logger.info(`[Energies] Month ${monthNumber} completion already awarded for user ${userId}`);
+      return { success: false, message: 'Already awarded for this month' };
+    }
+
     return this.award(userId, 500, 'Закрытие месяца', { monthNumber });
   }
 }

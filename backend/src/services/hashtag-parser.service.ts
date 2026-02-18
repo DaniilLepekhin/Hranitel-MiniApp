@@ -3,6 +3,7 @@ import { users, energyTransactions, decades } from '@/db/schema';
 import { eq, and, gte } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { energiesService } from '@/modules/energy-points/service';
+import { subscriptionGuardService } from '@/services/subscription-guard.service';
 
 /**
  * Сервис для парсинга хештегов в чатах и начисления Энергии
@@ -412,56 +413,62 @@ export class HashtagParserService {
       const handledSozvonStoris = await this.processSozvonStoris(ctx, userId, userTelegramId, hashtags);
 
       // 2. Обрабатываем остальные хештеги (#практика, #инсайт)
-      for (const rule of CITY_RULES) {
-        const matchedHashtag = rule.hashtags.find((tag) => hashtags.includes(tag));
-        if (!matchedHashtag) continue;
+      // Правило: один хештег — одна награда за сообщение (break после первого успешного начисления)
+      if (!handledSozvonStoris) {
+        for (const rule of CITY_RULES) {
+          const matchedHashtag = rule.hashtags.find((tag) => hashtags.includes(tag));
+          if (!matchedHashtag) continue;
 
-        // Проверяем ограничение "только выходные" (Сб/Вс по МСК)
-        if (rule.weekendOnly) {
-          const dayOfWeek = getMoscowDayOfWeek(); // 0=Вс, 6=Сб (по МСК)
-          if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+          // Проверяем ограничение "только выходные" (Сб/Вс по МСК)
+          if (rule.weekendOnly) {
+            const dayOfWeek = getMoscowDayOfWeek(); // 0=Вс, 6=Сб (по МСК)
+            if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+              logger.info(
+                `[HashtagParser] User ${userId} submitted ${matchedHashtag} on weekday (only Sat/Sun allowed)`
+              );
+              continue;
+            }
+          }
+
+          // Проверяем наличие медиафайла если требуется
+          if (rule.requiresMedia && !this.hasMedia(ctx)) {
             logger.info(
-              `[HashtagParser] User ${userId} submitted ${matchedHashtag} on weekday (only Sat/Sun allowed)`
+              `[HashtagParser] User ${userId} submitted ${matchedHashtag} without required media`
             );
             continue;
           }
-        }
 
-        // Проверяем наличие медиафайла если требуется
-        if (rule.requiresMedia && !this.hasMedia(ctx)) {
+          // Проверяем лимиты
+          let canAward = true;
+
+          if (rule.limitType === 'weekly') {
+            canAward = await this.checkWeeklyLimit(userId, rule.description);
+          } else if (rule.limitType === 'weekly_max' && rule.limitValue) {
+            canAward = await this.checkWeeklyLimit(userId, rule.description, rule.limitValue);
+          } else if (rule.limitType === 'every_3_days') {
+            canAward = await this.checkEvery3DaysLimit(userId, rule.description);
+          }
+
+          if (!canAward) {
+            logger.info(`[HashtagParser] User ${userId} exceeded limit for ${matchedHashtag}`);
+            continue;
+          }
+
+          // Начисляем Энергию
+          await energiesService.award(userId, rule.reward, rule.description, {
+            hashtag: matchedHashtag,
+            chat_type: 'city',
+          });
+
+          await this.sendCityRewardNotification(ctx, userId, userTelegramId, matchedHashtag, rule.reward, rule.description);
+
           logger.info(
-            `[HashtagParser] User ${userId} submitted ${matchedHashtag} without required media`
+            `[HashtagParser] Awarded ${rule.reward} Energy to user ${userId} for ${matchedHashtag} in city chat`
           );
-          continue;
+
+          // Один хештег — одна награда за сообщение
+          break;
         }
-
-        // Проверяем лимиты
-        let canAward = true;
-
-        if (rule.limitType === 'weekly') {
-          canAward = await this.checkWeeklyLimit(userId, rule.description);
-        } else if (rule.limitType === 'weekly_max' && rule.limitValue) {
-          canAward = await this.checkWeeklyLimit(userId, rule.description, rule.limitValue);
-        } else if (rule.limitType === 'every_3_days') {
-          canAward = await this.checkEvery3DaysLimit(userId, rule.description);
-        }
-
-        if (!canAward) {
-          logger.info(`[HashtagParser] User ${userId} exceeded limit for ${matchedHashtag}`);
-          continue;
-        }
-
-        // Начисляем Энергию
-        await energiesService.award(userId, rule.reward, rule.description, {
-          hashtag: matchedHashtag,
-          chat_type: 'city',
-        });
-
-        await this.sendCityRewardNotification(ctx, userId, userTelegramId, matchedHashtag, rule.reward, rule.description);
-
-        logger.info(
-          `[HashtagParser] Awarded ${rule.reward} Energy to user ${userId} for ${matchedHashtag} in city chat`
-        );
       }
     } catch (error) {
       logger.error('[HashtagParser] Error processing city message:', error);
@@ -507,8 +514,15 @@ export class HashtagParserService {
       if (isDecadeChat) {
         await this.processDecadeMessage(ctx, user.id, userTelegramId);
       } else {
-        // Не найден в таблице decades — считаем что это чат города
-        await this.processCityMessage(ctx, user.id, userTelegramId);
+        // Проверяем по белому списку городских чатов (из city_chats_ik)
+        const cityChatIds = await subscriptionGuardService.getCityChatIds();
+        const isCityChat = cityChatIds.includes(chatId);
+
+        if (isCityChat) {
+          await this.processCityMessage(ctx, user.id, userTelegramId);
+        } else {
+          logger.debug(`[HashtagParser] Chat ${chatId} is not a decade or verified city chat — ignoring`);
+        }
       }
     } catch (error) {
       logger.error('[HashtagParser] Error processing group message:', error);

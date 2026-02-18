@@ -274,15 +274,13 @@ export const shopApi = {
     }),
   getItem: (itemId: string) =>
     api.get<{ success: boolean; item: ShopItem }>(`/shop/items/${itemId}`),
-  purchaseItem: (userId: string, itemId: string) =>
+  purchaseItem: (itemId: string) =>
     api.post<{ success: boolean; purchase: ShopPurchase; newBalance: number }>(
       '/shop/purchase',
-      { userId, itemId }
+      { itemId }
     ),
-  getPurchases: (userId: string) =>
-    api.get<{ success: boolean; purchases: ShopPurchase[] }>('/shop/purchases', {
-      params: { userId }
-    }),
+  getPurchases: () =>
+    api.get<{ success: boolean; purchases: ShopPurchase[] }>('/shop/purchases'),
   getUserBalance: (userId: string) =>
     api.get<{ success: boolean; balance: number }>('/shop/balance', { params: { userId } }),
 };

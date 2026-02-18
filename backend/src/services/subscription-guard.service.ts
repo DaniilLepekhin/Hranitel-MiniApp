@@ -9,6 +9,7 @@ import { users } from '@/db/schema';
 import { eq, lt, and, isNotNull } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import postgres from 'postgres';
+import { config } from '@/config';
 import { decadesService } from '@/services/decades.service';
 
 // Защищённые каналы клуба
@@ -17,15 +18,10 @@ const PROTECTED_CHANNEL_IDS = [
   -1003590120817,  // Дополнительный канал
 ];
 
-// Подключение к старой БД для city_chats_ik
-const oldDbConnection = postgres({
-  host: '31.128.36.81',
-  port: 5423,
-  database: 'club_hranitel',
-  username: 'postgres',
-  password: 'kH*kyrS&9z7K',
-  ssl: false,
-});
+// Подключение к старой БД для city_chats_ik (через переменную окружения)
+const oldDbConnection = config.OLD_DATABASE_URL
+  ? postgres(config.OLD_DATABASE_URL, { ssl: false })
+  : null;
 
 interface CityChat {
   id: number;
@@ -60,6 +56,11 @@ class SubscriptionGuardService {
     const now = Date.now();
     if (cityChatIdsCache && (now - cityChatIdsCacheTime) < CITY_CHATS_CACHE_TTL) {
       return cityChatIdsCache;
+    }
+
+    if (!oldDbConnection) {
+      logger.warn('OLD_DATABASE_URL not configured — city chat IDs unavailable');
+      return cityChatIdsCache || [];
     }
 
     try {

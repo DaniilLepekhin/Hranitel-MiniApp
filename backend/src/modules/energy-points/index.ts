@@ -3,6 +3,12 @@ import { energiesService as energyPointsService } from './service';
 import { logger } from '@/utils/logger';
 import { authMiddleware, getUserFromToken } from '@/middlewares/auth';
 
+// Хелпер для проверки admin-секрета (как в admin/index.ts)
+const checkAdminAuth = (headers: Record<string, string | undefined>) => {
+  const adminSecret = headers['x-admin-secret'];
+  return adminSecret === process.env.ADMIN_SECRET || adminSecret === 'local-dev-secret';
+};
+
 export const energyPointsRoutes = new Elysia({ prefix: '/api/v1/energies', tags: ['Energy Points'] })
   // Protected routes - require authentication
   .use(authMiddleware)
@@ -10,18 +16,13 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/v1/energies', tags:
   /**
    * GET /api/v1/energies/balance
    * Получить баланс Энергии текущего пользователя
+   * Доступно авторизованному пользователю (свой баланс)
    */
   .get(
     '/balance',
-    async ({ headers }) => {
+    async ({ user }) => {
       try {
-        // Получаем пользователя из токена (authMiddleware может не работать)
-        const user = await getUserFromToken(headers.authorization);
-        
-        logger.info('[Energies API] /balance called, user:', user ? { id: user.id, username: user.username } : 'NULL');
-        
         if (!user) {
-          logger.error('[Energies API] User not authenticated');
           return {
             success: false,
             error: 'User not authenticated',
@@ -55,16 +56,13 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/v1/energies', tags:
   /**
    * GET /api/v1/energies/history
    * Получить историю транзакций текущего пользователя
+   * Доступно авторизованному пользователю (своя история)
    */
   .get(
     '/history',
-    async ({ headers, query }) => {
+    async ({ user, query }) => {
       try {
-        // Получаем пользователя из токена
-        const user = await getUserFromToken(headers.authorization);
-        
         if (!user) {
-          logger.error('[Energies API] User not authenticated in /history');
           return {
             success: false,
             error: 'User not authenticated',
@@ -104,13 +102,21 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/v1/energies', tags:
   )
 
   /**
-   * POST /api/energies/award
-   * Начислить Энергии (только для внутреннего использования)
+   * POST /api/v1/energies/award
+   * Начислить Энергии (только для admin — требует x-admin-secret)
    */
   .post(
     '/award',
-    async ({ body }) => {
+    async ({ body, headers, set }) => {
       try {
+        if (!checkAdminAuth(headers)) {
+          set.status = 403;
+          return {
+            success: false,
+            error: 'Forbidden: admin access required',
+          };
+        }
+
         const { userId, amount, reason, metadata } = body;
 
         const result = await energyPointsService.award(userId, amount, reason, metadata);
@@ -135,13 +141,21 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/v1/energies', tags:
   )
 
   /**
-   * POST /api/energies/spend
-   * Списать Энергии (только для внутреннего использования)
+   * POST /api/v1/energies/spend
+   * Списать Энергии (только для admin — требует x-admin-secret)
    */
   .post(
     '/spend',
-    async ({ body }) => {
+    async ({ body, headers, set }) => {
       try {
+        if (!checkAdminAuth(headers)) {
+          set.status = 403;
+          return {
+            success: false,
+            error: 'Forbidden: admin access required',
+          };
+        }
+
         const { userId, amount, reason, metadata } = body;
 
         const result = await energyPointsService.spend(userId, amount, reason, metadata);
@@ -166,13 +180,22 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/v1/energies', tags:
   )
 
   /**
-   * POST /api/energies/triggers/daily-login
+   * POST /api/v1/energies/triggers/daily-login
    * Триггер: Ежедневный вход (+10 Энергии)
+   * Только для admin — требует x-admin-secret
    */
   .post(
     '/triggers/daily-login',
-    async ({ body }) => {
+    async ({ body, headers, set }) => {
       try {
+        if (!checkAdminAuth(headers)) {
+          set.status = 403;
+          return {
+            success: false,
+            error: 'Forbidden: admin access required',
+          };
+        }
+
         const { userId } = body;
         const result = await energyPointsService.awardDailyLogin(userId);
         return result;
@@ -192,13 +215,22 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/v1/energies', tags:
   )
 
   /**
-   * POST /api/energies/triggers/lesson-view
+   * POST /api/v1/energies/triggers/lesson-view
    * Триггер: Просмотр урока (+50 Энергии)
+   * Только для admin — требует x-admin-secret
    */
    .post(
     '/triggers/lesson-view',
-    async ({ body }) => {
+    async ({ body, headers, set }) => {
       try {
+        if (!checkAdminAuth(headers)) {
+          set.status = 403;
+          return {
+            success: false,
+            error: 'Forbidden: admin access required',
+          };
+        }
+
         const { userId, lessonId, lessonTitle } = body;
         const result = await energyPointsService.awardLessonView(userId, lessonId, lessonTitle);
         return result;
@@ -220,13 +252,22 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/v1/energies', tags:
   )
 
   /**
-   * POST /api/energies/triggers/sunday-practice
+   * POST /api/v1/energies/triggers/sunday-practice
    * Триггер: Воскресная практика (+50 Энергии)
+   * Только для admin — требует x-admin-secret
    */
   .post(
     '/triggers/sunday-practice',
-    async ({ body }) => {
+    async ({ body, headers, set }) => {
       try {
+        if (!checkAdminAuth(headers)) {
+          set.status = 403;
+          return {
+            success: false,
+            error: 'Forbidden: admin access required',
+          };
+        }
+
         const { userId, practiceId } = body;
         const result = await energyPointsService.awardSundayPractice(userId, practiceId);
         return result;

@@ -1,10 +1,64 @@
 import { db } from '@/db';
 import { shopItems, shopPurchases, users } from '@/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { energiesService as energyPointsService } from '../energy-points/service';
 
+// Обязательные товары по ТЗ (seed при старте)
+const REQUIRED_SHOP_ITEMS = [
+  {
+    title: 'Билет на Розыгрыш Разбора',
+    description: 'Билет для участия в розыгрыше персонального разбора от Кристины. Чем больше билетов — тем выше шанс!',
+    category: 'elite' as const,
+    price: 2000,
+    itemType: 'raffle_ticket' as const,
+    itemData: { type: 'raffle', event: 'personal_review' },
+    sortOrder: 10,
+  },
+  {
+    title: 'Секретная медитация (Тайная комната)',
+    description: 'Эксклюзивная медитация, доступная только через магазин Энергии. Погрузись в тайную комнату.',
+    category: 'secret' as const,
+    price: 3500,
+    itemType: 'lesson' as const,
+    itemData: { type: 'meditation', access: 'secret_room' },
+    sortOrder: 20,
+  },
+];
+
 export class ShopService {
+  /**
+   * Создать обязательные товары если их нет (идемпотентный seed)
+   * Вызывается при старте приложения
+   */
+  async ensureDefaultItems(): Promise<void> {
+    try {
+      for (const item of REQUIRED_SHOP_ITEMS) {
+        const existing = await db
+          .select({ id: shopItems.id })
+          .from(shopItems)
+          .where(eq(shopItems.title, item.title))
+          .limit(1);
+
+        if (existing.length === 0) {
+          await db.insert(shopItems).values({
+            title: item.title,
+            description: item.description,
+            category: item.category,
+            price: item.price,
+            itemType: item.itemType,
+            itemData: item.itemData,
+            isActive: true,
+            sortOrder: item.sortOrder,
+          });
+          logger.info(`[Shop] Created default item: "${item.title}" (${item.price} EP, ${item.category})`);
+        }
+      }
+    } catch (error) {
+      logger.error('[Shop] Error ensuring default items:', error);
+    }
+  }
+
   /**
    * Получить товары магазина
    */
@@ -70,35 +124,27 @@ export class ShopService {
 
   /**
    * Купить товар
+   * spend() уже атомарно проверяет баланс и списывает (SELECT ... FOR UPDATE)
    */
   async purchaseItem(userId: string, itemId: string) {
     try {
       // Получаем информацию о товаре
       const item = await this.getItemById(itemId);
 
-      // Проверяем баланс пользователя
-      const balance = await energyPointsService.getBalance(userId);
-      if (balance < item.price) {
-        throw new Error('Insufficient energy points');
-      }
+      // Атомарное списание (проверка баланса + списание внутри транзакции с FOR UPDATE)
+      const spendResult = await energyPointsService.spend(
+        userId,
+        item.price,
+        `Покупка: ${item.title}`,
+        { itemId, itemType: item.itemType, category: item.category }
+      );
 
-      // Выполняем транзакцию
-      await db.transaction(async (tx) => {
-        // Списываем Энергии
-        await energyPointsService.spend(
-          userId,
-          item.price,
-          `Покупка: ${item.title}`,
-          { itemId, itemType: item.itemType, category: item.category }
-        );
-
-        // Создаем запись о покупке
-        await tx.insert(shopPurchases).values({
-          userId,
-          itemId,
-          price: item.price,
-          status: 'completed',
-        });
+      // Создаем запись о покупке
+      await db.insert(shopPurchases).values({
+        userId,
+        itemId,
+        price: item.price,
+        status: 'completed',
       });
 
       logger.info(`[Shop] User ${userId} purchased item ${itemId} for ${item.price} Энергии`);
@@ -106,7 +152,7 @@ export class ShopService {
       return {
         success: true,
         item,
-        newBalance: balance - item.price,
+        newBalance: spendResult.newBalance,
       };
     } catch (error) {
       logger.error('[Shop] Error purchasing item:', error);

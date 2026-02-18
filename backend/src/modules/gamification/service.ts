@@ -103,8 +103,11 @@ export const gamificationService = {
 
       if (!user) return 0;
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      // Используем московское время (UTC+3) для определения дня
+      const MSK_OFFSET = 3 * 60 * 60 * 1000;
+      const nowMSK = new Date(Date.now() + MSK_OFFSET);
+      const today = new Date(nowMSK);
+      today.setUTCHours(0, 0, 0, 0);
 
       const lastActive = user.lastActiveDate ? new Date(user.lastActiveDate) : null;
 
@@ -114,8 +117,9 @@ export const gamificationService = {
         // First activity
         newStreak = 1;
       } else {
-        const lastActiveDay = new Date(lastActive);
-        lastActiveDay.setHours(0, 0, 0, 0);
+        const lastActiveMSK = new Date(lastActive.getTime() + MSK_OFFSET);
+        const lastActiveDay = new Date(lastActiveMSK);
+        lastActiveDay.setUTCHours(0, 0, 0, 0);
 
         const diffDays = Math.floor((today.getTime() - lastActiveDay.getTime()) / (1000 * 60 * 60 * 24));
 
