@@ -52,14 +52,15 @@ export function ShopTab() {
     placeholderData: { success: true, categories: { elite: [], secret: [], savings: [] } },
   });
 
-  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch user balance - USE CENTRALIZED API
+  // Баланс энергий (общий кэш с HomeTab)
   const { data: balanceData } = useQuery({
-    queryKey: ['energies', 'balance'],
+    queryKey: ['energies-balance', user?.id],
     queryFn: () => energiesApi.getBalance(),
     enabled: !!user && !!token,
     refetchInterval: 10000,
-    retry: false,
-    placeholderData: { success: true, balance: 0 },
+    retry: 2,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch user purchases
@@ -109,7 +110,7 @@ export function ShopTab() {
     router.push(`/shop/purchased/${itemId}`);
   }, [haptic, router]);
 
-  const balance = balanceData?.balance || 0;
+  const balance = balanceData?.balance ?? user?.energies ?? 0;
   const items = shopData?.categories?.[selectedCategory] || [];
   const purchases = purchasesData?.purchases || [];
 

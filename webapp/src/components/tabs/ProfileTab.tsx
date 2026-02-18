@@ -28,18 +28,19 @@ export function ProfileTab() {
   const [isCancellingSubscription, setIsCancellingSubscription] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
 
-  // 🚀 МГНОВЕННЫЙ РЕНДЕР: Получаем баланс энергий пользователя
+  // Баланс энергий из API (общий кэш с HomeTab)
   const { data: balanceData } = useQuery({
-    queryKey: ['energies-balance'],
+    queryKey: ['energies-balance', user?.id],
     queryFn: () => energiesApi.getBalance(),
     enabled: !!user && !!token,
-    retry: false,
-    staleTime: 10000, // 10 секунд
-    placeholderData: { success: true, balance: user?.energies || 0 }, // Показываем баланс из user сразу
+    retry: 2,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
-  // 🚀 МЕМОИЗАЦИЯ: Вычисляем только когда данные меняются
-  const userBalance = useMemo(() => balanceData?.balance || 0, [balanceData?.balance]);
+  // Баланс: из API, fallback на user.energies
+  const userBalance = useMemo(() => balanceData?.balance ?? user?.energies ?? 0, [balanceData?.balance, user?.energies]);
   const displayName = useMemo(() => {
     if (user?.firstName && user?.lastName) {
       return `${user.firstName} ${user.lastName}`;

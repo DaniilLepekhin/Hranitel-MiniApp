@@ -34,15 +34,16 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showCopyToast, setShowCopyToast] = useState(false);
 
-  // 🚀 ПРАВИЛЬНЫЙ ИСТОЧНИК ДАННЫХ: Получаем баланс энергий из API (а не из устаревшего user.energies)
+  // 🚀 Баланс энергий из API
   const { data: balanceData } = useQuery({
     queryKey: ['energies-balance', user?.id],
     queryFn: () => energiesApi.getBalance(),
     enabled: !!user && !!token,
     retry: 2,
-    staleTime: 30 * 1000, // 30 секунд - данные считаются свежими
-    gcTime: 5 * 60 * 1000, // 5 минут - хранить в кэше
-    placeholderData: { success: true, balance: 0 }, // Показываем 0 сразу для мгновенного рендера
+    staleTime: 0, // Всегда актуальные данные
+    gcTime: 5 * 60 * 1000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
   // Проверка, проходил ли пользователь тест на Лидера + квоты города + доступ по подписке
@@ -92,8 +93,8 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
   // Тест недоступен если уже пройден ИЛИ квота города исчерпана
   const isTestLocked = leaderTestStatus?.hasCompleted || leaderTestStatus?.quotaExceeded;
 
-  // 🚀 МЕМОИЗАЦИЯ: Вычисляем только когда данные меняются
-  const epBalance = useMemo(() => balanceData?.balance || 0, [balanceData?.balance]);
+  // Баланс: из API, fallback на user.energies из store
+  const epBalance = useMemo(() => balanceData?.balance ?? user?.energies ?? 0, [balanceData?.balance, user?.energies]);
   const referralLink = useMemo(
     () => user ? `https://t.me/hranitelkodbot?start=ref_${user.telegramId}` : 'https://t.me/hranitelkodbot?start=ref_...',
     [user?.telegramId]
