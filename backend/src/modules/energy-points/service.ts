@@ -29,15 +29,16 @@ export class EnergyPointsService {
 
       await db.transaction(async (tx) => {
         // Блокируем строку пользователя (FOR UPDATE) — предотвращает параллельные изменения
-        const [user] = await tx.execute(
+        const result = await tx.execute(
           sql`SELECT id, energies FROM users WHERE id = ${userId} FOR UPDATE`
         );
+        const row = (result.rows?.[0] ?? result[0]) as any;
 
-        if (!user) {
+        if (!row) {
           throw new Error(`User ${userId} not found`);
         }
 
-        const currentBalance = (user as any).energies || 0;
+        const currentBalance = row.energies || 0;
 
         // Создаем запись о транзакции с expires_at
         await tx.insert(energyTransactions).values({
@@ -78,15 +79,16 @@ export class EnergyPointsService {
 
       await db.transaction(async (tx) => {
         // Блокируем строку пользователя (FOR UPDATE) — предотвращает параллельные списания
-        const [user] = await tx.execute(
+        const result = await tx.execute(
           sql`SELECT id, energies FROM users WHERE id = ${userId} FOR UPDATE`
         );
+        const row = (result.rows?.[0] ?? result[0]) as any;
 
-        if (!user) {
+        if (!row) {
           throw new Error(`User ${userId} not found`);
         }
 
-        const currentBalance = (user as any).energies || 0;
+        const currentBalance = row.energies || 0;
 
         // Проверка баланса ВНУТРИ транзакции (после блокировки)
         if (currentBalance < amount) {
@@ -200,11 +202,12 @@ export class EnergyPointsService {
 
         // Уменьшить балансы пользователей (с блокировкой строки)
         for (const [userId, expiredAmount] of userAmounts) {
-          const [user] = await dbTx.execute(
+          const result = await dbTx.execute(
             sql`SELECT id, energies FROM users WHERE id = ${userId} FOR UPDATE`
           );
+          const row = (result.rows?.[0] ?? result[0]) as any;
 
-          const newBalance = Math.max(0, ((user as any)?.energies || 0) - expiredAmount);
+          const newBalance = Math.max(0, (row?.energies || 0) - expiredAmount);
           await dbTx
             .update(users)
             .set({ energies: newBalance })
