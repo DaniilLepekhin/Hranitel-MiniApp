@@ -1,10 +1,8 @@
 import { db } from '@/db';
 import { users, energyTransactions, decades } from '@/db/schema';
-import { eq, and, gte } from 'drizzle-orm';
+import { eq, and, gte, sql } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { energiesService } from '@/modules/energy-points/service';
-// TODO: восстановить верификацию городских чатов когда OLD_DATABASE_URL будет на сервере
-// import { subscriptionGuardService } from '@/services/subscription-guard.service';
 
 /**
  * Сервис для парсинга хештегов в чатах и начисления Энергии
@@ -108,6 +106,36 @@ const CITY_RULES: HashtagRule[] = [
 ];
 
 export class HashtagParserService {
+  /**
+   * Кэш ID городских чатов (из таблицы city_chats_ik в основной БД)
+   */
+  private cityChatIdsCache: number[] | null = null;
+  private cityChatIdsCacheTime = 0;
+  private static CITY_CACHE_TTL = 5 * 60 * 1000; // 5 минут
+
+  async getCityChatIds(): Promise<number[]> {
+    const now = Date.now();
+    if (this.cityChatIdsCache && (now - this.cityChatIdsCacheTime) < HashtagParserService.CITY_CACHE_TTL) {
+      return this.cityChatIdsCache;
+    }
+
+    try {
+      const result = await db.execute(
+        sql`SELECT platform_id FROM city_chats_ik WHERE platform_id IS NOT NULL`
+      );
+      const rows = (result.rows ?? result) as any[];
+      const chatIds = rows.map((r: any) => Number(r.platform_id)).filter((id: number) => !isNaN(id));
+
+      this.cityChatIdsCache = chatIds;
+      this.cityChatIdsCacheTime = now;
+      logger.info(`[HashtagParser] Cached ${chatIds.length} city chat IDs`);
+      return chatIds;
+    } catch (error) {
+      logger.error('[HashtagParser] Error fetching city chat IDs:', error);
+      return this.cityChatIdsCache || [];
+    }
+  }
+
   /**
    * Проверить дневной лимит (сброс в 00:00 МСК)
    */
@@ -515,9 +543,15 @@ export class HashtagParserService {
       if (isDecadeChat) {
         await this.processDecadeMessage(ctx, user.id, userTelegramId);
       } else {
-        // Любой не-десяточный групповой чат — обрабатываем как городской
-        logger.info(`[HashtagParser] Processing city message from chat ${chatId} for user ${userTelegramId}`);
-        await this.processCityMessage(ctx, user.id, userTelegramId);
+        // Верификация: проверяем chat_id по белому списку городских чатов (таблица city_chats_ik в основной БД)
+        const cityChatIds = await this.getCityChatIds();
+        const isCityChat = cityChatIds.includes(chatId);
+
+        if (isCityChat) {
+          await this.processCityMessage(ctx, user.id, userTelegramId);
+        } else {
+          logger.debug(`[HashtagParser] Chat ${chatId} is not a decade or verified city chat — ignoring`);
+        }
       }
     } catch (error) {
       logger.error('[HashtagParser] Error processing group message:', error);
