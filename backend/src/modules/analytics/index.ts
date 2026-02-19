@@ -129,6 +129,7 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
           name,
           email,
           phone,
+          code_word,
         } = body;
 
         // Create metka if not provided
@@ -173,6 +174,7 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
           name: name || null,
           email: email ? email.toLowerCase().trim() : null,
           phone: phone || null,
+          metadata: code_word ? { code_word } : null,
         });
 
         logger.info(
@@ -237,6 +239,7 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
         name: t.Optional(t.String()),
         email: t.Optional(t.String()),
         phone: t.Optional(t.String()),
+        code_word: t.Optional(t.String()),
       }),
       detail: {
         summary: 'Track payment attempt event',

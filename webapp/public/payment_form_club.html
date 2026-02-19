@@ -403,6 +403,12 @@
         <input type="email" id="email" placeholder="example@gmail.com" required>
       </div>
 
+      <label class="form-label" for="code_word">Кодовое слово</label>
+      <div class="input-wrapper">
+        <span class="input-icon">✓</span>
+        <input type="text" id="code_word" placeholder="Введите кодовое слово" required>
+      </div>
+
       <label class="form-label">Способ оплаты</label>
       <div class="payment-methods">
         <div class="payment-method active" id="bank-rf">Банк РФ</div>
@@ -622,6 +628,11 @@
       return digits.length >= 10 && digits.length <= 15;
     }
 
+    function validateCodeWord(codeWord) {
+      const trimmed = codeWord.trim();
+      return trimmed.length >= 1 && trimmed.length <= 200;
+    }
+
     // Санитизация входных данных
     function sanitizeInput(str, maxLength = 200) {
       return str.trim().slice(0, maxLength).replace(/[<>]/g, '');
@@ -650,6 +661,7 @@
       setupFieldValidation('name', validateName);
       setupFieldValidation('phone', validatePhone);
       setupFieldValidation('email', validateEmail);
+      setupFieldValidation('code_word', validateCodeWord);
     }
 
     // Способ оплаты
@@ -679,7 +691,7 @@
     });
 
     // Генерация ссылки на оплату
-    async function generatePaymentLink(email, name, phone, paymentMethod, currency) {
+    async function generatePaymentLink(email, name, phone, paymentMethod, currency, codeWord) {
       const tgId = getTGId();
 
       // Защита: без telegram_id платёж не сможет быть обработан
@@ -723,6 +735,7 @@
           name: name,
           email: email,
           phone: phone,
+          code_word: codeWord || null,
           ...params
         })
       }, { timeout: 15000, retries: 3 });
@@ -786,6 +799,7 @@
       const name = sanitizeInput(document.getElementById('name').value, 100);
       const phone = sanitizeInput(document.getElementById('phone').value, 20);
       const email = sanitizeInput(document.getElementById('email').value.toLowerCase(), 254);
+      const codeWord = sanitizeInput(document.getElementById('code_word').value, 200);
 
       if (!name || !validateName(name)) {
         showNotification('Введите имя и фамилию (минимум 2 символа)');
@@ -794,6 +808,11 @@
 
       if (!phone || !validatePhone(phone)) {
         showNotification('Введите корректный номер телефона');
+        return;
+      }
+
+      if (!codeWord || !validateCodeWord(codeWord)) {
+        showNotification('Введите кодовое слово');
         return;
       }
 
@@ -810,7 +829,7 @@
       try {
         showLoading(true, 'Генерируем ссылку на оплату...');
 
-        const redirectUrl = await generatePaymentLink(email, name, phone, selectedPaymentMethod, selectedCurrency);
+        const redirectUrl = await generatePaymentLink(email, name, phone, selectedPaymentMethod, selectedCurrency, codeWord);
 
         if (redirectUrl && redirectUrl.startsWith('http')) {
           showLoading(true, 'Переходим на страницу оплаты...');
