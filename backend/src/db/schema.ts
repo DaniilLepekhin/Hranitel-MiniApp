@@ -81,6 +81,9 @@ export const users = pgTable('users', {
     | null
   >(),
 
+  // Кодовое слово (из формы оплаты)
+  codeWord: text('code_word'),
+
   // Ambassador
   isAmbassador: boolean('is_ambassador').default(false).notNull(),
 

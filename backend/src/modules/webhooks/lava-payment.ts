@@ -203,6 +203,8 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
         const utm_content = lastAttempt.utmContent;
         const client_id = lastAttempt.clientId;
         const metka = lastAttempt.metka;
+        const attemptMetadata = lastAttempt.metadata as Record<string, any> | null;
+        const code_word = attemptMetadata?.code_word || null;
 
         logger.info(
           {
@@ -238,6 +240,7 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
               subscriptionExpires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
               lavaContactId: contact_id || null,
               firstPurchaseDate: new Date(),
+              codeWord: code_word || null,
               metadata: {
                 utm_campaign: utm_campaign || null,
                 utm_medium: utm_medium || null,
@@ -259,6 +262,11 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
           // Store Lava contact_id if provided
           if (contact_id) {
             updateData.lavaContactId = contact_id;
+          }
+
+          // Update code_word only if provided (don't erase on renewal)
+          if (code_word) {
+            updateData.codeWord = code_word;
           }
 
           // Update email and phone if provided
