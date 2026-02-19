@@ -64,12 +64,14 @@ interface HashtagRule {
   description: string; // Описание действия
 }
 
-// Награды за #созвон + #сторис (комбо-система, раз в 3 календарных дня по МСК)
+// Награды за #созвон + #сторис (комбо-система)
+// #созвон: раз в 3 календарных дня по МСК
+// #сторис: макс 3 раза в неделю (Пн-Вс по МСК)
 const SOZVON_STORIS_REWARDS = {
   comboReward: 300,     // #созвон + #сторис вместе
-  sozvonOnly: 100,      // только #созвон
-  storisOnly: 200,      // только #сторис
-  cooldownDays: 3,      // раз в 3 календарных дня по МСК
+  sozvonOnly: 100,      // только #созвон (раз в 3 дня)
+  storisOnly: 200,      // только #сторис (макс 3/неделю)
+  cooldownDays: 3,      // раз в 3 календарных дня по МСК (для #созвон)
   comboDescription: 'Созвон + Stories',
   sozvonDescription: 'Участие в Созвоне',
   storisDescription: 'Отметка в Stories',
@@ -367,10 +369,10 @@ export class HashtagParserService {
       await this.sendCityRewardNotification(ctx, userId, userTelegramId, '#созвон', R.sozvonOnly, R.sozvonDescription);
       logger.info(`[HashtagParser] Awarded ${R.sozvonOnly} Energy to user ${userId} for #созвон`);
     } else {
-      // Только #сторис = 200
-      const canAward = await this.checkEvery3DaysLimit(userId, R.storisDescription);
+      // Только #сторис = 200, макс 3 раза в неделю (Пн-Вс по МСК)
+      const canAward = await this.checkWeeklyLimit(userId, R.storisDescription, 3);
       if (!canAward) {
-        logger.info(`[HashtagParser] User ${userId} exceeded 3-day limit for #сторис`);
+        logger.info(`[HashtagParser] User ${userId} exceeded weekly limit (3/week) for #сторис`);
         return true;
       }
 
