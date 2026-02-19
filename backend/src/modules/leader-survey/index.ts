@@ -38,7 +38,7 @@ async function isUserLeader(userId: string): Promise<boolean> {
   return !!membership;
 }
 
-export const leaderSurveyRoutes = new Elysia({ prefix: '/api/v1/leader-survey' })
+export const leaderSurveyRoutes = new Elysia({ prefix: '/leader-survey' })
 
   /**
    * GET /current — получить текущий опрос и голоса пользователя за эту неделю

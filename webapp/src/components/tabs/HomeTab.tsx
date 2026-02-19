@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth';
 import { energiesApi } from '@/lib/api';
 import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
+import { LeaderSurvey } from '@/components/LeaderSurvey';
 
 import { useTelegram } from '@/hooks/useTelegram';
 
@@ -455,6 +456,9 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
               </div>
             </div>
           </div>
+
+          {/* 🚦 Светофор — еженедельный опрос для лидеров десяток */}
+          <LeaderSurvey />
 
           {/* Кнопка "Тест на Лидера десятки" - для пользователей с подпиской >= 3 месяцев */}
           {leaderTestStatus?.hasAccess && (
