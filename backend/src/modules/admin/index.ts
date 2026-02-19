@@ -820,12 +820,12 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       const { sql: sqlQuery } = body;
 
       // Разрешаем безопасные SQL операции
-      const safePrefixes = ['ALTER TABLE', 'SELECT', 'INSERT', 'UPDATE', 'CREATE TABLE', 'CREATE UNIQUE INDEX', 'CREATE INDEX'];
+      const safePrefixes = ['ALTER TABLE', 'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'CREATE TABLE', 'CREATE UNIQUE INDEX', 'CREATE INDEX'];
       const isSafe = safePrefixes.some(prefix => sqlQuery.toUpperCase().trim().startsWith(prefix));
 
       if (!isSafe) {
         set.status = 400;
-        return { success: false, error: 'Только SELECT, INSERT, UPDATE, ALTER TABLE и CREATE TABLE/INDEX запросы разрешены' };
+        return { success: false, error: 'Только SELECT, INSERT, UPDATE, DELETE, ALTER TABLE и CREATE TABLE/INDEX запросы разрешены' };
       }
 
       try {
