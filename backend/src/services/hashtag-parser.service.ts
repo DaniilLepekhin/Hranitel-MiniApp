@@ -65,13 +65,11 @@ interface HashtagRule {
 }
 
 // Награды за #созвон + #сторис (комбо-система)
-// #созвон: раз в 3 календарных дня по МСК
-// #сторис: макс 3 раза в неделю (Пн-Вс по МСК)
+// Все лимиты: макс 3 раза в неделю (Пн-Вс по МСК)
 const SOZVON_STORIS_REWARDS = {
-  comboReward: 300,     // #созвон + #сторис вместе
-  sozvonOnly: 100,      // только #созвон (раз в 3 дня)
+  comboReward: 300,     // #созвон + #сторис вместе (макс 3/неделю)
+  sozvonOnly: 100,      // только #созвон (макс 3/неделю)
   storisOnly: 200,      // только #сторис (макс 3/неделю)
-  cooldownDays: 3,      // раз в 3 календарных дня по МСК (для #созвон)
   comboDescription: 'Созвон + Stories',
   sozvonDescription: 'Участие в Созвоне',
   storisDescription: 'Отметка в Stories',
@@ -338,11 +336,10 @@ export class HashtagParserService {
     const R = SOZVON_STORIS_REWARDS;
 
     if (hasSozvon && hasStoris) {
-      // Комбо: #созвон + #сторис = 300
-      // Проверяем лимит по комбо-reason
-      const canAward = await this.checkEvery3DaysLimit(userId, R.comboDescription);
+      // Комбо: #созвон + #сторис = 300, макс 3 раза в неделю (Пн-Вс по МСК)
+      const canAward = await this.checkWeeklyLimit(userId, R.comboDescription, 3);
       if (!canAward) {
-        logger.info(`[HashtagParser] User ${userId} exceeded 3-day limit for #созвон + #сторис combo`);
+        logger.info(`[HashtagParser] User ${userId} exceeded weekly limit (3/week) for #созвон + #сторис combo`);
         return true;
       }
 
@@ -354,10 +351,10 @@ export class HashtagParserService {
       await this.sendCityRewardNotification(ctx, userId, userTelegramId, '#созвон + #сторис', R.comboReward, R.comboDescription);
       logger.info(`[HashtagParser] Awarded ${R.comboReward} Energy to user ${userId} for #созвон + #сторис combo`);
     } else if (hasSozvon) {
-      // Только #созвон = 100
-      const canAward = await this.checkEvery3DaysLimit(userId, R.sozvonDescription);
+      // Только #созвон = 100, макс 3 раза в неделю (Пн-Вс по МСК)
+      const canAward = await this.checkWeeklyLimit(userId, R.sozvonDescription, 3);
       if (!canAward) {
-        logger.info(`[HashtagParser] User ${userId} exceeded 3-day limit for #созвон`);
+        logger.info(`[HashtagParser] User ${userId} exceeded weekly limit (3/week) for #созвон`);
         return true;
       }
 
