@@ -99,9 +99,14 @@ export default function MonthProgramPage() {
     }
   };
 
-  const handleItemClick = (itemId: string) => {
+  const handleItemClick = (item: ContentItem) => {
     haptic.impact('light');
-    router.push(`/content/${itemId}`);
+    if (item.type === 'course') {
+      // Для курсов переходим на страницу курсов (список, откуда можно выбрать нужный)
+      router.push('/courses');
+    } else {
+      router.push(`/content/${item.id}`);
+    }
   };
 
   // Calendar rendering
@@ -318,7 +323,7 @@ export default function MonthProgramPage() {
 
           <div
             className="flex items-center gap-3 p-4 rounded-xl bg-white cursor-pointer hover:bg-white/90 transition-all"
-            onClick={() => handleItemClick(selectedDayItem.id)}
+            onClick={() => handleItemClick(selectedDayItem)}
           >
             {/* Icon */}
             <div className="w-12 h-12 rounded-lg bg-[#d93547]/20 flex items-center justify-center flex-shrink-0">
