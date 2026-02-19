@@ -12,6 +12,7 @@ import {
 } from '../../db/schema';
 import { eq, and, desc, asc, sql } from 'drizzle-orm';
 import { energiesService } from '../energy-points/service';
+import { logger } from '@/utils/logger';
 
 export const contentModule = new Elysia({ prefix: '/api/v1/content' })
   // Get content items list (with filters)
@@ -273,36 +274,29 @@ export const contentModule = new Elysia({ prefix: '/api/v1/content' })
           .returning();
       }
 
-      // Award Энергии пользователю (only on first watch) — в той же транзакции
-      if (energiesReward > 0 && shouldAwardEnergy) {
-        const expiresAt = new Date();
-        expiresAt.setMonth(expiresAt.getMonth() + 6);
-
-        await tx.insert(energyTransactions).values({
-          userId,
-          amount: energiesReward,
-          type: 'income',
-          reason: `Просмотр видео: ${video[0].title}`,
-          metadata: { videoId, videoTitle: video[0].title },
-          expiresAt,
-          isExpired: false,
-        });
-
-        const user = await tx.select().from(users).where(eq(users.id, userId)).limit(1);
-        if (user.length > 0) {
-          await tx
-            .update(users)
-            .set({ energies: (user[0].energies || 0) + energiesReward })
-            .where(eq(users.id, userId));
-        }
-      }
-
       return progress;
     });
 
+    // Award Энергии пользователю (only on first watch)
+    // Вынесено из транзакции чтобы использовать energiesService.award() с поддержкой x2 лидера
+    let actualEnergyAwarded = 0;
+    if (energiesReward > 0 && shouldAwardEnergy) {
+      try {
+        const awardResult = await energiesService.award(
+          userId,
+          energiesReward,
+          `Просмотр видео: ${video[0].title}`,
+          { videoId, videoTitle: video[0].title }
+        );
+        actualEnergyAwarded = awardResult.amount || energiesReward;
+      } catch (error) {
+        logger.error({ error, userId, videoId }, 'Failed to award energy for video watch');
+      }
+    }
+
     return {
       progress: result[0],
-      energiesEarned: shouldAwardEnergy ? energiesReward : 0 // Only return energies if actually awarded
+      energiesEarned: actualEnergyAwarded
     };
   }, {
     body: t.Object({

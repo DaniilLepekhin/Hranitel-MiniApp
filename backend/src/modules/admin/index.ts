@@ -10,7 +10,7 @@
  */
 
 import { Elysia, t } from 'elysia';
-import { db } from '@/db';
+import { db, rawDb } from '@/db';
 import { users, paymentAnalytics, clubFunnelProgress, videos, contentItems, decades, decadeMembers, leaderTestResults } from '@/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
@@ -829,12 +829,12 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       }
 
       try {
-        const result = await db.execute(sqlQuery);
+        const result = await rawDb.unsafe(sqlQuery);
         logger.info({ sql: sqlQuery }, 'Admin executed SQL');
         return { success: true, result };
       } catch (error: any) {
         logger.error({ error, sql: sqlQuery }, 'Admin SQL execution failed');
-        return { success: false, error: error.message };
+        return { success: false, error: `Failed query: ${sqlQuery}\n${error.message}` };
       }
     },
     {
