@@ -1,7 +1,9 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { CheckCircle, FileText, Download } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
+import { getPdfViewerUrl } from '@/lib/pdf';
 
 interface FileLessonProps {
   title: string;
@@ -23,6 +25,7 @@ export function FileLesson({
   isPending = false,
 }: FileLessonProps) {
   const { haptic } = useTelegram();
+  const router = useRouter();
 
   const handleComplete = () => {
     if (isCompleted || isPending) return;
@@ -30,9 +33,9 @@ export function FileLesson({
     haptic.notification('success');
   };
 
-  const handleDownload = () => {
+  const handleOpenPdf = () => {
     haptic.impact('medium');
-    window.open(pdfUrl, '_blank');
+    router.push(getPdfViewerUrl(pdfUrl, title));
   };
 
   return (
@@ -48,12 +51,12 @@ export function FileLesson({
             <p className="text-white/60 text-sm line-clamp-3 mb-4">{description}</p>
           )}
           
-          {/* Download Button */}
+          {/* Open PDF Button */}
           <button
-            onClick={handleDownload}
+            onClick={handleOpenPdf}
             className="px-6 py-3 rounded-xl bg-white text-[#2b2520] font-semibold hover:bg-white/90 transition-all active:scale-95 flex items-center gap-2"
           >
-            <Download className="w-5 h-5" />
+            <FileText className="w-5 h-5" />
             Открыть PDF
           </button>
         </div>
@@ -70,21 +73,26 @@ export function FileLesson({
       {attachments.length > 0 && (
         <div className="mt-4 space-y-2">
           <p className="text-[#6b5a4a] text-sm font-semibold mb-2">Дополнительные материалы:</p>
-          {attachments.map((attachment, index) => (
-            <a
-              key={index}
-              href={attachment.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block w-full px-4 py-3 rounded-xl bg-[#d93547]/10 text-[#d93547] font-semibold hover:bg-[#d93547]/20 transition-all flex items-center justify-center gap-2"
-              onClick={() => haptic.impact('light')}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              {attachment.title}
-            </a>
-          ))}
+          {attachments.map((attachment, index) => {
+            const isPdf = attachment.url?.toLowerCase().endsWith('.pdf');
+            return (
+              <button
+                key={index}
+                onClick={() => {
+                  haptic.impact('light');
+                  if (isPdf) {
+                    router.push(getPdfViewerUrl(attachment.url, attachment.title));
+                  } else {
+                    window.open(attachment.url, '_blank');
+                  }
+                }}
+                className="w-full px-4 py-3 rounded-xl bg-[#d93547]/10 text-[#d93547] font-semibold hover:bg-[#d93547]/20 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+              >
+                <FileText className="w-5 h-5" />
+                {attachment.title}
+              </button>
+            );
+          })}
         </div>
       )}
 

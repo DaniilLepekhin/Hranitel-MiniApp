@@ -1,6 +1,8 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { FileText, Download, ExternalLink } from 'lucide-react';
+import { getPdfViewerUrl } from '@/lib/pdf';
 
 interface MaterialLinksProps {
   text: string;
@@ -13,6 +15,8 @@ interface MaterialLinksProps {
  * и превращает их в кликабельные кнопки
  */
 export function MaterialLinks({ text, className = '' }: MaterialLinksProps) {
+  const router = useRouter();
+
   // Регулярка для поиска материалов с URL
   // Формат: "Методичка: https://..." или "Презентация: https://..."
   const materialPattern = /((?:Методичка|Презентация|Материал|Гайд|PDF|Документ|Файл)[:\s]+)(https?:\/\/[^\s<>"]+)/gi;
@@ -34,11 +38,15 @@ export function MaterialLinks({ text, className = '' }: MaterialLinksProps) {
   return (
     <div className={`flex flex-wrap gap-2 ${className}`}>
       {materials.map((material, index) => (
-        <a
+        <button
           key={index}
-          href={material.url}
-          target="_blank"
-          rel="noopener noreferrer"
+          onClick={() => {
+            if (material.isPdf) {
+              router.push(getPdfViewerUrl(material.url, material.label));
+            } else {
+              window.open(material.url, '_blank');
+            }
+          }}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold transition-all bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
         >
           {material.isPdf ? (
@@ -47,8 +55,12 @@ export function MaterialLinks({ text, className = '' }: MaterialLinksProps) {
             <ExternalLink className="w-4 h-4" />
           )}
           <span>{material.label}</span>
-          <Download className="w-4 h-4" />
-        </a>
+          {material.isPdf ? (
+            <FileText className="w-4 h-4" />
+          ) : (
+            <Download className="w-4 h-4" />
+          )}
+        </button>
       ))}
     </div>
   );

@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { MaterialLinks, cleanTextFromMaterialLinks } from '@/components/ui/MaterialLinks';
 import { useMediaPlayerStore, type MediaItem } from '@/store/media-player';
 import { useTelegram } from '@/hooks/useTelegram';
+import { getPdfViewerUrl } from '@/lib/pdf';
 
 // 🚀 ОПТИМИЗАЦИЯ: Dynamic import для ReactMarkdown (экономия ~150KB gzipped)
 const ReactMarkdown = dynamic(() => import('react-markdown'), {
@@ -272,20 +273,25 @@ export default function PracticePage() {
                 ),
                 a: ({ href, children }) => {
                   const isPdf = href?.toLowerCase().endsWith('.pdf');
+                  if (isPdf && href) {
+                    return (
+                      <button
+                        onClick={() => router.push(getPdfViewerUrl(href, String(children) || 'Документ'))}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white hover:shadow-lg active:scale-[0.98]"
+                      >
+                        <FileText className="w-4 h-4" />
+                        {children}
+                      </button>
+                    );
+                  }
                   return (
                     <a
                       href={href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all ${
-                        isPdf
-                          ? 'bg-gradient-to-r from-[#d93547] to-[#9c1723] text-white hover:shadow-lg'
-                          : 'text-[#d93547] underline hover:text-[#9c1723]'
-                      }`}
+                      className="text-[#d93547] underline hover:text-[#9c1723]"
                     >
-                      {isPdf && <FileText className="w-4 h-4" />}
                       {children}
-                      {isPdf && <Download className="w-4 h-4" />}
                     </a>
                   );
                 },

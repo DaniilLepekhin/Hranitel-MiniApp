@@ -1,23 +1,29 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+
+const PDF_URL = 'https://store.daniillepekhin.com/IK%2Fclub_miniapp%2F%D0%9F%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0%20%D0%BA%D0%BB%D1%83%D0%B1%D0%B0.pdf';
 
 export default function RulesPage() {
   const router = useRouter();
-  const [showIframe, setShowIframe] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isIos, setIsIos] = useState(false);
 
-  // ⚡️ OPTIMIZATION: Delay iframe render to show UI instantly
   useEffect(() => {
-    // Show UI immediately, load PDF after paint
-    const timer = setTimeout(() => setShowIframe(true), 0);
-    return () => clearTimeout(timer);
+    const ua = navigator.userAgent;
+    setIsIos(/iPad|iPhone|iPod/.test(ua) || (ua.includes('Mac') && 'ontouchend' in document));
   }, []);
+
+  // iOS: direct URL (native rendering). Android: Google Docs Viewer
+  const iframeSrc = isIos
+    ? PDF_URL
+    : `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(PDF_URL)}`;
 
   return (
     <div className="h-screen w-full flex flex-col bg-[#f7f1e8]">
-      {/* Кнопка назад */}
+      {/* Header */}
       <div className="flex items-center p-4 border-b border-[#2d2620]">
         <button
           onClick={() => router.back()}
@@ -49,24 +55,21 @@ export default function RulesPage() {
 
       {/* PDF iframe */}
       <div className="flex-1 relative">
-        {!showIframe && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-12 h-12 border-4 border-[#d93547] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-              <p style={{ fontFamily: 'Gilroy, sans-serif', color: '#2d2620' }}>
-                Загрузка правил...
-              </p>
-            </div>
+        {loading && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#f7f1e8]">
+            <Loader2 className="w-8 h-8 text-[#d93547] animate-spin mb-3" />
+            <p style={{ fontFamily: 'Gilroy, sans-serif', color: '#6b5a4a', fontSize: '14px' }}>
+              Загрузка правил...
+            </p>
           </div>
         )}
-        {showIframe && (
-          <iframe
-            src="https://store.daniillepekhin.com/IK%2Fclub_miniapp%2F%D0%9F%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0%20%D0%BA%D0%BB%D1%83%D0%B1%D0%B0.pdf"
-            className="w-full h-full border-0"
-            title="Правила клуба"
-            loading="eager"
-          />
-        )}
+        <iframe
+          src={iframeSrc}
+          className="w-full h-full border-0"
+          title="Правила клуба"
+          loading="eager"
+          onLoad={() => setLoading(false)}
+        />
       </div>
     </div>
   );

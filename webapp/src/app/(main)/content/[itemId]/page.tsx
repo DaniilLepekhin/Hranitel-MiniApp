@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/Card';
 import { useMediaPlayerStore, type MediaItem } from '@/store/media-player';
 import { FullscreenButton } from '@/components/ui/FullscreenButton';
 import { MaterialLinks, cleanTextFromMaterialLinks } from '@/components/ui/MaterialLinks';
+import { getPdfViewerUrl } from '@/lib/pdf';
 
 export default function ContentDetailPage() {
   const router = useRouter();
@@ -230,17 +231,15 @@ export default function ContentDetailPage() {
         </button>
       )}
 
-      {/* PDF Download Button - для stream_record с PDF */}
+      {/* PDF Button - для stream_record с PDF */}
       {item.type === 'stream_record' && videos.length > 0 && videos[0]?.pdfUrl && (
-        <a
-          href={videos[0].pdfUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full mb-4 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#d93547]/10 text-[#d93547] font-semibold hover:bg-[#d93547]/20 transition-all"
+        <button
+          onClick={() => router.push(getPdfViewerUrl(videos[0].pdfUrl!, 'Презентация'))}
+          className="w-full mb-4 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#d93547]/10 text-[#d93547] font-semibold hover:bg-[#d93547]/20 transition-all active:scale-[0.98]"
         >
-          <Download className="w-5 h-5" />
-          Скачать презентацию (PDF)
-        </a>
+          <FileText className="w-5 h-5" />
+          Открыть презентацию (PDF)
+        </button>
       )}
 
       {/* Description */}

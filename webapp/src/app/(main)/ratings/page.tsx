@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { energiesApi, gamificationApi, teamsApi } from '@/lib/api';
+import { getPdfViewerUrl } from '@/lib/pdf';
 import { Card } from '@/components/ui/Card';
 import { FullscreenButton } from '@/components/ui/FullscreenButton';
 
@@ -45,12 +46,8 @@ export default function RatingsPage() {
   const leaderboard = leaderboardData?.leaderboard || [];
   const userTeam = teamData?.team;
 
-  const openUrl = (url: string) => {
-    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-      window.Telegram.WebApp.openLink(url);
-    } else {
-      window.open(url, '_blank');
-    }
+  const openPdf = (url: string, title: string) => {
+    router.push(getPdfViewerUrl(url, title));
   };
 
   return (
@@ -179,7 +176,7 @@ export default function RatingsPage() {
             Мы подготовили документ, где описали основные правила и возможности получения баллов
           </p>
           <button
-            onClick={() => openUrl('https://store.daniillepekhin.com/IK%2Fclub_miniapp%2F%D0%9F%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0%20%D0%BA%D0%BB%D1%83%D0%B1%D0%B0.pdf')}
+            onClick={() => openPdf('https://store.daniillepekhin.com/IK%2Fclub_miniapp%2F%D0%9F%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0%20%D0%BA%D0%BB%D1%83%D0%B1%D0%B0.pdf', 'Правила клуба')}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#d93547] text-white font-medium hover:bg-[#a00000] transition-colors"
           >
             <FileText className="w-5 h-5" />
