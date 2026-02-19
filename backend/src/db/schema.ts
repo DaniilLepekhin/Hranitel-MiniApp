@@ -1195,3 +1195,36 @@ export const userSessionsRelations = relations(userSessions, ({ one }) => ({
 // User Sessions Types
 export type UserSession = typeof userSessions.$inferSelect;
 export type NewUserSession = typeof userSessions.$inferInsert;
+
+// ============================================================
+// 🚦 Leader Survey (Светофор) — опросы для лидеров десяток
+// ============================================================
+
+// Вопросы опроса (с заделом на множество вопросов)
+export const leaderSurveyQuestions = pgTable('leader_survey_questions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  text: text('text').notNull(),
+  // Варианты ответов: [{ key: "green", label: "Всё хорошо", color: "#22c55e" }, ...]
+  options: jsonb('options').notNull().default([]),
+  isActive: boolean('is_active').notNull().default(true),
+  orderIndex: integer('order_index').notNull().default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Голоса лидеров (1 голос на вопрос в неделю)
+export const leaderSurveyVotes = pgTable('leader_survey_votes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  questionId: uuid('question_id').references(() => leaderSurveyQuestions.id, { onDelete: 'cascade' }).notNull(),
+  answer: text('answer').notNull(), // ключ ответа, например "green" или "red"
+  weekStart: timestamp('week_start').notNull(), // начало недели (Пн 00:00 МСК)
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('leader_survey_votes_user_id_idx').on(table.userId),
+  index('leader_survey_votes_question_id_idx').on(table.questionId),
+  index('leader_survey_votes_week_start_idx').on(table.weekStart),
+  uniqueIndex('leader_survey_votes_unique_idx').on(table.userId, table.questionId, table.weekStart),
+]);
+
+export type LeaderSurveyQuestion = typeof leaderSurveyQuestions.$inferSelect;
+export type LeaderSurveyVote = typeof leaderSurveyVotes.$inferSelect;
