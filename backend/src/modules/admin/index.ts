@@ -645,6 +645,42 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
   )
 
   /**
+   * 📱 Отправить меню участника клуба
+   */
+  .post(
+    '/send-menu',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { telegram_id: rawTelegramId } = body;
+      const telegram_id = typeof rawTelegramId === 'string' ? parseInt(rawTelegramId, 10) : rawTelegramId;
+
+      try {
+        const { sendMenuMessage } = await import('@/modules/bot/post-payment-funnels');
+        await sendMenuMessage(telegram_id);
+        logger.info({ telegram_id }, 'Admin sent menu to user');
+
+        return {
+          success: true,
+          message: `Меню отправлено пользователю ${telegram_id}`,
+        };
+      } catch (error: any) {
+        logger.error({ error, telegram_id }, 'Failed to send menu');
+        set.status = 500;
+        return { success: false, error: error.message };
+      }
+    },
+    {
+      body: t.Object({
+        telegram_id: t.Union([t.Number(), t.String()], { description: 'Telegram ID пользователя' }),
+      }),
+    }
+  )
+
+  /**
    * 🎬 Обновить видео (добавить RuTube URL и PDF)
    */
   .post(
