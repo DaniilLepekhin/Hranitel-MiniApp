@@ -220,6 +220,52 @@ const app = new Elysia()
   .group('/api', (app) => app.use(adminRoutes))
   // Content module (Путь - educational content system)
   .use(contentModule)
+  // PDF proxy — отдаёт PDF через наш домен, чтобы iframe работал внутри Telegram Mini App
+  .get('/api/v1/pdf-proxy', async ({ query, set }) => {
+    const pdfUrl = query.url;
+    if (!pdfUrl || typeof pdfUrl !== 'string') {
+      set.status = 400;
+      return 'Missing url parameter';
+    }
+
+    // Whitelist allowed domains
+    const allowed = ['files.salebot.pro', 'store.daniillepekhin.com'];
+    let hostname: string;
+    try {
+      hostname = new URL(pdfUrl).hostname;
+    } catch {
+      set.status = 400;
+      return 'Invalid URL';
+    }
+    if (!allowed.some(d => hostname.endsWith(d))) {
+      set.status = 403;
+      return 'Domain not allowed';
+    }
+
+    try {
+      const response = await fetch(pdfUrl, {
+        headers: { 'User-Agent': 'ClubWebApp/1.0' },
+        redirect: 'follow',
+      });
+
+      if (!response.ok) {
+        set.status = 502;
+        return `Failed to fetch PDF: ${response.status}`;
+      }
+
+      const buffer = await response.arrayBuffer();
+
+      set.headers['Content-Type'] = 'application/pdf';
+      set.headers['Content-Disposition'] = 'inline';
+      set.headers['Cache-Control'] = 'public, max-age=86400';
+
+      return new Uint8Array(buffer);
+    } catch (err: any) {
+      logger.error({ err, pdfUrl }, 'PDF proxy error');
+      set.status = 502;
+      return 'Failed to fetch PDF';
+    }
+  })
   // New КОД ДЕНЕГ 4.0 routes (without /api/v1 prefix, already included in route definitions)
   .use(energyPointsRoutes)
   .use(shopRoutes)

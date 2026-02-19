@@ -2,24 +2,26 @@
 
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const PDF_URL = 'https://store.daniillepekhin.com/IK%2Fclub_miniapp%2F%D0%9F%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0%20%D0%BA%D0%BB%D1%83%D0%B1%D0%B0.pdf';
+
+const getApiUrl = (): string => {
+  if (typeof window === 'undefined') {
+    return process.env.NEXT_PUBLIC_API_URL || 'https://app.successkod.com';
+  }
+  const hostname = window.location.hostname;
+  if (hostname.includes('successkod.com')) {
+    return `https://${hostname}`;
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'https://app.successkod.com';
+};
 
 export default function RulesPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [isIos, setIsIos] = useState(false);
 
-  useEffect(() => {
-    const ua = navigator.userAgent;
-    setIsIos(/iPad|iPhone|iPod/.test(ua) || (ua.includes('Mac') && 'ontouchend' in document));
-  }, []);
-
-  // iOS: direct URL (native rendering). Android: Google Docs Viewer
-  const iframeSrc = isIos
-    ? PDF_URL
-    : `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(PDF_URL)}`;
+  const proxyUrl = `${getApiUrl()}/api/v1/pdf-proxy?url=${encodeURIComponent(PDF_URL)}`;
 
   return (
     <div className="h-screen w-full flex flex-col bg-[#f7f1e8]">
@@ -64,7 +66,7 @@ export default function RulesPage() {
           </div>
         )}
         <iframe
-          src={iframeSrc}
+          src={proxyUrl}
           className="w-full h-full border-0"
           title="Правила клуба"
           loading="eager"

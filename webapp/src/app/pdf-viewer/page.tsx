@@ -1,8 +1,19 @@
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState } from 'react';
 import { ArrowLeft, Download, Loader2 } from 'lucide-react';
+
+const getApiUrl = (): string => {
+  if (typeof window === 'undefined') {
+    return process.env.NEXT_PUBLIC_API_URL || 'https://app.successkod.com';
+  }
+  const hostname = window.location.hostname;
+  if (hostname.includes('successkod.com')) {
+    return `https://${hostname}`;
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'https://app.successkod.com';
+};
 
 function PdfViewerContent() {
   const searchParams = useSearchParams();
@@ -11,13 +22,6 @@ function PdfViewerContent() {
   const title = searchParams.get('title') || 'Документ';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [isIos, setIsIos] = useState(false);
-
-  useEffect(() => {
-    // Detect iOS (Safari WebView renders PDF natively)
-    const ua = navigator.userAgent;
-    setIsIos(/iPad|iPhone|iPod/.test(ua) || (ua.includes('Mac') && 'ontouchend' in document));
-  }, []);
 
   if (!url) {
     return (
@@ -27,11 +31,8 @@ function PdfViewerContent() {
     );
   }
 
-  // iOS: direct iframe (native PDF rendering, instant)
-  // Android/other: Google Docs Viewer (converts to HTML)
-  const iframeSrc = isIos
-    ? url
-    : `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(url)}`;
+  // Proxy through our backend — works everywhere, no CORS issues
+  const proxyUrl = `${getApiUrl()}/api/v1/pdf-proxy?url=${encodeURIComponent(url)}`;
 
   const handleBack = () => {
     if (window.history.length > 1) {
@@ -136,7 +137,7 @@ function PdfViewerContent() {
         )}
 
         <iframe
-          src={iframeSrc}
+          src={proxyUrl}
           className="w-full h-full border-0"
           style={{ minHeight: 'calc(100vh - 52px)' }}
           title={title}
