@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth';
 import { useTelegram } from '@/hooks/useTelegram';
-import { ChevronRight, Check } from 'lucide-react';
+import { Check, ChevronDown } from 'lucide-react';
 
 const getApiUrl = (): string => {
   if (typeof window === 'undefined') {
@@ -23,7 +23,7 @@ interface SurveyOption {
   key: string;
   label: string;
   color: string;
-  emoji: string;
+  emoji?: string;
 }
 
 interface SurveyQuestion {
@@ -39,6 +39,36 @@ interface SurveyData {
   weekStart?: string;
   questions: SurveyQuestion[];
   votes: Record<string, string>;
+}
+
+/** Small colored dot indicator */
+function ColorDot({ color, size = 8 }: { color: string; size?: number }) {
+  return (
+    <span
+      style={{
+        display: 'inline-block',
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        background: color,
+        boxShadow: `0 0 6px ${color}60`,
+        flexShrink: 0,
+      }}
+    />
+  );
+}
+
+/** SVG traffic light icon — 3 small circles */
+function TrafficLightIcon({ size = 20, done = false }: { size?: number; done?: boolean }) {
+  const c = done ? '#f7f1e8' : '#f7f1e8';
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+      <rect x="6" y="1" width="8" height="18" rx="4" stroke={c} strokeWidth="1.2" opacity={0.7} />
+      <circle cx="10" cy="5.5" r="2" fill={done ? '#22c55e' : '#ef4444'} opacity={done ? 1 : 0.5} />
+      <circle cx="10" cy="10" r="2" fill={done ? '#22c55e' : '#eab308'} opacity={done ? 1 : 0.4} />
+      <circle cx="10" cy="14.5" r="2" fill={done ? '#22c55e' : '#22c55e'} opacity={done ? 1 : 0.3} />
+    </svg>
+  );
 }
 
 export function LeaderSurvey() {
@@ -86,7 +116,7 @@ export function LeaderSurvey() {
     voteMutation.mutate({ questionId, answer });
   }, [haptic, voteMutation]);
 
-  // Не показываем если не лидер или нет данных
+  // Don't show for non-leaders or no data
   if (isLoading || !data?.isLeader || data.questions.length === 0) {
     return null;
   }
@@ -97,7 +127,7 @@ export function LeaderSurvey() {
   const totalQuestions = questions.length;
   const votedCount = questions.filter(q => votes[q.id]).length;
 
-  // Один вопрос — компактный вид прямо в карточке
+  // ========= SINGLE QUESTION — compact inline card =========
   if (totalQuestions === 1) {
     const question = questions[0];
     const voted = votes[question.id];
@@ -105,28 +135,28 @@ export function LeaderSurvey() {
 
     return (
       <div
-        className="w-full mt-3"
+        className="w-full mt-3 active:scale-[0.99] transition-transform"
         style={{
           borderRadius: '8px',
-          border: '1px solid rgba(217, 53, 71, 0.3)',
-          background: 'linear-gradient(135deg, #2d2620 0%, #3a302a 100%)',
+          border: '1px solid #d93547',
+          background: 'linear-gradient(243.413deg, rgb(174, 30, 43) 15.721%, rgb(156, 23, 35) 99.389%)',
           padding: '16px',
         }}
       >
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-4">
+        {/* Header row */}
+        <div className="flex items-center gap-3">
           <div
             className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
             style={{
-              background: allVoted
-                ? 'rgba(34, 197, 94, 0.2)'
-                : 'rgba(217, 53, 71, 0.2)',
-              border: `1px solid ${allVoted ? 'rgba(34, 197, 94, 0.4)' : 'rgba(217, 53, 71, 0.4)'}`,
+              background: 'rgba(255,255,255,0.15)',
+              border: '1px solid rgba(255,255,255,0.3)',
             }}
           >
-            <span style={{ fontSize: '20px' }}>
-              {allVoted ? '✅' : '🚦'}
-            </span>
+            {allVoted ? (
+              <Check className="w-5 h-5" style={{ color: '#f7f1e8' }} strokeWidth={2.5} />
+            ) : (
+              <TrafficLightIcon size={20} done={false} />
+            )}
           </div>
           <div className="flex-1">
             <p
@@ -135,7 +165,7 @@ export function LeaderSurvey() {
                 fontWeight: 700,
                 fontSize: '15px',
                 color: '#f7f1e8',
-                marginBottom: '2px',
+                marginBottom: '1px',
               }}
             >
               Светофор
@@ -145,29 +175,32 @@ export function LeaderSurvey() {
                 fontFamily: 'Gilroy, sans-serif',
                 fontWeight: 400,
                 fontSize: '12px',
-                color: 'rgba(247, 241, 232, 0.6)',
+                color: 'rgba(247, 241, 232, 0.7)',
               }}
             >
-              {voted ? 'Ответ принят' : 'Еженедельный отчёт лидера'}
+              {voted ? 'Ответ принят' : 'Еженедельный отчёт'}
             </p>
           </div>
         </div>
 
-        {/* Question */}
+        {/* Divider */}
+        <div className="w-full h-[1px] bg-white/15 my-3" />
+
+        {/* Question text */}
         <p
           style={{
             fontFamily: 'Gilroy, sans-serif',
             fontWeight: 500,
-            fontSize: '14px',
-            color: 'rgba(247, 241, 232, 0.9)',
-            marginBottom: '12px',
+            fontSize: '13px',
+            color: 'rgba(247, 241, 232, 0.85)',
+            marginBottom: '10px',
           }}
         >
           {question.text}
         </p>
 
-        {/* Options */}
-        <div className="flex gap-3">
+        {/* Options — compact pills */}
+        <div className="flex gap-2">
           {options.map((option) => {
             const isSelected = voted === option.key;
             const isDisabled = !!voted;
@@ -177,53 +210,41 @@ export function LeaderSurvey() {
                 key={option.key}
                 onClick={() => !isDisabled && handleVote(question.id, option.key)}
                 disabled={isDisabled || voteMutation.isPending}
-                className="flex-1 relative overflow-hidden transition-all duration-300"
+                className="flex items-center gap-2 transition-all duration-200 active:scale-95"
                 style={{
-                  borderRadius: '12px',
-                  padding: '14px 12px',
+                  borderRadius: '8px',
+                  padding: '8px 14px',
                   border: isSelected
-                    ? `2px solid ${option.color}`
-                    : isDisabled
-                      ? '2px solid rgba(247, 241, 232, 0.1)'
-                      : `2px solid ${option.color}40`,
+                    ? '1.5px solid rgba(255,255,255,0.6)'
+                    : '1.5px solid rgba(255,255,255,0.15)',
                   background: isSelected
-                    ? `${option.color}20`
-                    : isDisabled
-                      ? 'rgba(247, 241, 232, 0.03)'
-                      : `${option.color}10`,
-                  opacity: isDisabled && !isSelected ? 0.4 : 1,
+                    ? 'rgba(255,255,255,0.18)'
+                    : 'rgba(255,255,255,0.06)',
+                  opacity: isDisabled && !isSelected ? 0.35 : 1,
                   cursor: isDisabled ? 'default' : 'pointer',
-                  transform: isSelected ? 'scale(1.02)' : 'scale(1)',
                 }}
               >
-                {/* Checkmark for selected */}
-                {isSelected && (
+                {isSelected ? (
                   <div
-                    className="absolute top-2 right-2"
+                    className="flex items-center justify-center"
                     style={{
-                      width: '20px',
-                      height: '20px',
+                      width: 16,
+                      height: 16,
                       borderRadius: '50%',
                       background: option.color,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
                     }}
                   >
-                    <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                    <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
                   </div>
+                ) : (
+                  <ColorDot color={option.color} size={10} />
                 )}
-
-                <span style={{ fontSize: '28px', display: 'block', marginBottom: '6px' }}>
-                  {option.emoji}
-                </span>
                 <span
                   style={{
                     fontFamily: 'Gilroy, sans-serif',
                     fontWeight: 600,
                     fontSize: '13px',
-                    color: isSelected ? option.color : '#f7f1e8',
-                    display: 'block',
+                    color: '#f7f1e8',
                   }}
                 >
                   {option.label}
@@ -236,16 +257,14 @@ export function LeaderSurvey() {
     );
   }
 
-  // Множество вопросов — карточка со стрелкой, drill-down
+  // ========= MULTIPLE QUESTIONS — expandable card =========
   return (
     <div className="w-full mt-3">
-      {/* Main card */}
       <div
-        className="w-full"
         style={{
           borderRadius: '8px',
-          border: '1px solid rgba(217, 53, 71, 0.3)',
-          background: 'linear-gradient(135deg, #2d2620 0%, #3a302a 100%)',
+          border: '1px solid #d93547',
+          background: 'linear-gradient(243.413deg, rgb(174, 30, 43) 15.721%, rgb(156, 23, 35) 99.389%)',
           padding: '16px',
         }}
       >
@@ -254,15 +273,15 @@ export function LeaderSurvey() {
           <div
             className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
             style={{
-              background: allVoted
-                ? 'rgba(34, 197, 94, 0.2)'
-                : 'rgba(217, 53, 71, 0.2)',
-              border: `1px solid ${allVoted ? 'rgba(34, 197, 94, 0.4)' : 'rgba(217, 53, 71, 0.4)'}`,
+              background: 'rgba(255,255,255,0.15)',
+              border: '1px solid rgba(255,255,255,0.3)',
             }}
           >
-            <span style={{ fontSize: '20px' }}>
-              {allVoted ? '✅' : '🚦'}
-            </span>
+            {allVoted ? (
+              <Check className="w-5 h-5" style={{ color: '#f7f1e8' }} strokeWidth={2.5} />
+            ) : (
+              <TrafficLightIcon size={20} done={false} />
+            )}
           </div>
           <div className="flex-1">
             <p
@@ -271,7 +290,7 @@ export function LeaderSurvey() {
                 fontWeight: 700,
                 fontSize: '15px',
                 color: '#f7f1e8',
-                marginBottom: '2px',
+                marginBottom: '1px',
               }}
             >
               Светофор
@@ -281,31 +300,37 @@ export function LeaderSurvey() {
                 fontFamily: 'Gilroy, sans-serif',
                 fontWeight: 400,
                 fontSize: '12px',
-                color: 'rgba(247, 241, 232, 0.6)',
+                color: 'rgba(247, 241, 232, 0.7)',
               }}
             >
               {allVoted
-                ? `Все ответы приняты (${votedCount}/${totalQuestions})`
-                : `Ответь на ${totalQuestions} вопросов (${votedCount}/${totalQuestions})`}
+                ? `Все ответы приняты`
+                : `${votedCount} из ${totalQuestions} — ответь на все`}
             </p>
           </div>
         </div>
 
         {/* Progress bar */}
-        <div className="w-full h-1.5 rounded-full mb-4" style={{ background: 'rgba(247, 241, 232, 0.1)' }}>
+        <div
+          className="w-full mb-3 rounded-full overflow-hidden"
+          style={{ height: '3px', background: 'rgba(255,255,255,0.1)' }}
+        >
           <div
             className="h-full rounded-full transition-all duration-500"
             style={{
               width: `${(votedCount / totalQuestions) * 100}%`,
               background: allVoted
-                ? '#22c55e'
-                : 'linear-gradient(90deg, #d93547, #9c1723)',
+                ? 'rgba(255,255,255,0.7)'
+                : 'rgba(255,255,255,0.45)',
             }}
           />
         </div>
 
-        {/* Questions list */}
-        <div className="space-y-2">
+        {/* Divider */}
+        <div className="w-full h-[1px] bg-white/10 mb-3" />
+
+        {/* Questions */}
+        <div className="space-y-1">
           {questions.map((question) => {
             const voted = votes[question.id];
             const options = question.options as SurveyOption[];
@@ -320,27 +345,26 @@ export function LeaderSurvey() {
                     haptic.impact('light');
                     setExpandedQuestion(isExpanded ? null : question.id);
                   }}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg transition-all"
+                  className="w-full flex items-center gap-2.5 py-2.5 px-2 rounded-lg transition-all"
                   style={{
                     background: isExpanded
-                      ? 'rgba(247, 241, 232, 0.08)'
-                      : 'rgba(247, 241, 232, 0.04)',
+                      ? 'rgba(255,255,255,0.08)'
+                      : 'transparent',
                   }}
                 >
-                  {/* Status indicator */}
-                  <div
-                    className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
-                    style={{
-                      background: voted
-                        ? `${selectedOption?.color || '#22c55e'}30`
-                        : 'rgba(247, 241, 232, 0.1)',
-                      border: `1.5px solid ${voted ? selectedOption?.color || '#22c55e' : 'rgba(247, 241, 232, 0.2)'}`,
-                    }}
-                  >
+                  {/* Status dot */}
+                  <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
                     {voted ? (
-                      <Check className="w-3.5 h-3.5" style={{ color: selectedOption?.color }} strokeWidth={3} />
+                      <ColorDot color={selectedOption?.color || '#22c55e'} size={8} />
                     ) : (
-                      <span style={{ fontSize: '10px', color: 'rgba(247, 241, 232, 0.5)' }}>
+                      <span
+                        style={{
+                          fontFamily: 'Gilroy, sans-serif',
+                          fontWeight: 600,
+                          fontSize: '11px',
+                          color: 'rgba(247, 241, 232, 0.4)',
+                        }}
+                      >
                         {question.orderIndex + 1}
                       </span>
                     )}
@@ -353,65 +377,60 @@ export function LeaderSurvey() {
                       fontFamily: 'Gilroy, sans-serif',
                       fontWeight: 500,
                       fontSize: '13px',
-                      color: voted ? 'rgba(247, 241, 232, 0.7)' : '#f7f1e8',
+                      color: voted ? 'rgba(247, 241, 232, 0.6)' : '#f7f1e8',
                     }}
                   >
                     {question.text}
                   </p>
 
-                  {/* Voted badge or arrow */}
+                  {/* Voted badge or chevron */}
                   {voted ? (
                     <span
+                      className="flex items-center gap-1.5 flex-shrink-0"
                       style={{
                         fontFamily: 'Gilroy, sans-serif',
                         fontWeight: 600,
-                        fontSize: '12px',
-                        color: selectedOption?.color,
-                        padding: '2px 8px',
-                        borderRadius: '8px',
-                        background: `${selectedOption?.color}15`,
+                        fontSize: '11px',
+                        color: 'rgba(247, 241, 232, 0.5)',
                       }}
                     >
-                      {selectedOption?.emoji} {selectedOption?.label}
+                      {selectedOption?.label}
                     </span>
                   ) : (
-                    <ChevronRight
-                      className="w-4 h-4 flex-shrink-0 transition-transform"
+                    <ChevronDown
+                      className="w-4 h-4 flex-shrink-0 transition-transform duration-200"
                       style={{
-                        color: 'rgba(247, 241, 232, 0.4)',
-                        transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                        color: 'rgba(247, 241, 232, 0.35)',
+                        transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                       }}
                     />
                   )}
                 </button>
 
-                {/* Expanded voting area */}
+                {/* Expanded options */}
                 {isExpanded && !voted && (
-                  <div className="flex gap-3 px-3 pb-2 pt-1">
+                  <div className="flex gap-2 px-2 pb-2 pt-1">
                     {options.map((option) => (
                       <button
                         key={option.key}
                         onClick={() => handleVote(question.id, option.key)}
                         disabled={voteMutation.isPending}
-                        className="flex-1 transition-all active:scale-95"
+                        className="flex items-center gap-2 transition-all active:scale-95"
                         style={{
-                          borderRadius: '10px',
-                          padding: '12px 8px',
-                          border: `2px solid ${option.color}40`,
-                          background: `${option.color}10`,
+                          borderRadius: '8px',
+                          padding: '7px 12px',
+                          border: '1.5px solid rgba(255,255,255,0.15)',
+                          background: 'rgba(255,255,255,0.06)',
                           cursor: 'pointer',
                         }}
                       >
-                        <span style={{ fontSize: '24px', display: 'block', marginBottom: '4px' }}>
-                          {option.emoji}
-                        </span>
+                        <ColorDot color={option.color} size={8} />
                         <span
                           style={{
                             fontFamily: 'Gilroy, sans-serif',
                             fontWeight: 600,
                             fontSize: '12px',
                             color: '#f7f1e8',
-                            display: 'block',
                           }}
                         >
                           {option.label}
