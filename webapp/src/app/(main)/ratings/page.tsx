@@ -9,11 +9,15 @@ import {
   MapPin,
   Users,
   ChevronRight,
-  FileText,
+  MessageSquare,
+  Camera,
+  Video,
+  Sparkles,
+  Star,
+  Crown,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { energiesApi, gamificationApi, teamsApi } from '@/lib/api';
-import { getPdfViewerUrl } from '@/lib/pdf';
 import { Card } from '@/components/ui/Card';
 import { FullscreenButton } from '@/components/ui/FullscreenButton';
 
@@ -42,13 +46,18 @@ export default function RatingsPage() {
     enabled: !!user,
   });
 
+  // Fetch weekly hashtag progress
+  const { data: progressData } = useQuery({
+    queryKey: ['weekly-progress', user?.id],
+    queryFn: () => energiesApi.getWeeklyProgress(),
+    enabled: !!user,
+  });
+
   const epBalance = epData?.balance || 0;
   const leaderboard = leaderboardData?.leaderboard || [];
   const userTeam = teamData?.team;
-
-  const openPdf = (url: string, title: string) => {
-    router.push(getPdfViewerUrl(url, title));
-  };
+  const weeklyProgress = progressData?.progress;
+  const isLeader = progressData?.isLeader || false;
 
   return (
     <>
@@ -168,26 +177,228 @@ export default function RatingsPage() {
         </button>
       </Card>
 
-      {/* How to Earn Points */}
+      {/* How to Earn Points — Inline Rules + Weekly Progress */}
       <Card className="mb-6 overflow-hidden">
-        <div className="p-5">
-          <h3 className="font-bold text-[#2b2520] mb-2">Как начисляются баллы</h3>
-          <p className="text-sm text-[#6b5a4a] mb-4">
-            Мы подготовили документ, где описали основные правила и возможности получения баллов
+        <div className="p-4 border-b border-[#9c1723]/10">
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles className="w-5 h-5 text-[#d93547]" />
+            <h2 className="text-lg font-bold text-[#2b2520]">Как начисляются баллы</h2>
+          </div>
+          <p className="text-xs text-[#6b5a4a]">
+            Выполняй действия в чатах и получай Энергию. Неделя считается с Пн по Вс (МСК)
           </p>
-          <button
-            onClick={() => openPdf('https://store.daniillepekhin.com/IK%2Fclub_miniapp%2F%D0%9F%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0%20%D0%BA%D0%BB%D1%83%D0%B1%D0%B0.pdf', 'Правила клуба')}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#d93547] text-white font-medium hover:bg-[#a00000] transition-colors"
-          >
-            <FileText className="w-5 h-5" />
-            Ознакомиться
-          </button>
+          {isLeader && (
+            <div className="mt-2 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gradient-to-r from-[#d93547]/10 to-[#9c1723]/10 w-fit">
+              <Crown className="w-3.5 h-3.5 text-[#d93547]" />
+              <span className="text-xs font-semibold text-[#d93547]">x2 бонус лидера</span>
+            </div>
+          )}
+        </div>
+
+        <div className="p-4 space-y-3">
+          {/* Десятка section */}
+          <div className="mb-1">
+            <p className="text-[10px] uppercase tracking-wider font-bold text-[#6b5a4a]/60 mb-2">Чат десятки</p>
+          </div>
+
+          <HashtagRuleCard
+            icon={<MessageSquare className="w-4 h-4" />}
+            hashtags="#отчет / #дз"
+            reward={50}
+            periodLabel="1 раз в день"
+            used={weeklyProgress?.otchet?.used}
+            max={1}
+            period="daily"
+            isLeader={isLeader}
+          />
+
+          {/* Город section */}
+          <div className="mt-4 mb-1">
+            <p className="text-[10px] uppercase tracking-wider font-bold text-[#6b5a4a]/60 mb-2">Чат города</p>
+          </div>
+
+          <HashtagRuleCard
+            icon={<Star className="w-4 h-4" />}
+            hashtags="#практика"
+            reward={50}
+            periodLabel="1 раз в неделю, Сб/Вс"
+            used={weeklyProgress?.praktika?.used}
+            max={1}
+            period="weekly"
+            note="С фото/видео"
+            isLeader={isLeader}
+          />
+
+          <HashtagRuleCard
+            icon={<Sparkles className="w-4 h-4" />}
+            hashtags="#инсайт"
+            reward={40}
+            periodLabel="макс. 3 в неделю"
+            used={weeklyProgress?.insight?.used}
+            max={3}
+            period="weekly"
+            isLeader={isLeader}
+          />
+
+          <HashtagRuleCard
+            icon={<Video className="w-4 h-4" />}
+            hashtags="#созвон"
+            reward={100}
+            periodLabel="макс. 3 в неделю"
+            used={weeklyProgress?.sozvon?.used}
+            max={3}
+            period="weekly"
+            note="С фото/видео"
+            isLeader={isLeader}
+          />
+
+          <HashtagRuleCard
+            icon={<Camera className="w-4 h-4" />}
+            hashtags="#сторис"
+            reward={200}
+            periodLabel="макс. 3 в неделю"
+            used={weeklyProgress?.storis?.used}
+            max={3}
+            period="weekly"
+            note="С фото/видео"
+            isLeader={isLeader}
+          />
+
+          <HashtagRuleCard
+            icon={<Zap className="w-4 h-4" />}
+            hashtags="#созвон + #сторис"
+            reward={300}
+            periodLabel="макс. 3 в неделю"
+            used={weeklyProgress?.combo?.used}
+            max={3}
+            period="weekly"
+            note="Комбо! С фото/видео"
+            isLeader={isLeader}
+            isCombo
+          />
         </div>
       </Card>
       </div>
     </>
   );
 }
+
+// --- HashtagRuleCard component ---
+
+interface HashtagRuleCardProps {
+  icon: React.ReactNode;
+  hashtags: string;
+  reward: number;
+  periodLabel: string;
+  used?: number;
+  max: number;
+  period: 'daily' | 'weekly';
+  note?: string;
+  isLeader: boolean;
+  isCombo?: boolean;
+}
+
+function HashtagRuleCard({
+  icon,
+  hashtags,
+  reward,
+  periodLabel,
+  used,
+  max,
+  period,
+  note,
+  isLeader,
+  isCombo,
+}: HashtagRuleCardProps) {
+  const actualUsed = used ?? 0;
+  const isFull = actualUsed >= max;
+  const displayReward = isLeader ? reward * 2 : reward;
+
+  return (
+    <div
+      className={`rounded-xl p-3 border transition-all ${
+        isCombo
+          ? 'bg-gradient-to-r from-[#d93547]/5 to-[#9c1723]/10 border-[#d93547]/20'
+          : isFull
+            ? 'bg-[#f0ede8] border-[#d4cfc6]'
+            : 'bg-white border-[#9c1723]/10'
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        {/* Icon */}
+        <div
+          className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+            isCombo
+              ? 'bg-gradient-to-br from-[#d93547] to-[#9c1723] text-white'
+              : isFull
+                ? 'bg-[#d4cfc6] text-white'
+                : 'bg-[#d93547]/10 text-[#d93547]'
+          }`}
+        >
+          {icon}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <span className={`text-sm font-bold ${isFull ? 'text-[#9a958d]' : 'text-[#2b2520]'}`}>
+              {hashtags}
+            </span>
+            <span
+              className={`text-sm font-bold whitespace-nowrap ${
+                isCombo ? 'text-[#d93547]' : isFull ? 'text-[#9a958d]' : 'text-[#d93547]'
+              }`}
+            >
+              +{displayReward}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className={`text-[11px] ${isFull ? 'text-[#b0aaa2]' : 'text-[#6b5a4a]'}`}>
+              {periodLabel}
+            </span>
+            {note && (
+              <>
+                <span className="text-[#d4cfc6]">·</span>
+                <span className={`text-[11px] ${isCombo ? 'text-[#d93547] font-medium' : isFull ? 'text-[#b0aaa2]' : 'text-[#6b5a4a]'}`}>
+                  {note}
+                </span>
+              </>
+            )}
+          </div>
+
+          {/* Progress bar */}
+          {used !== undefined && (
+            <div className="mt-2">
+              <div className="flex items-center justify-between mb-0.5">
+                <span className={`text-[10px] font-medium ${isFull ? 'text-[#9a958d]' : 'text-[#6b5a4a]'}`}>
+                  {period === 'daily' ? 'Сегодня' : 'На этой неделе'}
+                </span>
+                <span className={`text-[10px] font-bold ${isFull ? 'text-[#9a958d]' : 'text-[#d93547]'}`}>
+                  {actualUsed} / {max}
+                </span>
+              </div>
+              <div className="h-1.5 rounded-full bg-[#e8e4de] overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    isFull
+                      ? 'bg-[#b0aaa2]'
+                      : isCombo
+                        ? 'bg-gradient-to-r from-[#d93547] to-[#9c1723]'
+                        : 'bg-[#d93547]'
+                  }`}
+                  style={{ width: `${Math.min((actualUsed / max) * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- LeaderboardEntry component ---
 
 interface LeaderboardEntryProps {
   rank: number;

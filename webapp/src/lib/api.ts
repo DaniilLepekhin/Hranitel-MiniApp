@@ -262,6 +262,23 @@ export const energiesApi = {
     api.get<{ success: boolean; transactions: EnergyTransaction[] }>('/energies/history', {
       params: { limit: limit?.toString() }
     }),
+  getWeeklyProgress: () =>
+    api.get<{
+      success: boolean;
+      progress: Record<string, {
+        hashtags: string[];
+        used: number;
+        max: number;
+        period: 'daily' | 'weekly';
+        reward: number;
+        chat: 'decade' | 'city';
+        requiresMedia?: boolean;
+        weekendOnly?: boolean;
+        description: string;
+      }>;
+      isLeader: boolean;
+      weekStartMsk: string;
+    }>('/energies/weekly-progress'),
 };
 
 // Shop (КОД ДЕНЕГ 4.0)
