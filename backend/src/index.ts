@@ -48,6 +48,7 @@ import { lavaPaymentWebhook } from '@/modules/webhooks/lava-payment';
 import { adminRoutes } from '@/modules/admin';
 import { leaderTestModule } from '@/modules/leader-test';
 import { leaderSurveyRoutes } from '@/modules/leader-survey';
+import { feedbackSurveyRoutes } from '@/modules/feedback-survey';
 import { decadesModule } from '@/modules/decades';
 import { sessionsModule } from '@/modules/sessions';
 
@@ -209,6 +210,7 @@ const app = new Elysia()
       .use(botModule)
       .use(leaderTestModule)
       .use(leaderSurveyRoutes)
+      .use(feedbackSurveyRoutes)
       .use(decadesModule)
       .use(sessionsModule)
   )

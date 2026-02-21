@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { Search, Copy, Megaphone, Lock, Star, Crown, Check } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth';
-import { energiesApi } from '@/lib/api';
+import { energiesApi, feedbackSurveyApi } from '@/lib/api';
 import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
 import { LeaderSurvey } from '@/components/LeaderSurvey';
+import { FeedbackSurveyBanner } from '@/components/FeedbackSurveyBanner';
 
 import { useTelegram } from '@/hooks/useTelegram';
 
@@ -459,6 +460,9 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
 
           {/* 🚦 Светофор — еженедельный опрос для лидеров десяток */}
           <LeaderSurvey />
+
+          {/* 📋 Анкета обратной связи */}
+          <FeedbackSurveyBanner />
 
           {/* Кнопка "Тест на Лидера десятки" - для пользователей с подпиской >= 3 месяцев */}
           {leaderTestStatus?.hasAccess && (

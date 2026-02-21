@@ -281,6 +281,39 @@ export const energiesApi = {
     }>('/energies/weekly-progress'),
 };
 
+// Feedback Survey (Анкета обратной связи)
+export const feedbackSurveyApi = {
+  getCurrent: () =>
+    api.get<{
+      success: boolean;
+      survey: {
+        month: string;
+        title: string;
+        subtitle: string;
+        opensAt: string;
+        closesAt: string;
+        energyReward: number;
+        isOpen: boolean;
+        isCompleted: boolean;
+        isInDecade: boolean;
+      };
+    }>('/feedback-survey/current'),
+  submit: (data: {
+    q1Useful: number;
+    q2Involved: number;
+    q3Ambassador: number;
+    q4Decade?: number | null;
+    q5Nps: number;
+    q6Valuable?: string | null;
+    q7Improve?: string | null;
+  }) =>
+    api.post<{
+      success: boolean;
+      message: string;
+      energyAwarded: number;
+    }>('/feedback-survey/submit', data),
+};
+
 // Shop (КОД ДЕНЕГ 4.0)
 export const shopApi = {
   listItems: (category?: 'elite' | 'secret' | 'savings') =>

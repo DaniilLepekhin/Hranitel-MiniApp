@@ -1228,3 +1228,33 @@ export const leaderSurveyVotes = pgTable('leader_survey_votes', {
 
 export type LeaderSurveyQuestion = typeof leaderSurveyQuestions.$inferSelect;
 export type LeaderSurveyVote = typeof leaderSurveyVotes.$inferSelect;
+
+// ============================================================
+// 📋 Feedback Survey — ежемесячная анкета обратной связи
+// ============================================================
+
+export const feedbackSurveyResponses = pgTable('feedback_survey_responses', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  surveyMonth: text('survey_month').notNull(), // '2026-02'
+  // Часть 1: Оценка месяца (1-5)
+  q1Useful: integer('q1_useful').notNull(),           // Месяц был полезным
+  q2Involved: integer('q2_involved').notNull(),       // Вовлечённость
+  q3Ambassador: integer('q3_ambassador').notNull(),   // Взаимодействие с амбассадором
+  q4Decade: integer('q4_decade'),                     // Формат десятки (NULL если не в десятке)
+  // Часть 2: Лояльность (0-10)
+  q5Nps: integer('q5_nps').notNull(),                 // NPS — готовность рекомендовать
+  // Часть 3: Короткая обратная связь (необязательно)
+  q6Valuable: text('q6_valuable'),                    // Что было ценным
+  q7Improve: text('q7_improve'),                      // Что улучшить
+  // Мета
+  energyAwarded: boolean('energy_awarded').notNull().default(false),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('feedback_survey_user_id_idx').on(table.userId),
+  index('feedback_survey_month_idx').on(table.surveyMonth),
+  uniqueIndex('feedback_survey_unique_idx').on(table.userId, table.surveyMonth),
+]);
+
+export type FeedbackSurveyResponse = typeof feedbackSurveyResponses.$inferSelect;
+export type NewFeedbackSurveyResponse = typeof feedbackSurveyResponses.$inferInsert;
