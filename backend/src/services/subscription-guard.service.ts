@@ -4,7 +4,7 @@
  */
 
 import { Api } from 'grammy';
-import { db } from '@/db';
+import { db, rawDb } from '@/db';
 import { users } from '@/db/schema';
 import { eq, lt, and, isNotNull } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
@@ -159,7 +159,7 @@ class SubscriptionGuardService {
   }
 
   /**
-   * Удалить пользователя из канала и всех чатов городов
+   * Удалить пользователя из канала и всех чатов (каналы + города + десятки)
    */
   async removeUserFromAllChats(telegramId: number): Promise<void> {
     if (!this.api) {
@@ -167,7 +167,9 @@ class SubscriptionGuardService {
       return;
     }
 
-    const chatIds = [...PROTECTED_CHANNEL_IDS, ...(await this.getCityChatIds())];
+    const cityChatIds = await this.getCityChatIds();
+    const decadeChatIds = await this.getDecadeChatIds();
+    const chatIds = [...PROTECTED_CHANNEL_IDS, ...cityChatIds, ...decadeChatIds];
 
     for (const chatId of chatIds) {
       try {
@@ -186,7 +188,37 @@ class SubscriptionGuardService {
   }
 
   /**
-   * Разблокировать пользователя во всех чатах (при оплате)
+   * Получить все tg_chat_id десяток (с кэшированием)
+   */
+  private decadeChatIdsCache: number[] | null = null;
+  private decadeChatIdsCacheTime = 0;
+
+  async getDecadeChatIds(): Promise<number[]> {
+    const now = Date.now();
+    if (this.decadeChatIdsCache && (now - this.decadeChatIdsCacheTime) < CITY_CHATS_CACHE_TTL) {
+      return this.decadeChatIdsCache;
+    }
+
+    try {
+      const rows = await rawDb<{ tg_chat_id: string | number }[]>`
+        SELECT tg_chat_id FROM decades WHERE is_active = true AND tg_chat_id IS NOT NULL
+      `;
+      const chatIds = rows
+        .map(r => Number(r.tg_chat_id))
+        .filter(id => !isNaN(id));
+
+      this.decadeChatIdsCache = chatIds;
+      this.decadeChatIdsCacheTime = now;
+      logger.info({ count: chatIds.length }, 'Fetched and cached decade chat IDs');
+      return chatIds;
+    } catch (error) {
+      logger.error({ error }, 'Error fetching decade chat IDs');
+      return this.decadeChatIdsCache || [];
+    }
+  }
+
+  /**
+   * Разблокировать пользователя во всех чатах (каналы + города + десятки)
    */
   async unbanUserFromAllChats(telegramId: number): Promise<void> {
     if (!this.api) {
@@ -194,19 +226,25 @@ class SubscriptionGuardService {
       return;
     }
 
-    const chatIds = [...PROTECTED_CHANNEL_IDS, ...(await this.getCityChatIds())];
+    const cityChatIds = await this.getCityChatIds();
+    const decadeChatIds = await this.getDecadeChatIds();
+    const chatIds = [...PROTECTED_CHANNEL_IDS, ...cityChatIds, ...decadeChatIds];
 
+    let unbanned = 0;
     for (const chatId of chatIds) {
       try {
         await this.api.unbanChatMember(chatId, telegramId, { only_if_banned: true });
-        logger.debug({ chatId, telegramId }, 'User unbanned from chat');
+        unbanned++;
       } catch (error) {
-        // Игнорируем ошибки
+        // Игнорируем ошибки (бот может не быть админом)
         logger.debug({ error, chatId, telegramId }, 'Error unbanning user from chat');
       }
     }
 
-    logger.info({ telegramId, chatsCount: chatIds.length }, 'User unbanned from all chats');
+    logger.info(
+      { telegramId, total: chatIds.length, channels: PROTECTED_CHANNEL_IDS.length, cities: cityChatIds.length, decades: decadeChatIds.length },
+      'User unbanned from all chats'
+    );
   }
 
   /**
