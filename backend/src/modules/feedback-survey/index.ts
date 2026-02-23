@@ -4,7 +4,7 @@ import { feedbackSurveyResponses, decadeMembers } from '@/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
 import { energiesService } from '@/modules/energy-points/service';
 import { logger } from '@/utils/logger';
-import { authMiddleware, getUserFromToken } from '@/middlewares/auth';
+import { getUserFromToken } from '@/middlewares/auth';
 
 /** Текущий активный опрос: месяц + дата открытия */
 const CURRENT_SURVEY = {
@@ -22,17 +22,17 @@ export const feedbackSurveyRoutes = new Elysia({
   prefix: '/feedback-survey',
   tags: ['Feedback Survey'],
 })
-  .use(authMiddleware)
 
   /**
    * GET /api/v1/feedback-survey/current
    * Возвращает текущий опрос, статус (доступен/уже заполнен/ещё не открыт)
    */
-  .get('/current', async (ctx) => {
-    let user = (ctx as any).user;
+  .get('/current', async ({ headers, set }) => {
+    const user = await getUserFromToken(headers.authorization);
+
     if (!user) {
-      const authHeader = (ctx as any).headers?.authorization;
-      user = await getUserFromToken(authHeader);
+      set.status = 401;
+      return { success: false, error: 'Unauthorized' };
     }
 
     const now = new Date();
@@ -88,20 +88,8 @@ export const feedbackSurveyRoutes = new Elysia({
    */
   .post(
     '/submit',
-    async (ctx) => {
-      // Резервная проверка авторизации через getUserFromToken
-      // (на случай если authMiddleware singleton deduplication в Elysia не применил derive)
-      let user = (ctx as any).user;
-      if (!user) {
-        const authHeader = (ctx as any).headers?.authorization;
-        user = await getUserFromToken(authHeader);
-        if (user) {
-          logger.info({ userId: user.id }, '[feedback-survey/submit] Fallback auth via getUserFromToken succeeded');
-        }
-      }
-
-      const set = ctx.set;
-      const body = ctx.body as any;
+    async ({ headers, body, set }) => {
+      const user = await getUserFromToken(headers.authorization);
 
       if (!user) {
         set.status = 401;
