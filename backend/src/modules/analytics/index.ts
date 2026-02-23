@@ -147,8 +147,11 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
         });
         if (existingUser && !existingUser.isPro && existingUser.subscriptionExpires) {
           const expiryDate = new Date(existingUser.subscriptionExpires);
+          const now = new Date();
+          const gracePeriodEnd = new Date(expiryDate.getTime() + 7 * 24 * 60 * 60 * 1000);
           const cooldownEnd = new Date(expiryDate.getTime() + 90 * 24 * 60 * 60 * 1000);
-          if (new Date() < cooldownEnd) {
+          // Кулдаун активен только если прошло больше 7 дней с момента истечения
+          if (now > gracePeriodEnd && now < cooldownEnd) {
             logger.warn({ telegram_id: tgIdNum, cooldownEnd }, '🚫 Payment attempt blocked: 3-month cooldown active');
             set.status = 403;
             return {
@@ -416,12 +419,13 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
         }
 
         // isPro = false + subscriptionExpires существует = бывший подписчик
-        // Кулдаун: 90 дней с момента истечения подписки
+        // Кулдаун: 90 дней с момента истечения, но только если прошло больше 7 дней (grace period)
         const expiryDate = new Date(user.subscriptionExpires);
+        const gracePeriodEnd = new Date(expiryDate.getTime() + 7 * 24 * 60 * 60 * 1000);
         const cooldownEnd = new Date(expiryDate.getTime() + 90 * 24 * 60 * 60 * 1000);
         const now = new Date();
 
-        if (now < cooldownEnd) {
+        if (now > gracePeriodEnd && now < cooldownEnd) {
           // Форматируем дату для отображения: DD.MM.YYYY
           const day = String(cooldownEnd.getDate()).padStart(2, '0');
           const month = String(cooldownEnd.getMonth() + 1).padStart(2, '0');
