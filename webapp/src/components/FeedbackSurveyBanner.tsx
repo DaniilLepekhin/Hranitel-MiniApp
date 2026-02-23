@@ -6,27 +6,35 @@ import { MessageSquareHeart, Zap, ChevronRight, CheckCircle2 } from 'lucide-reac
 import { useAuthStore } from '@/store/auth';
 import { feedbackSurveyApi } from '@/lib/api';
 
+// Период анкеты — дублируем на клиенте для надёжного отображения баннера
+// Это защита от ситуации, когда API-запрос не выполнился или данные не загрузились
+const SURVEY_OPENS_AT = new Date('2026-02-22T21:00:00.000Z'); // 23 фев 00:00 МСК
+const SURVEY_CLOSES_AT = new Date('2026-02-28T20:59:59.000Z'); // 28 фев 23:59 МСК
+const SURVEY_ENERGY_REWARD = 300;
+
 export function FeedbackSurveyBanner() {
   const router = useRouter();
   const { user } = useAuthStore();
 
-  const { data, isLoading } = useQuery({
+  const { data } = useQuery({
     queryKey: ['feedback-survey', user?.id],
     queryFn: () => feedbackSurveyApi.getCurrent(),
     enabled: !!user,
     staleTime: 60_000,
   });
 
-  // Don't show if loading or no survey data
-  if (isLoading || !data?.survey) return null;
+  // Клиентская проверка: активен ли период анкеты прямо сейчас
+  const now = new Date();
+  const isSurveyPeriodActive = now >= SURVEY_OPENS_AT && now <= SURVEY_CLOSES_AT;
 
-  const survey = data.survey;
+  // Если период не активен — не показываем вообще
+  if (!isSurveyPeriodActive) return null;
 
-  // Don't show if survey hasn't opened yet
-  if (!survey.isOpen && !survey.isCompleted) return null;
+  const survey = data?.survey;
+  const isCompleted = survey?.isCompleted ?? false;
 
-  // Already completed — show "done" state
-  if (survey.isCompleted) {
+  // Анкета уже заполнена — показываем "выполнено"
+  if (isCompleted) {
     return (
       <div
         className="w-full mt-3"
@@ -65,7 +73,7 @@ export function FeedbackSurveyBanner() {
     );
   }
 
-  // Open and not completed — show CTA banner
+  // Период активен и анкета не заполнена — показываем CTA баннер
   return (
     <div
       className="w-full mt-3 cursor-pointer active:scale-[0.99] transition-transform"
@@ -99,7 +107,7 @@ export function FeedbackSurveyBanner() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Zap style={{ width: '12px', height: '12px', color: 'rgba(255,255,255,0.8)' }} />
             <p style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.8)' }}>
-              +{survey.energyReward} энергий за заполнение
+              +{survey?.energyReward ?? SURVEY_ENERGY_REWARD} энергий за заполнение
             </p>
           </div>
         </div>
