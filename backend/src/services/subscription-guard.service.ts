@@ -6,11 +6,12 @@
 import { Api } from 'grammy';
 import { db, rawDb } from '@/db';
 import { users } from '@/db/schema';
-import { eq, lt, and, isNotNull } from 'drizzle-orm';
+import { eq, lt, and, isNotNull, gte, sql } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import postgres from 'postgres';
 import { config } from '@/config';
 import { decadesService } from '@/services/decades.service';
+import { sendRenewal2Days, sendRenewal1Day, sendRenewalToday } from '@/modules/bot/post-payment-funnels';
 
 // Защищённые каналы клуба
 const PROTECTED_CHANNEL_IDS = [
@@ -316,6 +317,18 @@ class SubscriptionGuardService {
             }
           }
 
+          // Перечитываем пользователя перед обновлением — webhook мог продлить подписку пока мы обрабатывали
+          const [freshUser] = await db
+            .select()
+            .from(users)
+            .where(eq(users.id, user.id))
+            .limit(1);
+
+          if (freshUser && freshUser.subscriptionExpires && new Date(freshUser.subscriptionExpires) > new Date()) {
+            logger.info({ telegramId: user.telegramId, subscriptionExpires: freshUser.subscriptionExpires }, 'Skipping is_pro=false: subscription was renewed during processing (race condition)');
+            continue;
+          }
+
           // Обновляем статус подписки
           await db
             .update(users)
@@ -334,6 +347,93 @@ class SubscriptionGuardService {
     } catch (error) {
       logger.error({ error }, 'Error checking expired subscriptions');
       return { processed: 0, removed: 0 };
+    }
+  }
+
+  /**
+   * 🔔 Ежедневная рассылка напоминаний о продлении подписки
+   * Запускается в 09:00 МСК. Проходит по всем is_pro пользователям
+   * у которых subscription_expires через 2 дня, 1 день или сегодня.
+   * auto_renewal_enabled = true → только информируем (списание автоматическое)
+   * auto_renewal_enabled = false → предупреждаем что доступ закроется
+   */
+  async sendRenewalReminders(): Promise<{ sent2days: number; sent1day: number; sentToday: number }> {
+    const now = new Date();
+
+    // Границы "через 2 дня": subscription_expires между завтра 00:00 и послезавтра 00:00 МСК
+    const mskOffset = 3 * 60 * 60 * 1000;
+    const todayMsk = new Date(Math.floor((now.getTime() + mskOffset) / 86400000) * 86400000 - mskOffset);
+    const day1Start = new Date(todayMsk.getTime() + 1 * 86400000);
+    const day1End   = new Date(todayMsk.getTime() + 2 * 86400000);
+    const day2Start = new Date(todayMsk.getTime() + 2 * 86400000);
+    const day2End   = new Date(todayMsk.getTime() + 3 * 86400000);
+    const todayEnd  = new Date(todayMsk.getTime() + 1 * 86400000);
+
+    let sent2days = 0, sent1day = 0, sentToday = 0;
+
+    try {
+      // За 2 дня
+      const users2days = await rawDb<{ telegram_id: bigint }[]>`
+        SELECT telegram_id FROM users
+        WHERE is_pro = true
+          AND subscription_expires >= ${day2Start}
+          AND subscription_expires <  ${day2End}
+          AND telegram_id IS NOT NULL
+      `;
+      for (const u of users2days) {
+        try {
+          const tgId = Number(u.telegram_id);
+          await sendRenewal2Days(tgId, tgId);
+          sent2days++;
+          logger.info({ telegramId: tgId }, '🔔 Renewal reminder sent: 2 days');
+        } catch (e) {
+          logger.error({ error: e, telegramId: u.telegram_id }, 'Failed to send 2-day renewal reminder');
+        }
+      }
+
+      // За 1 день
+      const users1day = await rawDb<{ telegram_id: bigint }[]>`
+        SELECT telegram_id FROM users
+        WHERE is_pro = true
+          AND subscription_expires >= ${day1Start}
+          AND subscription_expires <  ${day1End}
+          AND telegram_id IS NOT NULL
+      `;
+      for (const u of users1day) {
+        try {
+          const tgId = Number(u.telegram_id);
+          await sendRenewal1Day(tgId, tgId);
+          sent1day++;
+          logger.info({ telegramId: tgId }, '🔔 Renewal reminder sent: 1 day');
+        } catch (e) {
+          logger.error({ error: e, telegramId: u.telegram_id }, 'Failed to send 1-day renewal reminder');
+        }
+      }
+
+      // Сегодня
+      const usersToday = await rawDb<{ telegram_id: bigint }[]>`
+        SELECT telegram_id FROM users
+        WHERE is_pro = true
+          AND subscription_expires >= ${todayMsk}
+          AND subscription_expires <  ${todayEnd}
+          AND telegram_id IS NOT NULL
+      `;
+      for (const u of usersToday) {
+        try {
+          const tgId = Number(u.telegram_id);
+          await sendRenewalToday(tgId, tgId);
+          sentToday++;
+          logger.info({ telegramId: tgId }, '🔔 Renewal reminder sent: today');
+        } catch (e) {
+          logger.error({ error: e, telegramId: u.telegram_id }, 'Failed to send today renewal reminder');
+        }
+      }
+
+      logger.info({ sent2days, sent1day, sentToday }, '🔔 Renewal reminders completed');
+      return { sent2days, sent1day, sentToday };
+    } catch (error) {
+      logger.error({ error }, 'Error sending renewal reminders');
+      return { sent2days, sent1day, sentToday };
     }
   }
 }
