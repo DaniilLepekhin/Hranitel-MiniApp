@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { MapPin, ChevronRight, CheckCircle2, PencilLine } from 'lucide-react';
+import { MapPin, CheckCircle2, PencilLine } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { geographySurveyApi } from '@/lib/api';
 
@@ -73,8 +73,8 @@ export function GeographySurveyBanner() {
       onClick={() => router.push('/geography')}
       style={{
         borderRadius: '8px',
-        border: '1px solid rgba(114, 90, 193, 0.5)',
-        background: 'linear-gradient(243.413deg, rgb(90, 60, 160) 15.721%, rgb(70, 42, 130) 99.389%)',
+        border: '1px solid #d93547',
+        background: 'linear-gradient(243.413deg, rgb(174, 30, 43) 15.721%, rgb(156, 23, 35) 99.389%)',
         padding: '16px',
       }}
     >
@@ -83,25 +83,39 @@ export function GeographySurveyBanner() {
           style={{
             width: '40px',
             height: '40px',
-            borderRadius: '12px',
+            borderRadius: '50%',
             background: 'rgba(255, 255, 255, 0.15)',
+            border: '1px solid rgba(255,255,255,0.3)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
           }}
         >
-          <MapPin style={{ width: '22px', height: '22px', color: '#fff' }} />
+          <MapPin style={{ width: '20px', height: '20px', color: '#f7f1e8' }} />
         </div>
         <div style={{ flex: 1 }}>
-          <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff', marginBottom: '2px' }}>
+          <p style={{ fontFamily: 'Gilroy, sans-serif', fontWeight: 700, fontSize: '15px', color: '#f7f1e8', marginBottom: '2px' }}>
             География нашего Клуба
           </p>
-          <p style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.8)' }}>
+          <p style={{ fontFamily: 'Gilroy, sans-serif', fontWeight: 400, fontSize: '12px', color: 'rgba(247, 241, 232, 0.8)' }}>
             Заполните, если чата вашего города нет
           </p>
         </div>
-        <ChevronRight style={{ width: '20px', height: '20px', color: 'rgba(255,255,255,0.6)', flexShrink: 0 }} />
+        <div
+          style={{
+            flexShrink: 0,
+            width: '32px',
+            height: '32px',
+            borderRadius: '50%',
+            background: '#f7f1e8',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <span style={{ color: '#9c1723', fontSize: '14px' }}>→</span>
+        </div>
       </div>
     </div>
   );
