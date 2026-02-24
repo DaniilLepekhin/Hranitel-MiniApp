@@ -5,7 +5,7 @@
 
 import { Api } from 'grammy';
 import { db, rawDb } from '@/db';
-import { users, geographySurveyResponses } from '@/db/schema';
+import { users } from '@/db/schema';
 import { eq, lt, and, isNotNull, gte, sql } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import postgres from 'postgres';
@@ -334,15 +334,6 @@ class SubscriptionGuardService {
             .update(users)
             .set({ isPro: false })
             .where(eq(users.id, user.id));
-
-          // Удаляем запись анкеты географии (пересоздастся при следующей оплате)
-          try {
-            await db
-              .delete(geographySurveyResponses)
-              .where(eq(geographySurveyResponses.userId, user.id));
-          } catch (geoError) {
-            logger.warn({ error: geoError, telegramId: user.telegramId }, 'Failed to delete geography survey on expiry');
-          }
 
           removed++;
           logger.info({ telegramId: user.telegramId, subscriptionExpires: user.subscriptionExpires }, 'User removed due to expired subscription');
