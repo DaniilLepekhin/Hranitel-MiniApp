@@ -314,6 +314,16 @@ export const feedbackSurveyApi = {
     }>('/feedback-survey/submit', data),
 };
 
+export const geographySurveyApi = {
+  getMy: () =>
+    api.get<{
+      success: boolean;
+      response: { city: string; updatedAt: string } | null;
+    }>('/geography-survey/my'),
+  submit: (city: string) =>
+    api.post<{ success: boolean; city: string }>('/geography-survey/submit', { city }),
+};
+
 // Shop (КОД ДЕНЕГ 4.0)
 export const shopApi = {
   listItems: (category?: 'elite' | 'secret' | 'savings') =>

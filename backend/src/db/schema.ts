@@ -1258,3 +1258,22 @@ export const feedbackSurveyResponses = pgTable('feedback_survey_responses', {
 
 export type FeedbackSurveyResponse = typeof feedbackSurveyResponses.$inferSelect;
 export type NewFeedbackSurveyResponse = typeof feedbackSurveyResponses.$inferInsert;
+
+// ============================================================
+// 🗺️ АНКЕТА "ГЕОГРАФИЯ КЛУБА"
+// Постоянная анкета — один ответ на пользователя, можно обновить
+// Удаляется каскадно при is_pro=false (через триггер в checkExpiredSubscriptions)
+// ============================================================
+export const geographySurveyResponses = pgTable('geography_survey_responses', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  city: text('city').notNull(), // Город, который указал пользователь
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('geography_survey_user_idx').on(table.userId),
+  index('geography_survey_city_idx').on(table.city),
+]);
+
+export type GeographySurveyResponse = typeof geographySurveyResponses.$inferSelect;
+export type NewGeographySurveyResponse = typeof geographySurveyResponses.$inferInsert;
