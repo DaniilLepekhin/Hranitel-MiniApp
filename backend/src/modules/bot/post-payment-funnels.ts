@@ -497,6 +497,8 @@ export async function sendRenewal2Days(userId: number, chatId: number) {
   const keyboard = new InlineKeyboard()
     .text('навигация клуба', 'menu_back')
     .row()
+    .webApp('оплатить ❤️', 'https://app.successkod.com/payment_form_club.html')
+    .row()
     .url('Служба заботы', 'https://t.me/Egiazarova_support_bot');
 
   await getTelegramService().sendPhoto(
@@ -523,6 +525,8 @@ export async function sendRenewal1Day(userId: number, chatId: number) {
 
   const firstName = user.firstName || 'дорогая';
   const keyboard = new InlineKeyboard()
+    .webApp('оплатить ❤️', 'https://app.successkod.com/payment_form_club.html')
+    .row()
     .url('Служба заботы', 'https://t.me/Egiazarova_support_bot');
 
   await getTelegramService().sendPhoto(
@@ -549,6 +553,8 @@ export async function sendRenewalToday(userId: number, chatId: number) {
 
   const firstName = user.firstName || 'дорогая';
   const keyboard = new InlineKeyboard()
+    .webApp('оплатить ❤️', 'https://app.successkod.com/payment_form_club.html')
+    .row()
     .url('Служба заботы', 'https://t.me/Egiazarova_support_bot');
 
   await getTelegramService().sendPhoto(
