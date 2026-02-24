@@ -78,7 +78,7 @@ const SOZVON_STORIS_REWARDS = {
 // Правила начисления для чатов десяток
 const DECADE_RULES: HashtagRule[] = [
   {
-    hashtags: ['#отчет', '#дз'],
+    hashtags: ['#отчет', '#отчёт', '#дз'],
     reward: 50,
     limitType: 'daily', // Сброс в 00:00 МСК
     description: 'Ежедневный отчет',
