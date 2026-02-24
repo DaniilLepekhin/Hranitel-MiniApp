@@ -438,11 +438,11 @@ export class HashtagParserService {
       if (hashtags.length === 0) return;
 
       // 1. Сначала обрабатываем #созвон / #сторис (комбо-система, раз в 3 дня)
-      const handledSozvonStoris = await this.processSozvonStoris(ctx, userId, userTelegramId, hashtags);
+      await this.processSozvonStoris(ctx, userId, userTelegramId, hashtags);
 
-      // 2. Обрабатываем остальные хештеги (#практика, #инсайт)
-      // Правило: один хештег — одна награда за сообщение (break после первого успешного начисления)
-      if (!handledSozvonStoris) {
+      // 2. Обрабатываем остальные хештеги (#практика, #инсайт) — независимо от #созвон/#сторис
+      // Правило: один хештег из CITY_RULES — одна награда за сообщение (break после первого успешного начисления)
+      {
         for (const rule of CITY_RULES) {
           const matchedHashtag = rule.hashtags.find((tag) => hashtags.includes(tag));
           if (!matchedHashtag) continue;
