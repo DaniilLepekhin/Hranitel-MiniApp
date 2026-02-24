@@ -1052,7 +1052,7 @@ export async function sendMenuMessage(chatId: number) {
     .row()
     .text('подарить подписку', 'menu_gift_subscription')
     .row()
-    .url('оферта', 'https://ishodnyi-код.com/clubofert')
+    .url('оферта', 'https://ishodnyi-kod.com/clubofert')
     .row()
     .url('политика', 'https://ishodnyi-kod.com/clubofert');
 
