@@ -50,24 +50,50 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
           }
         }
 
-        // Create metka if not provided
-        const finalMetka = metka || [utm_campaign, utm_medium].filter(p => p).join('_');
-
         // Конвертируем telegram_id в число для bigint поля
         const tgIdNum = parseInt(telegram_id, 10);
         if (isNaN(tgIdNum)) {
           throw new Error('Invalid telegram_id');
         }
 
+        // Fallback: если webapp не передал UTM — берём из users.metadata (start-параметр бота)
+        let finalCampaign = utm_campaign || null;
+        let finalMedium = utm_medium || null;
+        let finalSource = utm_source || null;
+        let finalMetka = metka || null;
+
+        if (!finalCampaign && !finalMedium) {
+          const userRecord = await db.query.users.findFirst({
+            where: eq(users.telegramId, tgIdNum),
+            columns: { metadata: true },
+          });
+          if (userRecord?.metadata) {
+            const meta = userRecord.metadata as Record<string, unknown>;
+            const rawPayload = meta.raw_payload as string | undefined;
+            if (rawPayload) {
+              const parts = rawPayload.split('_');
+              finalCampaign = parts[0] || null;
+              finalMedium   = parts[1] || null;
+              finalSource   = parts[2] || null;
+            } else {
+              finalCampaign = (meta.utm_campaign as string) || null;
+              finalMedium   = (meta.utm_medium   as string) || null;
+              finalSource   = (meta.utm_source   as string) || null;
+            }
+          }
+        }
+
+        finalMetka = finalMetka || [finalCampaign, finalMedium].filter(p => p).join('_') || null;
+
         await db.insert(paymentAnalytics).values({
           telegramId: tgIdNum,
           eventType: 'form_open',
-          utmCampaign: utm_campaign || null,
-          utmMedium: utm_medium || null,
-          utmSource: utm_source || null,
+          utmCampaign: finalCampaign,
+          utmMedium: finalMedium,
+          utmSource: finalSource,
           utmContent: utm_content || null,
           clientId: client_id || null,
-          metka: finalMetka || null,
+          metka: finalMetka,
           name: name || null,
           email: email ? email.toLowerCase().trim() : null,
           phone: phone || null,
@@ -132,9 +158,6 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
           code_word,
         } = body;
 
-        // Create metka if not provided
-        const finalMetka = metka || [utm_campaign, utm_medium].filter(p => p).join('_');
-
         // Конвертируем telegram_id в число для bigint поля
         const tgIdNum = parseInt(telegram_id, 10);
         if (isNaN(tgIdNum)) {
@@ -162,18 +185,43 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
           }
         }
 
+        // Fallback: если webapp не передал UTM — берём из users.metadata (start-параметр бота)
+        let finalCampaign = utm_campaign || null;
+        let finalMedium = utm_medium || null;
+        let finalSource = utm_source || null;
+        let finalMetka = metka || null;
+
+        if (!finalCampaign && !finalMedium) {
+          const meta = existingUser?.metadata as Record<string, unknown> | null | undefined;
+          if (meta) {
+            const rawPayload = meta.raw_payload as string | undefined;
+            if (rawPayload) {
+              const parts = rawPayload.split('_');
+              finalCampaign = parts[0] || null;
+              finalMedium   = parts[1] || null;
+              finalSource   = parts[2] || null;
+            } else {
+              finalCampaign = (meta.utm_campaign as string) || null;
+              finalMedium   = (meta.utm_medium   as string) || null;
+              finalSource   = (meta.utm_source   as string) || null;
+            }
+          }
+        }
+
+        finalMetka = finalMetka || [finalCampaign, finalMedium].filter(p => p).join('_') || null;
+
         await db.insert(paymentAnalytics).values({
           telegramId: tgIdNum,
           eventType: 'payment_attempt',
           paymentMethod: payment_method,
           amount: amount,
           currency: currency ? currency.substring(0, 3).toUpperCase() : null, // varchar(3) limit
-          utmCampaign: utm_campaign || null,
-          utmMedium: utm_medium || null,
-          utmSource: utm_source || null,
+          utmCampaign: finalCampaign,
+          utmMedium: finalMedium,
+          utmSource: finalSource,
           utmContent: utm_content || null,
           clientId: client_id || null,
-          metka: finalMetka || null,
+          metka: finalMetka,
           name: name || null,
           email: email ? email.toLowerCase().trim() : null,
           phone: phone || null,
