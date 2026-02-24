@@ -338,12 +338,32 @@ if (!isDevelopment) {
     }
   };
 
+  // 🔔 CRON: Напоминания о продлении подписки (каждый день в 09:00 по МСК)
+  // Отправляет сообщения пользователям у которых подписка истекает через 2 дня, 1 день или сегодня
+  const sendRenewalRemindersDaily = async () => {
+    const now = new Date();
+    const moscowHour = (now.getUTCHours() + 3) % 24; // UTC+3 = Moscow time
+
+    // Запускаем в 09:00 по МСК (06:00 UTC)
+    if (moscowHour === 9) {
+      logger.info('Running daily renewal reminders...');
+      try {
+        const result = await subscriptionGuardService.sendRenewalReminders();
+        logger.info({ result }, 'Daily renewal reminders completed');
+      } catch (error) {
+        logger.error({ error }, 'Daily renewal reminders failed');
+      }
+    }
+  };
+
   // Проверяем каждый час (в :00 минут)
   const HOURLY_CHECK = 60 * 60 * 1000; // 1 час
   setInterval(checkExpiredSubscriptionsDaily, HOURLY_CHECK);
+  setInterval(sendRenewalRemindersDaily, HOURLY_CHECK);
 
-  // Первая проверка через 5 минут после старта (если сейчас 00:xx МСК)
+  // Первая проверка через 5 минут после старта (если сейчас 00:xx или 09:xx МСК)
   setTimeout(checkExpiredSubscriptionsDaily, 5 * 60 * 1000);
+  setTimeout(sendRenewalRemindersDaily, 5 * 60 * 1000);
 }
 
 // Graceful shutdown with timeout
