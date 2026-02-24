@@ -178,16 +178,18 @@ function parseUtmFromPayload(payload: string | undefined): UtmData {
     return {};
   }
 
-  // Парсим UTM метки: source_medium_campaign_content_term
+  // Парсим UTM метки: campaign_medium_source_content_term
+  // Пример: club_tgchannel → campaign=club, medium=tgchannel
+  //         club_insta_direct → campaign=club, medium=insta, source=direct
   const parts = payload.split('_');
 
   const utmData: UtmData = {
     raw_payload: payload
   };
 
-  if (parts.length >= 1 && parts[0]) utmData.utm_source = parts[0];
+  if (parts.length >= 1 && parts[0]) utmData.utm_campaign = parts[0];
   if (parts.length >= 2 && parts[1]) utmData.utm_medium = parts[1];
-  if (parts.length >= 3 && parts[2]) utmData.utm_campaign = parts[2];
+  if (parts.length >= 3 && parts[2]) utmData.utm_source = parts[2];
   if (parts.length >= 4 && parts[3]) utmData.utm_content = parts[3];
   if (parts.length >= 5 && parts[4]) utmData.utm_term = parts[4];
 
