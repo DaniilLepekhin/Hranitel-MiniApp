@@ -187,10 +187,112 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
           .orderBy(desc(paymentAnalytics.createdAt))
           .limit(1);
 
+        // ==========================================
+        // AUTO-RENEWAL HANDLING
+        // ==========================================
+        // Если payment_attempt не найден — это автоматическое продление (auto-renewal) от Lava.
+        // Пользователь не открывал форму оплаты, поэтому payment_attempt отсутствует.
+        // Ищем пользователя напрямую по email в таблице users.
         if (!lastAttempt) {
-          logger.error({ email: normalizedEmail }, 'No payment_attempt found for this email');
-          set.status = 400;
-          return { success: false, error: 'No payment attempt found for this email' };
+          logger.info({ email: normalizedEmail }, 'No payment_attempt found — treating as auto-renewal, looking up user by email');
+
+          const [autoRenewalUser] = await db
+            .select()
+            .from(users)
+            .where(eq(users.email, normalizedEmail))
+            .limit(1);
+
+          if (!autoRenewalUser) {
+            logger.error({ email: normalizedEmail }, 'No user found by email for auto-renewal');
+            set.status = 400;
+            return { success: false, error: 'No user found for auto-renewal' };
+          }
+
+          const autoTgId = autoRenewalUser.telegramId;
+          logger.info({ email: normalizedEmail, telegramId: autoTgId }, 'Processing auto-renewal for user');
+
+          // Продлить подписку на 30 дней от текущего значения (или от сейчас, если истекла)
+          const currentExpiry = autoRenewalUser.subscriptionExpires
+            ? new Date(autoRenewalUser.subscriptionExpires)
+            : new Date();
+          const newExpiry = new Date(Math.max(currentExpiry.getTime(), Date.now()) + 30 * 24 * 60 * 60 * 1000);
+
+          const [updatedAutoUser] = await db
+            .update(users)
+            .set({
+              isPro: true,
+              subscriptionExpires: newExpiry,
+              updatedAt: new Date(),
+              ...(contact_id ? { lavaContactId: contact_id } : {}),
+            })
+            .where(eq(users.id, autoRenewalUser.id))
+            .returning();
+
+          // Создать запись платежа
+          const [autoPayment] = await db
+            .insert(payments)
+            .values({
+              userId: autoRenewalUser.id,
+              amount: amount ? amount.toString() : '0',
+              currency: payment_method || 'RUB',
+              status: 'completed',
+              paymentProvider: 'lava',
+              lavaContactId: contact_id || null,
+              email: normalizedEmail,
+              metadata: {
+                tariff: 'club2000',
+                payment_method: payment_method || null,
+                auto_renewal: true,
+              },
+              completedAt: new Date(),
+            })
+            .returning();
+
+          // Track в аналитике
+          await db.insert(paymentAnalytics).values({
+            telegramId: autoTgId,
+            eventType: 'payment_success',
+            paymentId: autoPayment.id,
+            paymentMethod: payment_method || 'RUB',
+            amount: amount ? amount.toString() : '0',
+            currency: payment_method || 'RUB',
+            email: normalizedEmail,
+            metadata: {
+              tariff: 'club2000',
+              auto_renewal: true,
+              contact_id: contact_id || null,
+            },
+          });
+
+          // Начислить 500 Энергии за продление
+          try {
+            await energiesService.award(autoRenewalUser.id, 500, 'Продление подписки', {
+              source: 'payment',
+              paymentId: autoPayment.id,
+            });
+            logger.info({ userId: autoRenewalUser.id, telegramId: autoTgId }, 'Awarded 500 energy for auto-renewal');
+          } catch (error) {
+            logger.error({ error, telegramId: autoTgId }, 'Failed to award energy for auto-renewal');
+          }
+
+          // Разбанить пользователя если нужно
+          try {
+            await subscriptionGuardService.unbanUserFromAllChats(autoTgId);
+          } catch (error) {
+            logger.error({ error, telegramId: autoTgId }, 'Failed to unban user after auto-renewal');
+          }
+
+          logger.info(
+            { userId: autoRenewalUser.id, telegramId: autoTgId, paymentId: autoPayment.id, newExpiry },
+            'Auto-renewal processed successfully'
+          );
+
+          return {
+            success: true,
+            message: 'Auto-renewal processed successfully',
+            userId: autoRenewalUser.id,
+            paymentId: autoPayment.id,
+          };
         }
 
         // Extract data from payment_attempt
