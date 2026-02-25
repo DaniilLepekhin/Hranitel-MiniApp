@@ -24,6 +24,7 @@ export const COUNTRIES = [
   '🇮🇱 Израиль',
   '🇹🇷 Турция',
   '🇩🇪 Германия',
+  '🇪🇪 Эстония',
 ] as const;
 
 export type Country = typeof COUNTRIES[number];
