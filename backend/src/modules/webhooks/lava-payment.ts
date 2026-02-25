@@ -355,9 +355,12 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
           user = newUser;
         } else {
           // Update existing user
+          // Продлеваем от текущей даты истечения (если ещё активна) или от сейчас
+          const currentExpiry = user.subscriptionExpires ? new Date(user.subscriptionExpires) : new Date();
+          const newExpiry = new Date(Math.max(currentExpiry.getTime(), Date.now()) + 30 * 24 * 60 * 60 * 1000);
           const updateData: any = {
             isPro: true,
-            subscriptionExpires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            subscriptionExpires: newExpiry,
             updatedAt: new Date(),
           };
 
