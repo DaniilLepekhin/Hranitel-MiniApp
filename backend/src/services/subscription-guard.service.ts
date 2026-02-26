@@ -348,10 +348,57 @@ class SubscriptionGuardService {
       }
 
       logger.info({ processed: expiredUsers.length, removed }, 'Expired subscriptions check completed');
+
+      // 🧹 Дополнительная очистка: убираем из десяток пользователей с is_pro=false
+      // Это страховка на случай если removeUserFromDecade упал при основной обработке
+      await this.cleanupOrphanedDecadeMembers();
+
       return { processed: expiredUsers.length, removed };
     } catch (error) {
       logger.error({ error }, 'Error checking expired subscriptions');
       return { processed: 0, removed: 0 };
+    }
+  }
+
+  /**
+   * 🧹 Очистка "сирот" в десятках: пользователи с is_pro=false которые ещё числятся активными
+   * Это страховка когда removeUserFromDecade упал во время основного cron или
+   * is_pro был выставлен вручную без удаления из десятки
+   */
+  async cleanupOrphanedDecadeMembers(): Promise<{ cleaned: number }> {
+    try {
+      // Найти все активные записи в decade_members где пользователь уже не is_pro
+      const orphans = await rawDb<{ dm_id: string; decade_id: string; telegram_id: string }[]>`
+        SELECT dm.id as dm_id, dm.decade_id, u.telegram_id::text
+        FROM decade_members dm
+        JOIN users u ON u.id = dm.user_id
+        WHERE dm.left_at IS NULL
+          AND u.is_pro = false
+      `;
+
+      if (orphans.length === 0) {
+        logger.info('🧹 No orphaned decade members found');
+        return { cleaned: 0 };
+      }
+
+      logger.info({ count: orphans.length }, '🧹 Found orphaned decade members (is_pro=false still in decades)');
+
+      let cleaned = 0;
+      for (const orphan of orphans) {
+        try {
+          await decadesService.removeUserFromDecade(Number(orphan.telegram_id));
+          cleaned++;
+          logger.info({ telegramId: orphan.telegram_id, decadeId: orphan.decade_id }, '🧹 Removed orphaned member from decade');
+        } catch (e) {
+          logger.warn({ err: e, telegramId: orphan.telegram_id, decadeId: orphan.decade_id }, '🧹 Failed to remove orphaned member');
+        }
+      }
+
+      logger.info({ cleaned }, '🧹 Orphaned decade members cleanup completed');
+      return { cleaned };
+    } catch (error) {
+      logger.error({ err: error }, '🧹 Error during orphaned decade members cleanup');
+      return { cleaned: 0 };
     }
   }
 
