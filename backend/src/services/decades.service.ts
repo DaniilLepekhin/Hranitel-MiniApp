@@ -631,31 +631,7 @@ class DecadesService {
       return { allowed: true };
     }
 
-    // ⚠️ ПЕРВАЯ ПРОВЕРКА: Десятка переполнена или заполнена?
-    // Считаем реальное количество активных участников В ЧАТЕ через БД
-    const [result] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(decadeMembers)
-      .where(
-        and(
-          eq(decadeMembers.decadeId, decade.id),
-          isNull(decadeMembers.leftAt)
-        )
-      );
-
-    const actualMembersCount = result?.count || 0;
-
-    // Проверяем, не переполнена ли десятка СРАЗУ
-    // Используем БД как источник истины для количества участников
-    if (actualMembersCount >= decade.maxMembers) {
-      // Десятка заполнена/переполнена - кикаем любого нового
-      return {
-        allowed: false,
-        reason: 'Десятка заполнена. Откройте приложение клуба и нажмите "Вступить в десятку" - вы будете распределены в свободную десятку вашего города.',
-      };
-    }
-
-    // ВТОРАЯ ПРОВЕРКА: Проверить, распределён ли пользователь в эту десятку
+    // ✅ ПЕРВАЯ ПРОВЕРКА: распределён ли пользователь (проверяем ДО подсчёта — чтобы легитимный участник не был кикнут при полной десятке)
     const [membership] = await db
       .select()
       .from(decadeMembers)
@@ -669,6 +645,23 @@ class DecadesService {
       .limit(1);
 
     if (!membership) {
+      // Постороннего — проверяем не переполнена ли десятка
+      const [result] = await db
+        .select({ count: sql`count(*)::int` })
+        .from(decadeMembers)
+        .where(
+          and(
+            eq(decadeMembers.decadeId, decade.id),
+            isNull(decadeMembers.leftAt)
+          )
+        );
+      const actualCount = (result?.count || 0) as number;
+      if (actualCount >= decade.maxMembers) {
+        return {
+          allowed: false,
+          reason: 'Десятка заполнена. Откройте приложение клуба и нажмите "Вступить в десятку" - вы будете распределены в свободную десятку вашего города.',
+        };
+      }
       return {
         allowed: false,
         reason: 'Вы не распределены в эту десятку. Откройте приложение клуба и нажмите "Вступить в десятку".',
