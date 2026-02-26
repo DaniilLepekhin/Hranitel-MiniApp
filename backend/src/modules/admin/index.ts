@@ -645,6 +645,41 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
   )
 
   /**
+   * 🔔 Ручной запуск рассылки напоминаний о продлении подписки
+   * Позволяет запустить напоминания в любое время (без ожидания 09:00 МСК)
+   */
+  .post(
+    '/trigger-renewal-reminders',
+    async ({ headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      try {
+        logger.info('Admin triggered renewal reminders');
+        const result = await subscriptionGuardService.sendRenewalReminders();
+        logger.info({ result }, 'Admin-triggered renewal reminders completed');
+        return {
+          success: true,
+          message: 'Напоминания отправлены',
+          result,
+        };
+      } catch (error: any) {
+        logger.error({ err: error }, 'Admin-triggered renewal reminders failed');
+        set.status = 500;
+        return { success: false, error: error?.message || 'Unknown error' };
+      }
+    },
+    {
+      detail: {
+        summary: 'Запуск рассылки напоминаний о продлении подписки',
+        description: 'Отправляет напоминания пользователям с подпиской истекающей сегодня, завтра или послезавтра',
+      },
+    }
+  )
+
+  /**
    * 📱 Отправить меню участника клуба
    */
   .post(

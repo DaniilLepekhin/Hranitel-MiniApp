@@ -369,70 +369,87 @@ class SubscriptionGuardService {
     const day2End   = new Date(todayMsk.getTime() + 3 * 86400000);
     const todayEnd  = new Date(todayMsk.getTime() + 1 * 86400000);
 
+    logger.info({ todayMsk, day1Start, day1End, day2Start, day2End, todayEnd }, '🔔 Renewal reminders date windows');
+
     let sent2days = 0, sent1day = 0, sentToday = 0;
 
     try {
-      // За 2 дня
-      const users2days = await rawDb<{ telegram_id: bigint }[]>`
-        SELECT telegram_id FROM users
-        WHERE is_pro = true
-          AND subscription_expires >= ${day2Start}
-          AND subscription_expires <  ${day2End}
-          AND telegram_id IS NOT NULL
-      `;
+      // За 2 дня — используем Drizzle ORM (как checkExpiredSubscriptions)
+      const users2days = await db
+        .select({ telegramId: users.telegramId })
+        .from(users)
+        .where(
+          and(
+            eq(users.isPro, true),
+            isNotNull(users.telegramId),
+            gte(users.subscriptionExpires, day2Start),
+            lt(users.subscriptionExpires, day2End)
+          )
+        );
+      logger.info({ count: users2days.length }, '🔔 Users with subscription expiring in 2 days');
       for (const u of users2days) {
         try {
-          const tgId = Number(u.telegram_id);
+          const tgId = u.telegramId!;
           await sendRenewal2Days(tgId, tgId);
           sent2days++;
           logger.info({ telegramId: tgId }, '🔔 Renewal reminder sent: 2 days');
         } catch (e) {
-          logger.error({ error: e, telegramId: u.telegram_id }, 'Failed to send 2-day renewal reminder');
+          logger.error({ err: e, telegramId: u.telegramId }, 'Failed to send 2-day renewal reminder');
         }
       }
 
       // За 1 день
-      const users1day = await rawDb<{ telegram_id: bigint }[]>`
-        SELECT telegram_id FROM users
-        WHERE is_pro = true
-          AND subscription_expires >= ${day1Start}
-          AND subscription_expires <  ${day1End}
-          AND telegram_id IS NOT NULL
-      `;
+      const users1day = await db
+        .select({ telegramId: users.telegramId })
+        .from(users)
+        .where(
+          and(
+            eq(users.isPro, true),
+            isNotNull(users.telegramId),
+            gte(users.subscriptionExpires, day1Start),
+            lt(users.subscriptionExpires, day1End)
+          )
+        );
+      logger.info({ count: users1day.length }, '🔔 Users with subscription expiring in 1 day');
       for (const u of users1day) {
         try {
-          const tgId = Number(u.telegram_id);
+          const tgId = u.telegramId!;
           await sendRenewal1Day(tgId, tgId);
           sent1day++;
           logger.info({ telegramId: tgId }, '🔔 Renewal reminder sent: 1 day');
         } catch (e) {
-          logger.error({ error: e, telegramId: u.telegram_id }, 'Failed to send 1-day renewal reminder');
+          logger.error({ err: e, telegramId: u.telegramId }, 'Failed to send 1-day renewal reminder');
         }
       }
 
       // Сегодня
-      const usersToday = await rawDb<{ telegram_id: bigint }[]>`
-        SELECT telegram_id FROM users
-        WHERE is_pro = true
-          AND subscription_expires >= ${todayMsk}
-          AND subscription_expires <  ${todayEnd}
-          AND telegram_id IS NOT NULL
-      `;
+      const usersToday = await db
+        .select({ telegramId: users.telegramId })
+        .from(users)
+        .where(
+          and(
+            eq(users.isPro, true),
+            isNotNull(users.telegramId),
+            gte(users.subscriptionExpires, todayMsk),
+            lt(users.subscriptionExpires, todayEnd)
+          )
+        );
+      logger.info({ count: usersToday.length }, '🔔 Users with subscription expiring today');
       for (const u of usersToday) {
         try {
-          const tgId = Number(u.telegram_id);
+          const tgId = u.telegramId!;
           await sendRenewalToday(tgId, tgId);
           sentToday++;
           logger.info({ telegramId: tgId }, '🔔 Renewal reminder sent: today');
         } catch (e) {
-          logger.error({ error: e, telegramId: u.telegram_id }, 'Failed to send today renewal reminder');
+          logger.error({ err: e, telegramId: u.telegramId }, 'Failed to send today renewal reminder');
         }
       }
 
       logger.info({ sent2days, sent1day, sentToday }, '🔔 Renewal reminders completed');
       return { sent2days, sent1day, sentToday };
     } catch (error) {
-      logger.error({ error }, 'Error sending renewal reminders');
+      logger.error({ err: error }, 'Error sending renewal reminders');
       return { sent2days, sent1day, sentToday };
     }
   }
