@@ -10,6 +10,7 @@ import { eq, lt, and, isNotNull, gte, sql } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import postgres from 'postgres';
 import { config } from '@/config';
+import { cache } from '@/utils/redis';
 import { decadesService } from '@/services/decades.service';
 import { sendRenewal2Days, sendRenewal1Day, sendRenewalToday } from '@/modules/bot/post-payment-funnels';
 
@@ -40,8 +41,8 @@ class SubscriptionGuardService {
   private api: Api | null = null;
 
   // 🔒 Защита от двойной отправки напоминаний
-  private renewalRemindersRunning = false;          // мьютекс — не запускать одновременно
-  private lastRenewalReminderDateMsk: string | null = null; // "YYYY-MM-DD" в МСК — не отправлять дважды в день
+  private renewalRemindersRunning = false; // мьютекс — не запускать одновременно (in-memory, сбрасывается при рестарте)
+  // "уже отправлено сегодня" хранится в Redis с TTL 25ч — переживает рестарты
 
   /**
    * Инициализация сервиса с API бота
@@ -368,19 +369,23 @@ class SubscriptionGuardService {
     const mskOffset = 3 * 60 * 60 * 1000;
     const todayMsk = new Date(Math.floor((now.getTime() + mskOffset) / 86400000) * 86400000 - mskOffset);
 
-    // Текущая дата в МСК в формате YYYY-MM-DD
+    // Текущая дата в МСК в формате YYYY-MM-DD — ключ в Redis
     const todayMskStr = new Date(now.getTime() + mskOffset).toISOString().slice(0, 10);
+    const redisKey = `cron:renewal-reminders:${todayMskStr}`;
 
-    // 🔒 Защита от двойного запуска
+    // 🔒 Защита от двойного запуска (in-memory мьютекс)
     if (this.renewalRemindersRunning) {
       logger.warn('Renewal reminders already running, skipping duplicate call');
       return { sent2days: 0, sent1day: 0, sentToday: 0 };
     }
 
-    // 🔒 Защита от повторной отправки в тот же день (если не форс)
-    if (!force && this.lastRenewalReminderDateMsk === todayMskStr) {
-      logger.info({ date: todayMskStr }, 'Renewal reminders already sent today, skipping');
-      return { sent2days: 0, sent1day: 0, sentToday: 0 };
+    // 🔒 Защита от повторной отправки в тот же день — Redis (переживает рестарты)
+    if (!force) {
+      const alreadySent = await cache.exists(redisKey);
+      if (alreadySent) {
+        logger.info({ date: todayMskStr, redisKey }, 'Renewal reminders already sent today (Redis), skipping');
+        return { sent2days: 0, sent1day: 0, sentToday: 0 };
+      }
     }
 
     this.renewalRemindersRunning = true;
@@ -468,7 +473,8 @@ class SubscriptionGuardService {
         }
       }
 
-      this.lastRenewalReminderDateMsk = todayMskStr;
+      // Ставим флаг в Redis: TTL 25 часов — переживает рестарты, сбросится к следующему дню
+      await cache.set(redisKey, { sent2days, sent1day, sentToday, sentAt: now.toISOString() }, 25 * 3600);
       logger.info({ sent2days, sent1day, sentToday }, '🔔 Renewal reminders completed');
       return { sent2days, sent1day, sentToday };
     } catch (error) {
