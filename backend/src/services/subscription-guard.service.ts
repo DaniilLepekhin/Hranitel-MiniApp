@@ -39,6 +39,10 @@ let cityChatIdsCacheTime = 0;
 class SubscriptionGuardService {
   private api: Api | null = null;
 
+  // 🔒 Защита от двойной отправки напоминаний
+  private renewalRemindersRunning = false;          // мьютекс — не запускать одновременно
+  private lastRenewalReminderDateMsk: string | null = null; // "YYYY-MM-DD" в МСК — не отправлять дважды в день
+
   /**
    * Инициализация сервиса с API бота
    */
@@ -357,12 +361,30 @@ class SubscriptionGuardService {
    * auto_renewal_enabled = true → только информируем (списание автоматическое)
    * auto_renewal_enabled = false → предупреждаем что доступ закроется
    */
-  async sendRenewalReminders(): Promise<{ sent2days: number; sent1day: number; sentToday: number }> {
+  async sendRenewalReminders(force = false): Promise<{ sent2days: number; sent1day: number; sentToday: number }> {
     const now = new Date();
 
     // Границы "через 2 дня": subscription_expires между завтра 00:00 и послезавтра 00:00 МСК
     const mskOffset = 3 * 60 * 60 * 1000;
     const todayMsk = new Date(Math.floor((now.getTime() + mskOffset) / 86400000) * 86400000 - mskOffset);
+
+    // Текущая дата в МСК в формате YYYY-MM-DD
+    const todayMskStr = new Date(now.getTime() + mskOffset).toISOString().slice(0, 10);
+
+    // 🔒 Защита от двойного запуска
+    if (this.renewalRemindersRunning) {
+      logger.warn('Renewal reminders already running, skipping duplicate call');
+      return { sent2days: 0, sent1day: 0, sentToday: 0 };
+    }
+
+    // 🔒 Защита от повторной отправки в тот же день (если не форс)
+    if (!force && this.lastRenewalReminderDateMsk === todayMskStr) {
+      logger.info({ date: todayMskStr }, 'Renewal reminders already sent today, skipping');
+      return { sent2days: 0, sent1day: 0, sentToday: 0 };
+    }
+
+    this.renewalRemindersRunning = true;
+
     const day1Start = new Date(todayMsk.getTime() + 1 * 86400000);
     const day1End   = new Date(todayMsk.getTime() + 2 * 86400000);
     const day2Start = new Date(todayMsk.getTime() + 2 * 86400000);
@@ -446,11 +468,14 @@ class SubscriptionGuardService {
         }
       }
 
+      this.lastRenewalReminderDateMsk = todayMskStr;
       logger.info({ sent2days, sent1day, sentToday }, '🔔 Renewal reminders completed');
       return { sent2days, sent1day, sentToday };
     } catch (error) {
       logger.error({ err: error }, 'Error sending renewal reminders');
       return { sent2days, sent1day, sentToday };
+    } finally {
+      this.renewalRemindersRunning = false;
     }
   }
 }

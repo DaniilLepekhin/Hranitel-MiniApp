@@ -650,15 +650,18 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
    */
   .post(
     '/trigger-renewal-reminders',
-    async ({ headers, set }) => {
+    async ({ body, headers, set }) => {
       if (!checkAdminAuth(headers)) {
         set.status = 401;
         throw new Error('Unauthorized');
       }
 
+      // force=true игнорирует защиту "уже отправлено сегодня"
+      const force = (body as any)?.force === true;
+
       try {
-        logger.info('Admin triggered renewal reminders');
-        const result = await subscriptionGuardService.sendRenewalReminders();
+        logger.info({ force }, 'Admin triggered renewal reminders');
+        const result = await subscriptionGuardService.sendRenewalReminders(force);
         logger.info({ result }, 'Admin-triggered renewal reminders completed');
         return {
           success: true,
@@ -674,7 +677,7 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
     {
       detail: {
         summary: 'Запуск рассылки напоминаний о продлении подписки',
-        description: 'Отправляет напоминания пользователям с подпиской истекающей сегодня, завтра или послезавтра',
+        description: 'Отправляет напоминания пользователям с подпиской истекающей сегодня, завтра или послезавтра. force=true — повторная отправка даже если уже отправляли сегодня.',
       },
     }
   )
