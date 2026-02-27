@@ -67,9 +67,49 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
             .limit(1);
 
           if (!paymentAttempt) {
-            logger.error({ email: normalizedEmail }, 'No payment_attempt found for gift payment');
-            set.status = 400;
-            return { success: false, error: 'No payment attempt found for gift payment' };
+            // Fallback: payment_attempt не найден — даритель неизвестен.
+            // Всё равно сохраняем gift_subscriptions чтобы получатель мог активировать подарок.
+            logger.warn({ email: normalizedEmail }, 'No payment_attempt found for gift payment — creating gift record without gifter');
+
+            const [fallbackPayment] = await db
+              .insert(payments)
+              .values({
+                userId: null,
+                amount: amount ? amount.toString() : '2000',
+                currency: payment_method || 'RUB',
+                status: 'completed',
+                paymentProvider: 'lava',
+                email: normalizedEmail,
+                metadata: {
+                  tariff: 'club2000_gift',
+                  gift_recipient_id: recipientTgId,
+                  payment_method: payment_method || null,
+                  no_gifter_found: true,
+                },
+                completedAt: new Date(),
+              })
+              .returning();
+
+            const fallbackToken = nanoid(16);
+            await db.insert(giftSubscriptions).values({
+              gifterUserId: null,
+              recipientTgId: parseInt(recipientTgId),
+              paymentId: fallbackPayment.id,
+              activated: false,
+              activationToken: fallbackToken,
+            });
+
+            logger.warn(
+              { recipientTgId, fallbackToken, paymentId: fallbackPayment.id },
+              'Gift subscription created without gifter (fallback). Recipient can still activate.'
+            );
+
+            return {
+              success: true,
+              message: 'Gift payment recorded (no gifter found)',
+              recipientTgId,
+              paymentId: fallbackPayment.id,
+            };
           }
 
           const gifterTgId = paymentAttempt.telegramId;
@@ -84,9 +124,49 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
             .limit(1);
 
           if (!gifter) {
-            logger.error({ gifterTgId }, 'Gifter not found');
-            set.status = 400;
-            return { success: false, error: 'Gifter not found' };
+            // Даритель есть в аналитике но нет в users — создаём gift_subscriptions без gifterUserId
+            logger.warn({ gifterTgId }, 'Gifter found in analytics but not in users — creating gift record without gifter');
+
+            const [noGifterPayment] = await db
+              .insert(payments)
+              .values({
+                userId: null,
+                amount: amount ? amount.toString() : '2000',
+                currency: payment_method || 'RUB',
+                status: 'completed',
+                paymentProvider: 'lava',
+                email: normalizedEmail,
+                metadata: {
+                  tariff: 'club2000_gift',
+                  gift_recipient_id: recipientTgId,
+                  gifter_tg_id: gifterTgId,
+                  payment_method: payment_method || null,
+                  gifter_not_in_users: true,
+                },
+                completedAt: new Date(),
+              })
+              .returning();
+
+            const noGifterToken = nanoid(16);
+            await db.insert(giftSubscriptions).values({
+              gifterUserId: null,
+              recipientTgId: parseInt(recipientTgId),
+              paymentId: noGifterPayment.id,
+              activated: false,
+              activationToken: noGifterToken,
+            });
+
+            logger.warn(
+              { recipientTgId, noGifterToken, gifterTgId, paymentId: noGifterPayment.id },
+              'Gift subscription created without gifter user (gifter_tg_id logged). Recipient can still activate.'
+            );
+
+            return {
+              success: true,
+              message: 'Gift payment recorded (gifter not in users)',
+              recipientTgId,
+              paymentId: noGifterPayment.id,
+            };
           }
 
           // НЕ активируем подписку получателю сразу!

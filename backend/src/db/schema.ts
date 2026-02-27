@@ -616,7 +616,7 @@ export const paymentAnalytics = pgTable('payment_analytics', {
 // 🆕 Gift Subscriptions (подарочные подписки)
 export const giftSubscriptions = pgTable('gift_subscriptions', {
   id: uuid('id').primaryKey().defaultRandom(),
-  gifterUserId: uuid('gifter_user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(), // Кто дарит
+  gifterUserId: uuid('gifter_user_id').references(() => users.id, { onDelete: 'cascade' }), // Кто дарит (nullable: если payment_attempt не найден при вебхуке)
   recipientTgId: integer('recipient_tg_id').notNull(), // Кому дарят (tg_id)
   paymentId: uuid('payment_id').references(() => payments.id, { onDelete: 'set null' }), // Связь с оплатой
   activated: boolean('activated').default(false).notNull(), // Активирован ли подарок
