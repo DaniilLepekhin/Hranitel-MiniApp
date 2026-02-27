@@ -1158,9 +1158,43 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         decade_id: t.String({ description: 'ID десятки' }),
         new_chat_id: t.Optional(t.Union([t.Number(), t.String()], { description: 'Новый Telegram chat ID (если чат мигрировал в супергруппу)' })),
       }),
-      detail: {
+        detail: {
         summary: 'Обновить инвайт-ссылку десятки',
         description: 'Создаёт новую инвайт-ссылку для чата десятки через Telegram API. Можно передать new_chat_id при миграции.',
+      },
+    }
+  )
+
+  /**
+   * 🔟 Ручной запуск синхронизации состава десяток с Telegram
+   */
+  .post(
+    '/sync-decade-membership',
+    async ({ headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      logger.info('Admin triggered decade membership sync');
+      try {
+        const result = await decadesService.syncDecadeMembership();
+        logger.info({ result }, 'Admin-triggered decade sync completed');
+        return {
+          success: true,
+          message: `Синхронизация завершена: проверено ${result.checked}, исправлено ${result.fixed}, ошибок ${result.errors}`,
+          result,
+        };
+      } catch (error: any) {
+        logger.error({ error }, 'Admin-triggered decade sync failed');
+        set.status = 500;
+        return { success: false, error: error?.message || 'Unknown error' };
+      }
+    },
+    {
+      detail: {
+        summary: 'Синхронизировать состав десяток с Telegram',
+        description: 'Проверяет реальный статус каждого участника в Telegram-чате и убирает из БД тех, кто уже вышел.',
       },
     }
   );
