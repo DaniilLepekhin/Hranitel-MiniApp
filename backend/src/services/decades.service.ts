@@ -967,6 +967,24 @@ class DecadesService {
   async syncDecadeMembership(): Promise<{ checked: number; fixed: number; errors: number }> {
     const stats = { checked: 0, fixed: 0, errors: 0 };
 
+    // Исправить двойное членство: если пользователь состоит в двух десятках одновременно,
+    // закрыть более раннее членство
+    const doubleMemberships = await db.execute(sql`
+      WITH ranked AS (
+        SELECT id, user_id, decade_id, joined_at,
+               ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY joined_at DESC) AS rn
+        FROM decade_members
+        WHERE left_at IS NULL
+      )
+      UPDATE decade_members SET left_at = NOW()
+      WHERE id IN (SELECT id FROM ranked WHERE rn > 1)
+      RETURNING id
+    `);
+    const doubleFixed = (doubleMemberships as any)?.length ?? (doubleMemberships as any)?.rowCount ?? 0;
+    if (doubleFixed > 0) {
+      logger.warn({ doubleFixed }, 'syncDecadeMembership: fixed double memberships');
+    }
+
     // Получить все активные десятки с привязанным tgChatId
     const activeDecades = await db
       .select()
