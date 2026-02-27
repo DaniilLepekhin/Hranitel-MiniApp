@@ -2958,12 +2958,10 @@ bot.command('start', async (ctx) => {
       if (marchUtmContent) marchUtmData.utm_content = marchUtmContent;
 
       const currentMeta = (marchUser.metadata as Record<string, unknown>) || {};
-      if (!currentMeta.utm_source) {
-        // first touch attribution
-        await db.update(users).set({
-          metadata: { ...currentMeta, ...marchUtmData, utm_saved_at: new Date().toISOString() },
-        }).where(eq(users.telegramId, userId));
-      }
+      // Всегда обновляем utm_campaign='march' — пользователь явно перешёл по march-ссылке
+      await db.update(users).set({
+        metadata: { ...currentMeta, ...marchUtmData, utm_saved_at: new Date().toISOString() },
+      }).where(eq(users.telegramId, userId));
 
       // Запускаем воронку (для isPro тоже — квиз доступен всем)
       await marchFunnel.startMarchFunnel(userId, chatId);
