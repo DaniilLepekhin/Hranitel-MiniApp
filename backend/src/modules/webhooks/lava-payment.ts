@@ -2,6 +2,7 @@ import { Elysia, t } from 'elysia';
 import { db } from '@/db';
 import { users, payments, paymentAnalytics, giftSubscriptions, decadeMembers } from '@/db/schema';
 import { eq, and, desc, isNull, ilike } from 'drizzle-orm';
+import { decadesService } from '@/services/decades.service';
 import { logger } from '@/utils/logger';
 import { startOnboardingAfterPayment, handleGiftPaymentSuccess } from '@/modules/bot/post-payment-funnels';
 import { subscriptionGuardService } from '@/services/subscription-guard.service';
@@ -604,30 +605,13 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
           // Don't fail the webhook - payment is already processed
         }
 
-        // 🔄 Restore user to decade if they were removed (e.g., due to expired subscription)
+        // 🔄 Restore user to decade if they were removed (with capacity check)
         try {
-          const [previousMembership] = await db
-            .select()
-            .from(decadeMembers)
-            .where(eq(decadeMembers.userId, user.id))
-            .orderBy(desc(decadeMembers.joinedAt))
-            .limit(1);
-
-          if (previousMembership && previousMembership.leftAt) {
-            // User was in a decade but left - restore them
-            await db
-              .update(decadeMembers)
-              .set({ leftAt: null })
-              .where(eq(decadeMembers.id, previousMembership.id));
-            
-            logger.info(
-              { 
-                telegramId: telegram_id, 
-                userId: user.id, 
-                decadeId: previousMembership.decadeId 
-              }, 
-              'Restored user to previous decade after payment'
-            );
+          const restoreResult = await decadesService.restoreUserToDecade(user.id, telegram_id);
+          if (restoreResult.restored) {
+            logger.info({ telegramId: telegram_id, userId: user.id, decadeName: restoreResult.decadeName }, 'Restored user to decade after payment');
+          } else {
+            logger.info({ telegramId: telegram_id, userId: user.id, reason: restoreResult.error }, 'No decade restored after payment');
           }
         } catch (error) {
           logger.error({ error, telegramId: telegram_id }, 'Failed to restore user to decade');

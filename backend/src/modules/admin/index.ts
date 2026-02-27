@@ -507,30 +507,13 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         logger.error({ error, telegram_id }, 'Failed to award energy for manual payment');
       }
 
-      // 🔄 Восстановить в десятку, если пользователь был исключён
+      // 🔄 Восстановить в десятку, если пользователь был исключён (с проверкой вместимости)
       try {
-        const [previousMembership] = await db
-          .select()
-          .from(decadeMembers)
-          .where(eq(decadeMembers.userId, user.id))
-          .orderBy(desc(decadeMembers.joinedAt))
-          .limit(1);
-
-        if (previousMembership && previousMembership.leftAt) {
-          // Пользователь был в десятке, но вышел - восстанавливаем его
-          await db
-            .update(decadeMembers)
-            .set({ leftAt: null })
-            .where(eq(decadeMembers.id, previousMembership.id));
-          
-          logger.info(
-            { 
-              telegram_id, 
-              userId: user.id, 
-              decadeId: previousMembership.decadeId 
-            }, 
-            'Restored user to previous decade after payment'
-          );
+        const restoreResult = await decadesService.restoreUserToDecade(user.id, telegram_id);
+        if (restoreResult.restored) {
+          logger.info({ telegram_id, userId: user.id, decadeName: restoreResult.decadeName }, 'Restored user to decade after payment');
+        } else {
+          logger.info({ telegram_id, userId: user.id, reason: restoreResult.error }, 'No decade restored after payment');
         }
       } catch (error) {
         logger.error({ error, telegram_id }, 'Failed to restore user to decade');

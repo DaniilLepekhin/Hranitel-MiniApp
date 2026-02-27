@@ -852,6 +852,109 @@ class DecadesService {
   }
 
   // ============================================================================
+  // ВОССТАНОВЛЕНИЕ В ДЕСЯТКУ ПОСЛЕ ОПЛАТЫ
+  // ============================================================================
+
+  /**
+   * Восстановить пользователя в десятку после оплаты подписки.
+   * Защищённая версия: проверяет вместимость, обновляет счётчик.
+   * Если десятка заполнена — пробует назначить в другую свободную в том же городе.
+   */
+  async restoreUserToDecade(
+    userId: string,
+    telegramId: number
+  ): Promise<{ restored: boolean; decadeName?: string; error?: string }> {
+    // Найти последнее членство (вышедшее)
+    const [previousMembership] = await db
+      .select()
+      .from(decadeMembers)
+      .where(and(eq(decadeMembers.userId, userId), isNotNull(decadeMembers.leftAt)))
+      .orderBy(desc(decadeMembers.joinedAt))
+      .limit(1);
+
+    if (!previousMembership) {
+      logger.info({ userId, telegramId }, 'restoreUserToDecade: no previous membership found');
+      return { restored: false, error: 'Нет предыдущего членства' };
+    }
+
+    // Попытка восстановить в ту же десятку — внутри транзакции с блокировкой
+    try {
+      const result = await db.transaction(async tx => {
+        // Заблокировать десятку
+        const [decade] = await tx
+          .select()
+          .from(decades)
+          .where(eq(decades.id, previousMembership.decadeId))
+          .for('update')
+          .limit(1);
+
+        if (!decade || !decade.isActive) {
+          return { success: false, full: false, inactive: true };
+        }
+
+        // Проверить — не занята ли десятка снова этим же пользователем
+        const [activeNow] = await tx
+          .select()
+          .from(decadeMembers)
+          .where(and(eq(decadeMembers.userId, userId), isNull(decadeMembers.leftAt)))
+          .limit(1);
+
+        if (activeNow) {
+          return { success: true, decadeName: `Десятка №${decade.number} ${decade.city}` };
+        }
+
+        if (decade.currentMembers >= decade.maxMembers) {
+          logger.info(
+            { userId, telegramId, decadeId: decade.id, current: decade.currentMembers, max: decade.maxMembers },
+            'restoreUserToDecade: decade is full, will try another'
+          );
+          return { success: false, full: true, city: decade.city };
+        }
+
+        // Восстанавливаем
+        await tx
+          .update(decadeMembers)
+          .set({ leftAt: null })
+          .where(eq(decadeMembers.id, previousMembership.id));
+
+        await tx
+          .update(decades)
+          .set({
+            currentMembers: decade.currentMembers + 1,
+            isFull: decade.currentMembers + 1 >= decade.maxMembers,
+            updatedAt: new Date(),
+          })
+          .where(eq(decades.id, decade.id));
+
+        logger.info(
+          { userId, telegramId, decadeId: decade.id, newCount: decade.currentMembers + 1 },
+          'restoreUserToDecade: restored to previous decade'
+        );
+        return { success: true, decadeName: `Десятка №${decade.number} ${decade.city}` };
+      });
+
+      if (result.success) {
+        return { restored: true, decadeName: result.decadeName };
+      }
+
+      // Десятка заполнена — назначаем в другую свободную в том же городе
+      if (result.full && result.city) {
+        logger.info({ userId, telegramId, city: result.city }, 'restoreUserToDecade: assigning to new decade in same city');
+        const assigned = await this.assignUserToDecade(telegramId);
+        if (assigned.success) {
+          return { restored: true, decadeName: assigned.decadeName };
+        }
+        return { restored: false, error: assigned.error };
+      }
+
+      return { restored: false, error: 'Десятка неактивна' };
+    } catch (error: any) {
+      logger.error({ error, userId, telegramId }, 'restoreUserToDecade: failed');
+      return { restored: false, error: error?.message };
+    }
+  }
+
+  // ============================================================================
   // ЕЖЕСУТОЧНАЯ СИНХРОНИЗАЦИЯ ЧЛЕНСТВА В ДЕСЯТКАХ
   // ============================================================================
 
@@ -928,8 +1031,41 @@ class DecadesService {
       }
     }
 
-    logger.info(stats, 'syncDecadeMembership: completed');
+    logger.info(stats, 'syncDecadeMembership: telegram check completed');
+
+    // ✅ После проверки Telegram — выровнять все счётчики current_members по фактическому составу
+    const counterStats = await this.fixAllDecadeCounters();
+    logger.info({ ...stats, ...counterStats }, 'syncDecadeMembership: completed');
+
     return stats;
+  }
+
+  /**
+   * Выровнять счётчики current_members и флаги is_full по фактическому составу decade_members.
+   * Вызывается автоматически из syncDecadeMembership.
+   */
+  async fixAllDecadeCounters(): Promise<{ countersFixed: number }> {
+    const result = await db.execute(sql`
+      UPDATE decades d
+      SET
+        current_members = sub.actual_count,
+        is_full = (sub.actual_count >= d.max_members),
+        updated_at = NOW()
+      FROM (
+        SELECT decade_id, COUNT(*) AS actual_count
+        FROM decade_members
+        WHERE left_at IS NULL
+        GROUP BY decade_id
+      ) sub
+      WHERE d.id = sub.decade_id
+        AND (d.current_members != sub.actual_count
+          OR d.is_full != (sub.actual_count >= d.max_members))
+    `);
+    const countersFixed = (result as any)?.rowCount ?? 0;
+    if (countersFixed > 0) {
+      logger.info({ countersFixed }, 'fixAllDecadeCounters: counters corrected');
+    }
+    return { countersFixed };
   }
 
   /**
