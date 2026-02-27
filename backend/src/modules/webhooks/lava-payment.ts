@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { db } from '@/db';
 import { users, payments, paymentAnalytics, giftSubscriptions, decadeMembers } from '@/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, isNull, ilike } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { startOnboardingAfterPayment, handleGiftPaymentSuccess } from '@/modules/bot/post-payment-funnels';
 import { subscriptionGuardService } from '@/services/subscription-guard.service';
@@ -404,6 +404,40 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
             .returning();
 
           user = updatedUser;
+        }
+
+        // 🔗 Link orphaned payments: если email пользователя совпадает с unlinked completed payment
+        // (такое бывает, когда человек заплатил, но webhook не нашёл его в системе — e.g. не запускал бот)
+        const emailToCheck = normalizedEmail || user.email;
+        if (emailToCheck) {
+          try {
+            const orphanedPayments = await db
+              .select()
+              .from(payments)
+              .where(
+                and(
+                  isNull(payments.userId),
+                  eq(payments.status, 'completed'),
+                  ilike(payments.email, emailToCheck)
+                )
+              );
+
+            if (orphanedPayments.length > 0) {
+              for (const orphan of orphanedPayments) {
+                await db
+                  .update(payments)
+                  .set({ userId: user.id })
+                  .where(eq(payments.id, orphan.id));
+              }
+              logger.info(
+                { userId: user.id, telegramId: telegram_id, email: emailToCheck, count: orphanedPayments.length },
+                'Linked orphaned payments to user'
+              );
+            }
+          } catch (error) {
+            logger.error({ error, telegramId: telegram_id }, 'Failed to link orphaned payments');
+            // Не фейлим webhook — основной платёж уже обработан
+          }
         }
 
         // Create payment record
