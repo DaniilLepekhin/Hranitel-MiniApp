@@ -489,7 +489,7 @@
           params.utm_source = parts[3] || '';
           params.utm_content = parts[4] || '';
           params.client_id = parts[5] || '';
-          params.metka = [params.utm_campaign, params.utm_medium].filter(p => p).join('_');
+          params.metka = [params.utm_campaign, params.utm_medium, params.utm_source].filter(p => p).join('_');
         }
       }
 
@@ -498,7 +498,8 @@
       params.utm_source = urlParams.get('utm_source') || params.utm_source;
       params.utm_content = urlParams.get('utm_content') || params.utm_content;
       params.client_id = urlParams.get('client_id') || params.client_id || 'telegram_webapp';
-      params.metka = urlParams.get('metka') || params.metka;
+      // metka = campaign_medium_source (все три составляющие)
+      params.metka = urlParams.get('metka') || [params.utm_campaign, params.utm_medium, params.utm_source].filter(p => p).join('_') || params.metka;
       params.group_id = urlParams.get('group_id') || params.group_id;
 
       return params;

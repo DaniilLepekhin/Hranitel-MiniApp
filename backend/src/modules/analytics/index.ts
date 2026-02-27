@@ -57,10 +57,12 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
         }
 
         // Fallback: если webapp не передал UTM — берём из users.metadata (start-параметр бота)
-        let finalCampaign = utm_campaign || null;
-        let finalMedium = utm_medium || null;
-        let finalSource = utm_source || null;
-        let finalMetka = metka || null;
+        const nullify = (v: string | null | undefined) => (!v || v === 'null' || v === 'undefined') ? null : v;
+
+        let finalCampaign = nullify(utm_campaign);
+        let finalMedium   = nullify(utm_medium);
+        let finalSource   = nullify(utm_source);
+        let finalMetka    = nullify(metka);
 
         if (!finalCampaign && !finalMedium) {
           const userRecord = await db.query.users.findFirst({
@@ -76,14 +78,14 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
               finalMedium   = parts[1] || null;
               finalSource   = parts[2] || null;
             } else {
-              finalCampaign = (meta.utm_campaign as string) || null;
-              finalMedium   = (meta.utm_medium   as string) || null;
-              finalSource   = (meta.utm_source   as string) || null;
+              finalCampaign = nullify(meta.utm_campaign as string);
+              finalMedium   = nullify(meta.utm_medium   as string);
+              finalSource   = nullify(meta.utm_source   as string);
             }
           }
         }
 
-        finalMetka = finalMetka || [finalCampaign, finalMedium].filter(p => p).join('_') || null;
+        finalMetka = finalMetka || [finalCampaign, finalMedium, finalSource].filter(p => p).join('_') || null;
 
         await db.insert(paymentAnalytics).values({
           telegramId: tgIdNum,
@@ -186,10 +188,12 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
         }
 
         // Fallback: если webapp не передал UTM — берём из users.metadata (start-параметр бота)
-        let finalCampaign = utm_campaign || null;
-        let finalMedium = utm_medium || null;
-        let finalSource = utm_source || null;
-        let finalMetka = metka || null;
+        const nullify2 = (v: string | null | undefined) => (!v || v === 'null' || v === 'undefined') ? null : v;
+
+        let finalCampaign = nullify2(utm_campaign);
+        let finalMedium   = nullify2(utm_medium);
+        let finalSource   = nullify2(utm_source);
+        let finalMetka    = nullify2(metka);
 
         if (!finalCampaign && !finalMedium) {
           const meta = existingUser?.metadata as Record<string, unknown> | null | undefined;
@@ -201,14 +205,14 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
               finalMedium   = parts[1] || null;
               finalSource   = parts[2] || null;
             } else {
-              finalCampaign = (meta.utm_campaign as string) || null;
-              finalMedium   = (meta.utm_medium   as string) || null;
-              finalSource   = (meta.utm_source   as string) || null;
+              finalCampaign = nullify2(meta.utm_campaign as string);
+              finalMedium   = nullify2(meta.utm_medium   as string);
+              finalSource   = nullify2(meta.utm_source   as string);
             }
           }
         }
 
-        finalMetka = finalMetka || [finalCampaign, finalMedium].filter(p => p).join('_') || null;
+        finalMetka = finalMetka || [finalCampaign, finalMedium, finalSource].filter(p => p).join('_') || null;
 
         await db.insert(paymentAnalytics).values({
           telegramId: tgIdNum,

@@ -5,6 +5,13 @@ import { logger } from '@/utils/logger';
 import { webhookRateLimit } from '@/middlewares/rateLimit';
 import { db, users, courses, courseProgress, meditations, clubFunnelProgress } from '@/db';
 import { paymentAnalytics } from '@/db/schema';
+
+// Утилита: null-безопасная очистка UTM значений (убирает строку 'null'/'undefined')
+const safeUtm = (v: string | null | undefined): string | null =>
+  (!v || v === 'null' || v === 'undefined') ? null : v;
+// Строит metka из трёх составляющих: campaign_medium_source
+const buildMetka = (c: string | null, m: string | null, s: string | null): string | null =>
+  [c, m, s].filter(Boolean).join('_') || null;
 import { eq, desc } from 'drizzle-orm';
 import { gamificationService } from '@/modules/gamification/service';
 import { schedulerService, type ScheduledTask } from '@/services/scheduler.service';
@@ -2820,14 +2827,16 @@ bot.command('start', async (ctx) => {
       logger.info({ userId, utm: womenUtmData }, 'Starting women funnel for non-subscribed user');
 
       // Логируем вход в воронку
+      const wMs = safeUtm(womenUtmData.utm_medium), wSr = safeUtm(womenUtmData.utm_source);
       await db.insert(paymentAnalytics).values({
         telegramId: userId,
         eventType: 'funnel_start',
         utmCampaign: 'women',
-        utmMedium: womenUtmData.utm_medium || null,
-        utmSource: womenUtmData.utm_source || null,
-        utmContent: womenUtmData.utm_content || null,
-      }).catch(() => {}); // не блокируем воронку если запись упала
+        utmMedium: wMs,
+        utmSource: wSr,
+        utmContent: safeUtm(womenUtmData.utm_content),
+        metka: buildMetka('women', wMs, wSr),
+      }).catch(() => {});
 
       // Запускаем women воронку
       await womenFunnel.startWomenFunnel(String(userId), chatId, womenUtmData);
@@ -2925,13 +2934,15 @@ bot.command('start', async (ctx) => {
       logger.info({ userId, utm: probudisUtmData }, '🌅 Starting probudis funnel for non-subscribed user');
 
       // Логируем вход в воронку
+      const pMs = safeUtm(probudisUtmData.utm_medium), pSr = safeUtm(probudisUtmData.utm_source);
       await db.insert(paymentAnalytics).values({
         telegramId: userId,
         eventType: 'funnel_start',
         utmCampaign: 'probudis',
-        utmMedium: probudisUtmData.utm_medium || null,
-        utmSource: probudisUtmData.utm_source || null,
-        utmContent: probudisUtmData.utm_content || null,
+        utmMedium: pMs,
+        utmSource: pSr,
+        utmContent: safeUtm(probudisUtmData.utm_content),
+        metka: buildMetka('probudis', pMs, pSr),
       }).catch(() => {});
 
       // Запускаем probudis воронку
@@ -2985,13 +2996,15 @@ bot.command('start', async (ctx) => {
       }).where(eq(users.telegramId, userId));
 
       // Логируем вход в воронку
+      const mMs = safeUtm(marchUtmData.utm_medium), mSr = safeUtm(marchUtmData.utm_source);
       await db.insert(paymentAnalytics).values({
         telegramId: userId,
         eventType: 'funnel_start',
         utmCampaign: 'march',
-        utmMedium: marchUtmData.utm_medium || null,
-        utmSource: marchUtmData.utm_source || null,
-        utmContent: marchUtmData.utm_content || null,
+        utmMedium: mMs,
+        utmSource: mSr,
+        utmContent: safeUtm(marchUtmData.utm_content),
+        metka: buildMetka('march', mMs, mSr),
       }).catch(() => {});
 
       // Запускаем воронку (для isPro тоже — квиз доступен всем)
@@ -3147,13 +3160,15 @@ bot.command('start', async (ctx) => {
       logger.info({ userId, ...utmData }, 'Club funnel started with UTM');
 
       // Логируем вход в воронку
+      const cMs = safeUtm(utmData.utm_medium), cSr = safeUtm(utmData.utm_source);
       await db.insert(paymentAnalytics).values({
         telegramId: userId,
         eventType: 'funnel_start',
         utmCampaign: 'club',
-        utmMedium: utmData.utm_medium || null,
-        utmSource: utmData.utm_source || null,
-        utmContent: utmData.utm_content || null,
+        utmMedium: cMs,
+        utmSource: cSr,
+        utmContent: safeUtm(utmData.utm_content),
+        metka: buildMetka('club', cMs, cSr),
       }).catch(() => {});
 
       await clubFunnel.startClubFunnel(clubUser.id, chatId, userId);
@@ -3196,13 +3211,15 @@ bot.command('start', async (ctx) => {
         logger.info({ userId, ...utmData }, 'Start funnel with UTM');
 
         // Логируем вход в воронку
+        const sMs = safeUtm(utmData.utm_medium), sSr = safeUtm(utmData.utm_source);
         await db.insert(paymentAnalytics).values({
           telegramId: userId,
           eventType: 'funnel_start',
           utmCampaign: 'start',
-          utmMedium: utmData.utm_medium || null,
-          utmSource: utmData.utm_source || null,
-          utmContent: utmData.utm_content || null,
+          utmMedium: sMs,
+          utmSource: sSr,
+          utmContent: safeUtm(utmData.utm_content),
+          metka: buildMetka('start', sMs, sSr),
         }).catch(() => {});
       }
 
