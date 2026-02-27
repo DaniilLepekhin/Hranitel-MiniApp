@@ -626,11 +626,11 @@ export async function handleMarchAnswer(telegramId: number, chatId: number, qNum
     // Все 5 вопросов отвечены — показываем анимацию и планируем результат
     await setState(telegramId, { ...state, answers: newAnswers, step: 'done' });
 
-    // Отправляем анимацию
+    // Отправляем анимацию (видео)
     try {
-      await getTelegramService().sendAnimation(chatId, MEDIA.animation);
+      await getTelegramService().sendVideo(chatId, MEDIA.animation, {});
     } catch (e) {
-      logger.warn({ error: e }, 'MarchFunnel: failed to send animation');
+      logger.warn({ error: e }, 'MarchFunnel: failed to send animation video');
     }
 
     // Через 5 секунд — результат
