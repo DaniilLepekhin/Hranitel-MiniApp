@@ -95,6 +95,10 @@ export interface ScheduledTask {
     | 'probudis_day4'              // День 4 через 24ч
     | 'probudis_day5'              // День 5 через 24ч (финальное)
 
+    // 🌸 March funnel (архетип эксперта)
+    | 'march_income_timeout'       // Через 2 мин — авто-переход если не ввели доход
+    | 'march_result_delay'         // Через 5 сек после анимации — показать результат
+
     // 🆕 Payment abandoned reminder (не привязано к воронке)
     | 'payment_not_completed'      // Через 10 мин после payment_attempt, если нет payment_success
 

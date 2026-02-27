@@ -20,6 +20,8 @@ import * as clubFunnel from './club-funnel';
 import * as womenFunnel from './women-funnel';
 // 🆕 Probudis funnel (awakening pre-payment funnel)
 import * as probudisFunnel from './probudis-funnel';
+// 🌸 March funnel (archetype quiz)
+import * as marchFunnel from './march-funnel';
 
 // Initialize bot
 export const bot = new Bot(config.TELEGRAM_BOT_TOKEN);
@@ -86,6 +88,8 @@ clubFunnel.initClubFunnelTelegramService(bot.api);
 womenFunnel.initWomenFunnelTelegramService(bot.api);
 // Initialize telegram service for probudis funnel
 probudisFunnel.initProbudisFunnelTelegramService(bot.api);
+// Initialize telegram service for march funnel
+marchFunnel.initMarchFunnelTelegramService(bot.api);
 // Initialize subscription guard service
 subscriptionGuardService.init(bot.api);
 // Initialize decades service
@@ -165,11 +169,11 @@ function parseUtmFromPayload(payload: string | undefined): UtmData {
 
   // Зарезервированные payload'ы - НЕ парсим как UTM
   const reservedPayloads = [
-    'club', 'women', 'probudis', 'test_start_full', 'test_club_full', 'test_women_full', 'test_probudis_full', 'test_start', 'test_club', 'test_women', 'test_probudis', 'test'
+    'club', 'women', 'probudis', 'march', 'test_start_full', 'test_club_full', 'test_women_full', 'test_probudis_full', 'test_start', 'test_club', 'test_women', 'test_probudis', 'test'
   ];
 
   // Проверяем на зарезервированные префиксы
-  if (payload.startsWith('present_') || payload.startsWith('gift_') || payload.startsWith('probudis_')) {
+  if (payload.startsWith('present_') || payload.startsWith('gift_') || payload.startsWith('probudis_') || payload.startsWith('march_')) {
     return {};
   }
 
@@ -1872,6 +1876,17 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         reply_markup: day5Keyboard
       });
     }
+    // 🌸 MARCH FUNNEL — авто-таймаут дохода (2 мин) и задержка результата (5 сек)
+    else if (type === 'march_income_timeout') {
+      await marchFunnel.handleMarchIncomeTimeout(userId, chatId);
+    }
+    else if (type === 'march_result_delay') {
+      const { answers, income } = task.data || {};
+      if (Array.isArray(answers)) {
+        await marchFunnel.sendMarchResult(userId, chatId, answers, income ?? 0);
+      }
+    }
+
     // 🆕 PAYMENT NOT COMPLETED — через 10 мин после payment_attempt (общее для всех воронок)
     // НЕ влияет на воронки, просто отправляет сообщение
     else if (type === 'payment_not_completed') {
@@ -2902,6 +2917,56 @@ bot.command('start', async (ctx) => {
       await probudisFunnel.startProbudisFunnel(String(userId), chatId, probudisUtmData);
       
       logger.info({ userId }, '🌅 Probudis funnel started, returning from /start handler');
+      return;
+    }
+
+    // 🌸 MARCH FUNNEL — "/start march" или "/start march_..."
+    if (startPayload === 'march' || startPayload?.startsWith('march_')) {
+      logger.info({ userId, startPayload }, '🌸 March funnel triggered');
+
+      // Get or create user in database
+      let marchUser = user;
+      if (!marchUser) {
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            telegramId: userId,
+            username: ctx.from?.username || null,
+            firstName: ctx.from?.first_name || null,
+            lastName: ctx.from?.last_name || null,
+          })
+          .returning();
+        marchUser = newUser;
+      }
+
+      // Парсим UTM из payload: march_MEDIUM_SOURCE_CONTENT
+      let marchUtmMedium: string | null = null;
+      let marchUtmSource: string | null = null;
+      let marchUtmContent: string | null = null;
+
+      if (startPayload !== 'march') {
+        const parts = startPayload.substring(6).split('_'); // убираем "march_"
+        marchUtmMedium = parts[0] || null;
+        marchUtmSource = parts[1] || null;
+        marchUtmContent = parts.slice(2).join('_') || null;
+      }
+
+      // Сохраняем UTM
+      const marchUtmData: Record<string, string> = { utm_campaign: 'march' };
+      if (marchUtmMedium) marchUtmData.utm_medium = marchUtmMedium;
+      if (marchUtmSource) marchUtmData.utm_source = marchUtmSource;
+      if (marchUtmContent) marchUtmData.utm_content = marchUtmContent;
+
+      const currentMeta = (marchUser.metadata as Record<string, unknown>) || {};
+      if (!currentMeta.utm_source) {
+        // first touch attribution
+        await db.update(users).set({
+          metadata: { ...currentMeta, ...marchUtmData, utm_saved_at: new Date().toISOString() },
+        }).where(eq(users.telegramId, userId));
+      }
+
+      // Запускаем воронку (для isPro тоже — квиз доступен всем)
+      await marchFunnel.startMarchFunnel(userId, chatId);
       return;
     }
 
@@ -4052,6 +4117,40 @@ bot.callbackQuery('club_more_info', async (ctx) => {
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in club_more_info callback');
+  }
+});
+
+// ============================================================================
+// 🌸 MARCH FUNNEL CALLBACKS (архетип эксперта)
+// ============================================================================
+
+// March funnel - кнопка "начать диагностику"
+bot.callbackQuery('march_start', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const userId = ctx.from.id;
+    const chatId = ctx.chat.id;
+    await marchFunnel.handleMarchStart(userId, chatId);
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in march_start callback');
+  }
+});
+
+// March funnel - ответы на вопросы Q1-Q5 (паттерн march_q{N}_{answer})
+bot.callbackQuery(/^march_q[1-5]_[1-5]$/, async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const userId = ctx.from.id;
+    const chatId = ctx.chat.id;
+    const data = ctx.callbackQuery.data; // e.g. "march_q3_2"
+    const match = data.match(/^march_q(\d)_(\d)$/);
+    if (match) {
+      const qNumber = parseInt(match[1]);
+      const answer  = parseInt(match[2]);
+      await marchFunnel.handleMarchAnswer(userId, chatId, qNumber, answer);
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in march question callback');
   }
 });
 
@@ -5380,6 +5479,13 @@ bot.on('message:text', async (ctx) => {
 
       // Случай 3: Пользователь написал КАРТА но не на нужном этапе - логируем для отладки
       logger.warn({ userId, onboardingStep: user.onboardingStep, isPro: user.isPro }, 'User entered КАРТА but not in correct state');
+    }
+
+    // 🌸 Check if user is in march funnel awaiting income input
+    const isInMarch = await marchFunnel.isUserInMarchFunnel(userId);
+    if (isInMarch) {
+      await marchFunnel.handleMarchIncomeInput(userId, ctx.chat.id, rawText);
+      return;
     }
 
     // 🆕 Check if user is in club funnel awaiting birthdate
