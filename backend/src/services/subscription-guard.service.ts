@@ -12,7 +12,7 @@ import postgres from 'postgres';
 import { config } from '@/config';
 import { cache } from '@/utils/redis';
 import { decadesService } from '@/services/decades.service';
-import { sendRenewal2Days, sendRenewal1Day, sendRenewalToday } from '@/modules/bot/post-payment-funnels';
+import { sendRenewal2Days, sendRenewal1Day, sendRenewalToday, sendGiftExpiry3Days, sendGiftExpiry2Days, sendGiftExpiry1Day } from '@/modules/bot/post-payment-funnels';
 
 // Защищённые каналы клуба
 const PROTECTED_CHANNEL_IDS = [
@@ -409,7 +409,7 @@ class SubscriptionGuardService {
    * auto_renewal_enabled = true → только информируем (списание автоматическое)
    * auto_renewal_enabled = false → предупреждаем что доступ закроется
    */
-  async sendRenewalReminders(force = false): Promise<{ sent2days: number; sent1day: number; sentToday: number }> {
+  async sendRenewalReminders(force = false): Promise<{ sent2days: number; sent1day: number; sentToday: number; sentGift3days: number }> {
     const now = new Date();
 
     // Границы "через 2 дня": subscription_expires между завтра 00:00 и послезавтра 00:00 МСК
@@ -423,7 +423,7 @@ class SubscriptionGuardService {
     // 🔒 Защита от двойного запуска (in-memory мьютекс)
     if (this.renewalRemindersRunning) {
       logger.warn('Renewal reminders already running, skipping duplicate call');
-      return { sent2days: 0, sent1day: 0, sentToday: 0 };
+      return { sent2days: 0, sent1day: 0, sentToday: 0, sentGift3days: 0 };
     }
 
     // 🔒 Защита от повторной отправки в тот же день — Redis (переживает рестарты)
@@ -431,7 +431,7 @@ class SubscriptionGuardService {
       const alreadySent = await cache.exists(redisKey);
       if (alreadySent) {
         logger.info({ date: todayMskStr, redisKey }, 'Renewal reminders already sent today (Redis), skipping');
-        return { sent2days: 0, sent1day: 0, sentToday: 0 };
+        return { sent2days: 0, sent1day: 0, sentToday: 0, sentGift3days: 0 };
       }
     }
 
@@ -441,16 +441,18 @@ class SubscriptionGuardService {
     const day1End   = new Date(todayMsk.getTime() + 2 * 86400000);
     const day2Start = new Date(todayMsk.getTime() + 2 * 86400000);
     const day2End   = new Date(todayMsk.getTime() + 3 * 86400000);
+    const day3Start = new Date(todayMsk.getTime() + 3 * 86400000);
+    const day3End   = new Date(todayMsk.getTime() + 4 * 86400000);
     const todayEnd  = new Date(todayMsk.getTime() + 1 * 86400000);
 
-    logger.info({ todayMsk, day1Start, day1End, day2Start, day2End, todayEnd }, '🔔 Renewal reminders date windows');
+    logger.info({ todayMsk, day1Start, day1End, day2Start, day2End, day3Start, day3End, todayEnd }, '🔔 Renewal reminders date windows');
 
-    let sent2days = 0, sent1day = 0, sentToday = 0;
+    let sent2days = 0, sent1day = 0, sentToday = 0, sentGift3days = 0;
 
     try {
       // За 2 дня — используем Drizzle ORM (как checkExpiredSubscriptions)
       const users2days = await db
-        .select({ telegramId: users.telegramId })
+        .select({ telegramId: users.telegramId, gifted: users.gifted })
         .from(users)
         .where(
           and(
@@ -464,9 +466,14 @@ class SubscriptionGuardService {
       for (const u of users2days) {
         try {
           const tgId = u.telegramId!;
-          await sendRenewal2Days(tgId, tgId);
+          if (u.gifted) {
+            await sendGiftExpiry2Days(tgId, tgId);
+            logger.info({ telegramId: tgId }, '🔔 Gift expiry reminder sent: 2 days');
+          } else {
+            await sendRenewal2Days(tgId, tgId);
+            logger.info({ telegramId: tgId }, '🔔 Renewal reminder sent: 2 days');
+          }
           sent2days++;
-          logger.info({ telegramId: tgId }, '🔔 Renewal reminder sent: 2 days');
         } catch (e) {
           logger.error({ err: e, telegramId: u.telegramId }, 'Failed to send 2-day renewal reminder');
         }
@@ -474,7 +481,7 @@ class SubscriptionGuardService {
 
       // За 1 день
       const users1day = await db
-        .select({ telegramId: users.telegramId })
+        .select({ telegramId: users.telegramId, gifted: users.gifted })
         .from(users)
         .where(
           and(
@@ -488,27 +495,33 @@ class SubscriptionGuardService {
       for (const u of users1day) {
         try {
           const tgId = u.telegramId!;
-          await sendRenewal1Day(tgId, tgId);
+          if (u.gifted) {
+            await sendGiftExpiry1Day(tgId, tgId);
+            logger.info({ telegramId: tgId }, '🔔 Gift expiry reminder sent: 1 day');
+          } else {
+            await sendRenewal1Day(tgId, tgId);
+            logger.info({ telegramId: tgId }, '🔔 Renewal reminder sent: 1 day');
+          }
           sent1day++;
-          logger.info({ telegramId: tgId }, '🔔 Renewal reminder sent: 1 day');
         } catch (e) {
           logger.error({ err: e, telegramId: u.telegramId }, 'Failed to send 1-day renewal reminder');
         }
       }
 
-      // Сегодня
+      // Сегодня — только не-подарочные (для gifted нет отдельного уведомления в день X)
       const usersToday = await db
         .select({ telegramId: users.telegramId })
         .from(users)
         .where(
           and(
             eq(users.isPro, true),
+            eq(users.gifted, false),
             isNotNull(users.telegramId),
             gte(users.subscriptionExpires, todayMsk),
             lt(users.subscriptionExpires, todayEnd)
           )
         );
-      logger.info({ count: usersToday.length }, '🔔 Users with subscription expiring today');
+      logger.info({ count: usersToday.length }, '🔔 Users with subscription expiring today (non-gifted)');
       for (const u of usersToday) {
         try {
           const tgId = u.telegramId!;
@@ -520,13 +533,38 @@ class SubscriptionGuardService {
         }
       }
 
+      // За 3 дня — только подарочные
+      const usersGift3days = await db
+        .select({ telegramId: users.telegramId })
+        .from(users)
+        .where(
+          and(
+            eq(users.isPro, true),
+            eq(users.gifted, true),
+            isNotNull(users.telegramId),
+            gte(users.subscriptionExpires, day3Start),
+            lt(users.subscriptionExpires, day3End)
+          )
+        );
+      logger.info({ count: usersGift3days.length }, '🔔 Gifted users with subscription expiring in 3 days');
+      for (const u of usersGift3days) {
+        try {
+          const tgId = u.telegramId!;
+          await sendGiftExpiry3Days(tgId, tgId);
+          sentGift3days++;
+          logger.info({ telegramId: tgId }, '🔔 Gift expiry reminder sent: 3 days');
+        } catch (e) {
+          logger.error({ err: e, telegramId: u.telegramId }, 'Failed to send 3-day gift expiry reminder');
+        }
+      }
+
       // Ставим флаг в Redis: TTL 25 часов — переживает рестарты, сбросится к следующему дню
-      await cache.set(redisKey, { sent2days, sent1day, sentToday, sentAt: now.toISOString() }, 25 * 3600);
-      logger.info({ sent2days, sent1day, sentToday }, '🔔 Renewal reminders completed');
-      return { sent2days, sent1day, sentToday };
+      await cache.set(redisKey, { sent2days, sent1day, sentToday, sentGift3days, sentAt: now.toISOString() }, 25 * 3600);
+      logger.info({ sent2days, sent1day, sentToday, sentGift3days }, '🔔 Renewal reminders completed');
+      return { sent2days, sent1day, sentToday, sentGift3days };
     } catch (error) {
       logger.error({ err: error }, 'Error sending renewal reminders');
-      return { sent2days, sent1day, sentToday };
+      return { sent2days, sent1day, sentToday, sentGift3days };
     } finally {
       this.renewalRemindersRunning = false;
     }
