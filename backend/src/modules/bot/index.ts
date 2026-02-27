@@ -3971,14 +3971,17 @@ bot.callbackQuery('gift_subscription', async (ctx) => {
 });
 
 // 🆕 Gift activation - start
-bot.callbackQuery('gift_start', async (ctx) => {
+// Matches 'gift_start' (old) and 'gift_start_{token}' (new format with embedded token)
+bot.callbackQuery(/^gift_start/, async (ctx) => {
   try {
     await ctx.answerCallbackQuery();
-    const data = ctx.callbackQuery.data;
-    const token = data.split('_')[2]; // gift_start_{token}
+    const userId = ctx.from.id;
+    const chatId = ctx.chat.id;
 
-    if (token) {
-      await funnels.handleGiftActivation(ctx.from.id, token, ctx.chat.id);
+    // Активируем подарок — ищем по recipientTgId (userId = получатель)
+    const activated = await funnels.activateGiftSubscription(userId, chatId);
+    if (!activated) {
+      logger.warn({ userId }, 'gift_start callback: gift not found or already activated');
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in gift_start callback');

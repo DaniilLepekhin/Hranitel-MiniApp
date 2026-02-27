@@ -13,6 +13,8 @@ import { logger } from '@/utils/logger';
 import { nanoid } from 'nanoid';
 import { getMoscowTimeInDays, getTomorrowMoscowTime } from '@/utils/moscow-time';
 import { getWebAppUrl } from '@/config';
+import { energiesService } from '@/modules/energy-points/service';
+import { subscriptionGuardService } from '@/services/subscription-guard.service';
 
 // Create telegram service instance (needs bot API from Grammy)
 // This will be initialized when bot module loads
@@ -786,12 +788,10 @@ export async function activateGiftSubscription(recipientTgId: number, chatId: nu
       })
       .where(eq(giftSubscriptions.id, giftRecord.id));
 
-    // Получаем gifter telegram_id
-    const [gifter] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, giftRecord.gifterUserId))
-      .limit(1);
+    // Получаем gifter telegram_id (gifterUserId может быть null для старых подарков)
+    const [gifter] = giftRecord.gifterUserId
+      ? await db.select().from(users).where(eq(users.id, giftRecord.gifterUserId)).limit(1)
+      : [undefined];
     gifterTgId = gifter?.telegramId || null;
 
     logger.info({ recipientTgId, giftRecordId: giftRecord.id }, 'Gift found in gift_subscriptions');
@@ -883,7 +883,27 @@ export async function activateGiftSubscription(recipientTgId: number, chatId: nu
 
   logger.info({ recipientTgId, recipientId: recipient.id }, 'Gift subscription activated successfully');
 
-  // 4. Запустить воронку после оплаты
+  // 4. Начислить 500 Энергии получателю
+  try {
+    await energiesService.award(recipient.id, 500, 'Активация подарочной подписки', {
+      source: 'gift',
+    });
+    logger.info({ recipientId: recipient.id, recipientTgId }, 'Awarded 500 energy for gift activation');
+  } catch (error) {
+    logger.error({ error, recipientTgId }, 'Failed to award energy for gift activation');
+    // Не прерываем активацию
+  }
+
+  // 5. Разбанить получателя если он был забанен
+  try {
+    await subscriptionGuardService.unbanUserFromAllChats(recipientTgId);
+    logger.info({ recipientTgId }, 'Gift recipient unbanned from all chats');
+  } catch (error) {
+    logger.error({ error, recipientTgId }, 'Failed to unban gift recipient');
+    // Не прерываем активацию
+  }
+
+  // 6. Запустить воронку после оплаты
   await startOnboardingAfterPayment(recipient.id, chatId);
 
   return true;
@@ -938,7 +958,8 @@ export async function handleGiftActivation(recipientTgId: number, token: string,
   }
 
   // Отправить приветственное сообщение
-  const keyboard = new InlineKeyboard().text('начать', 'gift_start');
+  // Токен передаём в callback_data чтобы gift_start мог завершить активацию
+  const keyboard = new InlineKeyboard().text('начать', `gift_start_${token}`);
 
   await getTelegramService().sendPhoto(
     chatId,
@@ -956,12 +977,7 @@ export async function handleGiftActivation(recipientTgId: number, token: string,
       reply_markup: keyboard
     }
   );
-
-  // Активировать подарок
-  await db
-    .update(giftSubscriptions)
-    .set({ activated: true, activatedAt: new Date() })
-    .where(eq(giftSubscriptions.activationToken, token));
+  // Активация (isPro + энергия + онбординг) произойдёт когда получатель нажмёт "начать"
 }
 
 /**
@@ -1009,10 +1025,18 @@ export async function activateGiftForUser(recipientTgId: number, token: string, 
       )
       .limit(1);
 
-    if (gift.length > 0) {
-      await tx.update(users)
-        .set({ giftedBy: parseInt(gift[0].gifterUserId) })
-        .where(eq(users.id, user.id));
+    if (gift.length > 0 && gift[0].gifterUserId) {
+      // Получаем telegram_id дарителя из таблицы users по gifterUserId (uuid)
+      const [gifterUser] = await tx
+        .select({ telegramId: users.telegramId })
+        .from(users)
+        .where(eq(users.id, gift[0].gifterUserId))
+        .limit(1);
+      if (gifterUser) {
+        await tx.update(users)
+          .set({ giftedBy: gifterUser.telegramId })
+          .where(eq(users.id, user.id));
+      }
     }
 
     // Начать онбординг (outside transaction, it's just scheduling)
