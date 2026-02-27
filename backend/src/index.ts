@@ -11,7 +11,7 @@ import { cookie } from '@elysiajs/cookie';
 
 import { config, isDevelopment } from '@/config';
 import { logger, logRequest } from '@/utils/logger';
-import { redis, closeRedisConnection } from '@/utils/redis';
+import { redis, cache, closeRedisConnection } from '@/utils/redis';
 import { db, closeDatabaseConnection } from '@/db';
 import { users } from '@/db/schema';
 import { errorHandler } from '@/middlewares/errorHandler';
@@ -299,6 +299,7 @@ shopService.ensureDefaultItems().catch((error) => {
 // Telegram webhook setup + health monitoring
 import { alertsService } from '@/services/alerts.service';
 import { subscriptionGuardService } from '@/services/subscription-guard.service';
+import { decadesService } from '@/services/decades.service';
 
 if (!isDevelopment) {
   setupWebhook().catch(async (error) => {
@@ -358,14 +359,45 @@ if (!isDevelopment) {
     }
   };
 
+  // 🔟 CRON: Синхронизация состава десяток с Telegram (каждый день в 05:00 по МСК)
+  // Проверяет реальный статус каждого участника в Telegram-чате и фиксирует расхождения с БД
+  const syncDecadeMembershipDaily = async () => {
+    const now = new Date();
+    const moscowHour = (now.getUTCHours() + 3) % 24; // UTC+3 = Moscow time
+
+    // Запускаем в 05:00 по МСК (02:00 UTC)
+    if (moscowHour === 5) {
+      const mskOffset = 3 * 60 * 60 * 1000;
+      const todayMskStr = new Date(now.getTime() + mskOffset).toISOString().slice(0, 10);
+      const redisKey = `cron:decade-sync:${todayMskStr}`;
+
+      const alreadyRan = await cache.exists(redisKey);
+      if (alreadyRan) {
+        logger.info({ date: todayMskStr, redisKey }, 'Decade sync already ran today (Redis), skipping');
+        return;
+      }
+
+      logger.info('Running daily decade membership sync...');
+      try {
+        const result = await decadesService.syncDecadeMembership();
+        logger.info({ result }, 'Daily decade membership sync completed');
+        await cache.set(redisKey, { ...result, ranAt: now.toISOString() }, 25 * 3600);
+      } catch (error) {
+        logger.error({ error }, 'Daily decade membership sync failed');
+      }
+    }
+  };
+
   // Проверяем каждый час (в :00 минут)
   const HOURLY_CHECK = 60 * 60 * 1000; // 1 час
   setInterval(checkExpiredSubscriptionsDaily, HOURLY_CHECK);
   setInterval(sendRenewalRemindersDaily, HOURLY_CHECK);
+  setInterval(syncDecadeMembershipDaily, HOURLY_CHECK);
 
-  // Первая проверка через 5 минут после старта (если сейчас 00:xx или 09:xx МСК)
+  // Первая проверка через 5 минут после старта (если сейчас 00:xx / 09:xx / 05:xx МСК)
   setTimeout(checkExpiredSubscriptionsDaily, 5 * 60 * 1000);
   setTimeout(sendRenewalRemindersDaily, 5 * 60 * 1000);
+  setTimeout(syncDecadeMembershipDaily, 5 * 60 * 1000);
 }
 
 // Graceful shutdown with timeout

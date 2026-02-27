@@ -14,8 +14,9 @@ import {
   type Decade,
   type DecadeMember,
 } from '@/db/schema';
-import { eq, and, isNull, sql, desc, lt } from 'drizzle-orm';
+import { eq, and, isNull, sql, desc, lt, isNotNull } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
+import { cache } from '@/utils/redis';
 
 class DecadesService {
   private api: Api | null = null;
@@ -848,6 +849,87 @@ class DecadesService {
     }
 
     logger.info({ telegramId, decadeId: decade.id }, 'User removed from decade');
+  }
+
+  // ============================================================================
+  // ЕЖЕСУТОЧНАЯ СИНХРОНИЗАЦИЯ ЧЛЕНСТВА В ДЕСЯТКАХ
+  // ============================================================================
+
+  /**
+   * Синхронизировать состав десяток с реальным составом Telegram-чатов.
+   * Вызывается ежедневно в 05:00 МСК.
+   * Для каждого активного участника проверяет getChatMember — если статус
+   * left/kicked или ошибка "not found" → вызывает removeUserFromDecade().
+   */
+  async syncDecadeMembership(): Promise<{ checked: number; fixed: number; errors: number }> {
+    const stats = { checked: 0, fixed: 0, errors: 0 };
+
+    // Получить все активные десятки с привязанным tgChatId
+    const activeDecades = await db
+      .select()
+      .from(decades)
+      .where(and(eq(decades.isActive, true), isNotNull(decades.tgChatId)));
+
+    logger.info({ count: activeDecades.length }, 'syncDecadeMembership: starting');
+
+    for (const decade of activeDecades) {
+      if (!decade.tgChatId) continue;
+
+      // Получить активных участников этой десятки
+      const members = await db
+        .select()
+        .from(decadeMembers)
+        .where(and(eq(decadeMembers.decadeId, decade.id), isNull(decadeMembers.leftAt)));
+
+      for (const member of members) {
+        if (!member.telegramId) continue;
+        stats.checked++;
+
+        try {
+          const chatMember = await this.api!.getChatMember(
+            Number(decade.tgChatId),
+            Number(member.telegramId)
+          );
+
+          const isGone =
+            chatMember.status === 'left' || chatMember.status === 'kicked';
+
+          if (isGone) {
+            logger.info(
+              { telegramId: member.telegramId, decadeId: decade.id, status: chatMember.status },
+              'syncDecadeMembership: user not in chat, fixing DB'
+            );
+            await this.removeUserFromDecade(Number(member.telegramId));
+            stats.fixed++;
+          }
+        } catch (error: any) {
+          // Telegram возвращает 400 если пользователь не найден в чате
+          const msg: string = error?.message ?? '';
+          const isNotInChat =
+            msg.includes('user not found') ||
+            msg.includes('PARTICIPANT_ID_INVALID') ||
+            msg.includes('Bad Request');
+
+          if (isNotInChat) {
+            logger.info(
+              { telegramId: member.telegramId, decadeId: decade.id, error: msg },
+              'syncDecadeMembership: user not found in chat (400), fixing DB'
+            );
+            await this.removeUserFromDecade(Number(member.telegramId));
+            stats.fixed++;
+          } else {
+            logger.warn(
+              { telegramId: member.telegramId, decadeId: decade.id, error: msg },
+              'syncDecadeMembership: unexpected error checking chat member'
+            );
+            stats.errors++;
+          }
+        }
+      }
+    }
+
+    logger.info(stats, 'syncDecadeMembership: completed');
+    return stats;
   }
 
   /**
