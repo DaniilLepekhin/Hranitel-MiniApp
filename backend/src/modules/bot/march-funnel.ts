@@ -13,7 +13,7 @@
 
 import { InlineKeyboard } from 'grammy';
 import { db } from '@/db';
-import { users } from '@/db/schema';
+import { users, paymentAnalytics } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { schedulerService } from '@/services/scheduler.service';
 import { TelegramService } from '@/services/telegram.service';
@@ -136,6 +136,34 @@ async function clearState(telegramId: number): Promise<void> {
 // ============================================================================
 
 /** Проверяем, является ли текст числом (доход) */
+// ============================================================================
+// АНАЛИТИКА — логируем каждый шаг квиза в payment_analytics
+// ============================================================================
+
+async function logMarchStep(telegramId: number, eventType: string): Promise<void> {
+  try {
+    const user = await db.query.users.findFirst({
+      where: eq(users.telegramId, telegramId),
+      columns: { metadata: true },
+    });
+    const meta = (user?.metadata as Record<string, unknown>) || {};
+    const utmCampaign = (meta.utm_campaign as string) || 'march';
+    const utmMedium   = (meta.utm_medium   as string) || null;
+    const utmSource   = (meta.utm_source   as string) || null;
+
+    await db.insert(paymentAnalytics).values({
+      telegramId,
+      eventType,
+      utmCampaign,
+      utmMedium:  utmMedium  === 'null' ? null : utmMedium,
+      utmSource:  utmSource  === 'null' ? null : utmSource,
+      metka: [utmCampaign, utmMedium, utmSource].filter(v => v && v !== 'null').join('_') || null,
+    });
+  } catch (e) {
+    logger.warn({ error: e, telegramId, eventType }, 'MarchFunnel: failed to log step');
+  }
+}
+
 export function parseMarchIncome(text: string): number | null {
   // Убираем пробелы, заменяем запятые на точки, убираем всё нецифровое кроме точки
   const cleaned = text.trim().replace(/\s/g, '').replace(',', '.').replace(/[^\d.]/g, '');
@@ -357,6 +385,7 @@ export async function handleMarchStart(telegramId: number, chatId: number): Prom
   }
 
   await setState(telegramId, { ...state, step: 'awaiting_income', chatId });
+  await logMarchStep(telegramId, 'march_q0'); // нажал «Начать»
 
   await getTelegramService().sendPhoto(
     chatId,
@@ -407,6 +436,7 @@ export async function handleMarchIncomeInput(telegramId: number, chatId: number,
   await schedulerService.cancelUserTasksByType(telegramId, 'march_income_timeout');
 
   await setState(telegramId, { ...state, income, step: 'awaiting_q1' });
+  await logMarchStep(telegramId, 'march_income'); // ввёл доход
   await sendIncomeAck(chatId);
   await sendQuestion(telegramId, chatId, 1, state);
 
@@ -422,6 +452,7 @@ export async function handleMarchIncomeTimeout(telegramId: number, chatId: numbe
   if (!state || state.step !== 'awaiting_income') return;
 
   await setState(telegramId, { ...state, income: 0, step: 'awaiting_q1' });
+  await logMarchStep(telegramId, 'march_income'); // таймаут — income=0
   await sendIncomeAck(chatId);
   await sendQuestion(telegramId, chatId, 1, state);
 
@@ -465,6 +496,7 @@ export async function handleMarchAnswer(telegramId: number, chatId: number, qNum
   if (state.step !== expectedStep) return;
 
   const newAnswers = [...state.answers, answer];
+  await logMarchStep(telegramId, `march_q${qNumber}`); // Q1-Q5 ответил
 
   if (qNumber < 5) {
     const nextStep = `awaiting_q${qNumber + 1}` as MarchState['step'];
@@ -514,6 +546,8 @@ export async function sendMarchResult(telegramId: number, chatId: number, answer
     parse_mode: 'HTML',
     reply_markup: keyboard,
   });
+
+  await logMarchStep(telegramId, 'march_result'); // получил расшифровку архетипа
 
   // Очищаем состояние
   await clearState(telegramId);
