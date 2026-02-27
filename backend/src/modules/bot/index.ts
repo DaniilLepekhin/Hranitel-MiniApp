@@ -4,6 +4,7 @@ import { config, getWebAppUrl } from '@/config';
 import { logger } from '@/utils/logger';
 import { webhookRateLimit } from '@/middlewares/rateLimit';
 import { db, users, courses, courseProgress, meditations, clubFunnelProgress } from '@/db';
+import { paymentAnalytics } from '@/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { gamificationService } from '@/modules/gamification/service';
 import { schedulerService, type ScheduledTask } from '@/services/scheduler.service';
@@ -2818,6 +2819,16 @@ bot.command('start', async (ctx) => {
 
       logger.info({ userId, utm: womenUtmData }, 'Starting women funnel for non-subscribed user');
 
+      // Логируем вход в воронку
+      await db.insert(paymentAnalytics).values({
+        telegramId: userId,
+        eventType: 'funnel_start',
+        utmCampaign: 'women',
+        utmMedium: womenUtmData.utm_medium || null,
+        utmSource: womenUtmData.utm_source || null,
+        utmContent: womenUtmData.utm_content || null,
+      }).catch(() => {}); // не блокируем воронку если запись упала
+
       // Запускаем women воронку
       await womenFunnel.startWomenFunnel(String(userId), chatId, womenUtmData);
       return;
@@ -2913,6 +2924,16 @@ bot.command('start', async (ctx) => {
 
       logger.info({ userId, utm: probudisUtmData }, '🌅 Starting probudis funnel for non-subscribed user');
 
+      // Логируем вход в воронку
+      await db.insert(paymentAnalytics).values({
+        telegramId: userId,
+        eventType: 'funnel_start',
+        utmCampaign: 'probudis',
+        utmMedium: probudisUtmData.utm_medium || null,
+        utmSource: probudisUtmData.utm_source || null,
+        utmContent: probudisUtmData.utm_content || null,
+      }).catch(() => {});
+
       // Запускаем probudis воронку
       await probudisFunnel.startProbudisFunnel(String(userId), chatId, probudisUtmData);
       
@@ -2962,6 +2983,16 @@ bot.command('start', async (ctx) => {
       await db.update(users).set({
         metadata: { ...currentMeta, ...marchUtmData, utm_saved_at: new Date().toISOString() },
       }).where(eq(users.telegramId, userId));
+
+      // Логируем вход в воронку
+      await db.insert(paymentAnalytics).values({
+        telegramId: userId,
+        eventType: 'funnel_start',
+        utmCampaign: 'march',
+        utmMedium: marchUtmData.utm_medium || null,
+        utmSource: marchUtmData.utm_source || null,
+        utmContent: marchUtmData.utm_content || null,
+      }).catch(() => {});
 
       // Запускаем воронку (для isPro тоже — квиз доступен всем)
       await marchFunnel.startMarchFunnel(userId, chatId);
@@ -3115,6 +3146,16 @@ bot.command('start', async (ctx) => {
 
       logger.info({ userId, ...utmData }, 'Club funnel started with UTM');
 
+      // Логируем вход в воронку
+      await db.insert(paymentAnalytics).values({
+        telegramId: userId,
+        eventType: 'funnel_start',
+        utmCampaign: 'club',
+        utmMedium: utmData.utm_medium || null,
+        utmSource: utmData.utm_source || null,
+        utmContent: utmData.utm_content || null,
+      }).catch(() => {});
+
       await clubFunnel.startClubFunnel(clubUser.id, chatId, userId);
       return;
     }
@@ -3153,6 +3194,16 @@ bot.command('start', async (ctx) => {
           .where(eq(users.telegramId, userId));
 
         logger.info({ userId, ...utmData }, 'Start funnel with UTM');
+
+        // Логируем вход в воронку
+        await db.insert(paymentAnalytics).values({
+          telegramId: userId,
+          eventType: 'funnel_start',
+          utmCampaign: 'start',
+          utmMedium: utmData.utm_medium || null,
+          utmSource: utmData.utm_source || null,
+          utmContent: utmData.utm_content || null,
+        }).catch(() => {});
       }
 
       // ✅ Если пользователь с подпиской перешёл по start_XXX ссылке - показываем меню
