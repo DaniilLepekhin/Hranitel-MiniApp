@@ -1072,7 +1072,7 @@ export async function sendMenuMessage(chatId: number) {
     .row()
     .webApp('все материалы здесь', getWebAppUrl())
     .row()
-    .text('Пройти тест: какой я персонаж', 'start_character_test')
+    .text('ОТКРЫТЬ ТЕСТЫ', 'open_tests')
     .row()
     .text('подарить подписку', 'menu_gift_subscription')
     .row()

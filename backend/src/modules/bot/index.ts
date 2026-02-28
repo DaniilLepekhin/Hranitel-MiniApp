@@ -4308,6 +4308,25 @@ bot.callbackQuery('march_more_info', async (ctx) => {
 // 🎭 CHARACTER TEST FUNNEL CALLBACKS
 // ============================================================================
 
+// Open tests menu (shows choice between character test and march quiz)
+bot.callbackQuery('open_tests', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const keyboard = new InlineKeyboard()
+      .text('пройти тест: какой я персонаж', 'start_character_test')
+      .row()
+      .text('диагностика твоего дохода', 'start_march_from_menu');
+
+    await getTelegramService().sendMessage(
+      ctx.chat.id,
+      `<b>КАКОЙ ТЕСТ ВЫ ХОТИТЕ ПРОЙТИ?</b>`,
+      { parse_mode: 'HTML', reply_markup: keyboard }
+    );
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in open_tests callback');
+  }
+});
+
 // Start character test from menu button
 bot.callbackQuery('start_character_test', async (ctx) => {
   try {
@@ -4318,6 +4337,16 @@ bot.callbackQuery('start_character_test', async (ctx) => {
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in start_character_test callback');
+  }
+});
+
+// Start march quiz from tests menu
+bot.callbackQuery('start_march_from_menu', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    await marchFunnel.startMarchFunnel(ctx.from.id, ctx.chat.id);
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in start_march_from_menu callback');
   }
 });
 
