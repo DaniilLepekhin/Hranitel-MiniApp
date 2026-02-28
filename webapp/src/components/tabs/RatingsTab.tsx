@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, memo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
 import { useTelegram } from '@/hooks/useTelegram';
@@ -93,6 +94,7 @@ const CityRatingItem = memo(({ item, index }: CityRatingItemProps) => (
 CityRatingItem.displayName = 'CityRatingItem';
 
 export function RatingsTab({ onShopClick }: RatingsTabProps) {
+  const router = useRouter();
   const { haptic, webApp } = useTelegram();
   const { user, token } = useAuthStore();
   const queryClient = useQueryClient();
@@ -866,7 +868,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
             <button
               onClick={() => {
                 haptic.impact('light');
-                // TODO: открыть документ
+                router.push('/docs/energy');
               }}
               className="px-8 py-3 rounded-[5.73px] active:scale-[0.98] transition-transform"
               style={{
