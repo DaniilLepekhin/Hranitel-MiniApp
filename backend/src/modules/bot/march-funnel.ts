@@ -462,6 +462,9 @@ export async function startMarchFunnel(telegramId: number, chatId: number): Prom
   await schedulerService.cancelUserTasksByTypes(telegramId, [
     'march_income_timeout',
     'march_result_delay',
+    'march_schedule_auto',
+    'march_route',
+    'march_fallback_to_start',
   ]);
 
   // Сбрасываем состояние
@@ -674,9 +677,9 @@ export async function sendMarchResult(telegramId: number, chatId: number, answer
     }
   }
 
-  // 2. Отправляем текст с кнопкой оплаты
+  // 2. Отправляем текст с кнопкой «ЗАБРАТЬ ПОШАГОВЫЙ ПЛАН»
   const keyboard = new InlineKeyboard()
-    .webApp('💫 оформить подписку', paymentUrl);
+    .text('ЗАБРАТЬ ПОШАГОВЫЙ ПЛАН', 'march_get_plan');
 
   await getTelegramService().sendMessage(chatId, resultText, {
     parse_mode: 'HTML',
@@ -685,10 +688,257 @@ export async function sendMarchResult(telegramId: number, chatId: number, answer
 
   await logMarchStep(telegramId, 'march_result'); // получил расшифровку архетипа
 
-  // Очищаем состояние
+  // Очищаем состояние квиза
   await clearState(telegramId);
 
-  logger.info({ telegramId, archetype, income }, 'MarchFunnel: result sent');
+  // Планируем авто-переход к расписанию через 2 минуты, если не нажал кнопку
+  await schedulerService.schedule(
+    {
+      type: 'march_schedule_auto',
+      userId: telegramId,
+      chatId,
+      data: {},
+    },
+    2 * 60 * 1000 // 2 минуты
+  );
+
+  logger.info({ telegramId, archetype, income }, 'MarchFunnel: result sent, schedule auto-progress in 2 min');
+}
+
+// ============================================================================
+// ШАГ ПОСЛЕ РЕЗУЛЬТАТА — РАСПИСАНИЕ МАРТА
+// ============================================================================
+
+export async function sendMarchSchedule(telegramId: number, chatId: number): Promise<void> {
+  const paymentUrl = await buildPaymentUrl(telegramId);
+
+  // Отменяем авто-таймер (если пользователь нажал кнопку раньше)
+  await schedulerService.cancelUserTasksByType(telegramId, 'march_schedule_auto');
+
+  // 1. Отправляем альбом из 10 картинок
+  await getTelegramService().sendMediaGroup(chatId, [
+    { type: 'photo', media: 'https://t.me/mate_bot_open/10028' },
+    { type: 'photo', media: 'https://t.me/mate_bot_open/10029' },
+    { type: 'photo', media: 'https://t.me/mate_bot_open/10030' },
+    { type: 'photo', media: 'https://t.me/mate_bot_open/10031' },
+    { type: 'photo', media: 'https://t.me/mate_bot_open/10032' },
+    { type: 'photo', media: 'https://t.me/mate_bot_open/10033' },
+    { type: 'photo', media: 'https://t.me/mate_bot_open/10034' },
+    { type: 'photo', media: 'https://t.me/mate_bot_open/10035' },
+    { type: 'photo', media: 'https://t.me/mate_bot_open/10036' },
+    { type: 'photo', media: 'https://t.me/mate_bot_open/10037' },
+  ]);
+
+  // 2. Текст расписания марта с кнопкой оплаты
+  const scheduleKeyboard = new InlineKeyboard()
+    .webApp('я с вами 😍', paymentUrl);
+
+  await getTelegramService().sendMessage(
+    chatId,
+    `<b>РАСПИСАНИЕ НА МАРТ В КЛУБЕ «КОД УСПЕХА»</b>\n\n` +
+    `Март — месяц под цифрой 3️⃣.\n\n` +
+    `А 3 — это не про вдохновение.\n` +
+    `Это про <b>проявленность. Деньги. Масштаб.</b>\n\n` +
+    `Не сидеть в тени.\n` +
+    `Не «допиливать» бесконечно.\n` +
+    `Не ждать идеального момента.\n\n` +
+    `<b>А выйти.\n` +
+    `Назвать цену.\n` +
+    `Сделать предложение.\n` +
+    `И выдержать рост.</b>\n\n` +
+    `Поэтому весь март — <b>про систему продаж.\n\n` +
+    `🔥 1–3 марта — МАРАФОН СО МНОЙ\n` +
+    `«Упакуй блог и запусти продажи за 72 часа»\n\n` +
+    `📅 ДЕНЬ 1 — УПАКОВКА И ПОЗИЦИОНИРОВАНИЕ\n\n` +
+    `ПОНИМАЕМ, ЧТО продаём, КОМУ продаём и ПОЧЕМУ должны купить именно у вас\n\n` +
+    `РАЗБИРАЕМ: \n` +
+    `1️⃣ Позиционирование</b>\n` +
+    `• Кто вы на рынке?\n` +
+    ` • В чём ваша экспертность?\n` +
+    ` • Какой результат вы даёте?\n` +
+    ` • Чем отличаетесь от 100 других?\n\n` +
+    `<b>2️⃣ Правильный офер</b>\n` +
+    ` • Боль клиента\n` +
+    ` • Желаемый результат\n` +
+    ` • Конкретика (цифры, сроки, результат)\n` +
+    ` • Упаковка ценности\n\n` +
+    `<b>3️⃣ Упаковка профиля</b>\n` +
+    ` • Шапка профиля\n` +
+    ` • Описание\n` +
+    ` • Закрепы\n` +
+    ` • Актуальные\n` +
+    ` • Первое впечатление\n\n` +
+    `<b>📅 ДЕНЬ 2 — КОНТЕНТ, КОТОРЫЙ ПРОДАЁТ</b>\n\n` +
+    `<b>Сделаем контент-систему под продажу, а не «для активности».</b>\n` +
+    `<i>Есть контент-план и темы, которые ведут к продаже.</i>\n\n` +
+    `<b>РАЗБИРАЕМ: \n` +
+    `1️⃣ Структура продающего контента. Разбираем 4 типа контента. </b>\n` +
+    `• Экспертный\n` +
+    `• Прогревающий\n` +
+    `• Доверительный\n` +
+    `• Продающий\n\n` +
+    `<b>2️⃣ Темы под конкретный продукт</b>\n` +
+    `• 10 болей аудитории\n` +
+    ` • 10 возражений\n` +
+    ` • 10 желаний\n` +
+    ` • 10 ошибок\n\n` +
+    `<b>3️⃣ Сценарии</b>\n` +
+    `Даем структуру:\n` +
+    ` • Хук (первые 3 секунды)\n` +
+    ` • Проблема\n` +
+    ` • • Решение\n` +
+    ` • Призыв к действию\n\n` +
+    `<b>📅 ДЕНЬ 3 — ВОРОНКА ПРОДАЖ\n\n` +
+    `Собираем систему, которая превращает подписчиков в ДЕНЬГИ\n\n` +
+    `РАЗБИРАЕМ:\n` +
+    `1️⃣ Простая воронка\n\n` +
+    `2️⃣ Скрипт продаж</b>\n` +
+    ` • Как заходить в диалог\n` +
+    ` • Как выявлять боль\n` +
+    ` • Как презентовать продукт\n` +
+    ` • Как закрывать\n\n` +
+    `<b>3️⃣ Финальная сборка</b>\n` +
+    `• Офер\n` +
+    ` • Контент\n` +
+    ` • Воронку\n` +
+    ` • Призыв к действию\n\n` +
+    `<b>🔥 ЗА 3 ДНЯ У ВАС БУДЕТ ГОТОВАЯ СИСТЕМА ЗАПУСКА 🔥</b>\n\n` +
+    `Если вы готовы перестать «пробовать»\n` +
+    `и начать зарабатывать стабильно — встречаемся внутри ⬇️`,
+    {
+      parse_mode: 'HTML',
+      reply_markup: scheduleKeyboard,
+    }
+  );
+
+  await logMarchStep(telegramId, 'march_schedule');
+
+  // Планируем march_route через 15 минут (если не оплатит)
+  await schedulerService.schedule(
+    {
+      type: 'march_route',
+      userId: telegramId,
+      chatId,
+      data: {},
+    },
+    15 * 60 * 1000 // 15 минут
+  );
+
+  logger.info({ telegramId }, 'MarchFunnel: schedule sent, route in 15 min');
+}
+
+// ============================================================================
+// ЧЕРЕЗ 15 МИНУТ — ВИДЕО МАРШРУТ
+// ============================================================================
+
+export async function sendMarchRoute(telegramId: number, chatId: number): Promise<void> {
+  const paymentUrl = await buildPaymentUrl(telegramId);
+
+  // Видео без подписи
+  await getTelegramService().sendVideo(
+    chatId,
+    'https://t.me/mate_bot_open/10040',
+    {}
+  );
+
+  const routeKeyboard = new InlineKeyboard()
+    .webApp('оформить подписку ❤️', paymentUrl)
+    .row()
+    .text('подробнее 🧐', 'march_more_info');
+
+  await getTelegramService().sendMessage(
+    chatId,
+    `<b>🧭 ТВОЙ МАРШРУТ ОТКРЫТ. ВОПРОС — ПОЙДЁШЬ ЛИ ТЫ ПО НЕМУ?</b>\n\n` +
+    `Ты увидела:\n` +
+    `<b>свой типаж · как проявляться в блоге · путь к масштабу</b>\n\n` +
+    `Результат появляется там,\n` +
+    `где есть <b>действие + среда</b>, которая удерживает фокус и не даёт свернуть.\n\n` +
+    `<b>🔑 КЛУБ «КОД УСПЕХА. ГЛАВА: ПРОБУЖДЕНИЕ»</b>\n\n` +
+    `Это пространство, где:\n` +
+    `— ты перестаёшь <b>стоять на месте</b>, даже если много стараешься\n` +
+    `— доход <b>перестаёт быть случайным</b>\n` +
+    `— исчезают бесконечные <b>рывки и откаты</b>\n` +
+    `— становится понятно, <b>что именно делать дальше</b>\n` +
+    `— потенциал наконец <b>начинает давать деньги</b>\n\n` +
+    `<b>Внутри тебя ждёт:\n` +
+    `▪ марафон «Упакуй блог и запусти продажи за 72 часа»</b>\n` +
+    `▪ <b>30 дней</b> мы будем запускать ваши проекты в космос 🚀\n\n` +
+    `<b>За 30 дней вы:</b>\n` +
+    `✅ Построите <b>систему продаж,</b> которая работает каждый день, а не «от запуска к запуску»\n` +
+    `✅ Создадите свой <b>контент-завод</b> — чтобы клиенты приходили сами\n` +
+    `✅ Получите стратегию продаж с учётом трендов 2026 года\n` +
+    `✅ Перестанете «прогревать» в пустоту и начнёте зарабатывать\n\n` +
+    `<b>Дополнительно:\n` +
+    `— Онлайн-эфиры с Кристиной</b>\n` +
+    `— Работа в <b>Десятке</b> с бадди\n` +
+    `— Встречи по городам\n` +
+    `— Регулярные практики для ресурса и фокуса\n` +
+    `– Челленджи\n` +
+    `– Мини-курсы / эфиры / практики и подкасты\n` +
+    `– Среда, где <b>доходят до результата</b>, а не бросают\n\n` +
+    `<b>👇 Нажимай кнопку и пробудись. Двери уже открыты.</b>`,
+    {
+      parse_mode: 'HTML',
+      reply_markup: routeKeyboard,
+    }
+  );
+
+  await logMarchStep(telegramId, 'march_route');
+
+  // Планируем fallback в start воронку через 5 минут
+  await schedulerService.schedule(
+    {
+      type: 'march_fallback_to_start',
+      userId: telegramId,
+      chatId,
+      data: {},
+    },
+    5 * 60 * 1000 // 5 минут
+  );
+
+  logger.info({ telegramId }, 'MarchFunnel: route sent, fallback in 5 min');
+}
+
+// ============================================================================
+// ПОДРОБНЕЕ (или через 5 мин) — ПЕРЕХОД В START ВОРОНКУ
+// ============================================================================
+
+export async function handleMarchMoreInfo(telegramId: number, chatId: number): Promise<void> {
+  // Отменяем авто-таймер fallback
+  await schedulerService.cancelUserTasksByType(telegramId, 'march_fallback_to_start');
+
+  await logMarchStep(telegramId, 'march_more_info');
+
+  // Переходим в start воронку с шага start_marathon_5min
+  // Планируем его сразу (0 задержка)
+  await schedulerService.schedule(
+    {
+      type: 'start_marathon_5min',
+      userId: telegramId,
+      chatId,
+      data: {},
+    },
+    0 // сразу
+  );
+
+  logger.info({ telegramId }, 'MarchFunnel: more info -> fallback to start funnel (start_marathon_5min)');
+}
+
+export async function handleMarchFallbackToStart(telegramId: number, chatId: number): Promise<void> {
+  await logMarchStep(telegramId, 'march_fallback');
+
+  // Переходим в start воронку с шага start_marathon_5min
+  await schedulerService.schedule(
+    {
+      type: 'start_marathon_5min',
+      userId: telegramId,
+      chatId,
+      data: {},
+    },
+    0 // сразу
+  );
+
+  logger.info({ telegramId }, 'MarchFunnel: auto-fallback to start funnel (start_marathon_5min)');
 }
 
 // ============================================================================

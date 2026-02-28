@@ -1915,6 +1915,18 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
         await marchFunnel.sendMarchResult(userId, chatId, answers, income ?? 0);
       }
     }
+    else if (type === 'march_schedule_auto') {
+      // Авто-переход к расписанию марта через 2 мин после результата
+      await marchFunnel.sendMarchSchedule(userId, chatId);
+    }
+    else if (type === 'march_route') {
+      // Через 15 мин после расписания — видео маршрут
+      await marchFunnel.sendMarchRoute(userId, chatId);
+    }
+    else if (type === 'march_fallback_to_start') {
+      // Через 5 мин после маршрута — переход в start воронку
+      await marchFunnel.handleMarchFallbackToStart(userId, chatId);
+    }
 
     // 🆕 PAYMENT NOT COMPLETED — через 10 мин после payment_attempt (общее для всех воронок)
     // НЕ влияет на воронки, просто отправляет сообщение
@@ -4263,6 +4275,30 @@ bot.callbackQuery(/^march_q[1-5]_[1-5]$/, async (ctx) => {
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in march question callback');
+  }
+});
+
+// March funnel - кнопка «ЗАБРАТЬ ПОШАГОВЫЙ ПЛАН»
+bot.callbackQuery('march_get_plan', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const userId = ctx.from.id;
+    const chatId = ctx.chat.id;
+    await marchFunnel.sendMarchSchedule(userId, chatId);
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in march_get_plan callback');
+  }
+});
+
+// March funnel - кнопка «подробнее 🧐»
+bot.callbackQuery('march_more_info', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const userId = ctx.from.id;
+    const chatId = ctx.chat.id;
+    await marchFunnel.handleMarchMoreInfo(userId, chatId);
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in march_more_info callback');
   }
 });
 
