@@ -26,11 +26,13 @@ function HashtagRuleCard({
 }: HashtagRuleCardProps) {
   const actualUsed = used ?? 0;
   const isFull = actualUsed >= max;
+  const remaining = Math.max(max - actualUsed, 0);
   const displayReward = isLeader ? reward * 2 : reward;
+  const pct = Math.min((actualUsed / max) * 100, 100);
 
   return (
     <div
-      className={`rounded-xl p-3 border transition-all ${
+      className={`rounded-2xl p-4 border transition-all ${
         isCombo
           ? 'bg-gradient-to-r from-[#d93547]/5 to-[#9c1723]/10 border-[#d93547]/20'
           : isFull
@@ -38,9 +40,10 @@ function HashtagRuleCard({
             : 'bg-white border-[#9c1723]/10'
       }`}
     >
-      <div className="flex items-start gap-3">
+      {/* Top row: icon + hashtag + reward badge */}
+      <div className="flex items-center gap-3 mb-2.5">
         <div
-          className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+          className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
             isCombo
               ? 'bg-gradient-to-br from-[#d93547] to-[#9c1723] text-white'
               : isFull
@@ -52,59 +55,110 @@ function HashtagRuleCard({
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2">
-            <span className={`text-sm font-bold ${isFull ? 'text-[#9a958d]' : 'text-[#2b2520]'}`}>
-              {hashtags}
-            </span>
-            <span
-              className={`text-sm font-bold whitespace-nowrap ${
-                isCombo ? 'text-[#d93547]' : isFull ? 'text-[#9a958d]' : 'text-[#d93547]'
-              }`}
-            >
-              +{displayReward}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className={`text-[11px] ${isFull ? 'text-[#b0aaa2]' : 'text-[#6b5a4a]'}`}>
+          <span className={`text-[14px] font-bold ${isFull ? 'text-[#9a958d]' : 'text-[#2b2520]'}`} style={{ fontFamily: 'Gilroy, sans-serif' }}>
+            {hashtags}
+          </span>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className={`text-[11px] ${isFull ? 'text-[#b0aaa2]' : 'text-[#6b5a4a]'}`} style={{ fontFamily: 'Gilroy, sans-serif' }}>
               {periodLabel}
             </span>
             {note && (
               <>
                 <span className="text-[#d4cfc6]">&middot;</span>
-                <span className={`text-[11px] ${isCombo ? 'text-[#d93547] font-medium' : isFull ? 'text-[#b0aaa2]' : 'text-[#6b5a4a]'}`}>
+                <span className={`text-[11px] ${isCombo ? 'text-[#d93547] font-medium' : isFull ? 'text-[#b0aaa2]' : 'text-[#6b5a4a]'}`} style={{ fontFamily: 'Gilroy, sans-serif' }}>
                   {note}
                 </span>
               </>
             )}
           </div>
+        </div>
 
-          {used !== undefined && (
-            <div className="mt-2">
-              <div className="flex items-center justify-between mb-0.5">
-                <span className={`text-[10px] font-medium ${isFull ? 'text-[#9a958d]' : 'text-[#6b5a4a]'}`}>
-                  {period === 'daily' ? 'Сегодня' : 'На этой неделе'}
-                </span>
-                <span className={`text-[10px] font-bold ${isFull ? 'text-[#9a958d]' : 'text-[#d93547]'}`}>
-                  {actualUsed} / {max}
-                </span>
-              </div>
-              <div className="h-1.5 rounded-full bg-[#e8e4de] overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    isFull
-                      ? 'bg-[#b0aaa2]'
-                      : isCombo
-                        ? 'bg-gradient-to-r from-[#d93547] to-[#9c1723]'
-                        : 'bg-[#d93547]'
-                  }`}
-                  style={{ width: `${Math.min((actualUsed / max) * 100, 100)}%` }}
-                />
-              </div>
-            </div>
-          )}
+        <div
+          className="flex-shrink-0 px-3 py-1.5 rounded-xl"
+          style={{
+            background: isFull
+              ? '#d4cfc6'
+              : 'linear-gradient(256.35deg, rgb(174, 30, 43) 15.72%, rgb(156, 23, 35) 99.39%)',
+          }}
+        >
+          <span style={{ fontFamily: 'Gilroy, sans-serif', fontWeight: 700, fontSize: '13px', color: '#f7f1e8' }}>
+            +{displayReward}
+          </span>
         </div>
       </div>
+
+      {/* Progress section */}
+      {used !== undefined && (
+        <div>
+          {/* Progress bar */}
+          <div className="h-3 rounded-full bg-[#e8e4de] overflow-hidden relative">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${
+                isFull
+                  ? 'bg-[#b0aaa2]'
+                  : isCombo
+                    ? 'bg-gradient-to-r from-[#d93547] to-[#9c1723]'
+                    : 'bg-gradient-to-r from-[#d93547] to-[#e04a5c]'
+              }`}
+              style={{ width: `${pct}%` }}
+            />
+            {/* Segment marks */}
+            {max > 1 && Array.from({ length: max - 1 }).map((_, i) => (
+              <div
+                key={i}
+                className="absolute top-0 h-full w-[2px] bg-[#f7f1e8]/60"
+                style={{ left: `${((i + 1) / max) * 100}%` }}
+              />
+            ))}
+          </div>
+
+          {/* Labels under bar */}
+          <div className="flex items-center justify-between mt-1.5">
+            <div className="flex items-center gap-1">
+              {/* Filled dots */}
+              {Array.from({ length: max }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`w-2 h-2 rounded-full transition-all ${
+                    i < actualUsed
+                      ? isCombo
+                        ? 'bg-gradient-to-br from-[#d93547] to-[#9c1723]'
+                        : isFull
+                          ? 'bg-[#b0aaa2]'
+                          : 'bg-[#d93547]'
+                      : 'bg-[#e8e4de]'
+                  }`}
+                  style={i < actualUsed && (isCombo || !isFull) ? { background: 'linear-gradient(135deg, #d93547, #9c1723)' } : undefined}
+                />
+              ))}
+            </div>
+
+            <span
+              style={{
+                fontFamily: 'Gilroy, sans-serif',
+                fontWeight: 600,
+                fontSize: '11px',
+                color: isFull ? '#9a958d' : '#2d2620',
+              }}
+            >
+              {isFull ? (
+                <span style={{ color: '#9a958d' }}>
+                  {period === 'daily' ? 'Выполнено сегодня' : 'Выполнено на неделе'}
+                </span>
+              ) : (
+                <>
+                  <span style={{ color: '#d93547', fontWeight: 700 }}>{actualUsed}</span>
+                  <span style={{ color: '#6b5a4a' }}> из {max}</span>
+                  <span style={{ color: '#6b5a4a' }}> &middot; </span>
+                  <span style={{ color: '#2d2620' }}>
+                    {remaining === 1 ? 'ещё 1 раз' : `ещё ${remaining} раза`}
+                  </span>
+                </>
+              )}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -112,12 +166,6 @@ function HashtagRuleCard({
 /* ── Статические правила (без прогресс-бара) ─────────────── */
 
 const EXTRA_RULES = [
-  {
-    title: 'Ежедневный вход в приложение',
-    reward: 10,
-    period: '1 раз в день',
-    description: 'Открой Мини-апп — и получи баллы.',
-  },
   {
     title: 'Просмотр видео-урока (Ключа)',
     reward: 20,
@@ -129,12 +177,6 @@ const EXTRA_RULES = [
     reward: 20,
     period: '1 раз за запись',
     description: 'Посмотри запись прямого эфира в разделе материалов.',
-  },
-  {
-    title: 'Воскресная практика',
-    reward: 50,
-    period: '1 раз за практику',
-    description: 'Присутствие онлайн или просмотр записи практики.',
   },
   {
     title: 'Сдача отчёта недели',
@@ -153,12 +195,6 @@ const EXTRA_RULES = [
     reward: 500,
     period: 'при каждом продлении',
     description: 'Продли подписку — и получи бонус за лояльность.',
-  },
-  {
-    title: 'Закрытие месяца',
-    reward: 500,
-    period: '1 раз в месяц',
-    description: 'Просмотри все уроки месяца и сдай все отчёты — получи большой бонус.',
   },
 ];
 
