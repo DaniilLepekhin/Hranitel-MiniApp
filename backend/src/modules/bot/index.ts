@@ -309,11 +309,13 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
   try {
     // Skip payment check for test tasks (test_start_reminder, test_five_min_reminder, etc.)
     // Also skip for club_auto_progress in test mode
+    // Also skip for march_result_delay — paid users should still see their archetype result
     const isTestTask = type.startsWith('test_');
     const isClubTestMode = type === 'club_auto_progress' && task.data?.isTestMode === true;
+    const isMarchResult = type === 'march_result_delay';
 
-    // Check if user already paid (skip for test tasks)
-    if (!isTestTask && !isClubTestMode) {
+    // Check if user already paid (skip for test tasks and march result)
+    if (!isTestTask && !isClubTestMode && !isMarchResult) {
       const paid = await checkPaymentStatus(userId);
       if (paid) {
         logger.info({ userId, taskType: type }, 'User already paid, cancelling all remaining tasks');

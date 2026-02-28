@@ -663,7 +663,10 @@ export async function sendMarchResult(telegramId: number, chatId: number, answer
   const archetype = calcArchetype(answers);
   const resultText = buildResultText(archetype, income);
   const images = getArchetypeImages(archetype);
-  const paymentUrl = await buildPaymentUrl(telegramId);
+
+  // Проверяем, оплачен ли пользователь
+  const [user] = await db.select().from(users).where(eq(users.telegramId, telegramId)).limit(1);
+  const isPro = user?.isPro === true;
 
   // 1. Отправляем медиагруппу (все картинки типажа)
   if (images.length > 0) {
@@ -677,32 +680,46 @@ export async function sendMarchResult(telegramId: number, chatId: number, answer
     }
   }
 
-  // 2. Отправляем текст с кнопкой «ЗАБРАТЬ ПОШАГОВЫЙ ПЛАН»
-  const keyboard = new InlineKeyboard()
-    .text('ЗАБРАТЬ ПОШАГОВЫЙ ПЛАН', 'march_get_plan');
+  if (isPro) {
+    // Оплативший пользователь — показываем расшифровку с кнопкой «Меню»
+    const menuKeyboard = new InlineKeyboard()
+      .text('📱 Меню', 'open_menu');
 
-  await getTelegramService().sendMessage(chatId, resultText, {
-    parse_mode: 'HTML',
-    reply_markup: keyboard,
-  });
+    await getTelegramService().sendMessage(chatId, resultText, {
+      parse_mode: 'HTML',
+      reply_markup: menuKeyboard,
+    });
 
-  await logMarchStep(telegramId, 'march_result'); // получил расшифровку архетипа
+    await logMarchStep(telegramId, 'march_result');
+    await clearState(telegramId);
 
-  // Очищаем состояние квиза
-  await clearState(telegramId);
+    logger.info({ telegramId, archetype, income, isPro: true }, 'MarchFunnel: result sent to paid user, showing menu');
+  } else {
+    // Неоплативший — расшифровка + кнопка «ЗАБРАТЬ ПОШАГОВЫЙ ПЛАН» + продающая цепочка
+    const keyboard = new InlineKeyboard()
+      .text('ЗАБРАТЬ ПОШАГОВЫЙ ПЛАН', 'march_get_plan');
 
-  // Планируем авто-переход к расписанию через 2 минуты, если не нажал кнопку
-  await schedulerService.schedule(
-    {
-      type: 'march_schedule_auto',
-      userId: telegramId,
-      chatId,
-      data: {},
-    },
-    2 * 60 * 1000 // 2 минуты
-  );
+    await getTelegramService().sendMessage(chatId, resultText, {
+      parse_mode: 'HTML',
+      reply_markup: keyboard,
+    });
 
-  logger.info({ telegramId, archetype, income }, 'MarchFunnel: result sent, schedule auto-progress in 2 min');
+    await logMarchStep(telegramId, 'march_result');
+    await clearState(telegramId);
+
+    // Планируем авто-переход к расписанию через 2 минуты, если не нажал кнопку
+    await schedulerService.schedule(
+      {
+        type: 'march_schedule_auto',
+        userId: telegramId,
+        chatId,
+        data: {},
+      },
+      2 * 60 * 1000 // 2 минуты
+    );
+
+    logger.info({ telegramId, archetype, income, isPro: false }, 'MarchFunnel: result sent, schedule auto-progress in 2 min');
+  }
 }
 
 // ============================================================================
