@@ -225,7 +225,7 @@ export class HashtagParserService {
    * Извлечь уникальные хештеги из текста
    */
   private extractHashtags(text: string): string[] {
-    const hashtagRegex = /#[а-яА-Яa-zA-Z0-9_]+/g;
+    const hashtagRegex = /#[а-яА-ЯёЁa-zA-Z0-9_]+/g;
     const matches = text.match(hashtagRegex) || [];
     // Убираем дубли и приводим к нижнему регистру
     return [...new Set(matches.map((tag) => tag.toLowerCase()))];
@@ -516,7 +516,7 @@ export class HashtagParserService {
       if (!chatId || !userTelegramId) return;
 
       // Быстрая проверка: есть ли хештеги вообще (чтобы не делать запросы впустую)
-      const hasHashtags = /#[а-яА-Яa-zA-Z0-9_]+/.test(text);
+      const hasHashtags = /#[а-яА-ЯёЁa-zA-Z0-9_]+/.test(text);
       if (!hasHashtags) return;
 
       // Получаем информацию о пользователе из БД
