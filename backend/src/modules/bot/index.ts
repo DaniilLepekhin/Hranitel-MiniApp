@@ -2414,6 +2414,9 @@ schedulerService.startProcessing(processScheduledTask);
 // Bot commands
 bot.command('start', async (ctx) => {
   try {
+    // Удаляем сообщение с командой, чтобы не засорять чат
+    try { await ctx.deleteMessage(); } catch (_) {}
+
     const userId = ctx.from!.id;
     const chatId = ctx.chat.id;
 
@@ -4729,6 +4732,9 @@ bot.hears('🌍 окружение', async (ctx) => {
 // 🆕 /menu command - show post-onboarding menu (only for paid users)
 bot.command('menu', async (ctx) => {
   try {
+    // Удаляем сообщение с командой, чтобы не засорять чат
+    try { await ctx.deleteMessage(); } catch (_) {}
+
     const userId = ctx.from!.id;
     const chatId = ctx.chat.id;
 
