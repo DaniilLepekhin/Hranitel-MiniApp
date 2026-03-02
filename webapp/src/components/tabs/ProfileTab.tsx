@@ -25,6 +25,8 @@ export function ProfileTab() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editFirstName, setEditFirstName] = useState('');
   const [editLastName, setEditLastName] = useState('');
+  const [isEditingCity, setIsEditingCity] = useState(false);
+  const [editCity, setEditCity] = useState('');
   const [isCancellingSubscription, setIsCancellingSubscription] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
 
@@ -137,6 +139,37 @@ export function ProfileTab() {
     haptic.impact('medium');
     updateProfileMutation.mutate(updateData);
   }, [editFirstName, editLastName, updateProfileMutation, haptic, webApp]);
+
+  // 🌍 Функции для редактирования города
+  const startEditingCity = useCallback(() => {
+    setEditCity(user?.city || '');
+    setIsEditingCity(true);
+    haptic.impact('light');
+  }, [user, haptic]);
+
+  const cancelEditingCity = useCallback(() => {
+    setIsEditingCity(false);
+    haptic.impact('light');
+  }, [haptic]);
+
+  const saveEditedCity = useCallback(() => {
+    if (!editCity.trim()) {
+      haptic.notification('warning');
+      webApp?.showAlert('Пожалуйста, введите название города.');
+      return;
+    }
+
+    haptic.impact('medium');
+    updateProfileMutation.mutate(
+      { city: editCity.trim() },
+      {
+        onSuccess: () => {
+          if (user) setUser({ ...user, city: editCity.trim() });
+          setIsEditingCity(false);
+        },
+      }
+    );
+  }, [editCity, updateProfileMutation, haptic, webApp, user, setUser]);
 
   // 🚀 ОПТИМИЗИРОВАННАЯ функция открытия ссылок с визуальной обратной связью
   const openLink = useCallback((url: string, linkType: string) => {
@@ -306,20 +339,28 @@ export function ProfileTab() {
                   </button>
                 </div>
 
-                {/* Город */}
-                <p
-                  className="text-center mb-[16px]"
-                  style={{
-                    fontFamily: 'Gilroy, sans-serif',
-                    fontWeight: 400,
-                    fontSize: '15.993px',
-                    lineHeight: 1.45,
-                    letterSpacing: '-0.3199px',
-                    color: '#2d2620',
-                  }}
-                >
-                  {user?.city ? `г. ${user.city}` : 'Город не указан'}
-                </p>
+                {/* Город с кнопкой редактирования */}
+                <div className="flex items-center justify-center gap-2 mb-[16px]">
+                  <p
+                    style={{
+                      fontFamily: 'Gilroy, sans-serif',
+                      fontWeight: 400,
+                      fontSize: '15.993px',
+                      lineHeight: 1.45,
+                      letterSpacing: '-0.3199px',
+                      color: '#2d2620',
+                    }}
+                  >
+                    {user?.city ? `г. ${user.city}` : 'Город не указан'}
+                  </p>
+                  <button
+                    onClick={startEditingCity}
+                    className="flex items-center justify-center p-1 hover:bg-black/5 rounded-full transition-colors active:scale-95 flex-shrink-0"
+                    aria-label="Редактировать город"
+                  >
+                    <Edit2 className="w-3 h-3" style={{ color: '#9c1723' }} />
+                  </button>
+                </div>
 
                 {/* Бейдж статуса */}
                 <div
@@ -771,6 +812,128 @@ export function ProfileTab() {
                 <button
                   onClick={saveEditedName}
                   disabled={updateProfileMutation.isPending || !editFirstName.trim() || !editLastName.trim()}
+                  className="flex-1 py-3 rounded-lg transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontWeight: 600,
+                    fontSize: '16px',
+                    color: '#fff',
+                    background: 'linear-gradient(243.413deg, rgb(174, 30, 43) 15.721%, rgb(156, 23, 35) 99.389%)',
+                    border: 'none',
+                  }}
+                >
+                  {updateProfileMutation.isPending ? (
+                    <>
+                      <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Сохраняю...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-5 h-5" />
+                      Сохранить
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ ГОРОДА ===== */}
+      {isEditingCity && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+          onClick={cancelEditingCity}
+        >
+          <div
+            className="bg-[#f7f1e8] rounded-2xl p-6 mx-4 w-full max-w-md"
+            style={{ border: '1px solid #2d2620' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3
+                style={{
+                  fontFamily: '"TT Nooks", Georgia, serif',
+                  fontWeight: 300,
+                  fontSize: '24px',
+                  color: '#2d2620',
+                }}
+              >
+                Изменить город
+              </h3>
+              <button
+                onClick={cancelEditingCity}
+                className="p-1 hover:bg-black/5 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" style={{ color: '#2d2620' }} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label
+                  htmlFor="city"
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: '#2d2620',
+                    display: 'block',
+                    marginBottom: '8px',
+                  }}
+                >
+                  Город <span style={{ color: '#9c1723' }}>*</span>
+                </label>
+                <input
+                  id="city"
+                  type="text"
+                  value={editCity}
+                  onChange={(e) => setEditCity(e.target.value)}
+                  placeholder="Например: Москва"
+                  autoFocus
+                  className="w-full px-4 py-3 rounded-lg"
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontSize: '16px',
+                    color: '#2d2620',
+                    border: '1px solid #2d2620',
+                    backgroundColor: '#fff',
+                    outline: 'none',
+                  }}
+                />
+                <p
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontSize: '12px',
+                    color: '#9c8b7a',
+                    marginTop: '6px',
+                  }}
+                >
+                  Город используется для подбора десятки и городского чата
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={cancelEditingCity}
+                  disabled={updateProfileMutation.isPending}
+                  className="flex-1 py-3 rounded-lg transition-all active:scale-95"
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontWeight: 600,
+                    fontSize: '16px',
+                    color: '#2d2620',
+                    border: '1px solid #2d2620',
+                    backgroundColor: 'transparent',
+                  }}
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={saveEditedCity}
+                  disabled={updateProfileMutation.isPending || !editCity.trim()}
                   className="flex-1 py-3 rounded-lg transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
                   style={{
                     fontFamily: 'Gilroy, sans-serif',

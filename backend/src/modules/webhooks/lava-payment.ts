@@ -4,7 +4,7 @@ import { users, payments, paymentAnalytics, giftSubscriptions, decadeMembers } f
 import { eq, and, desc, isNull, ilike } from 'drizzle-orm';
 import { decadesService } from '@/services/decades.service';
 import { logger } from '@/utils/logger';
-import { startOnboardingAfterPayment, handleGiftPaymentSuccess } from '@/modules/bot/post-payment-funnels';
+import { startOnboardingAfterPayment, handleGiftPaymentSuccess, sendDecadeInviteNotification } from '@/modules/bot/post-payment-funnels';
 import { subscriptionGuardService } from '@/services/subscription-guard.service';
 import { withLock } from '@/utils/distributed-lock';
 import { getcourseService } from '@/services/getcourse.service';
@@ -363,6 +363,22 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
             logger.error({ error, telegramId: autoTgId }, 'Failed to unban user after auto-renewal');
           }
 
+          // 🔄 Восстановить в десятку если была исключена
+          try {
+            const restoreResult = await decadesService.restoreUserToDecade(autoRenewalUser.id, autoTgId);
+            if (restoreResult.restored) {
+              logger.info({ telegramId: autoTgId, userId: autoRenewalUser.id, decadeName: restoreResult.decadeName }, 'Restored user to decade after auto-renewal');
+              // Отправить ссылку-приглашение если есть
+              if (restoreResult.inviteLink && restoreResult.decadeName) {
+                await sendDecadeInviteNotification(autoTgId, restoreResult.decadeName, restoreResult.inviteLink);
+              }
+            } else {
+              logger.info({ telegramId: autoTgId, userId: autoRenewalUser.id, reason: restoreResult.error }, 'No decade restored after auto-renewal');
+            }
+          } catch (error) {
+            logger.error({ error, telegramId: autoTgId }, 'Failed to restore user to decade after auto-renewal');
+          }
+
           logger.info(
             { userId: autoRenewalUser.id, telegramId: autoTgId, paymentId: autoPayment.id, newExpiry },
             'Auto-renewal processed successfully'
@@ -610,6 +626,10 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
           const restoreResult = await decadesService.restoreUserToDecade(user.id, telegram_id);
           if (restoreResult.restored) {
             logger.info({ telegramId: telegram_id, userId: user.id, decadeName: restoreResult.decadeName }, 'Restored user to decade after payment');
+            // Отправить ссылку-приглашение если есть
+            if (restoreResult.inviteLink && restoreResult.decadeName) {
+              await sendDecadeInviteNotification(telegram_id, restoreResult.decadeName, restoreResult.inviteLink);
+            }
           } else {
             logger.info({ telegramId: telegram_id, userId: user.id, reason: restoreResult.error }, 'No decade restored after payment');
           }

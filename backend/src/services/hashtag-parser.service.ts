@@ -330,6 +330,17 @@ export class HashtagParserService {
       logger.info(
         `[HashtagParser] User ${userId} submitted #созвон/#сторис without required media`
       );
+      // Уведомляем пользователя, что нужно прикрепить медиафайл
+      try {
+        const hashtagText = hasSozvon && hasStoris ? '#созвон + #сторис' : hasSozvon ? '#созвон' : '#сторис';
+        await ctx.api.sendMessage(
+          userTelegramId,
+          `⚠️ Для начисления энергии за <b>${hashtagText}</b> необходимо прикрепить фото или видео к сообщению.`,
+          { parse_mode: 'HTML' }
+        );
+      } catch (dmError) {
+        logger.warn('[HashtagParser] Could not send no-media DM:', dmError);
+      }
       return true; // Хештег был найден, но не начислен — не передаём в обычные правила
     }
 
@@ -340,6 +351,7 @@ export class HashtagParserService {
       const canAward = await this.checkWeeklyLimit(userId, R.comboDescription, 3);
       if (!canAward) {
         logger.info(`[HashtagParser] User ${userId} exceeded weekly limit (3/week) for #созвон + #сторис combo`);
+        await this.sendLimitReachedNotification(ctx, userTelegramId, '#созвон + #сторис', 'weekly', 3);
         return true;
       }
 
@@ -355,6 +367,7 @@ export class HashtagParserService {
       const canAward = await this.checkWeeklyLimit(userId, R.sozvonDescription, 3);
       if (!canAward) {
         logger.info(`[HashtagParser] User ${userId} exceeded weekly limit (3/week) for #созвон`);
+        await this.sendLimitReachedNotification(ctx, userTelegramId, '#созвон', 'weekly', 3);
         return true;
       }
 
@@ -370,6 +383,7 @@ export class HashtagParserService {
       const canAward = await this.checkWeeklyLimit(userId, R.storisDescription, 3);
       if (!canAward) {
         logger.info(`[HashtagParser] User ${userId} exceeded weekly limit (3/week) for #сторис`);
+        await this.sendLimitReachedNotification(ctx, userTelegramId, '#сторис', 'weekly', 3);
         return true;
       }
 
@@ -383,6 +397,34 @@ export class HashtagParserService {
     }
 
     return true;
+  }
+
+  /**
+   * Уведомить пользователя о достижении лимита (в ЛС)
+   */
+  private async sendLimitReachedNotification(
+    ctx: any,
+    userTelegramId: number,
+    hashtagLabel: string,
+    limitType: 'daily' | 'weekly',
+    limitValue: number
+  ): Promise<void> {
+    const resetText = limitType === 'daily'
+      ? 'в 00:00 МСК'
+      : 'в понедельник в 00:00 МСК';
+
+    try {
+      await ctx.api.sendMessage(
+        userTelegramId,
+        `ℹ️ <b>Лимит достигнут</b>\n\n` +
+          `${hashtagLabel} — уже использовано максимально допустимое количество раз ` +
+          `(${limitValue} раз в ${limitType === 'daily' ? 'день' : 'неделю'}).\n\n` +
+          `Лимит сбрасывается ${resetText}.`,
+        { parse_mode: 'HTML' }
+      );
+    } catch (dmError) {
+      logger.warn('[HashtagParser] Could not send limit reached DM:', dmError);
+    }
   }
 
   /**
@@ -479,6 +521,11 @@ export class HashtagParserService {
 
           if (!canAward) {
             logger.info(`[HashtagParser] User ${userId} exceeded limit for ${matchedHashtag}`);
+            if (rule.limitType === 'weekly') {
+              await this.sendLimitReachedNotification(ctx, userTelegramId, matchedHashtag, 'weekly', 1);
+            } else if (rule.limitType === 'weekly_max' && rule.limitValue) {
+              await this.sendLimitReachedNotification(ctx, userTelegramId, matchedHashtag, 'weekly', rule.limitValue);
+            }
             continue;
           }
 

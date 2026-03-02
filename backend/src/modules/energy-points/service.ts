@@ -53,6 +53,23 @@ export class EnergyPointsService {
     return isLeader;
   }
 
+  /**
+   * Сбросить кэш статуса лидера для конкретного пользователя
+   * Вызывается при смене лидера десятки через admin endpoint
+   */
+  clearLeaderCache(userId: string): void {
+    this.leaderCache.delete(userId);
+    logger.info(`[Energies] Leader cache cleared for user ${userId}`);
+  }
+
+  /**
+   * Сбросить весь кэш лидеров
+   */
+  clearAllLeaderCache(): void {
+    this.leaderCache.clear();
+    logger.info('[Energies] All leader cache cleared');
+  }
+
   async award(userId: string, amount: number, reason: string, metadata?: Record<string, any>) {
     try {
       // Проверяем, является ли пользователь лидером десятки (бадди) — x2 множитель

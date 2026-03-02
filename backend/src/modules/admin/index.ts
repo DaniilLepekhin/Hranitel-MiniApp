@@ -12,11 +12,12 @@
 import { Elysia, t } from 'elysia';
 import { db, rawDb } from '@/db';
 import { users, paymentAnalytics, clubFunnelProgress, videos, contentItems, decades, decadeMembers, leaderTestResults } from '@/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and, isNull, sql } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { startOnboardingAfterPayment } from '@/modules/bot/post-payment-funnels';
 import { subscriptionGuardService } from '@/services/subscription-guard.service';
 import { decadesService } from '@/services/decades.service';
+import { energiesService } from '@/modules/energy-points/service';
 
 // n8n webhook для генерации ссылки на оплату Lava
 const N8N_LAVA_WEBHOOK_URL = 'https://n8n4.daniillepekhin.ru/webhook/lava_club2';
@@ -1218,6 +1219,706 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       detail: {
         summary: 'Синхронизировать состав десяток с Telegram',
         description: 'Проверяет реальный статус каждого участника в Telegram-чате и убирает из БД тех, кто уже вышел.',
+      },
+    }
+  )
+
+  /**
+   * ⚡ Начислить Энергию пользователю вручную
+   */
+  .post(
+    '/award-energy',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { telegram_id: rawTelegramId, amount, reason = 'Ручное начисление администратором' } = body;
+      const telegram_id = typeof rawTelegramId === 'string' ? parseInt(rawTelegramId, 10) : rawTelegramId;
+
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.telegramId, telegram_id))
+        .limit(1);
+
+      if (!user) {
+        set.status = 404;
+        return { success: false, error: 'Пользователь не найден' };
+      }
+
+      try {
+        await energiesService.award(user.id, amount, reason, { source: 'admin_manual' });
+        const newBalance = await energiesService.getBalance(user.id);
+
+        logger.info({ telegram_id, amount, reason, newBalance }, 'Admin awarded energy');
+
+        return {
+          success: true,
+          message: `Начислено ${amount} энергии пользователю ${telegram_id}`,
+          new_balance: newBalance,
+        };
+      } catch (error: any) {
+        logger.error({ error, telegram_id }, 'Failed to award energy');
+        set.status = 500;
+        return { success: false, error: error.message };
+      }
+    },
+    {
+      body: t.Object({
+        telegram_id: t.Union([t.Number(), t.String()], { description: 'Telegram ID пользователя' }),
+        amount: t.Number({ description: 'Количество энергии для начисления' }),
+        reason: t.Optional(t.String({ description: 'Причина начисления' })),
+      }),
+      detail: {
+        summary: 'Начислить Энергию вручную',
+        description: 'Начисляет указанное количество Энергии пользователю. Учитывается множитель x2 для лидеров.',
+      },
+    }
+  )
+
+  /**
+   * 🔄 Восстановить пользователя в десятку (после оплаты)
+   */
+  .post(
+    '/restore-to-decade',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { telegram_id: rawTelegramId } = body;
+      const telegram_id = typeof rawTelegramId === 'string' ? parseInt(rawTelegramId, 10) : rawTelegramId;
+
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.telegramId, telegram_id))
+        .limit(1);
+
+      if (!user) {
+        set.status = 404;
+        return { success: false, error: 'Пользователь не найден' };
+      }
+
+      // Разблокировать во всех чатах сначала
+      try {
+        await subscriptionGuardService.unbanUserFromAllChats(telegram_id);
+      } catch (error) {
+        logger.warn({ error, telegram_id }, 'Failed to unban user from chats during restore');
+      }
+
+      // Попробовать восстановить в десятку
+      const restoreResult = await decadesService.restoreUserToDecade(user.id, telegram_id);
+
+      if (restoreResult.restored) {
+        logger.info({ telegram_id, decadeName: restoreResult.decadeName }, 'Admin restored user to decade');
+        return {
+          success: true,
+          message: `Пользователь ${telegram_id} восстановлен в ${restoreResult.decadeName}`,
+          decade_name: restoreResult.decadeName,
+        };
+      }
+
+      // Если не получилось восстановить (нет предыдущего членства или десятка заполнена)
+      logger.info({ telegram_id, error: restoreResult.error }, 'Could not restore to previous decade, trying assignment');
+
+      // Попробовать назначить в любую доступную десятку в городе
+      const assignResult = await decadesService.assignUserToDecade(telegram_id);
+      if (assignResult.success) {
+        return {
+          success: true,
+          message: `Пользователь ${telegram_id} назначен в ${assignResult.decadeName}`,
+          decade_name: assignResult.decadeName,
+          invite_link: assignResult.inviteLink,
+        };
+      }
+
+      return {
+        success: false,
+        error: `Не удалось восстановить: ${restoreResult.error}. Назначение: ${assignResult.error}`,
+      };
+    },
+    {
+      body: t.Object({
+        telegram_id: t.Union([t.Number(), t.String()], { description: 'Telegram ID пользователя' }),
+      }),
+      detail: {
+        summary: 'Восстановить пользователя в десятку',
+        description: 'Пробует восстановить пользователя в его предыдущую десятку (если место есть) или назначает в новую свободную.',
+      },
+    }
+  )
+
+  /**
+   * 🗑️ Удалить участника из десятки
+   */
+  .post(
+    '/remove-decade-member',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { telegram_id: rawTelegramId, kick_from_chat = true } = body;
+      const telegram_id = typeof rawTelegramId === 'string' ? parseInt(rawTelegramId, 10) : rawTelegramId;
+
+      // Найти активное членство (для отображения в ответе)
+      const [membership] = await db
+        .select()
+        .from(decadeMembers)
+        .where(and(eq(decadeMembers.telegramId, telegram_id), isNull(decadeMembers.leftAt)))
+        .limit(1);
+
+      if (!membership) {
+        return { success: false, error: 'Активное членство в десятке не найдено' };
+      }
+
+      const [decade] = await db
+        .select()
+        .from(decades)
+        .where(eq(decades.id, membership.decadeId))
+        .limit(1);
+
+      if (!decade) {
+        return { success: false, error: 'Десятка не найдена' };
+      }
+
+      // Использовать decadesService для корректного закрытия членства + кика
+      // (он обновит DB и при kick_from_chat выгонит из Telegram)
+      if (kick_from_chat) {
+        await decadesService.removeUserFromDecade(telegram_id);
+      } else {
+        // Только закрыть в DB без кика
+        const [user] = await db.select({ isAmbassador: users.isAmbassador }).from(users).where(eq(users.telegramId, telegram_id)).limit(1);
+
+        await db
+          .update(decadeMembers)
+          .set({ leftAt: new Date() })
+          .where(eq(decadeMembers.id, membership.id));
+
+        if (!user?.isAmbassador) {
+          const newCount = Math.max(0, decade.currentMembers - 1);
+          await db
+            .update(decades)
+            .set({ currentMembers: newCount, isFull: false, updatedAt: new Date() })
+            .where(eq(decades.id, decade.id));
+        }
+      }
+
+      logger.info({ telegram_id, decadeId: decade.id, city: decade.city, number: decade.number, kick_from_chat }, 'Admin removed user from decade');
+
+      return {
+        success: true,
+        message: `Пользователь ${telegram_id} удалён из десятки №${decade.number} (${decade.city})${kick_from_chat ? ' и выгнан из чата' : ''}`,
+        decade: { id: decade.id, city: decade.city, number: decade.number },
+      };
+    },
+    {
+      body: t.Object({
+        telegram_id: t.Union([t.Number(), t.String()], { description: 'Telegram ID участника для удаления' }),
+        kick_from_chat: t.Optional(t.Boolean({ description: 'Выгнать из Telegram-чата (по умолчанию true)' })),
+      }),
+      detail: {
+        summary: 'Удалить участника из десятки',
+        description: 'Закрывает членство пользователя в его текущей десятке и (опционально) выгоняет из Telegram-чата.',
+      },
+    }
+  )
+
+  /**
+   * ➕ Принудительно добавить пользователя в конкретную десятку
+   */
+  .post(
+    '/force-add-to-decade',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { telegram_id: rawTelegramId, decade_city, decade_number } = body;
+      const telegram_id = typeof rawTelegramId === 'string' ? parseInt(rawTelegramId, 10) : rawTelegramId;
+
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.telegramId, telegram_id))
+        .limit(1);
+
+      if (!user) {
+        set.status = 404;
+        return { success: false, error: 'Пользователь не найден' };
+      }
+
+      // Найти десятку по городу и номеру
+      const [decade] = await db
+        .select()
+        .from(decades)
+        .where(and(eq(decades.city, decade_city), eq(decades.number, decade_number), eq(decades.isActive, true)))
+        .limit(1);
+
+      if (!decade) {
+        set.status = 404;
+        return { success: false, error: `Десятка №${decade_number} в городе ${decade_city} не найдена или неактивна` };
+      }
+
+      // Проверить нет ли уже активного членства
+      const [existingMembership] = await db
+        .select()
+        .from(decadeMembers)
+        .where(and(eq(decadeMembers.userId, user.id), isNull(decadeMembers.leftAt)))
+        .limit(1);
+
+      if (existingMembership) {
+        return { success: false, error: `Пользователь уже состоит в десятке (ID: ${existingMembership.decadeId})` };
+      }
+
+      // Добавить в десятку
+      await db.insert(decadeMembers).values({
+        decadeId: decade.id,
+        userId: user.id,
+        telegramId: telegram_id,
+        isLeader: false,
+      });
+
+      // Обновить счётчик (только если не амбассадор)
+      if (!user.isAmbassador) {
+        const newCount = decade.currentMembers + 1;
+        await db
+          .update(decades)
+          .set({
+            currentMembers: newCount,
+            isFull: newCount >= decade.maxMembers,
+            updatedAt: new Date(),
+          })
+          .where(eq(decades.id, decade.id));
+      }
+
+      logger.info({ telegram_id, decadeId: decade.id, city: decade_city, number: decade_number }, 'Admin force-added user to decade');
+
+      return {
+        success: true,
+        message: `Пользователь ${telegram_id} добавлен в десятку №${decade_number} (${decade_city})`,
+        invite_link: decade.inviteLink || null,
+        decade: { id: decade.id, city: decade.city, number: decade.number },
+      };
+    },
+    {
+      body: t.Object({
+        telegram_id: t.Union([t.Number(), t.String()], { description: 'Telegram ID участника' }),
+        decade_city: t.String({ description: 'Город десятки' }),
+        decade_number: t.Number({ description: 'Номер десятки в городе' }),
+      }),
+      detail: {
+        summary: 'Принудительно добавить в десятку',
+        description: 'Добавляет пользователя в указанную десятку по городу и номеру (без проверки лимита). Возвращает инвайт-ссылку.',
+      },
+    }
+  )
+
+  /**
+   * 👑 Сменить лидера десятки
+   */
+  .post(
+    '/replace-leader',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const {
+        decade_city,
+        decade_number,
+        new_leader_telegram_id: rawNewLeader,
+        keep_old_leader_as_participant = true,
+      } = body;
+
+      const new_leader_telegram_id = typeof rawNewLeader === 'string' ? parseInt(rawNewLeader, 10) : rawNewLeader;
+
+      // Найти десятку
+      const [decade] = await db
+        .select()
+        .from(decades)
+        .where(and(eq(decades.city, decade_city), eq(decades.number, decade_number), eq(decades.isActive, true)))
+        .limit(1);
+
+      if (!decade) {
+        set.status = 404;
+        return { success: false, error: `Десятка №${decade_number} в городе ${decade_city} не найдена` };
+      }
+
+      // Найти нового лидера
+      const [newLeaderUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.telegramId, new_leader_telegram_id))
+        .limit(1);
+
+      if (!newLeaderUser) {
+        set.status = 404;
+        return { success: false, error: `Новый лидер (tg_id: ${new_leader_telegram_id}) не найден` };
+      }
+
+      await db.transaction(async tx => {
+        // 1. Убрать флаг лидера со старого лидера
+        await tx
+          .update(decadeMembers)
+          .set({ isLeader: false })
+          .where(and(eq(decadeMembers.decadeId, decade.id), eq(decadeMembers.isLeader, true), isNull(decadeMembers.leftAt)));
+
+        // 2. Если старый лидер не остаётся - закрыть его членство
+        if (!keep_old_leader_as_participant && decade.leaderTelegramId) {
+          await tx
+            .update(decadeMembers)
+            .set({ leftAt: new Date() })
+            .where(
+              and(
+                eq(decadeMembers.decadeId, decade.id),
+                eq(decadeMembers.telegramId, decade.leaderTelegramId),
+                isNull(decadeMembers.leftAt)
+              )
+            );
+          // Обновить счётчик
+          const newCount = Math.max(0, decade.currentMembers - 1);
+          await tx.update(decades).set({ currentMembers: newCount, updatedAt: new Date() }).where(eq(decades.id, decade.id));
+        }
+
+        // 3. Найти или создать членство нового лидера
+        const [existingNewLeaderMembership] = await tx
+          .select()
+          .from(decadeMembers)
+          .where(and(eq(decadeMembers.userId, newLeaderUser.id), eq(decadeMembers.decadeId, decade.id), isNull(decadeMembers.leftAt)))
+          .limit(1);
+
+        if (existingNewLeaderMembership) {
+          // Уже участник - просто повысить до лидера
+          await tx
+            .update(decadeMembers)
+            .set({ isLeader: true })
+            .where(eq(decadeMembers.id, existingNewLeaderMembership.id));
+        } else {
+          // Не участник - добавить как лидера (без изменения счётчика если амбассадор, иначе +1)
+          await tx.insert(decadeMembers).values({
+            decadeId: decade.id,
+            userId: newLeaderUser.id,
+            telegramId: new_leader_telegram_id,
+            isLeader: true,
+          });
+          if (!newLeaderUser.isAmbassador) {
+            await tx
+              .update(decades)
+              .set({ currentMembers: decade.currentMembers + 1, updatedAt: new Date() })
+              .where(eq(decades.id, decade.id));
+          }
+        }
+
+        // 4. Обновить десятку
+        await tx
+          .update(decades)
+          .set({
+            leaderUserId: newLeaderUser.id,
+            leaderTelegramId: new_leader_telegram_id,
+            updatedAt: new Date(),
+          })
+          .where(eq(decades.id, decade.id));
+      });
+
+      // 5. Сбросить кэш энергий лидеров
+      if (decade.leaderTelegramId) {
+        const [oldLeaderUser] = await db.select({ id: users.id }).from(users).where(eq(users.telegramId, decade.leaderTelegramId)).limit(1);
+        if (oldLeaderUser) energiesService.clearLeaderCache(oldLeaderUser.id);
+      }
+      energiesService.clearLeaderCache(newLeaderUser.id);
+
+      logger.info(
+        { decadeId: decade.id, city: decade_city, number: decade_number, oldLeader: decade.leaderTelegramId, newLeader: new_leader_telegram_id },
+        'Admin replaced decade leader'
+      );
+
+      return {
+        success: true,
+        message: `Лидер десятки №${decade_number} (${decade_city}) изменён на tg_id ${new_leader_telegram_id}`,
+        decade: { id: decade.id, city: decade.city, number: decade.number },
+        new_leader: { telegram_id: new_leader_telegram_id, username: newLeaderUser.username },
+      };
+    },
+    {
+      body: t.Object({
+        decade_city: t.String({ description: 'Город десятки' }),
+        decade_number: t.Number({ description: 'Номер десятки в городе' }),
+        new_leader_telegram_id: t.Union([t.Number(), t.String()], { description: 'Telegram ID нового лидера' }),
+        keep_old_leader_as_participant: t.Optional(t.Boolean({ description: 'Оставить старого лидера как участника (по умолчанию true)' })),
+      }),
+      detail: {
+        summary: 'Сменить лидера десятки',
+        description: 'Переназначает лидера десятки. Старый лидер может остаться как обычный участник. Сбрасывает кэш x2 энергии.',
+      },
+    }
+  )
+
+  /**
+   * 🏅 Установить/снять статус амбассадора
+   */
+  .post(
+    '/set-ambassador',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { telegram_id: rawTelegramId, is_ambassador, kick_from_chats = false } = body;
+      const telegram_id = typeof rawTelegramId === 'string' ? parseInt(rawTelegramId, 10) : rawTelegramId;
+
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.telegramId, telegram_id))
+        .limit(1);
+
+      if (!user) {
+        set.status = 404;
+        return { success: false, error: 'Пользователь не найден' };
+      }
+
+      await db
+        .update(users)
+        .set({ isAmbassador: is_ambassador, updatedAt: new Date() })
+        .where(eq(users.id, user.id));
+
+      // Если снимаем статус и нужно выгнать из чатов
+      if (!is_ambassador && kick_from_chats) {
+        try {
+          await decadesService.removeUserFromDecade(telegram_id);
+          await subscriptionGuardService.unbanUserFromAllChats(telegram_id);
+        } catch (error) {
+          logger.warn({ error, telegram_id }, 'Failed to kick ex-ambassador from chats');
+        }
+      }
+
+      logger.info({ telegram_id, is_ambassador, kick_from_chats }, 'Admin set ambassador status');
+
+      return {
+        success: true,
+        message: `Статус амбассадора для ${telegram_id}: ${is_ambassador ? 'установлен' : 'снят'}`,
+        user: { telegram_id, username: user.username, is_ambassador },
+      };
+    },
+    {
+      body: t.Object({
+        telegram_id: t.Union([t.Number(), t.String()], { description: 'Telegram ID пользователя' }),
+        is_ambassador: t.Boolean({ description: 'true - назначить амбассадором, false - снять' }),
+        kick_from_chats: t.Optional(t.Boolean({ description: 'Выгнать из всех чатов при снятии статуса (по умолчанию false)' })),
+      }),
+      detail: {
+        summary: 'Установить статус амбассадора',
+        description: 'Устанавливает или снимает статус амбассадора. Амбассадоры могут входить в любые десятки без учёта лимита.',
+      },
+    }
+  )
+
+  /**
+   * 🎁 Активировать подарочную подписку
+   */
+  .post(
+    '/activate-gift',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const {
+        recipient_telegram_id: rawRecipient,
+        gifter_telegram_id: rawGifter,
+        days = 30,
+      } = body;
+
+      const recipient_telegram_id = typeof rawRecipient === 'string' ? parseInt(rawRecipient, 10) : rawRecipient;
+      const gifter_telegram_id = rawGifter
+        ? (typeof rawGifter === 'string' ? parseInt(rawGifter, 10) : rawGifter)
+        : null;
+
+      // Найти или создать получателя
+      let [recipientUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.telegramId, recipient_telegram_id))
+        .limit(1);
+
+      const subscriptionExpires = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+
+      if (!recipientUser) {
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            telegramId: recipient_telegram_id,
+            isPro: true,
+            subscriptionExpires,
+            gifted: true,
+            firstPurchaseDate: new Date(),
+            metadata: { source: 'admin_gift' },
+          })
+          .returning();
+        recipientUser = newUser;
+      } else {
+        const [updated] = await db
+          .update(users)
+          .set({
+            isPro: true,
+            subscriptionExpires,
+            gifted: true,
+            firstPurchaseDate: recipientUser.firstPurchaseDate || new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, recipientUser.id))
+          .returning();
+        recipientUser = updated;
+      }
+
+      // Установить giftedBy если указан даритель (giftedBy хранит telegram_id дарителя)
+      if (gifter_telegram_id) {
+        await db
+          .update(users)
+          .set({ giftedBy: gifter_telegram_id, updatedAt: new Date() })
+          .where(eq(users.id, recipientUser.id));
+      }
+
+      // Разблокировать в чатах
+      try {
+        await subscriptionGuardService.unbanUserFromAllChats(recipient_telegram_id);
+      } catch (error) {
+        logger.warn({ error, recipient_telegram_id }, 'Failed to unban gift recipient');
+      }
+
+      // Начислить 500 энергии
+      try {
+        await energiesService.award(recipientUser.id, 500, 'Продление подписки', { source: 'admin_gift' });
+      } catch (error) {
+        logger.warn({ error }, 'Failed to award gift energy');
+      }
+
+      // Запустить онбординг
+      let onboardingSent = false;
+      try {
+        await startOnboardingAfterPayment(recipientUser.id, recipient_telegram_id);
+        onboardingSent = true;
+      } catch (error) {
+        logger.warn({ error, recipient_telegram_id }, 'Failed to send gift onboarding');
+      }
+
+      logger.info({ recipient_telegram_id, gifter_telegram_id, days }, 'Admin activated gift subscription');
+
+      return {
+        success: true,
+        message: `Подарочная подписка активирована для ${recipient_telegram_id} на ${days} дней`,
+        onboarding_sent: onboardingSent,
+        user: {
+          id: recipientUser.id,
+          telegram_id: recipientUser.telegramId,
+          subscription_expires: subscriptionExpires,
+        },
+      };
+    },
+    {
+      body: t.Object({
+        recipient_telegram_id: t.Union([t.Number(), t.String()], { description: 'Telegram ID получателя подарка' }),
+        gifter_telegram_id: t.Optional(t.Union([t.Number(), t.String()], { description: 'Telegram ID дарителя (опционально)' })),
+        days: t.Optional(t.Number({ description: 'Количество дней подписки (по умолчанию 30)' })),
+      }),
+      detail: {
+        summary: 'Активировать подарочную подписку',
+        description: 'Активирует подарочную подписку для получателя, начисляет 500 энергии и запускает онбординг.',
+      },
+    }
+  )
+
+  /**
+   * 🌍 Сменить город пользователя
+   */
+  .post(
+    '/change-city',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { telegram_id: rawTelegramId, city } = body;
+      const telegram_id = typeof rawTelegramId === 'string' ? parseInt(rawTelegramId, 10) : rawTelegramId;
+
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.telegramId, telegram_id))
+        .limit(1);
+
+      if (!user) {
+        set.status = 404;
+        return { success: false, error: 'Пользователь не найден' };
+      }
+
+      const oldCity = user.city;
+
+      await db
+        .update(users)
+        .set({ city, updatedAt: new Date() })
+        .where(eq(users.id, user.id));
+
+      logger.info({ telegram_id, oldCity, newCity: city }, 'Admin changed user city');
+
+      return {
+        success: true,
+        message: `Город пользователя ${telegram_id} изменён: ${oldCity || '(не задан)'} → ${city}`,
+        user: { telegram_id, old_city: oldCity, new_city: city },
+      };
+    },
+    {
+      body: t.Object({
+        telegram_id: t.Union([t.Number(), t.String()], { description: 'Telegram ID пользователя' }),
+        city: t.String({ description: 'Новый город' }),
+      }),
+      detail: {
+        summary: 'Сменить город пользователя',
+        description: 'Меняет город пользователя в базе данных. Важно: не переносит из десятки автоматически.',
+      },
+    }
+  )
+
+  /**
+   * 🔧 Пересчитать счётчики участников всех десяток
+   */
+  .post(
+    '/fix-decade-counters',
+    async ({ headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      try {
+        const result = await decadesService.fixAllDecadeCounters();
+        logger.info(result, 'Admin fixed decade counters');
+        return {
+          success: true,
+          message: `Счётчики пересчитаны. Исправлено десяток: ${result.countersFixed}`,
+          counters_fixed: result.countersFixed,
+        };
+      } catch (error: any) {
+        logger.error({ error }, 'Failed to fix decade counters');
+        set.status = 500;
+        return { success: false, error: error.message };
+      }
+    },
+    {
+      detail: {
+        summary: 'Пересчитать счётчики десяток',
+        description: 'Пересчитывает current_members и is_full для всех десяток по фактическому составу. Амбассадоры не учитываются.',
       },
     }
   );

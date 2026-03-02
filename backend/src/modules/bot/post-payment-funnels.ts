@@ -737,6 +737,29 @@ export async function handleUserShared(gifterTgId: number, recipientTgId: number
 }
 
 /**
+ * Отправить участнику ссылку-приглашение в десятку (после оплаты/продления)
+ * Вызывается из webhook после успешного restoreUserToDecade()
+ */
+export async function sendDecadeInviteNotification(
+  chatId: number,
+  decadeName: string,
+  inviteLink: string
+) {
+  try {
+    await getTelegramService().sendMessage(
+      chatId,
+      `<b>Добро пожаловать обратно в десятку! 🎉</b>\n\n` +
+        `Ты восстановлена в <b>${decadeName}</b>.\n\n` +
+        `Ссылка для вступления в чат десятки:\n${inviteLink}\n\n` +
+        `Нажми на ссылку, чтобы зайти в чат 👆`,
+      { parse_mode: 'HTML' }
+    );
+  } catch (error) {
+    logger.error({ error, chatId, decadeName }, 'Failed to send decade invite notification');
+  }
+}
+
+/**
  * После успешной оплаты подарка - отправить ссылку дарителю
  */
 export async function handleGiftPaymentSuccess(

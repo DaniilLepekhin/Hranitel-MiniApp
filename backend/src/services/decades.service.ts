@@ -363,6 +363,10 @@ class DecadesService {
    * - FOR UPDATE блокирует десятку от параллельных записей
    * - Проверка currentMembers < maxMembers внутри транзакции
    * - При переполнении - откат и поиск другой десятки
+   *
+   * 🏅 AMBASSADOR BYPASS:
+   * - Амбассадоры могут вступить в любую десятку без учёта в счётчике currentMembers
+   * - Они добавляются в decade_members, но НЕ влияют на is_full
    */
   async assignUserToDecade(
     telegramId: number,
@@ -391,6 +395,9 @@ class DecadesService {
     if (!user.isPro) {
       return { success: false, error: 'Для вступления в десятку нужна активная подписка' };
     }
+
+    // 🏅 Проверяем, является ли пользователь амбассадором
+    const isAmbassador = !!user.isAmbassador;
 
     // Retry loop для случая когда десятка заполнилась между поиском и записью
     const MAX_RETRIES = 3;
@@ -422,7 +429,66 @@ class DecadesService {
             };
           }
 
-          // 🔒 Найти и заблокировать подходящую десятку
+          // 🏅 АМБАССАДОР: добавляем без учёта в счётчике
+          if (isAmbassador) {
+            let ambassadorDecade: Decade | undefined;
+
+            if (decadeId) {
+              const [specified] = await tx
+                .select()
+                .from(decades)
+                .where(and(eq(decades.id, decadeId), eq(decades.isActive, true)))
+                .for('update')
+                .limit(1);
+              ambassadorDecade = specified;
+            } else {
+              const [available] = await tx
+                .select()
+                .from(decades)
+                .where(
+                  and(
+                    eq(decades.city, user.city!),
+                    eq(decades.isActive, true),
+                    eq(decades.isAvailableForDistribution, true)
+                  )
+                )
+                .orderBy(decades.number)
+                .for('update')
+                .limit(1);
+              ambassadorDecade = available;
+            }
+
+            if (!ambassadorDecade) {
+              return {
+                success: false,
+                error: `В городе ${user.city} нет активных десяток`,
+                noDecadeAvailable: true,
+              };
+            }
+
+            // ✅ Добавить амбассадора в decade_members БЕЗ увеличения счётчика
+            await tx.insert(decadeMembers).values({
+              decadeId: ambassadorDecade.id,
+              userId: user.id,
+              telegramId,
+              isLeader: false,
+            });
+
+            logger.info(
+              { userId: user.id, telegramId, decadeId: ambassadorDecade.id, city: ambassadorDecade.city },
+              'Ambassador added to decade (not counted in capacity)'
+            );
+
+            return {
+              success: true,
+              inviteLink: ambassadorDecade.inviteLink || undefined,
+              decadeName: `Десятка №${ambassadorDecade.number} ${ambassadorDecade.city}`,
+              decadeId: ambassadorDecade.id,
+              city: ambassadorDecade.city,
+            };
+          }
+
+          // 🔒 Найти и заблокировать подходящую десятку (для обычных участников)
           let decade: Decade | undefined;
 
           if (decadeId) {
@@ -863,7 +929,7 @@ class DecadesService {
   async restoreUserToDecade(
     userId: string,
     telegramId: number
-  ): Promise<{ restored: boolean; decadeName?: string; error?: string }> {
+  ): Promise<{ restored: boolean; decadeName?: string; inviteLink?: string; error?: string }> {
     // Найти последнее членство (вышедшее)
     const [previousMembership] = await db
       .select()
@@ -900,7 +966,7 @@ class DecadesService {
           .limit(1);
 
         if (activeNow) {
-          return { success: true, decadeName: `Десятка №${decade.number} ${decade.city}` };
+          return { success: true, decadeName: `Десятка №${decade.number} ${decade.city}`, inviteLink: decade.inviteLink || undefined };
         }
 
         if (decade.currentMembers >= decade.maxMembers) {
@@ -930,11 +996,11 @@ class DecadesService {
           { userId, telegramId, decadeId: decade.id, newCount: decade.currentMembers + 1 },
           'restoreUserToDecade: restored to previous decade'
         );
-        return { success: true, decadeName: `Десятка №${decade.number} ${decade.city}` };
+        return { success: true, decadeName: `Десятка №${decade.number} ${decade.city}`, inviteLink: decade.inviteLink || undefined };
       });
 
       if (result.success) {
-        return { restored: true, decadeName: result.decadeName };
+        return { restored: true, decadeName: result.decadeName, inviteLink: result.inviteLink };
       }
 
       // Десятка заполнена — назначаем в другую свободную в том же городе
@@ -942,7 +1008,7 @@ class DecadesService {
         logger.info({ userId, telegramId, city: result.city }, 'restoreUserToDecade: assigning to new decade in same city');
         const assigned = await this.assignUserToDecade(telegramId);
         if (assigned.success) {
-          return { restored: true, decadeName: assigned.decadeName };
+          return { restored: true, decadeName: assigned.decadeName, inviteLink: assigned.inviteLink };
         }
         return { restored: false, error: assigned.error };
       }
@@ -1063,6 +1129,7 @@ class DecadesService {
    * Вызывается автоматически из syncDecadeMembership.
    */
   async fixAllDecadeCounters(): Promise<{ countersFixed: number }> {
+    // 🏅 Амбассадоры НЕ учитываются в счётчике current_members
     const result = await db.execute(sql`
       UPDATE decades d
       SET
@@ -1070,10 +1137,11 @@ class DecadesService {
         is_full = (sub.actual_count >= d.max_members),
         updated_at = NOW()
       FROM (
-        SELECT decade_id, COUNT(*) AS actual_count
-        FROM decade_members
-        WHERE left_at IS NULL
-        GROUP BY decade_id
+        SELECT dm.decade_id, COUNT(*) AS actual_count
+        FROM decade_members dm
+        LEFT JOIN users u ON u.id = dm.user_id
+        WHERE dm.left_at IS NULL AND NOT COALESCE(u.is_ambassador, false)
+        GROUP BY dm.decade_id
       ) sub
       WHERE d.id = sub.decade_id
         AND (d.current_members != sub.actual_count
