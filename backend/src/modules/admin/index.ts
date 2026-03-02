@@ -1477,13 +1477,29 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         return { success: false, error: `Пользователь уже состоит в десятке (ID: ${existingMembership.decadeId})` };
       }
 
-      // Добавить в десятку
-      await db.insert(decadeMembers).values({
-        decadeId: decade.id,
-        userId: user.id,
-        telegramId: telegram_id,
-        isLeader: false,
-      });
+      // Проверить нет ли исторической записи для этой же (decade_id, user_id) — unique constraint
+      // Если есть — реактивируем её, иначе вставляем новую
+      const [historicalMembership] = await db
+        .select()
+        .from(decadeMembers)
+        .where(and(eq(decadeMembers.userId, user.id), eq(decadeMembers.decadeId, decade.id)))
+        .limit(1);
+
+      if (historicalMembership) {
+        // Реактивируем: снимаем left_at
+        await db
+          .update(decadeMembers)
+          .set({ leftAt: null, joinedAt: new Date() })
+          .where(eq(decadeMembers.id, historicalMembership.id));
+      } else {
+        // Новая запись
+        await db.insert(decadeMembers).values({
+          decadeId: decade.id,
+          userId: user.id,
+          telegramId: telegram_id,
+          isLeader: false,
+        });
+      }
 
       // Обновить счётчик (только если не амбассадор)
       if (!user.isAmbassador) {
