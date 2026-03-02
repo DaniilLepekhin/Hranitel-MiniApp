@@ -496,6 +496,15 @@ export class HashtagParserService {
               logger.info(
                 `[HashtagParser] User ${userId} submitted ${matchedHashtag} on weekday (only Sat/Sun allowed)`
               );
+              try {
+                await ctx.api.sendMessage(
+                  userTelegramId,
+                  `ℹ️ <b>${matchedHashtag}</b> засчитывается только в субботу и воскресенье по МСК.\n\nОтправь фото практики в выходной день — и получишь энергию! ⚡`,
+                  { parse_mode: 'HTML' }
+                );
+              } catch (dmError) {
+                logger.warn('[HashtagParser] Could not send weekday DM:', dmError);
+              }
               continue;
             }
           }
@@ -505,6 +514,15 @@ export class HashtagParserService {
             logger.info(
               `[HashtagParser] User ${userId} submitted ${matchedHashtag} without required media`
             );
+            try {
+              await ctx.api.sendMessage(
+                userTelegramId,
+                `⚠️ Для начисления энергии за <b>${matchedHashtag}</b> необходимо прикрепить фото или видео к сообщению.`,
+                { parse_mode: 'HTML' }
+              );
+            } catch (dmError) {
+              logger.warn('[HashtagParser] Could not send no-media DM:', dmError);
+            }
             continue;
           }
 
