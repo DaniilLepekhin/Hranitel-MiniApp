@@ -358,7 +358,7 @@ export function ProfileTab() {
                     className="flex items-center justify-center p-1 hover:bg-black/5 rounded-full transition-colors active:scale-95 flex-shrink-0"
                     aria-label="Редактировать город"
                   >
-                    <Edit2 className="w-3 h-3" style={{ color: '#9c1723' }} />
+                    <Edit2 className="w-4 h-4" style={{ color: '#9c1723' }} />
                   </button>
                 </div>
 
