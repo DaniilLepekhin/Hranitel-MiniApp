@@ -713,13 +713,16 @@ class DecadesService {
 
     if (!membership) {
       // Постороннего — проверяем не переполнена ли десятка
+      // Амбассадоры не считаются в лимит (они заходят сверх нормы)
       const [result] = await db
         .select({ count: sql`count(*)::int` })
         .from(decadeMembers)
+        .leftJoin(users, eq(decadeMembers.userId, users.id))
         .where(
           and(
             eq(decadeMembers.decadeId, decade.id),
-            isNull(decadeMembers.leftAt)
+            isNull(decadeMembers.leftAt),
+            sql`NOT COALESCE(${users.isAmbassador}, false)`
           )
         );
       const actualCount = (result?.count || 0) as number;
@@ -825,6 +828,14 @@ class DecadesService {
       return; // Нет активного членства
     }
 
+    // Проверить, является ли пользователь амбассадором (амбассадоры не учитываются в счётчике)
+    const [leavingUser] = await db
+      .select({ isAmbassador: users.isAmbassador })
+      .from(users)
+      .where(eq(users.telegramId, userTelegramId))
+      .limit(1);
+    const isAmbassador = leavingUser?.isAmbassador ?? false;
+
     // Обновить в транзакции
     await db.transaction(async tx => {
       // Пометить как вышедшего
@@ -833,16 +844,18 @@ class DecadesService {
         .set({ leftAt: new Date() })
         .where(eq(decadeMembers.id, membership.id));
 
-      // Обновить счётчик
-      const newCount = Math.max(0, decade.currentMembers - 1);
-      await tx
-        .update(decades)
-        .set({
-          currentMembers: newCount,
-          isFull: false, // Освободилось место
-          updatedAt: new Date(),
-        })
-        .where(eq(decades.id, decade.id));
+      // Обновить счётчик только если не амбассадор
+      if (!isAmbassador) {
+        const newCount = Math.max(0, decade.currentMembers - 1);
+        await tx
+          .update(decades)
+          .set({
+            currentMembers: newCount,
+            isFull: false, // Освободилось место
+            updatedAt: new Date(),
+          })
+          .where(eq(decades.id, decade.id));
+      }
     });
 
     logger.info(
@@ -851,7 +864,8 @@ class DecadesService {
         decadeId: decade.id,
         city: decade.city,
         number: decade.number,
-        newCount: Math.max(0, decade.currentMembers - 1),
+        isAmbassador,
+        newCount: isAmbassador ? decade.currentMembers : Math.max(0, decade.currentMembers - 1),
       },
       'User left decade - membership updated'
     );
@@ -883,6 +897,14 @@ class DecadesService {
 
     if (!decade) return;
 
+    // Проверить, является ли пользователь амбассадором (амбассадоры не учитываются в счётчике)
+    const [leavingUser] = await db
+      .select({ isAmbassador: users.isAmbassador })
+      .from(users)
+      .where(eq(users.telegramId, telegramId))
+      .limit(1);
+    const isAmbassador = leavingUser?.isAmbassador ?? false;
+
     // Обновить в транзакции
     await db.transaction(async tx => {
       // Пометить как вышедшего
@@ -891,16 +913,18 @@ class DecadesService {
         .set({ leftAt: new Date() })
         .where(eq(decadeMembers.id, membership.id));
 
-      // Обновить счётчик
-      const newCount = Math.max(0, decade.currentMembers - 1);
-      await tx
-        .update(decades)
-        .set({
-          currentMembers: newCount,
-          isFull: false, // Освободилось место
-          updatedAt: new Date(),
-        })
-        .where(eq(decades.id, decade.id));
+      // Обновить счётчик только если не амбассадор
+      if (!isAmbassador) {
+        const newCount = Math.max(0, decade.currentMembers - 1);
+        await tx
+          .update(decades)
+          .set({
+            currentMembers: newCount,
+            isFull: false, // Освободилось место
+            updatedAt: new Date(),
+          })
+          .where(eq(decades.id, decade.id));
+      }
     });
 
     // Выгнать из чата (ban + unban)

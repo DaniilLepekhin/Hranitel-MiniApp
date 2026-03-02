@@ -1019,6 +1019,25 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         // Разблокируем во всех чатах (каналы + городские чаты)
         await subscriptionGuardService.unbanUserFromAllChats(telegram_id);
 
+        // Восстанавливаем в десятку (если был участником)
+        let decadeRestored = false;
+        let decadeName: string | undefined;
+        let decadeInviteLink: string | undefined;
+        try {
+          const restoreResult = await decadesService.restoreUserToDecade(user.id, telegram_id);
+          if (restoreResult.restored) {
+            decadeRestored = true;
+            decadeName = restoreResult.decadeName;
+            decadeInviteLink = restoreResult.inviteLink;
+            logger.info(
+              { telegram_id, decadeName: restoreResult.decadeName },
+              'User restored to decade after admin unban'
+            );
+          }
+        } catch (decadeError) {
+          logger.warn({ error: decadeError, telegram_id }, 'Failed to restore decade after admin unban');
+        }
+
         logger.info(
           { telegram_id, username: user.username, city: user.city },
           'User unbanned from all chats by admin'
@@ -1032,6 +1051,11 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
             telegram_id: user.telegramId,
             username: user.username,
             city: user.city,
+          },
+          decade: {
+            restored: decadeRestored,
+            name: decadeName,
+            invite_link: decadeInviteLink,
           },
         };
       } catch (error: any) {

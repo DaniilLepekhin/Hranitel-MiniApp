@@ -1072,7 +1072,7 @@ export const decades = pgTable('decades', {
 
   // Счётчики участников
   currentMembers: integer('current_members').default(1).notNull(), // Текущее кол-во (включая лидера)
-  maxMembers: integer('max_members').default(11).notNull(), // Макс участников (10 + лидер = 11)
+  maxMembers: integer('max_members').default(10).notNull(), // Макс участников (9 обычных + 1 лидер = 10; амбассадор не входит в лимит)
 
   // Статусы
   isActive: boolean('is_active').default(true).notNull(), // Активна ли десятка
