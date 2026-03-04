@@ -17,7 +17,7 @@
 import { InlineKeyboard, Keyboard } from 'grammy';
 import { db } from '@/db';
 import { users, referralAgents, referralPayments, payments } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, gte } from 'drizzle-orm';
 import { schedulerService } from '@/services/scheduler.service';
 import { stateService } from '@/services/state.service';
 import { TelegramService } from '@/services/telegram.service';
@@ -295,23 +295,51 @@ export async function sendReferralCabinet(chatId: number, telegramId: number) {
     return;
   }
 
+  // Рефералы за текущий месяц
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const monthReferrals = await db
+    .select({ id: referralPayments.id })
+    .from(referralPayments)
+    .where(
+      and(
+        eq(referralPayments.agentId, agent.id),
+        gte(referralPayments.createdAt, startOfMonth)
+      )
+    );
+
+  const thisMonthCount = monthReferrals.length;
+  const firstName = agent.fullName.split(' ')[1] || agent.fullName.split(' ')[0]; // Имя (второе слово = имя, или первое если одно)
   const refLink = buildRefLink(telegramId);
   const cabinetUrl = `${getWebAppUrl()}/referral`;
 
   const keyboard = new InlineKeyboard()
     .webApp('открыть личный кабинет', cabinetUrl);
 
-  await tg.sendMessage(
+  await tg.sendPhoto(
     chatId,
-    `📊 <b>Ваш кабинет агента</b>
+    'https://t.me/mate_bot_open/10131',
+    {
+      caption: `С возвращением, агент ${firstName}! 👋
 
-🔗 Реферальная ссылка:
+Это твой личный кабинет реферальной программы клуба <b>«Код Успеха».</b>
+
+<b>📊 Статистика по приглашениям:</b>
+— Друзей пришло от тебя (всего): ${agent.totalReferrals}
+— В этом месяце: ${thisMonthCount}
+
+<b>💰 Твоя скидка на следующий месяц:</b>
+— ${agent.pendingBonus} рублей
+
+<b>🔗 Твоя реферальная ссылка</b> (если потерял(а)):
 <code>${refLink}</code>
 
-👥 Всего рефералов: <b>${agent.totalReferrals}</b>
-💰 Ожидает выплаты: <b>${agent.pendingBonus} руб</b>
-✅ Всего заработано: <b>${agent.totalBonusEarned} руб</b>`,
-    { parse_mode: 'HTML', reply_markup: keyboard }
+Продолжай делиться — и делай следующий месяц в клубе ещё выгоднее для себя.`,
+      parse_mode: 'HTML',
+      reply_markup: keyboard,
+    }
   );
 }
 
