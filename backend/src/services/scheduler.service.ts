@@ -102,6 +102,12 @@ export interface ScheduledTask {
     // 🆕 Payment abandoned reminder (не привязано к воронке)
     | 'payment_not_completed'      // Через 10 мин после payment_attempt, если нет payment_success
 
+    // 🆕 Referral program registration reminders (догрев при незавершённой регистрации агента)
+    | 'referral_reminder_5m'       // Через 5 мин
+    | 'referral_reminder_15m'      // Через 15 мин
+    | 'referral_reminder_30m'      // Через 30 мин
+    | 'referral_reminder_45m'      // Через 45 мин
+
     // 🧪 Test funnel types (for admin testing with fast timers)
     | 'test_start_reminder'
     | 'test_numerology_guide'

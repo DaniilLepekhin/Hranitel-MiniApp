@@ -757,6 +757,59 @@ export const leaderTestResults = pgTable('leader_test_results', {
   index('leader_test_results_created_at_idx').on(table.createdAt),
 ]);
 
+// ============================================================================
+// REFERRAL PROGRAM (Реферальная программа)
+// ============================================================================
+
+// Referral Agents (агенты реферальной программы)
+export const referralAgents = pgTable('referral_agents', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  telegramId: bigint('telegram_id', { mode: 'number' }).notNull().unique(),
+
+  // Registration data
+  fullName: text('full_name').notNull(),
+  phone: text('phone').notNull(),
+  reason: text('reason').notNull(), // Почему хочет стать агентом
+
+  // Referral code (ref_XXXX)
+  refCode: text('ref_code').notNull().unique(), // e.g. "12345678"
+
+  // Stats
+  totalReferrals: integer('total_referrals').default(0).notNull(),
+  pendingBonus: integer('pending_bonus').default(0).notNull(), // Руб, ещё не зачислено
+  totalBonusEarned: integer('total_bonus_earned').default(0).notNull(), // Руб, всего заработано
+
+  // Status
+  isActive: boolean('is_active').default(true).notNull(),
+
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('referral_agents_user_id_idx').on(table.userId),
+  index('referral_agents_telegram_id_idx').on(table.telegramId),
+  index('referral_agents_ref_code_idx').on(table.refCode),
+]);
+
+// Referral Payments (начисления за рефералов)
+export const referralPayments = pgTable('referral_payments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  agentId: uuid('agent_id').references(() => referralAgents.id, { onDelete: 'cascade' }).notNull(),
+  referredUserId: uuid('referred_user_id').references(() => users.id, { onDelete: 'set null' }), // Кто пришёл
+  referredTelegramId: bigint('referred_telegram_id', { mode: 'number' }).notNull(),
+  paymentId: uuid('payment_id').references(() => payments.id, { onDelete: 'set null' }), // Какой платёж
+
+  bonusAmount: integer('bonus_amount').notNull(), // Сумма бонуса (500 руб)
+  status: varchar('status', { length: 20 }).default('pending').notNull(), // pending | paid | cancelled
+
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  paidAt: timestamp('paid_at'),
+}, (table) => [
+  index('referral_payments_agent_id_idx').on(table.agentId),
+  index('referral_payments_referred_user_idx').on(table.referredUserId),
+  index('referral_payments_status_idx').on(table.status),
+]);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   courseProgress: many(courseProgress),
@@ -999,6 +1052,29 @@ export const subscriptionHistoryRelations = relations(subscriptionHistory, ({ on
   }),
 }));
 
+export const referralAgentsRelations = relations(referralAgents, ({ one, many }) => ({
+  user: one(users, {
+    fields: [referralAgents.userId],
+    references: [users.id],
+  }),
+  payments: many(referralPayments),
+}));
+
+export const referralPaymentsRelations = relations(referralPayments, ({ one }) => ({
+  agent: one(referralAgents, {
+    fields: [referralPayments.agentId],
+    references: [referralAgents.id],
+  }),
+  referredUser: one(users, {
+    fields: [referralPayments.referredUserId],
+    references: [users.id],
+  }),
+  payment: one(payments, {
+    fields: [referralPayments.paymentId],
+    references: [payments.id],
+  }),
+}));
+
 // Types
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -1054,6 +1130,10 @@ export type ClubFunnelProgress = typeof clubFunnelProgress.$inferSelect;
 export type NewClubFunnelProgress = typeof clubFunnelProgress.$inferInsert;
 export type SubscriptionHistory = typeof subscriptionHistory.$inferSelect;
 export type NewSubscriptionHistory = typeof subscriptionHistory.$inferInsert;
+export type ReferralAgent = typeof referralAgents.$inferSelect;
+export type NewReferralAgent = typeof referralAgents.$inferInsert;
+export type ReferralPayment = typeof referralPayments.$inferSelect;
+export type NewReferralPayment = typeof referralPayments.$inferInsert;
 
 // ============================================================================
 // DECADES SYSTEM (Десятки)

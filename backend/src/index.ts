@@ -52,6 +52,7 @@ import { feedbackSurveyRoutes } from '@/modules/feedback-survey';
 import { geographySurveyRoutes } from '@/modules/geography-survey';
 import { decadesModule } from '@/modules/decades';
 import { sessionsModule } from '@/modules/sessions';
+import { referralModule } from '@/modules/referral';
 
 const app = new Elysia()
   // 🔒 Security middlewares (first - before anything else)
@@ -215,6 +216,7 @@ const app = new Elysia()
       .use(geographySurveyRoutes)
       .use(decadesModule)
       .use(sessionsModule)
+      .use(referralModule)
   )
   // Analytics module (no auth required for tracking, but rate limited)
   .group('/api', (app) => app.use(paymentRateLimiter).use(analyticsModule))

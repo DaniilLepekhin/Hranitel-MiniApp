@@ -1097,6 +1097,8 @@ export async function sendMenuMessage(chatId: number) {
     .row()
     .text('ОТКРЫТЬ ТЕСТЫ', 'open_tests')
     .row()
+    .text('пригласить друга', 'menu_invite_friend')
+    .row()
     .text('подарить подписку', 'menu_gift_subscription')
     .row()
     .url('оферта', 'https://ishodnyi-kod.com/clubofert')

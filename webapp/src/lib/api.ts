@@ -908,6 +908,36 @@ export const decadesApi = {
   },
 };
 
+// Referral Program API
+export const referralApi = {
+  getMyAgent: async () => {
+    return api.get<{
+      agent: {
+        id: string;
+        telegramId: number;
+        fullName: string;
+        refCode: string;
+        totalReferrals: number;
+        pendingBonus: number;
+        totalBonusEarned: number;
+        isActive: boolean;
+        createdAt: string;
+      } | null;
+    }>('/referral/my-agent');
+  },
+  getReferrals: async () => {
+    return api.get<{
+      referrals: Array<{
+        id: string;
+        referredTelegramId: number;
+        bonusAmount: number;
+        status: string;
+        createdAt: string;
+      }>;
+    }>('/referral/my-referrals');
+  },
+};
+
 // Sessions API (Time in App tracking)
 export const sessionsApi = {
   start: async (sessionId: string) => {

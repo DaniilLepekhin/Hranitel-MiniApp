@@ -30,6 +30,8 @@ import * as womenFunnel from './women-funnel';
 import * as probudisFunnel from './probudis-funnel';
 // 🌸 March funnel (archetype quiz)
 import * as marchFunnel from './march-funnel';
+// 🤝 Referral program funnel
+import * as referralFunnel from './referral-funnel';
 
 // Initialize bot
 export const bot = new Bot(config.TELEGRAM_BOT_TOKEN);
@@ -98,6 +100,8 @@ womenFunnel.initWomenFunnelTelegramService(bot.api);
 probudisFunnel.initProbudisFunnelTelegramService(bot.api);
 // Initialize telegram service for march funnel
 marchFunnel.initMarchFunnelTelegramService(bot.api);
+// Initialize telegram service for referral funnel
+referralFunnel.initReferralFunnelTelegramService(bot.api);
 // Initialize subscription guard service
 subscriptionGuardService.init(bot.api);
 // Initialize decades service
@@ -181,7 +185,7 @@ function parseUtmFromPayload(payload: string | undefined): UtmData {
   ];
 
   // Проверяем на зарезервированные префиксы
-  if (payload.startsWith('present_') || payload.startsWith('gift_') || payload.startsWith('probudis_') || payload.startsWith('march_')) {
+  if (payload.startsWith('present_') || payload.startsWith('gift_') || payload.startsWith('probudis_') || payload.startsWith('march_') || payload.startsWith('ref_')) {
     return {};
   }
 
@@ -313,9 +317,11 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
     const isTestTask = type.startsWith('test_');
     const isClubTestMode = type === 'club_auto_progress' && task.data?.isTestMode === true;
     const isMarchResult = type === 'march_result_delay';
+    // Referral reminders are independent of payment status (they're for agent registration, not payment funnel)
+    const isReferralReminder = type.startsWith('referral_reminder_');
 
     // Check if user already paid (skip for test tasks and march result)
-    if (!isTestTask && !isClubTestMode && !isMarchResult) {
+    if (!isTestTask && !isClubTestMode && !isMarchResult && !isReferralReminder) {
       const paid = await checkPaymentStatus(userId);
       if (paid) {
         logger.info({ userId, taskType: type }, 'User already paid, cancelling all remaining tasks');
@@ -1991,6 +1997,16 @@ async function processScheduledTask(task: ScheduledTask): Promise<void> {
 
       logger.info({ userId, chatId }, '💳 Payment not completed reminder sent');
     }
+    // 🤝 Referral program dogrev reminders
+    else if (
+      type === 'referral_reminder_5m' ||
+      type === 'referral_reminder_15m' ||
+      type === 'referral_reminder_30m' ||
+      type === 'referral_reminder_45m'
+    ) {
+      await referralFunnel.sendReferralReminder(chatId, userId, type);
+      logger.info({ userId, chatId, type }, '🤝 Referral reminder sent');
+    }
     // 🧪 TEST: Ускоренная тестовая воронка /start (ПОЛНЫЕ тексты, ускоренные таймеры)
     else if (type === 'test_start_reminder') {
       // СООБЩЕНИЕ 2 - Тестовое напоминание (10 сек вместо 120)
@@ -2443,6 +2459,24 @@ bot.command('start', async (ctx) => {
         await ctx.reply('❌ Эта ссылка предназначена для другого пользователя.');
       }
       return;
+    }
+
+    // 🤝 Referral program: /start ref_{agentTelegramId}
+    if (startPayload && startPayload.startsWith('ref_')) {
+      const refCode = startPayload.substring(4); // Remove 'ref_' prefix
+      logger.info({ userId, refCode }, '🤝 Referral link followed');
+      // Save ref_code to user metadata for later use in payment webhook
+      const existingUser = await funnels.getUserByTgId(userId);
+      if (existingUser) {
+        const currentMeta = (existingUser.metadata as Record<string, any>) || {};
+        if (!currentMeta.ref_code) {
+          await db.update(users).set({
+            metadata: { ...currentMeta, ref_code: refCode }
+          }).where(eq(users.telegramId, userId));
+          logger.info({ userId, refCode }, 'ref_code saved to user metadata');
+        }
+      }
+      // Continue with normal /start flow below (don't return)
     }
 
     // Legacy: Check for old gift activation link (start=gift_{token})
@@ -4524,6 +4558,30 @@ bot.callbackQuery('menu_gift_subscription', async (ctx) => {
   }
 });
 
+// 🤝 Referral program - «пригласить друга» from menu
+bot.callbackQuery('menu_invite_friend', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const userId = ctx.from.id;
+    const chatId = ctx.chat.id;
+    await referralFunnel.sendReferralProgramIntro(chatId, userId);
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in menu_invite_friend callback');
+  }
+});
+
+// 🤝 Referral program - «зарегистрироваться в программе» button
+bot.callbackQuery('referral_register', async (ctx) => {
+  try {
+    await ctx.answerCallbackQuery();
+    const userId = ctx.from.id;
+    const chatId = ctx.chat.id;
+    await referralFunnel.startReferralRegistration(chatId, userId);
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in referral_register callback');
+  }
+});
+
 // 🆕 Probudis funnel - "Узнать подробнее" button (immediately sends step 2)
 bot.callbackQuery('probudis_learn_more', async (ctx) => {
   try {
@@ -5666,6 +5724,21 @@ bot.on('message:text', async (ctx) => {
       logger.warn({ userId, onboardingStep: user.onboardingStep, isPro: user.isPro }, 'User entered КАРТА but not in correct state');
     }
 
+    // 🤝 Referral program: handle registration funnel answers
+    const referralState = await stateService.getState(userId);
+    if (referralState?.state === 'awaiting_referral_name') {
+      await referralFunnel.handleReferralName(ctx.chat.id, userId, rawText);
+      return;
+    }
+    if (referralState?.state === 'awaiting_referral_phone') {
+      await referralFunnel.handleReferralPhone(ctx.chat.id, userId, rawText, referralState.metadata || {});
+      return;
+    }
+    if (referralState?.state === 'awaiting_referral_reason') {
+      await referralFunnel.handleReferralReason(ctx.chat.id, userId, rawText, referralState.metadata || {});
+      return;
+    }
+
     // 🌸 Check if user is in march funnel awaiting income input
     const isInMarch = await marchFunnel.isUserInMarchFunnel(userId);
     if (isInMarch) {
@@ -5688,6 +5761,26 @@ bot.on('message:text', async (ctx) => {
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in message:text handler');
+  }
+});
+
+// 🤝 Referral program - handle phone number shared via contact button
+bot.on('message:contact', async (ctx) => {
+  if (ctx.chat.type !== 'private') return;
+  try {
+    const userId = ctx.from.id;
+    const contact = ctx.message.contact;
+
+    // Only accept contact from the user themselves
+    if (contact.user_id !== userId) return;
+
+    const state = await stateService.getState(userId);
+    if (state?.state === 'awaiting_referral_phone') {
+      const phone = contact.phone_number.startsWith('+') ? contact.phone_number : `+${contact.phone_number}`;
+      await referralFunnel.handleReferralPhone(ctx.chat.id, userId, phone, state.metadata || {});
+    }
+  } catch (error) {
+    logger.error({ error, userId: ctx.from?.id }, 'Error in message:contact handler');
   }
 });
 

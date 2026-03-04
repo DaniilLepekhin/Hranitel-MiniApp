@@ -5,6 +5,7 @@ import { eq, and, desc, isNull, ilike } from 'drizzle-orm';
 import { decadesService } from '@/services/decades.service';
 import { logger } from '@/utils/logger';
 import { startOnboardingAfterPayment, handleGiftPaymentSuccess, sendDecadeInviteNotification } from '@/modules/bot/post-payment-funnels';
+import { processReferralBonus } from '@/modules/bot/referral-funnel';
 import { subscriptionGuardService } from '@/services/subscription-guard.service';
 import { withLock } from '@/utils/distributed-lock';
 import { getcourseService } from '@/services/getcourse.service';
@@ -610,6 +611,19 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
         } catch (error) {
           logger.error({ error, telegramId: telegram_id }, 'Failed to award energy for payment');
           // Don't fail the webhook - payment is already processed
+        }
+
+        // 🤝 Referral bonus: if the user came via a referral link, credit the agent
+        try {
+          const userMeta = (user.metadata as Record<string, any>) || {};
+          const refCode = userMeta.ref_code || attemptMetadata?.ref_code || null;
+          if (refCode) {
+            await processReferralBonus(telegram_id, user.id, payment.id, refCode);
+            logger.info({ telegramId: telegram_id, refCode }, 'Referral bonus processed');
+          }
+        } catch (error) {
+          logger.error({ error, telegramId: telegram_id }, 'Failed to process referral bonus');
+          // Don't fail the webhook
         }
 
         // 🛡️ Unban user from all protected chats (in case they were banned for expired subscription)

@@ -6,7 +6,15 @@ if (!redis) {
   throw new Error('Redis is required for StateService. Please configure REDIS_URL in environment variables.');
 }
 
-export type UserState = 'awaiting_payment' | 'paid' | 'topic_selected' | 'idle';
+export type UserState =
+  | 'awaiting_payment'
+  | 'paid'
+  | 'topic_selected'
+  | 'idle'
+  // Referral program registration funnel
+  | 'awaiting_referral_name'
+  | 'awaiting_referral_phone'
+  | 'awaiting_referral_reason';
 
 export interface UserStateData {
   state: UserState;
