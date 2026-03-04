@@ -4,7 +4,7 @@ import { users, payments, paymentAnalytics, giftSubscriptions, decadeMembers } f
 import { eq, and, desc, isNull, ilike } from 'drizzle-orm';
 import { decadesService } from '@/services/decades.service';
 import { logger } from '@/utils/logger';
-import { startOnboardingAfterPayment, handleGiftPaymentSuccess, sendDecadeInviteNotification } from '@/modules/bot/post-payment-funnels';
+import { startOnboardingAfterPayment, handleGiftPaymentSuccess, sendDecadeInviteNotification, activateGiftSubscription } from '@/modules/bot/post-payment-funnels';
 import { processReferralBonus } from '@/modules/bot/referral-funnel';
 import { subscriptionGuardService } from '@/services/subscription-guard.service';
 import { withLock } from '@/utils/distributed-lock';
@@ -106,6 +106,14 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
               'Gift subscription created without gifter (fallback). Recipient can still activate.'
             );
 
+            // 🚀 Авто-активация: активируем получателю сразу
+            try {
+              await activateGiftSubscription(parseInt(recipientTgId), parseInt(recipientTgId));
+              logger.info({ recipientTgId }, 'Gift auto-activated (no gifter fallback)');
+            } catch (error) {
+              logger.error({ error, recipientTgId }, 'Failed to auto-activate gift (no gifter fallback) — will activate on link click');
+            }
+
             return {
               success: true,
               message: 'Gift payment recorded (no gifter found)',
@@ -162,6 +170,14 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
               { recipientTgId, noGifterToken, gifterTgId, paymentId: noGifterPayment.id },
               'Gift subscription created without gifter user (gifter_tg_id logged). Recipient can still activate.'
             );
+
+            // 🚀 Авто-активация: активируем получателю сразу
+            try {
+              await activateGiftSubscription(parseInt(recipientTgId), parseInt(recipientTgId));
+              logger.info({ recipientTgId }, 'Gift auto-activated (gifter not in users fallback)');
+            } catch (error) {
+              logger.error({ error, recipientTgId }, 'Failed to auto-activate gift (gifter not in users) — will activate on link click');
+            }
 
             return {
               success: true,
@@ -231,7 +247,17 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
             'Gift payment processed successfully'
           );
 
-          // Отправить уведомления (дарителю и получателю)
+          // 🚀 Авто-активация: активируем подписку получателю сразу при оплате
+          // Не ждём клика по ссылке — подписка активируется немедленно
+          try {
+            await activateGiftSubscription(parseInt(recipientTgId), parseInt(recipientTgId));
+            logger.info({ recipientTgId }, 'Gift subscription auto-activated on payment');
+          } catch (error) {
+            logger.error({ error, recipientTgId }, 'Failed to auto-activate gift — will activate on link click');
+            // Не прерываем — запись в gift_subscriptions есть, активируется по ссылке
+          }
+
+          // Уведомить дарителя об успешной оплате
           try {
             await handleGiftPaymentSuccess(
               gifter.id,

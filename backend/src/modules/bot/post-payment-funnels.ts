@@ -768,17 +768,14 @@ export async function handleGiftPaymentSuccess(
   gifterTgId: number,
   paymentId: string
 ) {
-  // Ссылка для активации подарка
-  const giftLink = `https://t.me/hranitel_kod_bot?start=present_${recipientTgId}`;
-
-  // Отправить ссылку дарителю
+  // Уведомить дарителя — подарок уже активирован автоматически
   await getTelegramService().sendMessage(
     gifterTgId,
-    `<b>🎁 Отправь эту ссылку получателю и мы откроем доступ</b>\n\n${giftLink}`,
+    `<b>🎁 Подарок активирован!</b>\n\nПодписка для получателя уже открыта — они получили доступ в клуб и онбординг.\n\nСпасибо, что дарите КОД ДЕНЕГ! ❤️`,
     { parse_mode: 'HTML' }
   );
 
-  logger.info({ gifterUserId, gifterTgId, recipientTgId, paymentId, giftLink }, 'Gift link sent to gifter');
+  logger.info({ gifterUserId, gifterTgId, recipientTgId, paymentId }, 'Gift activation notification sent to gifter');
 }
 
 /**
