@@ -2,10 +2,11 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Users, Gift, Copy, Check, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Copy, Check, ChevronRight, Users, Gift } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { referralApi } from '@/lib/api';
+import { Card } from '@/components/ui/Card';
 
 function buildRefLink(telegramId: string | number): string {
   return `https://t.me/SuccessKODBot?start=ref_${telegramId}`;
@@ -13,168 +14,238 @@ function buildRefLink(telegramId: string | number): string {
 
 export default function ReferralPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const [copied, setCopied] = useState(false);
 
   const { data: agentData, isLoading } = useQuery({
     queryKey: ['referral', 'my-agent', user?.id],
-    queryFn: () => referralApi.getMyAgent(),
-    enabled: !!user,
+    queryFn: async () => {
+      try {
+        return await referralApi.getMyAgent();
+      } catch {
+        return { agent: null };
+      }
+    },
+    enabled: !!user && !!token,
+    retry: false,
+    staleTime: 30 * 1000,
   });
 
   const { data: referralsData } = useQuery({
     queryKey: ['referral', 'my-referrals', user?.id],
-    queryFn: () => referralApi.getReferrals(),
-    enabled: !!user && !!agentData?.agent,
+    queryFn: async () => {
+      try {
+        return await referralApi.getReferrals();
+      } catch {
+        return { referrals: [] };
+      }
+    },
+    enabled: !!user && !!token && !!agentData?.agent,
+    retry: false,
   });
 
   const agent = agentData?.agent;
   const referrals = referralsData?.referrals || [];
-
   const refLink = user ? buildRefLink(user.telegramId) : '';
 
   const handleCopy = async () => {
     if (!refLink) return;
-    await navigator.clipboard.writeText(refLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(refLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback: select text
+    }
   };
 
   const freeMonthProgress = agent ? Math.min(agent.totalReferrals, 4) : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#f8f6f0] pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
-        <button
-          onClick={() => router.back()}
-          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5 text-gray-700" />
-        </button>
-        <h1 className="text-lg font-semibold text-gray-900">Кабинет агента</h1>
+      <div className="px-4 pt-6 mb-6">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => router.back()}
+            className="w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center hover:bg-white/80 transition-all border border-[#9c1723]/30"
+          >
+            <ArrowLeft className="w-5 h-5 text-[#2b2520]" />
+          </button>
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold text-[#2b2520]">Пригласи друга</h1>
+            <p className="text-xs text-[#6b5a4a]">Реферальная программа клуба</p>
+          </div>
+        </div>
       </div>
 
-      <div className="p-4 space-y-4">
+      <div className="px-4 space-y-4">
         {isLoading ? (
-          <div className="text-center py-12 text-gray-400">Загрузка...</div>
-        ) : !agent ? (
-          /* Not registered yet */
-          <div className="text-center py-12 space-y-4">
-            <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto">
-              <Gift className="w-8 h-8 text-pink-500" />
-            </div>
-            <h2 className="text-xl font-semibold text-gray-800">Вы ещё не агент</h2>
-            <p className="text-gray-500 text-sm max-w-xs mx-auto">
-              Откройте бот и нажмите «пригласить друга», чтобы зарегистрироваться в реферальной программе
-            </p>
+          /* Skeleton */
+          <div className="space-y-3">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-24 rounded-xl bg-white/60 animate-pulse" />
+            ))}
           </div>
-        ) : (
-          <>
-            {/* Stats cards */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-white rounded-2xl p-4 shadow-sm text-center">
-                <div className="text-2xl font-bold text-gray-900">{agent.totalReferrals}</div>
-                <div className="text-xs text-gray-500 mt-1">рефералов</div>
-              </div>
-              <div className="bg-white rounded-2xl p-4 shadow-sm text-center">
-                <div className="text-2xl font-bold text-green-600">{agent.pendingBonus}</div>
-                <div className="text-xs text-gray-500 mt-1">руб ожидает</div>
-              </div>
-              <div className="bg-white rounded-2xl p-4 shadow-sm text-center">
-                <div className="text-2xl font-bold text-gray-900">{agent.totalBonusEarned}</div>
-                <div className="text-xs text-gray-500 mt-1">руб всего</div>
-              </div>
-            </div>
 
-            {/* Free month progress */}
-            <div className="bg-white rounded-2xl p-4 shadow-sm">
-              <div className="flex items-center gap-2 mb-3">
-                <TrendingUp className="w-4 h-4 text-pink-500" />
-                <span className="text-sm font-medium text-gray-700">До бесплатного месяца</span>
-              </div>
-              <div className="flex gap-2">
-                {[1, 2, 3, 4].map((n) => (
-                  <div
-                    key={n}
-                    className={`flex-1 h-2 rounded-full ${n <= freeMonthProgress ? 'bg-pink-400' : 'bg-gray-100'}`}
-                  />
-                ))}
-              </div>
-              <p className="text-xs text-gray-400 mt-2">
-                {freeMonthProgress}/4 рефералов — приведи 4 и получи месяц бесплатно!
+        ) : !agent ? (
+          /* Не зарегистрирован */
+          <>
+            <div className="mb-2 p-4 rounded-xl bg-gradient-to-br from-[#d93547]/10 to-[#9c1723]/10">
+              <p className="text-sm text-[#2b2520]">
+                Стань агентом — приглашай друзей в клуб и получай бонусы за каждого нового участника.
               </p>
             </div>
 
-            {/* Referral link */}
-            <div className="bg-white rounded-2xl p-4 shadow-sm">
-              <div className="flex items-center gap-2 mb-3">
-                <Users className="w-4 h-4 text-pink-500" />
-                <span className="text-sm font-medium text-gray-700">Ваша реферальная ссылка</span>
+            {/* Как это работает */}
+            <Card className="overflow-hidden">
+              <div className="p-4 border-b border-[#9c1723]/10">
+                <div className="flex items-center gap-2">
+                  <Gift className="w-5 h-5 text-[#d93547]" />
+                  <h2 className="text-base font-bold text-[#2b2520]">Как это работает</h2>
+                </div>
               </div>
+              <div className="p-4 space-y-3">
+                {[
+                  { n: '1', text: 'Регистрируешься как агент в боте (3 вопроса)' },
+                  { n: '2', text: 'Получаешь персональную ссылку' },
+                  { n: '3', text: 'Друг оплачивает подписку по твоей ссылке' },
+                  { n: '4', text: 'Тебе начисляется 500 рублей скидка' },
+                ].map(({ n, text }) => (
+                  <div key={n} className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#d93547] to-[#9c1723] flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-xs font-bold">{n}</span>
+                    </div>
+                    <p className="text-sm text-[#2b2520]">{text}</p>
+                  </div>
+                ))}
+                <div className="mt-2 p-3 rounded-xl bg-[#d93547]/10">
+                  <p className="text-sm font-semibold text-[#9c1723]">
+                    ✨ 4 приглашённых = следующий месяц бесплатно!
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {/* CTA */}
+            <Card className="bg-gradient-to-br from-[#d93547] to-[#9c1723] p-4">
+              <p className="text-white text-sm font-semibold mb-1">Хочешь участвовать?</p>
+              <p className="text-white/80 text-xs mb-3">
+                Открой бота и нажми «пригласить друга» — регистрация займёт 2 минуты.
+              </p>
+              <div className="flex items-center gap-2 text-white/70 text-xs">
+                <ChevronRight className="w-4 h-4" />
+                <span>Меню бота → «пригласить друга»</span>
+              </div>
+            </Card>
+          </>
+
+        ) : (
+          /* Зарегистрирован — личный кабинет */
+          <>
+            {/* Привет */}
+            <div className="mb-2 p-4 rounded-xl bg-gradient-to-br from-[#d93547]/10 to-[#9c1723]/10">
+              <p className="text-sm font-semibold text-[#2b2520]">
+                Привет, {agent.fullName.split(' ')[1] || agent.fullName.split(' ')[0]}! 👋
+              </p>
+              <p className="text-xs text-[#6b5a4a] mt-1">
+                Это твой личный кабинет реферальной программы
+              </p>
+            </div>
+
+            {/* Статистика */}
+            <Card className="overflow-hidden">
+              <div className="p-4 border-b border-[#9c1723]/10">
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-[#d93547]" />
+                  <h2 className="text-base font-bold text-[#2b2520]">Статистика</h2>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 divide-x divide-[#9c1723]/10">
+                <div className="p-4 text-center">
+                  <p className="text-2xl font-bold text-[#2b2520]">{agent.totalReferrals}</p>
+                  <p className="text-xs text-[#6b5a4a] mt-1">рефералов</p>
+                </div>
+                <div className="p-4 text-center">
+                  <p className="text-2xl font-bold text-[#d93547]">{agent.pendingBonus}</p>
+                  <p className="text-xs text-[#6b5a4a] mt-1">руб ожидает</p>
+                </div>
+                <div className="p-4 text-center">
+                  <p className="text-2xl font-bold text-[#2b2520]">{agent.totalBonusEarned}</p>
+                  <p className="text-xs text-[#6b5a4a] mt-1">руб всего</p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Прогресс до бесплатного месяца */}
+            <Card className="p-4">
+              <p className="text-sm font-semibold text-[#2b2520] mb-3">До бесплатного месяца</p>
+              <div className="flex gap-2 mb-2">
+                {[1, 2, 3, 4].map((n) => (
+                  <div
+                    key={n}
+                    className={`flex-1 h-2.5 rounded-full transition-all ${
+                      n <= freeMonthProgress
+                        ? 'bg-gradient-to-r from-[#d93547] to-[#9c1723]'
+                        : 'bg-[#9c1723]/10'
+                    }`}
+                  />
+                ))}
+              </div>
+              <p className="text-xs text-[#6b5a4a]">
+                {freeMonthProgress} из 4 — {4 - freeMonthProgress > 0
+                  ? `ещё ${4 - freeMonthProgress} ${freeMonthProgress === 3 ? 'человек' : 'человека'} и следующий месяц бесплатно!`
+                  : '🎉 Ты заработал бесплатный месяц!'}
+              </p>
+            </Card>
+
+            {/* Реферальная ссылка */}
+            <Card className="p-4">
+              <p className="text-sm font-semibold text-[#2b2520] mb-3">Твоя реферальная ссылка</p>
               <div className="flex items-center gap-2">
-                <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2 text-xs text-gray-600 font-mono break-all">
-                  {refLink}
+                <div className="flex-1 min-w-0 bg-[#f8f6f0] border border-[#9c1723]/20 rounded-xl px-3 py-2.5">
+                  <p className="text-xs text-[#6b5a4a] font-mono truncate">{refLink}</p>
                 </div>
                 <button
                   onClick={handleCopy}
-                  className="flex-shrink-0 p-2 bg-pink-50 rounded-xl text-pink-500 hover:bg-pink-100 transition-colors"
+                  className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-[#d93547] to-[#9c1723] flex items-center justify-center active:opacity-80 transition-opacity"
                 >
-                  {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                  {copied
+                    ? <Check className="w-5 h-5 text-white" />
+                    : <Copy className="w-5 h-5 text-white" />}
                 </button>
               </div>
               {copied && (
-                <p className="text-xs text-green-500 mt-2">Ссылка скопирована!</p>
+                <p className="text-xs text-[#d93547] mt-2 font-medium">Ссылка скопирована!</p>
               )}
-            </div>
+            </Card>
 
-            {/* Referrals list */}
+            {/* История рефералов */}
             {referrals.length > 0 && (
-              <div className="bg-white rounded-2xl p-4 shadow-sm">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">История рефералов</h3>
-                <div className="space-y-2">
+              <Card className="overflow-hidden">
+                <div className="p-4 border-b border-[#9c1723]/10">
+                  <h3 className="text-base font-bold text-[#2b2520]">История</h3>
+                </div>
+                <div className="divide-y divide-[#9c1723]/10">
                   {referrals.map((ref) => (
-                    <div key={ref.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                    <div key={ref.id} className="px-4 py-3 flex items-center justify-between">
                       <div>
-                        <div className="text-sm text-gray-800">Участник #{ref.referredTelegramId}</div>
-                        <div className="text-xs text-gray-400">
+                        <p className="text-sm text-[#2b2520]">Участник #{ref.referredTelegramId}</p>
+                        <p className="text-xs text-[#6b5a4a]">
                           {new Date(ref.createdAt).toLocaleDateString('ru-RU')}
-                        </div>
+                        </p>
                       </div>
                       <div className="text-right">
-                        <div className="text-sm font-medium text-green-600">+{ref.bonusAmount} руб</div>
-                        <div className={`text-xs ${ref.status === 'paid' ? 'text-green-500' : 'text-orange-400'}`}>
+                        <p className="text-sm font-semibold text-[#d93547]">+{ref.bonusAmount} руб</p>
+                        <p className={`text-xs ${ref.status === 'paid' ? 'text-green-500' : 'text-[#6b5a4a]'}`}>
                           {ref.status === 'paid' ? 'выплачено' : 'ожидает'}
-                        </div>
+                        </p>
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
+              </Card>
             )}
-
-            {/* How it works */}
-            <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-2xl p-4">
-              <h3 className="text-sm font-semibold text-gray-800 mb-3">Как это работает</h3>
-              <div className="space-y-2 text-xs text-gray-600">
-                <div className="flex gap-2">
-                  <span className="font-bold text-pink-500">1.</span>
-                  <span>Поделитесь ссылкой с другом</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="font-bold text-pink-500">2.</span>
-                  <span>Друг переходит по ссылке и вступает в клуб</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="font-bold text-pink-500">3.</span>
-                  <span>Вы получаете <strong>500 рублей</strong> бонус</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="font-bold text-pink-500">4.</span>
-                  <span>4 реферала = <strong>бесплатный месяц</strong> в клубе!</span>
-                </div>
-              </div>
-            </div>
           </>
         )}
       </div>

@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Copy, Megaphone, Lock, Star, Crown, Check } from 'lucide-react';
+import { Search, Copy, Megaphone, Lock, Star, Crown, Check, ChevronRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth';
 import { energiesApi, feedbackSurveyApi } from '@/lib/api';
@@ -200,16 +200,33 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
                   </span>
                 </div>
               </div>
-              <p
-                style={{
-                  fontFamily: 'Gilroy, sans-serif',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  color: '#f7f1e8',
-                }}
-              >
-                Пригласи друга в клуб КОД ДЕНЕГ
-              </p>
+              <div className="flex-1">
+                <p
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    color: '#f7f1e8',
+                  }}
+                >
+                  Пригласи друга в клуб КОД ДЕНЕГ
+                </p>
+                <p
+                  style={{
+                    fontFamily: 'Gilroy, sans-serif',
+                    fontWeight: 400,
+                    fontSize: '11px',
+                    color: 'rgba(255,255,255,0.6)',
+                    marginTop: '2px',
+                  }}
+                >
+                  500 руб за друга · 4 друга = месяц бесплатно
+                </p>
+              </div>
+              {/* Стрелка - кликабельность */}
+              <div className="flex-shrink-0 w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
+                <ChevronRight style={{ width: '14px', height: '14px', color: 'white' }} />
+              </div>
             </div>
 
             {/* Линия */}
