@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { referralApi } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
+import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
 
 function buildRefLink(telegramId: string | number): string {
   return `https://t.me/SuccessKODBot?start=ref_${telegramId}`;
@@ -62,7 +63,10 @@ export default function ReferralPage() {
   const freeMonthProgress = agent ? Math.min(agent.totalReferrals, 4) : 0;
 
   return (
-    <div className="min-h-screen bg-[#f8f6f0] pb-24">
+    <div className="min-h-screen bg-[#f0ece8] relative pb-24">
+      <OptimizedBackground variant="home" />
+
+      <div className="relative z-10">
       {/* Header */}
       <div className="px-4 pt-6 mb-6">
         <div className="flex items-center gap-4">
@@ -248,6 +252,7 @@ export default function ReferralPage() {
             )}
           </>
         )}
+      </div>
       </div>
     </div>
   );
