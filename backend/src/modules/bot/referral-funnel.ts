@@ -77,14 +77,17 @@ export async function sendReferralProgramIntro(chatId: number, telegramId: numbe
   await tg.sendPhoto(
     chatId,
     'https://t.me/mate_bot_open/10130',
-    `<b>Реферальная программа Клуба КОД УСПЕХА</b>
+    {
+      caption: `<b>Реферальная программа Клуба КОД УСПЕХА</b>
 
 Приглашай друзей в клуб и получай бонусы:
 • <b>500 рублей</b> за каждого приведённого участника
 • <b>4 человека</b> = бесплатный месяц в клубе!
 
 Стань агентом — получи персональную реферальную ссылку и отслеживай своих рефералов в личном кабинете.`,
-    { parse_mode: 'HTML', reply_markup: keyboard }
+      parse_mode: 'HTML',
+      reply_markup: keyboard,
+    }
   );
 
   // Запускаем догревы (если пользователь не зарегистрируется)
@@ -239,7 +242,8 @@ export async function handleReferralReason(
   await tg.sendPhoto(
     chatId,
     'https://t.me/mate_bot_open/10131',
-    `🎉 <b>Поздравляем! Вы стали агентом реферальной программы!</b>
+    {
+      caption: `🎉 <b>Поздравляем! Вы стали агентом реферальной программы!</b>
 
 Ваша персональная ссылка:
 <code>${refLink}</code>
@@ -248,7 +252,9 @@ export async function handleReferralReason(
 <b>4 приглашённых</b> = бесплатный месяц в клубе!
 
 Отслеживайте своих рефералов и бонусы в личном кабинете 👇`,
-    { parse_mode: 'HTML', reply_markup: keyboard }
+      parse_mode: 'HTML',
+      reply_markup: keyboard,
+    }
   );
 }
 
