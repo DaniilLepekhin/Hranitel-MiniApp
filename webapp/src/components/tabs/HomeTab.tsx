@@ -161,35 +161,16 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
           </div>
         </form>
 
-        {/* 2. Пригласи друга - адаптивная ширина (🔒 ЗАБЛОКИРОВАНО) */}
+        {/* 2. Пригласи друга */}
         <div
-          className="w-full mb-6 relative overflow-hidden opacity-60"
+          className="w-full mb-6 relative overflow-hidden cursor-pointer active:opacity-80 transition-opacity"
           style={{
             borderRadius: '8px',
             border: '1px solid #d93547',
             background: 'linear-gradient(243.413deg, rgb(174, 30, 43) 15.721%, rgb(156, 23, 35) 99.389%)',
           }}
+          onClick={() => router.push('/referral')}
         >
-          {/* 🔒 Замочек поверх */}
-          <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/20 backdrop-blur-[2px]">
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
-                <Lock className="w-6 h-6 text-[#9c1723]" />
-              </div>
-              <p
-                style={{
-                  fontFamily: 'Gilroy, sans-serif',
-                  fontWeight: 600,
-                  fontSize: '12px',
-                  color: 'white',
-                  textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                }}
-              >
-                Скоро откроется
-              </p>
-            </div>
-          </div>
-
           <div className="p-4 sm:p-5">
             {/* Заголовок с логотипом КОД */}
             <div className="flex items-center gap-3 mb-3">
@@ -267,8 +248,8 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
                 </p>
               </div>
               <button
-                disabled
-                className="flex-shrink-0 flex items-center justify-center ml-3 p-2 rounded-lg opacity-40 cursor-not-allowed"
+                onClick={(e) => { e.stopPropagation(); handleCopyReferralLink(); }}
+                className="flex-shrink-0 flex items-center justify-center ml-3 p-2 rounded-lg active:opacity-60 transition-opacity"
               >
                 <Copy style={{ width: '18px', height: '18px', color: '#2d2620' }} />
               </button>
