@@ -766,16 +766,27 @@ export async function handleGiftPaymentSuccess(
   gifterUserId: string,
   recipientTgId: number,
   gifterTgId: number,
-  paymentId: string
+  paymentId: string,
+  autoActivated: boolean = false
 ) {
-  // Уведомить дарителя — подарок уже активирован автоматически
-  await getTelegramService().sendMessage(
-    gifterTgId,
-    `<b>🎁 Подарок активирован!</b>\n\nПодписка для получателя уже открыта — они получили доступ в клуб и онбординг.\n\nСпасибо, что дарите КОД ДЕНЕГ! ❤️`,
-    { parse_mode: 'HTML' }
-  );
-
-  logger.info({ gifterUserId, gifterTgId, recipientTgId, paymentId }, 'Gift activation notification sent to gifter');
+  if (autoActivated) {
+    // Получатель был в боте — подарок уже активирован
+    await getTelegramService().sendMessage(
+      gifterTgId,
+      `<b>🎁 Подарок активирован!</b>\n\nПодписка для получателя уже открыта — они получили доступ в клуб и онбординг.\n\nСпасибо, что дарите КОД ДЕНЕГ! ❤️`,
+      { parse_mode: 'HTML' }
+    );
+    logger.info({ gifterUserId, gifterTgId, recipientTgId, paymentId }, 'Gift auto-activated, gifter notified');
+  } else {
+    // Получателя ещё нет в боте — нужно переслать ссылку
+    const giftLink = `https://t.me/hranitel_kod_bot?start=present_${recipientTgId}`;
+    await getTelegramService().sendMessage(
+      gifterTgId,
+      `<b>🎁 Оплата прошла!</b>\n\nОтправь эту ссылку получателю — как только он перейдёт по ней, подписка активируется автоматически:\n\n${giftLink}`,
+      { parse_mode: 'HTML' }
+    );
+    logger.info({ gifterUserId, gifterTgId, recipientTgId, paymentId, giftLink }, 'Gift link sent to gifter (recipient not in bot)');
+  }
 }
 
 /**

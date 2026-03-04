@@ -106,12 +106,18 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
               'Gift subscription created without gifter (fallback). Recipient can still activate.'
             );
 
-            // 🚀 Авто-активация: активируем получателю сразу
-            try {
-              await activateGiftSubscription(parseInt(recipientTgId), parseInt(recipientTgId));
-              logger.info({ recipientTgId }, 'Gift auto-activated (no gifter fallback)');
-            } catch (error) {
-              logger.error({ error, recipientTgId }, 'Failed to auto-activate gift (no gifter fallback) — will activate on link click');
+            // 🚀 Умная активация для fallback (без дарителя)
+            const [recipientExists1] = await db.select({ id: users.id }).from(users)
+              .where(eq(users.telegramId, parseInt(recipientTgId))).limit(1);
+            if (recipientExists1) {
+              try {
+                await activateGiftSubscription(parseInt(recipientTgId), parseInt(recipientTgId));
+                logger.info({ recipientTgId }, 'Gift auto-activated (no gifter fallback, recipient in bot)');
+              } catch (error) {
+                logger.error({ error, recipientTgId }, 'Failed to auto-activate gift (no gifter fallback)');
+              }
+            } else {
+              logger.info({ recipientTgId }, 'Recipient not in bot (no gifter fallback) — will activate on link click');
             }
 
             return {
@@ -171,12 +177,18 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
               'Gift subscription created without gifter user (gifter_tg_id logged). Recipient can still activate.'
             );
 
-            // 🚀 Авто-активация: активируем получателю сразу
-            try {
-              await activateGiftSubscription(parseInt(recipientTgId), parseInt(recipientTgId));
-              logger.info({ recipientTgId }, 'Gift auto-activated (gifter not in users fallback)');
-            } catch (error) {
-              logger.error({ error, recipientTgId }, 'Failed to auto-activate gift (gifter not in users) — will activate on link click');
+            // 🚀 Умная активация для fallback (даритель не в users)
+            const [recipientExists2] = await db.select({ id: users.id }).from(users)
+              .where(eq(users.telegramId, parseInt(recipientTgId))).limit(1);
+            if (recipientExists2) {
+              try {
+                await activateGiftSubscription(parseInt(recipientTgId), parseInt(recipientTgId));
+                logger.info({ recipientTgId }, 'Gift auto-activated (gifter not in users fallback, recipient in bot)');
+              } catch (error) {
+                logger.error({ error, recipientTgId }, 'Failed to auto-activate gift (gifter not in users fallback)');
+              }
+            } else {
+              logger.info({ recipientTgId }, 'Recipient not in bot (gifter not in users fallback) — will activate on link click');
             }
 
             return {
@@ -247,26 +259,44 @@ export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
             'Gift payment processed successfully'
           );
 
-          // 🚀 Авто-активация: активируем подписку получателю сразу при оплате
-          // Не ждём клика по ссылке — подписка активируется немедленно
-          try {
-            await activateGiftSubscription(parseInt(recipientTgId), parseInt(recipientTgId));
-            logger.info({ recipientTgId }, 'Gift subscription auto-activated on payment');
-          } catch (error) {
-            logger.error({ error, recipientTgId }, 'Failed to auto-activate gift — will activate on link click');
-            // Не прерываем — запись в gift_subscriptions есть, активируется по ссылке
-          }
+          // 🚀 Умная активация:
+          // - Если получатель уже в боте → активируем сразу + онбординг
+          // - Если нет → шлём дарителю ссылку для пересылки → активируется по клику
+          const [existingRecipient] = await db
+            .select({ id: users.id })
+            .from(users)
+            .where(eq(users.telegramId, parseInt(recipientTgId)))
+            .limit(1);
 
-          // Уведомить дарителя об успешной оплате
-          try {
-            await handleGiftPaymentSuccess(
-              gifter.id,
-              parseInt(recipientTgId),
-              gifterTgId, // уже number
-              payment.id
-            );
-          } catch (error) {
-            logger.error({ error }, 'Failed to send gift notifications');
+          if (existingRecipient) {
+            // Получатель в боте — авто-активируем
+            try {
+              await activateGiftSubscription(parseInt(recipientTgId), parseInt(recipientTgId));
+              logger.info({ recipientTgId }, 'Gift subscription auto-activated (recipient in bot)');
+              // Уведомить дарителя — всё готово
+              try {
+                await handleGiftPaymentSuccess(gifter.id, parseInt(recipientTgId), gifterTgId, payment.id, true);
+              } catch (err) {
+                logger.error({ err }, 'Failed to notify gifter after auto-activation');
+              }
+            } catch (error) {
+              logger.error({ error, recipientTgId }, 'Auto-activation failed despite recipient in bot — falling back to link');
+              // Fallback: шлём ссылку дарителю
+              try {
+                await handleGiftPaymentSuccess(gifter.id, parseInt(recipientTgId), gifterTgId, payment.id, false);
+              } catch (err) {
+                logger.error({ err }, 'Failed to send fallback gift link to gifter');
+              }
+            }
+          } else {
+            // Получатель ещё не в боте — шлём дарителю ссылку для пересылки
+            // Когда получатель перейдёт по ссылке — активируется автоматически
+            logger.info({ recipientTgId }, 'Recipient not in bot — sending forward link to gifter');
+            try {
+              await handleGiftPaymentSuccess(gifter.id, parseInt(recipientTgId), gifterTgId, payment.id, false);
+            } catch (err) {
+              logger.error({ err }, 'Failed to send gift link to gifter');
+            }
           }
 
           return {
