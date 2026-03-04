@@ -7,14 +7,14 @@ import { Elysia } from 'elysia';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { referralAgents, referralPayments } from '@/db/schema';
-import { authMiddleware } from '@/middlewares/auth';
+import { getUserFromToken } from '@/middlewares/auth';
 import { logger } from '@/utils/logger';
 
 export const referralModule = new Elysia({ prefix: '/referral', tags: ['Referral'] })
-  .use(authMiddleware)
 
   // GET /referral/my-agent — данные агента текущего пользователя
-  .get('/my-agent', async ({ user, set }) => {
+  .get('/my-agent', async ({ headers, set }) => {
+    const user = await getUserFromToken(headers.authorization);
     if (!user) {
       set.status = 401;
       return { error: 'Unauthorized' };
@@ -36,7 +36,8 @@ export const referralModule = new Elysia({ prefix: '/referral', tags: ['Referral
   })
 
   // GET /referral/my-referrals — список рефералов агента
-  .get('/my-referrals', async ({ user, set }) => {
+  .get('/my-referrals', async ({ headers, set }) => {
+    const user = await getUserFromToken(headers.authorization);
     if (!user) {
       set.status = 401;
       return { error: 'Unauthorized' };
