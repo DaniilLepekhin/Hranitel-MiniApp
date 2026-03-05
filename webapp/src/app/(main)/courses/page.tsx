@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, BookOpen, ChevronRight, Lock } from 'lucide-react';
 import { coursesApi } from '@/lib/api';
 import { useTelegram } from '@/hooks/useTelegram';
+import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
 
 export default function CoursesListPage() {
   const router = useRouter();
@@ -19,7 +20,9 @@ export default function CoursesListPage() {
   const courses = data?.courses || [];
 
   return (
-    <div className="min-h-screen bg-[#f7f1e8]">
+    <div className="min-h-screen bg-[#f0ece8] relative">
+      <OptimizedBackground variant="home" />
+
       {/* Header */}
       <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-[#9c1723]/10">
         <div className="px-4 py-3 flex items-center gap-3">
@@ -37,7 +40,7 @@ export default function CoursesListPage() {
       </div>
 
       {/* Content */}
-      <div className="px-4 py-6">
+      <div className="relative z-10 px-4 py-6">
         {isLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
