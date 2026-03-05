@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { ArrowLeft, BookOpen, ChevronRight, Lock } from 'lucide-react';
 import { coursesApi } from '@/lib/api';
 import { useTelegram } from '@/hooks/useTelegram';
-import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
 
 export default function CoursesListPage() {
   const router = useRouter();
@@ -20,8 +19,26 @@ export default function CoursesListPage() {
   const courses = data?.courses || [];
 
   return (
-    <div className="min-h-screen bg-[#f0ece8] relative">
-      <OptimizedBackground variant="home" />
+    <div className="min-h-screen relative" style={{ backgroundColor: '#f0ece8' }}>
+      {/* Фон как на главной */}
+      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 0, backgroundColor: '#f0ece8', overflow: 'hidden' }}>
+        {/* Газетная текстура */}
+        <div className="absolute" style={{ width: '250%', height: '250%', left: '50%', top: '50%', transform: 'translate(-50%, -50%) rotate(-60.8deg)', opacity: 0.25, mixBlendMode: 'overlay' }}>
+          <img src="/assets/newspaper-texture.jpg" alt="" loading="eager" className="w-full h-full object-cover" />
+        </div>
+        {/* Монеты слева */}
+        <div className="absolute" style={{ width: '160%', height: '120%', left: '-50%', top: '-10%', mixBlendMode: 'multiply', opacity: 0.4 }}>
+          <img src="/assets/bg-coins.jpg" alt="" loading="eager" className="w-full h-full object-cover object-left-top" />
+        </div>
+        {/* Размытое пятно 1 */}
+        <div className="absolute" style={{ width: '150%', height: '130%', left: '-80%', bottom: '-30%', mixBlendMode: 'color-dodge', filter: 'blur(200px)', transform: 'rotate(-22.76deg)', opacity: 0.5 }}>
+          <img src="/assets/bg-blur.jpg" alt="" loading="eager" className="w-full h-full object-cover" />
+        </div>
+        {/* Размытое пятно 2 */}
+        <div className="absolute" style={{ width: '150%', height: '130%', right: '-80%', top: '-70%', mixBlendMode: 'color-dodge', filter: 'blur(200px)', transform: 'rotate(77.63deg) scaleY(-1)', opacity: 0.5 }}>
+          <img src="/assets/bg-blur.jpg" alt="" loading="eager" className="w-full h-full object-cover" />
+        </div>
+      </div>
 
       {/* Header */}
       <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-[#9c1723]/10">
