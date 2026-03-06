@@ -1934,6 +1934,59 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
    * 🔧 Пересчитать счётчики участников всех десяток
    */
   .post(
+    '/sync-telegram-names',
+    async ({ headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      if (!botToken) {
+        set.status = 500;
+        return { success: false, error: 'TELEGRAM_BOT_TOKEN not set' };
+      }
+
+      try {
+        const krisoneUsers = await db
+          .select({ id: users.id, telegramId: users.telegramId, username: users.username, firstName: users.firstName })
+          .from(users)
+          .where(sql`first_name ILIKE 'krisone%'`);
+
+        const results: { telegramId: string; old: string | null; new: string | null; status: string }[] = [];
+
+        for (const user of krisoneUsers) {
+          try {
+            const res = await fetch(`https://api.telegram.org/bot${botToken}/getChat?chat_id=${user.telegramId}`);
+            const data = await res.json() as any;
+            if (data.ok && data.result?.first_name) {
+              const newName = data.result.first_name;
+              await db.update(users).set({ firstName: newName }).where(eq(users.id, user.id));
+              results.push({ telegramId: user.telegramId!, old: user.firstName, new: newName, status: 'updated' });
+            } else {
+              results.push({ telegramId: user.telegramId!, old: user.firstName, new: null, status: 'not_found' });
+            }
+          } catch (e: any) {
+            results.push({ telegramId: user.telegramId!, old: user.firstName, new: null, status: `error: ${e.message}` });
+          }
+        }
+
+        logger.info({ count: results.length }, 'Admin synced telegram names');
+        return { success: true, results };
+      } catch (error: any) {
+        logger.error({ error }, 'Failed to sync telegram names');
+        set.status = 500;
+        return { success: false, error: error.message };
+      }
+    },
+    {
+      detail: {
+        summary: 'Синхронизировать имена из Telegram',
+        description: 'Обновляет first_name пользователей с krisone_* из реального Telegram профиля.',
+      },
+    }
+  )
+  .post(
     '/fix-decade-counters',
     async ({ headers, set }) => {
       if (!checkAdminAuth(headers)) {
