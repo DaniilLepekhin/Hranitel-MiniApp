@@ -4355,7 +4355,7 @@ bot.callbackQuery('open_tests', async (ctx) => {
       .row()
       .text('диагностика твоего дохода', 'start_march_from_menu');
 
-    await getTelegramService().sendMessage(
+    await telegramService.sendMessage(
       chatId,
       `<b>КАКОЙ ТЕСТ ВЫ ХОТИТЕ ПРОЙТИ?</b>`,
       { parse_mode: 'HTML', reply_markup: keyboard }
