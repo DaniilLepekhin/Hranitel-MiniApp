@@ -4348,14 +4348,15 @@ bot.callbackQuery('march_more_info', async (ctx) => {
 // Open tests menu (shows choice between character test and march quiz)
 bot.callbackQuery('open_tests', async (ctx) => {
   try {
-    await ctx.answerCallbackQuery();
+    await ctx.answerCallbackQuery().catch(() => {}); // ignore stale query errors
+    const chatId = ctx.chat?.id ?? ctx.from.id;
     const keyboard = new InlineKeyboard()
       .text('пройти тест: какой я персонаж', 'start_character_test')
       .row()
       .text('диагностика твоего дохода', 'start_march_from_menu');
 
     await getTelegramService().sendMessage(
-      ctx.chat.id,
+      chatId,
       `<b>КАКОЙ ТЕСТ ВЫ ХОТИТЕ ПРОЙТИ?</b>`,
       { parse_mode: 'HTML', reply_markup: keyboard }
     );
@@ -4367,10 +4368,11 @@ bot.callbackQuery('open_tests', async (ctx) => {
 // Start character test from menu button
 bot.callbackQuery('start_character_test', async (ctx) => {
   try {
-    await ctx.answerCallbackQuery();
+    await ctx.answerCallbackQuery().catch(() => {});
+    const chatId = ctx.chat?.id ?? ctx.from.id;
     const user = await funnels.getUserByTgId(ctx.from.id);
     if (user) {
-      await clubFunnel.startCharacterTestFunnel(user.id, ctx.chat.id, ctx.from.id);
+      await clubFunnel.startCharacterTestFunnel(user.id, chatId, ctx.from.id);
     }
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in start_character_test callback');
@@ -4380,8 +4382,9 @@ bot.callbackQuery('start_character_test', async (ctx) => {
 // Start march quiz from tests menu
 bot.callbackQuery('start_march_from_menu', async (ctx) => {
   try {
-    await ctx.answerCallbackQuery();
-    await marchFunnel.startMarchFunnel(ctx.from.id, ctx.chat.id);
+    await ctx.answerCallbackQuery().catch(() => {});
+    const chatId = ctx.chat?.id ?? ctx.from.id;
+    await marchFunnel.startMarchFunnel(ctx.from.id, chatId);
   } catch (error) {
     logger.error({ error, userId: ctx.from?.id }, 'Error in start_march_from_menu callback');
   }
