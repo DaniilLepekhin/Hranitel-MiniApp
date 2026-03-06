@@ -1,10 +1,10 @@
 import { Elysia, t } from 'elysia';
-import { eq } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import { config } from '@/config';
 import { logger } from '@/utils/logger';
 import postgres from 'postgres';
 import { db } from '@/db';
-import { users } from '@/db/schema';
+import { users, decades, decadeMembers } from '@/db/schema';
 import { subscriptionGuardService } from '@/services/subscription-guard.service';
 
 // Connect to old database for city_chats_ik table (uses OLD_DATABASE_URL from env)
@@ -224,16 +224,37 @@ export const cityChatModule = new Elysia({ prefix: '/city-chats' })
         }
 
         // 3. Update user's city and cityChatId
-        await db
-          .update(users)
-          .set({
-            city: cityChat.city,
-            cityChatId: cityChatId,
-            updatedAt: new Date(),
-          })
-          .where(eq(users.telegramId, telegramId));
+        // Лидеры активных десяток — город не перезаписываем (чтобы не прыгал при вступлении в другие чаты)
+        const [activeLeaderDecade] = await db
+          .select({ id: decades.id, city: decades.city })
+          .from(decades)
+          .innerJoin(decadeMembers, eq(decadeMembers.decadeId, decades.id))
+          .where(
+            and(
+              eq(decadeMembers.userId, user.id),
+              eq(decadeMembers.isLeader, true),
+              isNull(decadeMembers.leftAt),
+              eq(decades.isActive, true)
+            )
+          )
+          .limit(1);
 
-        logger.info({ telegramId, city: cityChat.city, cityChatId }, 'User city chat selection saved');
+        if (activeLeaderDecade) {
+          logger.info(
+            { telegramId, leaderDecadeCity: activeLeaderDecade.city, requestedCity: cityChat.city },
+            'User is active decade leader — city not overwritten'
+          );
+        } else {
+          await db
+            .update(users)
+            .set({
+              city: cityChat.city,
+              cityChatId: cityChatId,
+              updatedAt: new Date(),
+            })
+            .where(eq(users.telegramId, telegramId));
+          logger.info({ telegramId, city: cityChat.city, cityChatId }, 'User city chat selection saved');
+        }
 
         // 4. Unban user from this specific chat if platform_id is available
         if (cityChat.platform_id) {
