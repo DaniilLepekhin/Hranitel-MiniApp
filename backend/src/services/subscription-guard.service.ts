@@ -569,6 +569,109 @@ class SubscriptionGuardService {
       this.renewalRemindersRunning = false;
     }
   }
+
+  /**
+   * 🧹 Чистка неактивных участников десяток
+   * Условия удаления (оба применяются к is_pro=true пользователям):
+   *   1. Нет ни одного #отчет за последние 30 дней (трекинг с момента последней активности)
+   *   2. Никогда не сдавал отчет И состоит в десятке больше 30 дней
+   * Лидеры десяток не удаляются.
+   * Пользователи без подписки (is_pro=false) обрабатываются отдельно (cleanupOrphanedDecadeMembers).
+   *
+   * @param dryRun true — только вернуть список, false — реально удалить
+   */
+  async removeInactiveDecadeMembers(dryRun = true): Promise<{
+    members: Array<{
+      telegramId: string;
+      username: string | null;
+      firstName: string | null;
+      city: string;
+      decadeNumber: number;
+      joinedAt: Date;
+      lastReportAt: Date | null;
+    }>;
+    total: number;
+    dryRun: boolean;
+  }> {
+    try {
+      // Найти активных pro-участников десяток, у которых нет отчётов за 30+ дней
+      // (или никогда не было, и в десятке уже 30+ дней)
+      const inactive = await rawDb<{
+        telegram_id: string;
+        username: string | null;
+        first_name: string | null;
+        city: string;
+        number: number;
+        joined_at: Date;
+        last_report_at: Date | null;
+      }[]>`
+        SELECT
+          dm.telegram_id::text,
+          u.username,
+          u.first_name,
+          d.city,
+          d.number,
+          dm.joined_at,
+          MAX(et.created_at) as last_report_at
+        FROM decade_members dm
+        JOIN users u ON u.id = dm.user_id
+        JOIN decades d ON d.id = dm.decade_id
+        LEFT JOIN energy_transactions et
+          ON et.user_id = dm.user_id
+          AND et.reason = 'Ежедневный отчет'
+          AND et.type = 'income'
+        WHERE dm.left_at IS NULL
+          AND dm.is_leader = false
+          AND u.is_pro = true
+          AND d.is_active = true
+        GROUP BY dm.telegram_id, u.username, u.first_name, d.city, d.number, dm.joined_at
+        HAVING
+          (MAX(et.created_at) IS NULL AND dm.joined_at < NOW() - INTERVAL '30 days')
+          OR MAX(et.created_at) < NOW() - INTERVAL '30 days'
+        ORDER BY d.city, d.number, dm.joined_at
+      `;
+
+      const members = inactive.map((r) => ({
+        telegramId: r.telegram_id,
+        username: r.username,
+        firstName: r.first_name,
+        city: r.city,
+        decadeNumber: r.number,
+        joinedAt: r.joined_at,
+        lastReportAt: r.last_report_at,
+      }));
+
+      logger.info(
+        { total: members.length, dryRun },
+        '🧹 Inactive decade members found'
+      );
+
+      if (!dryRun) {
+        let removed = 0;
+        for (const member of members) {
+          try {
+            await decadesService.removeUserFromDecade(Number(member.telegramId));
+            removed++;
+            logger.info(
+              { telegramId: member.telegramId, city: member.city, number: member.decadeNumber },
+              '🧹 Removed inactive decade member'
+            );
+          } catch (e) {
+            logger.warn(
+              { err: e, telegramId: member.telegramId },
+              '🧹 Failed to remove inactive decade member'
+            );
+          }
+        }
+        logger.info({ removed, total: members.length }, '🧹 Inactive decade cleanup completed');
+      }
+
+      return { members, total: members.length, dryRun };
+    } catch (error) {
+      logger.error({ err: error }, '🧹 Error during inactive decade members cleanup');
+      return { members: [], total: 0, dryRun };
+    }
+  }
 }
 
 export const subscriptionGuardService = new SubscriptionGuardService();

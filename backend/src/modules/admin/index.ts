@@ -2014,4 +2014,49 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         description: 'Пересчитывает current_members и is_full для всех десяток по фактическому составу. Амбассадоры не учитываются.',
       },
     }
+  )
+
+  /**
+   * 🧹 Чистка неактивных участников десяток
+   * Условия удаления:
+   *   - Нет #отчет (energy_transactions reason='Ежедневный отчет') за последние 30 дней
+   *   - ИЛИ никогда не сдавал отчет И в десятке уже 30+ дней
+   * Лидеры и пользователи без подписки не затрагиваются.
+   * dry_run=true (по умолчанию) — только показать список, не удалять.
+   * dry_run=false — реально кикнуть из десятки + Telegram-чата.
+   */
+  .post(
+    '/cleanup-inactive-decade-members',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers as Record<string, string | undefined>)) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
+      const { dry_run = true } = body as { dry_run?: boolean };
+
+      try {
+        const result = await subscriptionGuardService.removeInactiveDecadeMembers(dry_run);
+
+        return {
+          success: true,
+          dry_run: result.dryRun,
+          total: result.total,
+          message: result.dryRun
+            ? `Найдено ${result.total} неактивных участников (dry_run=true, удаление не выполнено)`
+            : `Удалено ${result.total} неактивных участников из десяток`,
+          members: result.members,
+        };
+      } catch (error: any) {
+        logger.error({ error }, 'Failed to cleanup inactive decade members');
+        set.status = 500;
+        return { success: false, error: error.message };
+      }
+    },
+    {
+      detail: {
+        summary: 'Чистка неактивных участников десяток',
+        description: 'Находит и удаляет участников без #отчет за 30 дней. dry_run=true — только просмотр.',
+      },
+    }
   );
