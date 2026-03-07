@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, BookOpen, Headphones, Radio, ChevronRight, Filter, Sparkles } from 'lucide-react';
+import { ArrowLeft, BookOpen, Headphones, Radio, ChevronRight, Filter, Sparkles, FolderOpen, Folder } from 'lucide-react';
 import { useState } from 'react';
 import { contentApi, type ContentItem } from '@/lib/api';
 import { useTelegram } from '@/hooks/useTelegram';
@@ -18,6 +18,7 @@ export default function ContentListPage() {
   const type = params.type as ContentType;
 
   const [selectedKey, setSelectedKey] = useState<number | null>(null);
+  const [openMonths, setOpenMonths] = useState<Record<string, boolean>>({ '2026-03': true });
 
   // Fetch content by type
   const { data: contentData, isLoading } = useQuery({
@@ -100,6 +101,34 @@ export default function ContentListPage() {
     haptic.impact('light');
     setSelectedKey(key);
   };
+
+  const toggleMonth = (month: string) => {
+    haptic.impact('light');
+    setOpenMonths(prev => ({ ...prev, [month]: !prev[month] }));
+  };
+
+  const MONTH_LABELS: Record<string, string> = {
+    '2026-01': 'Январь',
+    '2026-02': 'Февраль',
+    '2026-03': 'Март',
+    '2026-04': 'Апрель',
+    '2026-05': 'Май',
+    '2026-06': 'Июнь',
+  };
+
+  // Group stream_record items by programMonth
+  const streamsByMonth = type === 'stream_record'
+    ? items.reduce((acc, item) => {
+        const month = item.programMonth || 'other';
+        if (!acc[month]) acc[month] = [];
+        acc[month].push(item);
+        return acc;
+      }, {} as Record<string, ContentItem[]>)
+    : null;
+
+  const sortedMonths = streamsByMonth
+    ? Object.keys(streamsByMonth).sort((a, b) => b.localeCompare(a)) // новые сверху
+    : [];
 
   if (isLoading) {
     return (
@@ -193,7 +222,64 @@ export default function ContentListPage() {
             Скоро здесь появятся {config.title.toLowerCase()}
           </p>
         </Card>
+      ) : type === 'stream_record' && streamsByMonth ? (
+        /* ── Эфиры: папки по месяцам ── */
+        <div className="space-y-3">
+          {sortedMonths.map((month) => {
+            const label = MONTH_LABELS[month] || month;
+            const isOpen = !!openMonths[month];
+            const monthItems = streamsByMonth[month];
+            return (
+              <div key={month}>
+                {/* Folder header */}
+                <button
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/70 border border-[#d93547]/20 hover:bg-white transition-all"
+                  onClick={() => toggleMonth(month)}
+                >
+                  {isOpen
+                    ? <FolderOpen className="w-5 h-5 text-[#d93547] flex-shrink-0" />
+                    : <Folder className="w-5 h-5 text-[#d93547] flex-shrink-0" />
+                  }
+                  <span className="flex-1 text-left font-semibold text-[#2b2520]">{label}</span>
+                  <span className="text-xs text-[#6b5a4a] mr-2">{monthItems.length} эфиров</span>
+                  <ChevronRight className={`w-4 h-4 text-[#d93547] transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+                </button>
+
+                {/* Items inside folder */}
+                {isOpen && (
+                  <div className="mt-2 ml-4 space-y-2">
+                    {monthItems.map((item) => (
+                      <Card
+                        key={item.id}
+                        className="p-4 hover:scale-[1.02] transition-all cursor-pointer"
+                        onClick={() => handleItemClick(item.id)}
+                      >
+                        <div className="flex items-center gap-4">
+                          {item.thumbnailUrl ? (
+                            <img src={item.thumbnailUrl} alt={item.title} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+                          ) : (
+                            <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${config.gradient} flex items-center justify-center flex-shrink-0`}>
+                              <Icon className="w-8 h-8 text-white" strokeWidth={2} />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-[#2b2520] line-clamp-2 text-sm mb-1">{item.title}</h4>
+                            {item.description && (
+                              <p className="text-xs text-[#6b5a4a] line-clamp-2">{item.description}</p>
+                            )}
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-[#d93547] flex-shrink-0" />
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       ) : (
+        /* ── Остальные типы: обычный список ── */
         <div className="space-y-3">
           {items.map((item) => (
             <Card
@@ -202,20 +288,13 @@ export default function ContentListPage() {
               onClick={() => handleItemClick(item.id)}
             >
               <div className="flex items-center gap-4">
-                {/* Thumbnail */}
                 {item.thumbnailUrl ? (
-                  <img
-                    src={item.thumbnailUrl}
-                    alt={item.title}
-                    className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
-                  />
+                  <img src={item.thumbnailUrl} alt={item.title} className="w-20 h-20 rounded-xl object-cover flex-shrink-0" />
                 ) : (
                   <div className={`w-20 h-20 rounded-xl bg-gradient-to-br ${config.gradient} flex items-center justify-center flex-shrink-0`}>
                     <Icon className="w-10 h-10 text-white" strokeWidth={2} />
                   </div>
                 )}
-
-                {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     {item.keyNumber && (
@@ -229,17 +308,11 @@ export default function ContentListPage() {
                       </span>
                     )}
                   </div>
-                  <h4 className="font-semibold text-[#2b2520] line-clamp-1 mb-1">
-                    {item.title}
-                  </h4>
+                  <h4 className="font-semibold text-[#2b2520] line-clamp-1 mb-1">{item.title}</h4>
                   {item.description && (
-                    <p className="text-sm text-[#6b5a4a] line-clamp-2">
-                      {item.description}
-                    </p>
+                    <p className="text-sm text-[#6b5a4a] line-clamp-2">{item.description}</p>
                   )}
                 </div>
-
-                {/* Arrow */}
                 <ChevronRight className="w-5 h-5 text-[#d93547] flex-shrink-0" />
               </div>
             </Card>

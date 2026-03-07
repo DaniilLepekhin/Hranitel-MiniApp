@@ -835,6 +835,7 @@ export interface ContentItem {
   thumbnailUrl?: string | null; // Миниатюра для списков
   keyNumber?: number | null; // 1-12 для связи с ключами
   monthProgram: boolean; // Программа месяца
+  programMonth?: string | null; // e.g. '2026-01', '2026-02', '2026-03'
   orderIndex: number;
   isPublished: boolean;
   createdAt: string;
