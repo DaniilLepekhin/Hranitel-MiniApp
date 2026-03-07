@@ -351,6 +351,7 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/v1/energies', tags:
         // "Участие в Созвоне" — weekly_max 3, город
         // "Отметка в Stories" — weekly_max 3, город
         // "Созвон + Stories" — weekly_max 3, город (комбо)
+        // "Участие в Челлендже" — daily, 1/день (7/нед), город
 
         const progress = {
           otchet: {
@@ -411,6 +412,15 @@ export const energyPointsRoutes = new Elysia({ prefix: '/api/v1/energies', tags:
             chat: 'city' as const,
             requiresMedia: true,
             description: 'Созвон + Stories (комбо)',
+          },
+          challeng: {
+            hashtags: ['#челлендж'],
+            used: todayReasonCounts['Участие в Челлендже'] || 0,
+            max: 1,
+            period: 'daily' as const,
+            reward: 1,
+            chat: 'city' as const,
+            description: 'Участие в Челлендже',
           },
         };
 

@@ -103,6 +103,12 @@ const CITY_RULES: HashtagRule[] = [
     limitValue: 3,
     description: 'Инсайт / Отзыв',
   },
+  {
+    hashtags: ['#челлендж'],
+    reward: 1,
+    limitType: 'daily', // 1 раз в день, сброс в 00:00 МСК (7 в неделю)
+    description: 'Участие в Челлендже',
+  },
 ];
 
 export class HashtagParserService {
@@ -529,7 +535,9 @@ export class HashtagParserService {
           // Проверяем лимиты
           let canAward = true;
 
-          if (rule.limitType === 'weekly') {
+          if (rule.limitType === 'daily') {
+            canAward = await this.checkDailyLimit(userId, rule.description);
+          } else if (rule.limitType === 'weekly') {
             canAward = await this.checkWeeklyLimit(userId, rule.description);
           } else if (rule.limitType === 'weekly_max' && rule.limitValue) {
             canAward = await this.checkWeeklyLimit(userId, rule.description, rule.limitValue);
@@ -539,7 +547,9 @@ export class HashtagParserService {
 
           if (!canAward) {
             logger.info(`[HashtagParser] User ${userId} exceeded limit for ${matchedHashtag}`);
-            if (rule.limitType === 'weekly') {
+            if (rule.limitType === 'daily') {
+              await this.sendLimitReachedNotification(ctx, userTelegramId, matchedHashtag, 'daily', 1);
+            } else if (rule.limitType === 'weekly') {
               await this.sendLimitReachedNotification(ctx, userTelegramId, matchedHashtag, 'weekly', 1);
             } else if (rule.limitType === 'weekly_max' && rule.limitValue) {
               await this.sendLimitReachedNotification(ctx, userTelegramId, matchedHashtag, 'weekly', rule.limitValue);
