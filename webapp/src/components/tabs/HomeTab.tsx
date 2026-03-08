@@ -99,7 +99,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
   // Баланс: из API, fallback на user.energies из store
   const epBalance = useMemo(() => balanceData?.balance ?? user?.energies ?? 0, [balanceData?.balance, user?.energies]);
   const referralLink = useMemo(
-    () => user ? `https://t.me/hranitelkodbot?start=ref_${user.telegramId}` : 'https://t.me/hranitelkodbot?start=ref_...',
+    () => user ? `https://t.me/SuccessKODBot?start=ref_${user.telegramId}` : 'https://t.me/SuccessKODBot?start=ref_...',
     [user?.telegramId]
   );
   const userName = useMemo(() => user?.firstName || '{Имя}', [user?.firstName]);
