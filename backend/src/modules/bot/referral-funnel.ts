@@ -16,13 +16,15 @@
 
 import { InlineKeyboard, Keyboard } from 'grammy';
 import { db } from '@/db';
-import { users, referralAgents, referralPayments, payments } from '@/db/schema';
+import { users, referralAgents, referralPayments, payments, paymentAnalytics } from '@/db/schema';
 import { eq, and, gte } from 'drizzle-orm';
 import { schedulerService } from '@/services/scheduler.service';
 import { stateService } from '@/services/state.service';
 import { TelegramService } from '@/services/telegram.service';
 import { logger } from '@/utils/logger';
 import { getWebAppUrl } from '@/config';
+
+const N8N_LAVA_WEBHOOK_URL = 'https://n8n4.daniillepekhin.ru/webhook/lava_club2';
 
 // Telegram service instance (initialized from bot/index.ts)
 let telegramService: TelegramService | null = null;
@@ -576,7 +578,7 @@ export async function processReferralBonus(
       const tg = getTelegramService();
 
       if (cyclePosition === 0) {
-        // Бесплатный месяц
+        // Бесплатный месяц — подписка уже продлена автоматически
         await tg.sendMessage(
           agent.telegramId,
           `🎉 <b>Поздравляем! Бесплатный месяц!</b>\n\n` +
@@ -587,18 +589,90 @@ export async function processReferralBonus(
           { parse_mode: 'HTML' }
         );
       } else {
-        // Скидка — отправляем ссылку на Lava-продукт
-        const nextRewardPosition = (cyclePosition % 3) + 1;
+        // Скидка — генерируем персональную ссылку через n8n с данными агента
+        const discountAmount = reward.discount; // сколько скидка
+        const payAmount = 2000 - discountAmount; // сколько платит агент
+
+        // Получаем email агента из таблицы users
+        const [agentUser] = await db
+          .select({ email: users.email, firstName: users.firstName })
+          .from(users)
+          .where(eq(users.telegramId, agent.telegramId))
+          .limit(1);
+
+        const agentEmail = agentUser?.email || null;
+        const agentPhone = agent.phone || null;
+        const agentName = agent.fullName || agentUser?.firstName || '';
         const nextReward = REFERRAL_REWARD_TIERS.find((t) => t.position === (cyclePosition === 3 ? 0 : cyclePosition + 1))!;
+        const remainingForFree = 4 - cyclePosition;
+
+        let personalPaymentUrl: string | null = null;
+
+        if (agentEmail) {
+          try {
+            // Создаём payment_attempt в нашей БД (для трекинга)
+            await db.insert(paymentAnalytics).values({
+              telegramId: agent.telegramId,
+              eventType: 'payment_attempt',
+              paymentMethod: 'RUB',
+              amount: payAmount.toString(),
+              currency: 'RUB',
+              name: agentName,
+              email: agentEmail,
+              phone: agentPhone,
+              utmSource: 'referral_reward',
+              utmCampaign: `referral_discount_${discountAmount}`,
+              metka: `referral_discount_${discountAmount}_referral_reward`,
+              metadata: {
+                source: 'referral_discount',
+                discount_amount: discountAmount,
+                referral_count: newTotal,
+                cycle_position: cyclePosition,
+                agent_id: agent.id,
+              },
+            });
+
+            // Вызываем n8n для генерации персональной ссылки
+            const n8nResponse = await fetch(N8N_LAVA_WEBHOOK_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: agentEmail.toLowerCase().trim(),
+                name: agentName,
+                phone: agentPhone || '',
+                payment_method: 'RUB',
+                telegram_id: agent.telegramId.toString(),
+                amount: payAmount.toString(),
+                description: `Следующий месяц в клубе со скидкой ${discountAmount} руб (реферальная программа)`,
+              }),
+            });
+
+            if (n8nResponse.ok) {
+              const n8nResult = await n8nResponse.json() as { paymentUrl?: string; payment_url?: string; url?: string; link?: string };
+              personalPaymentUrl = n8nResult.paymentUrl || n8nResult.payment_url || n8nResult.url || n8nResult.link || null;
+            }
+          } catch (linkError) {
+            logger.warn({ linkError, agentId: agent.id }, 'Failed to generate personal payment link, falling back to Lava product URL');
+          }
+        }
+
+        // Если персональная ссылка не получилась — используем Lava-продукт как запасной вариант
+        const paymentLink = personalPaymentUrl || reward.lavaUrl!;
+        const linkNote = personalPaymentUrl
+          ? `Ссылка персональная — данные уже заполнены`
+          : `Введите свои данные при оплате`;
+
         await tg.sendMessage(
           agent.telegramId,
           `🎉 <b>Новый реферал!</b>\n\n` +
           `По вашей ссылке зарегистрировался новый участник клуба.\n\n` +
           `🎁 Ваша награда: <b>${reward.label}</b>\n` +
-          `Используйте ссылку ниже, чтобы оплатить следующий месяц со скидкой:\n` +
-          `${reward.lavaUrl}\n\n` +
+          `Оплатите следующий месяц всего за <b>${payAmount} руб</b> (вместо 2 000 руб):\n\n` +
+          `${paymentLink}\n\n` +
+          `<i>${linkNote}</i>\n\n` +
           `Всего рефералов: <b>${newTotal}</b>\n` +
-          `Следующая награда: <b>${nextReward.label}</b> (${4 - cyclePosition} ${cyclePosition === 3 ? 'человек' : cyclePosition === 2 ? 'человека' : 'человека'} до бесплатного месяца)`,
+          `До бесплатного месяца: ещё <b>${remainingForFree}</b> ${remainingForFree === 1 ? 'человек' : remainingForFree < 5 ? 'человека' : 'человек'}\n` +
+          `Следующая награда: <b>${nextReward.label}</b>`,
           { parse_mode: 'HTML' }
         );
       }
