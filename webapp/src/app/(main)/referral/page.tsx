@@ -60,7 +60,16 @@ export default function ReferralPage() {
     }
   };
 
+  // Позиция в текущем цикле (1..4, затем сброс)
+  const cycleProgress = agent ? agent.totalReferrals % 4 : 0;
   const freeMonthProgress = agent ? Math.min(agent.totalReferrals, 4) : 0;
+
+  const REWARD_TIERS = [
+    { friends: 1, reward: '−500 руб', description: 'Ссылка на скидку 500 руб' },
+    { friends: 2, reward: '−1 000 руб', description: 'Ссылка на скидку 1 000 руб' },
+    { friends: 3, reward: '−1 500 руб', description: 'Ссылка на скидку 1 500 руб' },
+    { friends: 4, reward: '🎁 Месяц бесплатно', description: 'Подписка продлевается автоматически' },
+  ];
 
   return (
     <div className="min-h-screen bg-[#f0ece8] relative pb-24">
@@ -112,9 +121,9 @@ export default function ReferralPage() {
               <div className="p-4 space-y-3">
                 {[
                   { n: '1', text: 'Регистрируешься как агент в боте (3 вопроса)' },
-                  { n: '2', text: 'Получаешь персональную ссылку' },
+                  { n: '2', text: 'Получаешь персональную реферальную ссылку' },
                   { n: '3', text: 'Друг оплачивает подписку по твоей ссылке' },
-                  { n: '4', text: 'Тебе начисляется 500 рублей скидка' },
+                  { n: '4', text: 'Получаешь награду по шкале скидок' },
                 ].map(({ n, text }) => (
                   <div key={n} className="flex items-start gap-3">
                     <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#d93547] to-[#9c1723] flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -123,10 +132,19 @@ export default function ReferralPage() {
                     <p className="text-sm text-[#2b2520]">{text}</p>
                   </div>
                 ))}
-                <div className="mt-2 p-3 rounded-xl bg-[#d93547]/10">
-                  <p className="text-sm font-semibold text-[#9c1723]">
-                    ✨ 4 приглашённых = следующий месяц бесплатно!
-                  </p>
+                {/* Шкала наград */}
+                <div className="mt-2 space-y-2">
+                  {REWARD_TIERS.map((tier) => (
+                    <div key={tier.friends} className="flex items-center gap-3 p-2.5 rounded-xl bg-[#d93547]/8">
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#d93547] to-[#9c1723] flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-xs font-bold">{tier.friends}</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs text-[#6b5a4a]">{tier.description}</p>
+                      </div>
+                      <span className="text-sm font-bold text-[#9c1723] flex-shrink-0">{tier.reward}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </Card>
@@ -181,25 +199,32 @@ export default function ReferralPage() {
               </div>
             </Card>
 
-            {/* Прогресс до бесплатного месяца */}
+            {/* Прогресс по циклу наград */}
             <Card className="p-4">
-              <p className="text-sm font-semibold text-[#2b2520] mb-3">До бесплатного месяца</p>
-              <div className="flex gap-2 mb-2">
-                {[1, 2, 3, 4].map((n) => (
-                  <div
-                    key={n}
-                    className={`flex-1 h-2.5 rounded-full transition-all ${
-                      n <= freeMonthProgress
-                        ? 'bg-gradient-to-r from-[#d93547] to-[#9c1723]'
-                        : 'bg-[#9c1723]/10'
-                    }`}
-                  />
-                ))}
+              <p className="text-sm font-semibold text-[#2b2520] mb-3">Твои награды</p>
+              <div className="space-y-2">
+                {REWARD_TIERS.map((tier, i) => {
+                  const done = cycleProgress >= tier.friends || (cycleProgress === 0 && agent && agent.totalReferrals > 0 && tier.friends === 4);
+                  const isCurrent = !done && cycleProgress === tier.friends - 1;
+                  return (
+                    <div key={tier.friends} className={`flex items-center gap-3 p-2.5 rounded-xl transition-all ${done ? 'bg-[#d93547]/10' : isCurrent ? 'bg-[#9c1723]/5 border border-[#d93547]/30' : 'bg-[#9c1723]/5'}`}>
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${done ? 'bg-gradient-to-br from-[#d93547] to-[#9c1723]' : 'bg-[#9c1723]/20'}`}>
+                        <span className={`text-xs font-bold ${done ? 'text-white' : 'text-[#9c1723]'}`}>{tier.friends}</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className={`text-xs ${done ? 'text-[#6b5a4a]' : 'text-[#6b5a4a]'}`}>{tier.description}</p>
+                      </div>
+                      <span className={`text-sm font-bold flex-shrink-0 ${done ? 'text-[#9c1723]' : 'text-[#9c1723]/40'}`}>{tier.reward}</span>
+                    </div>
+                  );
+                })}
               </div>
-              <p className="text-xs text-[#6b5a4a]">
-                {freeMonthProgress} из 4 — {4 - freeMonthProgress > 0
-                  ? `ещё ${4 - freeMonthProgress} ${freeMonthProgress === 3 ? 'человек' : 'человека'} и следующий месяц бесплатно!`
-                  : '🎉 Ты заработал бесплатный месяц!'}
+              <p className="text-xs text-[#6b5a4a] mt-3">
+                {cycleProgress === 0 && agent && agent.totalReferrals > 0
+                  ? `🎉 Цикл завершён! Следующий старт с реферала ${agent.totalReferrals + 1}`
+                  : cycleProgress > 0
+                    ? `Текущий цикл: ${cycleProgress} из 4 — ещё ${4 - cycleProgress} до бесплатного месяца`
+                    : 'Пригласи первого друга и получи скидку 500 руб!'}
               </p>
             </Card>
 

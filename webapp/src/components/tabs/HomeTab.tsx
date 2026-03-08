@@ -220,7 +220,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
                     marginTop: '2px',
                   }}
                 >
-                  500 руб за друга · 4 друга = месяц бесплатно
+                   скидки 500–1500 руб · 4 друга = месяц бесплатно
                 </p>
               </div>
               {/* Стрелка - кликабельность */}

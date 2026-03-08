@@ -431,7 +431,44 @@ export async function sendReferralReminder(chatId: number, telegramId: number, t
 // PAYMENT HOOK: Начислить бонус агенту когда его реферал оплатил
 // ============================================================================
 
-const REFERRAL_BONUS = 500; // руб
+/**
+ * Система наград по циклу из 4 рефералов:
+ *   Реферал 1 (из цикла) → скидка 500 руб (ссылка Lava)
+ *   Реферал 2 → скидка 1000 руб
+ *   Реферал 3 → скидка 1500 руб
+ *   Реферал 4 → бесплатный месяц (авто-продление подписки)
+ * После каждого 4-го цикл сбрасывается.
+ */
+const REFERRAL_REWARD_TIERS = [
+  // position 1 (1-й в цикле)
+  {
+    position: 1,
+    discount: 500,
+    lavaUrl: 'https://app.lava.top/products/66c2fa21-3575-4ffa-99b7-49ca0e2750cd',
+    label: 'скидка 500 руб на следующий месяц',
+  },
+  // position 2
+  {
+    position: 2,
+    discount: 1000,
+    lavaUrl: 'https://app.lava.top/products/ae1b3721-c75a-46b3-82d0-d05ac129bb7c',
+    label: 'скидка 1000 руб на следующий месяц',
+  },
+  // position 3
+  {
+    position: 3,
+    discount: 1500,
+    lavaUrl: 'https://app.lava.top/products/55348c77-6da8-4e1c-a68d-6252395c247e',
+    label: 'скидка 1500 руб на следующий месяц',
+  },
+  // position 0 (4-й, 8-й, 12-й... — бесплатный месяц)
+  {
+    position: 0,
+    discount: 2000,
+    lavaUrl: null,
+    label: 'бесплатный месяц клуба',
+  },
+] as const;
 
 export async function processReferralBonus(
   referredTelegramId: number,
@@ -476,42 +513,97 @@ export async function processReferralBonus(
       .where(eq(users.telegramId, referredTelegramId))
       .limit(1);
 
+    // Определяем награду по позиции в цикле (1..4, затем сброс)
+    const newTotal = agent.totalReferrals + 1;
+    const cyclePosition = newTotal % 4; // 1→1, 2→2, 3→3, 4→0, 5→1 ...
+    const reward = REFERRAL_REWARD_TIERS.find((t) => t.position === cyclePosition)!;
+
     // Создаём запись о бонусе
     await db.insert(referralPayments).values({
       agentId: agent.id,
       referredUserId: referredUser?.id || null,
       referredTelegramId,
       paymentId,
-      bonusAmount: REFERRAL_BONUS,
+      bonusAmount: reward.discount,
       status: 'pending',
     });
 
-    // Обновляем счётчики агента
+    // Обновляем счётчик рефералов агента
     await db
       .update(referralAgents)
       .set({
-        totalReferrals: agent.totalReferrals + 1,
-        pendingBonus: agent.pendingBonus + REFERRAL_BONUS,
-        totalBonusEarned: agent.totalBonusEarned + REFERRAL_BONUS,
+        totalReferrals: newTotal,
+        totalBonusEarned: agent.totalBonusEarned + reward.discount,
         updatedAt: new Date(),
       })
       .where(eq(referralAgents.id, agent.id));
 
     logger.info(
-      { agentId: agent.id, agentTelegramId: agent.telegramId, referredTelegramId, bonus: REFERRAL_BONUS },
-      'Referral bonus accrued'
+      { agentId: agent.id, agentTelegramId: agent.telegramId, referredTelegramId, newTotal, cyclePosition, reward: reward.label },
+      'Referral reward accrued'
     );
+
+    // Если 4-й в цикле — бесплатный месяц: продлеваем подписку
+    if (cyclePosition === 0) {
+      try {
+        const [agentUser] = await db
+          .select({ id: users.id, subscriptionExpires: users.subscriptionExpires, isPro: users.isPro })
+          .from(users)
+          .where(eq(users.telegramId, agent.telegramId))
+          .limit(1);
+
+        if (agentUser) {
+          const baseDate = agentUser.subscriptionExpires && new Date(agentUser.subscriptionExpires) > new Date()
+            ? new Date(agentUser.subscriptionExpires)
+            : new Date();
+          const newExpiry = new Date(baseDate);
+          newExpiry.setMonth(newExpiry.getMonth() + 1);
+
+          await db
+            .update(users)
+            .set({ subscriptionExpires: newExpiry, isPro: true, updatedAt: new Date() })
+            .where(eq(users.id, agentUser.id));
+
+          logger.info({ agentId: agent.id, newExpiry }, 'Free month awarded to referral agent');
+        }
+      } catch (extendError) {
+        logger.error({ extendError, agentId: agent.id }, 'Failed to extend subscription for free month reward');
+      }
+    }
 
     // Уведомить агента в телеграм
     try {
       const tg = getTelegramService();
-      await tg.sendMessage(
-        agent.telegramId,
-        `🎉 <b>Новый реферал!</b>\n\nПо вашей ссылке зарегистрировался новый участник клуба.\nВам начислено <b>${REFERRAL_BONUS} рублей</b>.\n\nВсего рефералов: <b>${agent.totalReferrals + 1}</b>`,
-        { parse_mode: 'HTML' }
-      );
+
+      if (cyclePosition === 0) {
+        // Бесплатный месяц
+        await tg.sendMessage(
+          agent.telegramId,
+          `🎉 <b>Поздравляем! Бесплатный месяц!</b>\n\n` +
+          `По вашей ссылке зарегистрировался <b>${newTotal}-й участник</b> клуба.\n\n` +
+          `🎁 Ваша награда: <b>+1 месяц клуба бесплатно!</b>\n` +
+          `Подписка автоматически продлена на 30 дней.\n\n` +
+          `Всего рефералов: <b>${newTotal}</b>`,
+          { parse_mode: 'HTML' }
+        );
+      } else {
+        // Скидка — отправляем ссылку на Lava-продукт
+        const nextRewardPosition = (cyclePosition % 3) + 1;
+        const nextReward = REFERRAL_REWARD_TIERS.find((t) => t.position === (cyclePosition === 3 ? 0 : cyclePosition + 1))!;
+        await tg.sendMessage(
+          agent.telegramId,
+          `🎉 <b>Новый реферал!</b>\n\n` +
+          `По вашей ссылке зарегистрировался новый участник клуба.\n\n` +
+          `🎁 Ваша награда: <b>${reward.label}</b>\n` +
+          `Используйте ссылку ниже, чтобы оплатить следующий месяц со скидкой:\n` +
+          `${reward.lavaUrl}\n\n` +
+          `Всего рефералов: <b>${newTotal}</b>\n` +
+          `Следующая награда: <b>${nextReward.label}</b> (${4 - cyclePosition} ${cyclePosition === 3 ? 'человек' : cyclePosition === 2 ? 'человека' : 'человека'} до бесплатного месяца)`,
+          { parse_mode: 'HTML' }
+        );
+      }
     } catch (notifyError) {
-      logger.error({ notifyError, agentId: agent.id }, 'Failed to notify agent about referral bonus');
+      logger.error({ notifyError, agentId: agent.id }, 'Failed to notify agent about referral reward');
     }
   } catch (error) {
     logger.error({ error, referredTelegramId, refCode }, 'Failed to process referral bonus');
