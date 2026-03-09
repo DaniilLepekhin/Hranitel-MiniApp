@@ -33,6 +33,10 @@ const envSchema = v.object({
 
   // CORS
   CORS_ORIGIN: v.optional(v.string(), 'http://localhost:3000'),
+
+  // CloudPayments (optional - second payment provider)
+  CLOUDPAYMENTS_PUBLIC_ID: v.optional(v.string(), ''),
+  CLOUDPAYMENTS_API_SECRET: v.optional(v.string(), ''),
 });
 
 type EnvConfig = v.InferOutput<typeof envSchema>;

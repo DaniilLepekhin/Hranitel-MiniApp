@@ -45,6 +45,7 @@ import { contentModule } from '@/modules/content';
 import { ratingsRoutes } from '@/modules/ratings';
 import { analyticsModule } from '@/modules/analytics';
 import { lavaPaymentWebhook } from '@/modules/webhooks/lava-payment';
+import { cloudpaymentsWebhook } from '@/modules/webhooks/cloudpayments';
 import { adminRoutes } from '@/modules/admin';
 import { leaderTestModule } from '@/modules/leader-test';
 import { leaderSurveyRoutes } from '@/modules/leader-survey';
@@ -221,7 +222,7 @@ const app = new Elysia()
   // Analytics module (no auth required for tracking, but rate limited)
   .group('/api', (app) => app.use(paymentRateLimiter).use(analyticsModule))
   // Webhooks (no auth required)
-  .group('/api', (app) => app.use(lavaPaymentWebhook))
+  .group('/api', (app) => app.use(lavaPaymentWebhook).use(cloudpaymentsWebhook))
   // Admin API (secret header auth)
   .group('/api', (app) => app.use(adminRoutes))
   // Content module (Путь - educational content system)
