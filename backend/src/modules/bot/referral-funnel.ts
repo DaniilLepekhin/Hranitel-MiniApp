@@ -446,6 +446,7 @@ const REFERRAL_REWARD_TIERS = [
   {
     position: 1,
     discount: 500,
+    offerId: '294eab72-4f3a-474b-9c1c-6c1eedd7f2d4', // разовый платёж 500 руб (скидка 1500)
     lavaUrl: 'https://app.lava.top/products/66c2fa21-3575-4ffa-99b7-49ca0e2750cd',
     label: 'скидка 500 руб на следующий месяц',
   },
@@ -453,6 +454,7 @@ const REFERRAL_REWARD_TIERS = [
   {
     position: 2,
     discount: 1000,
+    offerId: '4434506c-dffd-4c5d-b50e-a2ddb74808eb', // разовый платёж 1000 руб (скидка 1000)
     lavaUrl: 'https://app.lava.top/products/ae1b3721-c75a-46b3-82d0-d05ac129bb7c',
     label: 'скидка 1000 руб на следующий месяц',
   },
@@ -460,6 +462,7 @@ const REFERRAL_REWARD_TIERS = [
   {
     position: 3,
     discount: 1500,
+    offerId: '539cb542-d350-4c79-9d2e-ced03f68d21b', // разовый платёж 1500 руб (скидка 500)
     lavaUrl: 'https://app.lava.top/products/55348c77-6da8-4e1c-a68d-6252395c247e',
     label: 'скидка 1500 руб на следующий месяц',
   },
@@ -467,6 +470,7 @@ const REFERRAL_REWARD_TIERS = [
   {
     position: 0,
     discount: 2000,
+    offerId: null,
     lavaUrl: null,
     label: 'бесплатный месяц клуба',
   },
@@ -589,9 +593,9 @@ export async function processReferralBonus(
           { parse_mode: 'HTML' }
         );
       } else {
-        // Скидка — генерируем персональную ссылку через n8n с данными агента
-        const discountAmount = reward.discount; // сколько скидка
-        const payAmount = 2000 - discountAmount; // сколько платит агент
+        // Скидка — генерируем персональную ссылку через n8n с offer_id и данными агента
+        const discountAmount = reward.discount;
+        const offerId = reward.offerId!;
 
         // Получаем email агента из таблицы users
         const [agentUser] = await db
@@ -615,7 +619,7 @@ export async function processReferralBonus(
               telegramId: agent.telegramId,
               eventType: 'payment_attempt',
               paymentMethod: 'RUB',
-              amount: payAmount.toString(),
+              amount: discountAmount.toString(),
               currency: 'RUB',
               name: agentName,
               email: agentEmail,
@@ -626,13 +630,14 @@ export async function processReferralBonus(
               metadata: {
                 source: 'referral_discount',
                 discount_amount: discountAmount,
+                offer_id: offerId,
                 referral_count: newTotal,
                 cycle_position: cyclePosition,
                 agent_id: agent.id,
               },
             });
 
-            // Вызываем n8n для генерации персональной ссылки
+            // Вызываем n8n для генерации персональной ссылки, передаём offer_id
             const n8nResponse = await fetch(N8N_LAVA_WEBHOOK_URL, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -642,8 +647,7 @@ export async function processReferralBonus(
                 phone: agentPhone || '',
                 payment_method: 'RUB',
                 telegram_id: agent.telegramId.toString(),
-                amount: payAmount.toString(),
-                description: `Следующий месяц в клубе со скидкой ${discountAmount} руб (реферальная программа)`,
+                offer_id: offerId,
               }),
             });
 
@@ -667,7 +671,7 @@ export async function processReferralBonus(
           `🎉 <b>Новый реферал!</b>\n\n` +
           `По вашей ссылке зарегистрировался новый участник клуба.\n\n` +
           `🎁 Ваша награда: <b>${reward.label}</b>\n` +
-          `Оплатите следующий месяц всего за <b>${payAmount} руб</b> (вместо 2 000 руб):\n\n` +
+          `Оплатите следующий месяц по ссылке:\n\n` +
           `${paymentLink}\n\n` +
           `<i>${linkNote}</i>\n\n` +
           `Всего рефералов: <b>${newTotal}</b>\n` +
