@@ -189,12 +189,12 @@ export default function ReferralPage() {
                   <p className="text-xs text-[#6b5a4a] mt-1">рефералов</p>
                 </div>
                 <div className="p-4 text-center">
-                  <p className="text-2xl font-bold text-[#d93547]">{agent.pendingBonus}</p>
-                  <p className="text-xs text-[#6b5a4a] mt-1">руб ожидает</p>
-                </div>
-                <div className="p-4 text-center">
                   <p className="text-2xl font-bold text-[#2b2520]">{agent.totalBonusEarned}</p>
                   <p className="text-xs text-[#6b5a4a] mt-1">руб всего</p>
+                </div>
+                <div className="p-4 text-center">
+                  <p className="text-2xl font-bold text-[#d93547]">{agent.pendingBonus}</p>
+                  <p className="text-xs text-[#6b5a4a] mt-1">руб остаток</p>
                 </div>
               </div>
             </Card>
@@ -267,7 +267,7 @@ export default function ReferralPage() {
                       <div className="text-right">
                         <p className="text-sm font-semibold text-[#d93547]">+{ref.bonusAmount} руб</p>
                         <p className={`text-xs ${ref.status === 'paid' ? 'text-green-500' : 'text-[#6b5a4a]'}`}>
-                          {ref.status === 'paid' ? 'выплачено' : 'ожидает'}
+                          {ref.status === 'paid' ? 'использовано' : 'доступно'}
                         </p>
                       </div>
                     </div>
