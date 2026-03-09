@@ -15,18 +15,25 @@ export class ReportsService {
   }
 
   /**
-   * Получить дедлайн текущей недели (воскресенье 23:59 МСК)
+   * Получить дедлайн текущей недели (воскресенье 23:59 МСК = воскресенье 20:59 UTC).
+   * Вычисление ведётся в UTC с явным смещением +3 часа для МСК.
    */
   getWeekDeadline(): Date {
-    const now = new Date();
-    const currentDay = now.getDay(); // 0 = воскресенье, 1 = понедельник, etc
-    const daysUntilSunday = currentDay === 0 ? 0 : 7 - currentDay;
+    const MSK_OFFSET_MS = 3 * 60 * 60 * 1000; // UTC+3
+    const nowUtc = new Date();
+    const nowMsk = new Date(nowUtc.getTime() + MSK_OFFSET_MS);
 
-    const deadline = new Date(now);
-    deadline.setDate(now.getDate() + daysUntilSunday);
-    deadline.setHours(23, 59, 59, 999);
+    // getUTCDay() в пространстве МСК (0=вс, 1=пн, ..., 6=сб)
+    const dayMsk = nowMsk.getUTCDay();
+    const daysUntilSunday = dayMsk === 0 ? 0 : 7 - dayMsk;
 
-    return deadline;
+    // Строим дедлайн: текущая МСК-дата + daysUntilSunday дней, время 23:59:59
+    const deadlineMsk = new Date(nowMsk);
+    deadlineMsk.setUTCDate(deadlineMsk.getUTCDate() + daysUntilSunday);
+    deadlineMsk.setUTCHours(23, 59, 59, 999);
+
+    // Возвращаем в UTC
+    return new Date(deadlineMsk.getTime() - MSK_OFFSET_MS);
   }
 
   /**

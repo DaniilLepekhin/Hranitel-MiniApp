@@ -123,41 +123,66 @@ export class ShopService {
   }
 
   /**
-   * Купить товар
-   * spend() уже атомарно проверяет баланс и списывает (SELECT ... FOR UPDATE)
+   * Купить товар.
+   * Порядок операций:
+   * 1. Создаём запись покупки со status='pending' (резервируем intent)
+   * 2. Атомарно списываем энергии (SELECT FOR UPDATE внутри spend())
+   * 3. Помечаем покупку как 'completed'
+   * Если шаг 2 упал — покупка остаётся 'pending' и не выдаётся пользователю.
+   * Если шаг 3 упал — энергии уже списаны, но мы откатываем их через award() и бросаем ошибку.
    */
   async purchaseItem(userId: string, itemId: string) {
-    try {
-      // Получаем информацию о товаре
-      const item = await this.getItemById(itemId);
+    // Получаем информацию о товаре
+    const item = await this.getItemById(itemId);
 
-      // Атомарное списание (проверка баланса + списание внутри транзакции с FOR UPDATE)
-      const spendResult = await energyPointsService.spend(
+    // Шаг 1: создаём pending-запись как intent
+    const [pendingPurchase] = await db.insert(shopPurchases).values({
+      userId,
+      itemId,
+      price: item.price,
+      status: 'pending',
+    }).returning();
+
+    let spendResult: Awaited<ReturnType<typeof energyPointsService.spend>>;
+    try {
+      // Шаг 2: атомарное списание
+      spendResult = await energyPointsService.spend(
         userId,
         item.price,
         `Покупка: ${item.title}`,
         { itemId, itemType: item.itemType, category: item.category }
       );
-
-      // Создаем запись о покупке
-      await db.insert(shopPurchases).values({
-        userId,
-        itemId,
-        price: item.price,
-        status: 'completed',
-      });
-
-      logger.info(`[Shop] User ${userId} purchased item ${itemId} for ${item.price} Энергии`);
-
-      return {
-        success: true,
-        item,
-        newBalance: spendResult.newBalance,
-      };
-    } catch (error) {
-      logger.error('[Shop] Error purchasing item:', error);
-      throw error;
+    } catch (spendError) {
+      // Списание не прошло — удаляем pending-запись и бросаем ошибку
+      await db.delete(shopPurchases).where(eq(shopPurchases.id, pendingPurchase.id));
+      logger.error('[Shop] Spend failed during purchase, rolled back pending record:', spendError);
+      throw spendError;
     }
+
+    try {
+      // Шаг 3: помечаем как completed
+      await db
+        .update(shopPurchases)
+        .set({ status: 'completed' })
+        .where(eq(shopPurchases.id, pendingPurchase.id));
+    } catch (updateError) {
+      // Списание прошло, но status не обновился — возвращаем энергии
+      logger.error('[Shop] Failed to mark purchase completed, refunding energy:', updateError);
+      try {
+        await energyPointsService.award(userId, item.price, `Возврат за сбой покупки: ${item.title}`, { itemId, refund: true });
+      } catch (refundError) {
+        logger.error('[Shop] CRITICAL: Failed to refund energy after purchase status update failure:', refundError);
+      }
+      throw updateError;
+    }
+
+    logger.info(`[Shop] User ${userId} purchased item ${itemId} for ${item.price} Энергии`);
+
+    return {
+      success: true,
+      item,
+      newBalance: spendResult.newBalance,
+    };
   }
 
   /**

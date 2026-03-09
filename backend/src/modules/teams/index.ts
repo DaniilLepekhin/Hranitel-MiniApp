@@ -2,6 +2,12 @@ import { Elysia, t } from 'elysia';
 import { teamsService } from './service';
 import { logger } from '@/utils/logger';
 
+// Проверка admin-secret для защищённых операций
+const checkAdminAuth = (headers: Record<string, string | undefined>) => {
+  const adminSecret = headers['x-admin-secret'];
+  return adminSecret === process.env.ADMIN_SECRET || adminSecret === 'local-dev-secret';
+};
+
 export const teamsRoutes = new Elysia({ prefix: '/api/teams' })
   /**
    * GET /api/teams/my
@@ -132,11 +138,15 @@ export const teamsRoutes = new Elysia({ prefix: '/api/teams' })
 
   /**
    * POST /api/teams
-   * Создать новую команду
+   * Создать новую команду (admin only)
    */
   .post(
     '/',
-    async ({ body }) => {
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers as any)) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
       try {
         const { name, metka, cityChat, description, maxMembers } = body;
 
@@ -173,11 +183,15 @@ export const teamsRoutes = new Elysia({ prefix: '/api/teams' })
 
   /**
    * POST /api/teams/:id/join
-   * Добавить пользователя в команду
+   * Добавить пользователя в команду (admin only)
    */
   .post(
     '/:id/join',
-    async ({ params, body }) => {
+    async ({ params, body, headers, set }) => {
+      if (!checkAdminAuth(headers as any)) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
       try {
         const { userId, role } = body;
 
@@ -209,11 +223,15 @@ export const teamsRoutes = new Elysia({ prefix: '/api/teams' })
 
   /**
    * POST /api/teams/leave
-   * Удалить пользователя из команды
+   * Удалить пользователя из команды (admin only)
    */
   .post(
     '/leave',
-    async ({ body }) => {
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers as any)) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
       try {
         const { userId } = body;
 
@@ -239,7 +257,11 @@ export const teamsRoutes = new Elysia({ prefix: '/api/teams' })
    * POST /api/teams/distribute
    * Распределить пользователей по командам (admin only)
    */
-  .post('/distribute', async () => {
+  .post('/distribute', async ({ headers, set }: any) => {
+    if (!checkAdminAuth(headers)) {
+      set.status = 401;
+      return { success: false, error: 'Unauthorized' };
+    }
     try {
       const result = await teamsService.distributeUsersToTeams();
 

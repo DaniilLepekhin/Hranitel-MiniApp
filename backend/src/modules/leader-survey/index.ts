@@ -8,6 +8,7 @@ import { db } from '@/db';
 import { leaderSurveyQuestions, leaderSurveyVotes, decadeMembers, users } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
+import { authMiddleware } from '@/middlewares/auth';
 
 // Получить начало текущей недели (Пн 00:00 МСК)
 function getCurrentWeekStart(): Date {
@@ -39,32 +40,19 @@ async function isUserLeader(userId: string): Promise<boolean> {
 }
 
 export const leaderSurveyRoutes = new Elysia({ prefix: '/leader-survey' })
+  .use(authMiddleware)
 
   /**
    * GET /current — получить текущий опрос и голоса пользователя за эту неделю
    */
   .get(
     '/current',
-    async ({ query, set }) => {
+    async ({ user, set }) => {
       try {
-        const telegramId = parseInt(query.telegram_id, 10);
-        if (isNaN(telegramId)) {
-          set.status = 400;
-          return { success: false, error: 'Invalid telegram_id' };
-        }
-
-        // Найти пользователя
-        const user = await db.query.users.findFirst({
-          where: eq(users.telegramId, telegramId),
-        });
-
-        if (!user) {
-          set.status = 404;
-          return { success: false, error: 'User not found' };
-        }
+        // Используем пользователя из JWT (игнорируем telegram_id из query)
 
         // Проверить, лидер ли
-        const leader = await isUserLeader(user.id);
+        const leader = await isUserLeader(user!.id);
         if (!leader) {
           return { success: true, isLeader: false, questions: [], votes: [] };
         }
@@ -83,7 +71,7 @@ export const leaderSurveyRoutes = new Elysia({ prefix: '/leader-survey' })
           .from(leaderSurveyVotes)
           .where(
             and(
-              eq(leaderSurveyVotes.userId, user.id),
+              eq(leaderSurveyVotes.userId, user!.id),
               eq(leaderSurveyVotes.weekStart, weekStart),
             )
           );
@@ -113,39 +101,24 @@ export const leaderSurveyRoutes = new Elysia({ prefix: '/leader-survey' })
       }
     },
     {
-      query: t.Object({
-        telegram_id: t.String(),
-      }),
+      // telegram_id в query больше не используется — пользователь берётся из JWT
+      query: t.Optional(t.Object({
+        telegram_id: t.Optional(t.String()),
+      })),
     }
   )
 
   /**
-   * POST /vote — проголосовать за вопрос
+   * POST /vote — проголосовать за вопрос (требует JWT)
    */
   .post(
     '/vote',
-    async ({ body, set }) => {
+    async ({ body, user, set }) => {
       try {
-        const { telegram_id, question_id, answer } = body;
-        const telegramId = parseInt(telegram_id, 10);
-
-        if (isNaN(telegramId)) {
-          set.status = 400;
-          return { success: false, error: 'Invalid telegram_id' };
-        }
-
-        // Найти пользователя
-        const user = await db.query.users.findFirst({
-          where: eq(users.telegramId, telegramId),
-        });
-
-        if (!user) {
-          set.status = 404;
-          return { success: false, error: 'User not found' };
-        }
+        const { question_id, answer } = body;
 
         // Проверить, лидер ли
-        const leader = await isUserLeader(user.id);
+        const leader = await isUserLeader(user!.id);
         if (!leader) {
           set.status = 403;
           return { success: false, error: 'Not a leader' };
@@ -177,7 +150,7 @@ export const leaderSurveyRoutes = new Elysia({ prefix: '/leader-survey' })
         // Проверить, не голосовал ли уже
         const existingVote = await db.query.leaderSurveyVotes.findFirst({
           where: and(
-            eq(leaderSurveyVotes.userId, user.id),
+            eq(leaderSurveyVotes.userId, user!.id),
             eq(leaderSurveyVotes.questionId, question_id),
             eq(leaderSurveyVotes.weekStart, weekStart),
           ),
@@ -192,14 +165,14 @@ export const leaderSurveyRoutes = new Elysia({ prefix: '/leader-survey' })
         const [vote] = await db
           .insert(leaderSurveyVotes)
           .values({
-            userId: user.id,
+            userId: user!.id,
             questionId: question_id,
             answer,
             weekStart,
           })
           .returning();
 
-        logger.info({ userId: user.id, telegramId, questionId: question_id, answer, weekStart }, 'Leader survey vote recorded');
+        logger.info({ userId: user!.id, telegramId: user!.telegramId, questionId: question_id, answer, weekStart }, 'Leader survey vote recorded');
 
         return {
           success: true,
@@ -222,8 +195,8 @@ export const leaderSurveyRoutes = new Elysia({ prefix: '/leader-survey' })
       }
     },
     {
+      // telegram_id убран из body — пользователь берётся из JWT
       body: t.Object({
-        telegram_id: t.String(),
         question_id: t.String(),
         answer: t.String(),
       }),

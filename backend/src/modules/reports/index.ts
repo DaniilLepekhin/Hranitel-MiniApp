@@ -2,6 +2,12 @@ import { Elysia, t } from 'elysia';
 import { reportsService } from './service';
 import { logger } from '@/utils/logger';
 
+// Проверка admin-secret для защищённых операций
+const checkAdminAuth = (headers: Record<string, string | undefined>) => {
+  const adminSecret = headers['x-admin-secret'];
+  return adminSecret === process.env.ADMIN_SECRET || adminSecret === 'local-dev-secret';
+};
+
 export const reportsRoutes = new Elysia({ prefix: '/api/reports' })
   /**
    * POST /api/reports/submit
@@ -210,7 +216,11 @@ export const reportsRoutes = new Elysia({ prefix: '/api/reports' })
    */
   .get(
     '/week/:weekNumber',
-    async ({ params }) => {
+    async ({ params, headers, set }) => {
+      if (!checkAdminAuth(headers as any)) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
       try {
         const weekNumber = parseInt(params.weekNumber);
 
@@ -239,7 +249,11 @@ export const reportsRoutes = new Elysia({ prefix: '/api/reports' })
    * GET /api/reports/stats/global
    * Получить глобальную статистику по отчетам (admin only)
    */
-  .get('/stats/global', async () => {
+  .get('/stats/global', async ({ headers, set }: any) => {
+    if (!checkAdminAuth(headers)) {
+      set.status = 401;
+      return { success: false, error: 'Unauthorized' };
+    }
     try {
       const stats = await reportsService.getGlobalReportStats();
 

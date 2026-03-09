@@ -5153,6 +5153,7 @@ bot.command('test_club', async (ctx) => {
 
 // /test_start_full - ПОЛНЫЙ тест обычной воронки с ускоренными таймерами (10 сек вместо часов)
 bot.command('test_start_full', async (ctx) => {
+  if (!isAdmin(ctx.from!.id)) return;
   try {
     const userId = ctx.from!.id;
     const chatId = ctx.chat.id;
@@ -5219,6 +5220,7 @@ bot.command('test_start_full', async (ctx) => {
 
 // /test_club_full - ПОЛНЫЙ тест club воронки с ускоренными таймерами
 bot.command('test_club_full', async (ctx) => {
+  if (!isAdmin(ctx.from!.id)) return;
   try {
     const userId = ctx.from!.id;
     const chatId = ctx.chat.id;
@@ -5264,6 +5266,7 @@ bot.command('test_club_full', async (ctx) => {
 
 // /test_women - ТЕСТ women воронки (только первое сообщение)
 bot.command('test_women', async (ctx) => {
+  if (!isAdmin(ctx.from!.id)) return;
   try {
     const userId = ctx.from!.id;
     const chatId = ctx.chat.id;
@@ -5304,6 +5307,7 @@ bot.command('test_women', async (ctx) => {
 
 // /test_women_full - ПОЛНЫЙ тест women воронки с ускоренными таймерами
 bot.command('test_women_full', async (ctx) => {
+  if (!isAdmin(ctx.from!.id)) return;
   try {
     const userId = ctx.from!.id;
     const chatId = ctx.chat.id;
@@ -5344,6 +5348,7 @@ bot.command('test_women_full', async (ctx) => {
 
 // /test_probudis - тест первого сообщения probudis воронки (без таймеров)
 bot.command('test_probudis', async (ctx) => {
+  if (!isAdmin(ctx.from!.id)) return;
   try {
     const userId = ctx.from!.id;
     const chatId = ctx.chat.id;
@@ -5384,6 +5389,7 @@ bot.command('test_probudis', async (ctx) => {
 
 // /test_probudis_full - ПОЛНЫЙ тест probudis воронки с ускоренными таймерами
 bot.command('test_probudis_full', async (ctx) => {
+  if (!isAdmin(ctx.from!.id)) return;
   try {
     const userId = ctx.from!.id;
     const chatId = ctx.chat.id;
@@ -6152,7 +6158,13 @@ export const botModule = new Elysia({ prefix: '/bot', tags: ['Bot'] })
   // Set webhook
   .post(
     '/set-webhook',
-    async ({ body }) => {
+    async ({ body, headers, set }) => {
+      const adminSecret = headers['x-admin-secret'];
+      if (!adminSecret || adminSecret !== process.env.ADMIN_SECRET) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
       const { url } = body;
 
       try {
@@ -6220,7 +6232,13 @@ export const botModule = new Elysia({ prefix: '/bot', tags: ['Bot'] })
   // Reset onboarding step for testing
   .post(
     '/reset-onboarding',
-    async ({ body, set }) => {
+    async ({ body, headers, set }) => {
+      const adminSecret = headers['x-admin-secret'];
+      if (!adminSecret || adminSecret !== process.env.ADMIN_SECRET) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
       try {
         const { telegram_id } = body;
 

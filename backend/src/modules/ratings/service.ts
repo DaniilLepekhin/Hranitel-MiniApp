@@ -41,47 +41,79 @@ export class RatingsService {
    */
   async getPersonalRating(userId: string) {
     try {
-      const allUsers = await db
-        .select({
-          id: users.id,
-          telegramId: users.telegramId,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          username: users.username,
-          energies: users.energies,
-        })
-        .from(users)
-        .where(isNotNull(users.energies))
-        .orderBy(desc(users.energies));
+      // Параллельно: топ-100 + ранг пользователя + общее число участников
+      const [topUsers, rankResult, totalResult, currentUserRows] = await Promise.all([
+        // Топ-100 по энергиям
+        db
+          .select({
+            id: users.id,
+            telegramId: users.telegramId,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            username: users.username,
+            energies: users.energies,
+          })
+          .from(users)
+          .where(isNotNull(users.energies))
+          .orderBy(desc(users.energies))
+          .limit(100),
 
-      const total = allUsers.length;
-      const userIndex = allUsers.findIndex((u) => u.id === userId);
-      const rank = userIndex + 1;
+        // Ранг пользователя: COUNT(*) WHERE energies > user.energies
+        db
+          .select({ rank: sql<number>`COUNT(*)` })
+          .from(users)
+          .where(
+            sql`${users.energies} > (SELECT energies FROM users WHERE id = ${userId})`
+          ),
+
+        // Общее число участников с энергиями
+        db
+          .select({ count: sql<number>`COUNT(*)` })
+          .from(users)
+          .where(isNotNull(users.energies)),
+
+        // Данные текущего пользователя
+        db
+          .select({
+            id: users.id,
+            telegramId: users.telegramId,
+            firstName: users.firstName,
+            energies: users.energies,
+          })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1),
+      ]);
+
+      const total = Number(totalResult[0]?.count ?? 0);
+      const rank = Number(rankResult[0]?.rank ?? 0) + 1;
+      const me = currentUserRows[0];
 
       const currentUser = {
-        userId: allUsers[userIndex]?.id || userId,
-        telegramId: allUsers[userIndex]?.telegramId || 0,
-        name: allUsers[userIndex]?.firstName || 'Неизвестно',
-        energies: allUsers[userIndex]?.energies || 0,
+        userId: me?.id || userId,
+        telegramId: me?.telegramId || 0,
+        name: me?.firstName || 'Неизвестно',
+        energies: me?.energies || 0,
         rank,
         total,
       };
 
-      const topUsers = allUsers.slice(0, 100).map((u, index) => ({
-        id: u.id, // Frontend expects 'id' not 'userId'
-        userId: u.id,
-        telegramId: u.telegramId,
-        firstName: u.firstName,
-        lastName: u.lastName,
-        username: u.username,
-        name: u.firstName || 'Участник',
-        energies: u.energies || 0,
-        experience: u.energies || 0, // Frontend expects 'experience' field
-        rank: index + 1,
-        total,
-      }));
-
-      return { user: currentUser, topUsers };
+      return {
+        user: currentUser,
+        topUsers: topUsers.map((u, index) => ({
+          id: u.id,
+          userId: u.id,
+          telegramId: u.telegramId,
+          firstName: u.firstName,
+          lastName: u.lastName,
+          username: u.username,
+          name: u.firstName || 'Участник',
+          energies: u.energies || 0,
+          experience: u.energies || 0,
+          rank: index + 1,
+          total,
+        })),
+      };
     } catch (error) {
       logger.error('[Ratings] Error getting personal rating:', error);
       throw error;

@@ -1,4 +1,5 @@
 import { Elysia } from 'elysia';
+import { createHash } from 'crypto';
 import { redis } from '@/utils/redis';
 import { logger } from '@/utils/logger';
 import { recordCacheMetric } from '@/middlewares/metrics';
@@ -83,8 +84,7 @@ function generateCacheKey(
  * Генерирует ETag для response
  */
 function generateETag(data: any): string {
-  const hash = require('crypto')
-    .createHash('md5')
+  const hash = createHash('md5')
     .update(JSON.stringify(data))
     .digest('hex');
   return `"${hash}"`;

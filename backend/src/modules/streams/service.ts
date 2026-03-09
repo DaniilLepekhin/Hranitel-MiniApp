@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import { streamRecordings, streamAttendance, users } from '@/db/schema';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, desc, sql, asc } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { energiesService as energyPointsService } from '../energy-points/service';
 
@@ -16,37 +16,25 @@ export class StreamRecordingsService {
     }
   ) {
     try {
-      let query = db.select().from(streamRecordings);
+      const limit = options?.limit || 50;
+      const conditions: ReturnType<typeof eq>[] = [];
 
-      // Фильтр по категории
-      if (options?.category) {
-        const allRecordings = await query;
-        query = db.select().from(streamRecordings);
-        const filtered = allRecordings.filter(r => r.category === options.category);
-        return filtered.sort((a, b) => b.recordedAt.getTime() - a.recordedAt.getTime());
+      if (options?.category !== undefined) {
+        conditions.push(eq(streamRecordings.category, options.category));
       }
 
-      // Фильтр по опубликованным
       if (options?.isPublished !== undefined) {
-        const allRecordings = await query;
-        query = db.select().from(streamRecordings);
-        const filtered = allRecordings.filter(r => r.isPublished === options.isPublished);
-        return filtered
-          .sort((a, b) => {
-            // Сортируем сначала по sortOrder, потом по дате
-            if (a.sortOrder !== b.sortOrder) {
-              return a.sortOrder - b.sortOrder;
-            }
-            return b.recordedAt.getTime() - a.recordedAt.getTime();
-          })
-          .slice(0, options?.limit || 50);
+        conditions.push(eq(streamRecordings.isPublished, options.isPublished));
       }
 
-      const recordings = await query
-        .orderBy(desc(streamRecordings.sortOrder), desc(streamRecordings.recordedAt))
-        .limit(options?.limit || 50);
+      const query = db
+        .select()
+        .from(streamRecordings)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(asc(streamRecordings.sortOrder), desc(streamRecordings.recordedAt))
+        .limit(limit);
 
-      return recordings;
+      return await query;
     } catch (error) {
       logger.error('[Recordings] Error getting all recordings:', error);
       throw new Error('Failed to get recordings');
@@ -150,23 +138,24 @@ export class StreamRecordingsService {
         return { success: true, alreadyWatched: true };
       }
 
-      // Создаем запись о просмотре
-      await db.insert(streamAttendance).values({
-        streamId: recordingId,
-        userId,
-        watchedOnline: true,
-        energiesEarned: recording.energiesReward,
+      // Создаём запись о просмотре и атомарно увеличиваем счётчик в одном блоке
+      await db.transaction(async (tx) => {
+        await tx.insert(streamAttendance).values({
+          streamId: recordingId,
+          userId,
+          watchedOnline: true,
+          energiesEarned: recording.energiesReward,
+        });
+
+        await tx
+          .update(streamRecordings)
+          .set({
+            viewsCount: sql`${streamRecordings.viewsCount} + 1`,
+          })
+          .where(eq(streamRecordings.id, recordingId));
       });
 
-      // Увеличиваем счётчик просмотров
-      await db
-        .update(streamRecordings)
-        .set({
-          viewsCount: sql`${streamRecordings.viewsCount} + 1`,
-        })
-        .where(eq(streamRecordings.id, recordingId));
-
-      // Начисляем энергии
+      // Начисляем энергии (вне транзакции — отдельная атомарная операция)
       await energyPointsService.awardStreamRecording(userId, recordingId);
 
       logger.info(
