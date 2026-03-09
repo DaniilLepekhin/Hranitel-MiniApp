@@ -540,6 +540,8 @@ export interface User {
   isPro: boolean;
   subscriptionExpires?: string;
   autoRenewalEnabled?: boolean;
+  lavaContactId?: string | null;
+  cloudpaymentsSubscriptionId?: string | null;
   createdAt: string;
 }
 
