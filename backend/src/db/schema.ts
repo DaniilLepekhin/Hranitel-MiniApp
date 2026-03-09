@@ -66,6 +66,7 @@ export const users = pgTable('users', {
   isPro: boolean('is_pro').default(false).notNull(),
   subscriptionExpires: timestamp('subscription_expires'),
   lavaContactId: text('lava_contact_id'), // Lava contact_id for subscription management
+  cloudpaymentsSubscriptionId: text('cloudpayments_subscription_id'), // CloudPayments recurrent subscription ID
   autoRenewalEnabled: boolean('auto_renewal_enabled').default(true).notNull(), // Автопродление включено
 
   // 🆕 Onboarding & Gift subscription fields
@@ -590,6 +591,7 @@ export const paymentAnalytics = pgTable('payment_analytics', {
   metka: text('metka'), // Уникальная комбинация utm_campaign_utm_medium
 
   // Payment data (для payment_attempt и payment_success)
+  paymentProvider: varchar('payment_provider', { length: 50 }), // lava, cloudpayments
   paymentMethod: varchar('payment_method', { length: 10 }), // RUB, USD, EUR
   amount: numeric('amount', { precision: 10, scale: 2 }),
   currency: varchar('currency', { length: 3 }),

@@ -4,8 +4,11 @@ import { db, users } from '@/db';
 import { authMiddleware, getUserFromToken } from '@/middlewares/auth';
 import { logger } from '@/utils/logger';
 
-// N8N webhook for subscription cancellation
+// N8N webhook for Lava subscription cancellation
 const CANCEL_SUBSCRIPTION_WEBHOOK = 'https://n8n4.daniillepekhin.ru/webhook/deletelava_miniapp';
+
+// CloudPayments API for subscription cancellation
+const CP_API_BASE = 'https://api.cloudpayments.ru';
 
 export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
   .use(authMiddleware)
@@ -180,41 +183,72 @@ export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
       }
 
       try {
-        // Call N8N webhook to cancel subscription in Lava
-        const response = await fetch(CANCEL_SUBSCRIPTION_WEBHOOK, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: user.email.toLowerCase(),
-            contactid: user.lavaContactId || '',
-          }),
-        });
+        const cpSubscriptionId = (user as any).cloudpaymentsSubscriptionId as string | null;
+        const provider = cpSubscriptionId ? 'cloudpayments' : 'lava';
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          logger.error(
-            { userId: user.id, telegramId: user.telegramId, status: response.status, error: errorText },
-            'Failed to cancel subscription via webhook'
+        if (provider === 'cloudpayments') {
+          // --- CloudPayments: отменяем рекуррентную подписку через API ---
+          const { config } = await import('@/config');
+          const authHeader = 'Basic ' + Buffer.from(
+            `${config.CLOUDPAYMENTS_PUBLIC_ID}:${config.CLOUDPAYMENTS_API_SECRET}`
+          ).toString('base64');
+
+          const cpResponse = await fetch(`${CP_API_BASE}/subscriptions/cancel`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+            body: JSON.stringify({ Id: cpSubscriptionId }),
+          });
+
+          if (!cpResponse.ok) {
+            const errorText = await cpResponse.text();
+            logger.error(
+              { userId: user.id, telegramId: user.telegramId, cpSubscriptionId, error: errorText },
+              'Failed to cancel CloudPayments subscription'
+            );
+            set.status = 500;
+            return { success: false, error: 'Ошибка при отмене подписки. Попробуйте позже.' };
+          }
+
+          logger.info(
+            { userId: user.id, telegramId: user.telegramId, cpSubscriptionId },
+            'CloudPayments subscription cancellation requested'
           );
-          set.status = 500;
-          return { success: false, error: 'Ошибка при отмене подписки. Попробуйте позже.' };
+        } else {
+          // --- Lava: отменяем через n8n webhook ---
+          const response = await fetch(CANCEL_SUBSCRIPTION_WEBHOOK, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: user.email.toLowerCase(),
+              contactid: user.lavaContactId || '',
+            }),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            logger.error(
+              { userId: user.id, telegramId: user.telegramId, error: errorText },
+              'Failed to cancel Lava subscription via webhook'
+            );
+            set.status = 500;
+            return { success: false, error: 'Ошибка при отмене подписки. Попробуйте позже.' };
+          }
+
+          logger.info(
+            { userId: user.id, telegramId: user.telegramId, email: user.email },
+            'Lava subscription cancellation requested'
+          );
         }
 
-        // Update autoRenewalEnabled in database
+        // Обновляем флаг в БД
         await db
           .update(users)
           .set({ autoRenewalEnabled: false, updatedAt: new Date() })
           .where(eq(users.id, user.id));
 
-        logger.info(
-          { userId: user.id, telegramId: user.telegramId, email: user.email },
-          'Subscription cancellation requested'
-        );
-
         return {
           success: true,
+          provider,
         };
       } catch (error) {
         logger.error(

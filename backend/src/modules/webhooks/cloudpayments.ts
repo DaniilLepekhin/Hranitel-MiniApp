@@ -4,7 +4,7 @@
  * Обрабатывает уведомления от CloudPayments о платежах.
  * Все ответы: { code: 0 } = OK, { code: 10 } = ошибка (CP повторит запрос), { code: 13 } = неверная подпись
  *
- * Webhook URLs (прописать в личном кабинете CloudPayments):
+ * Webhook URLs (прописать в личном кабинете CloudPayments → Уведомления):
  *   Pay:       https://app.successkod.com/api/webhooks/cloudpayments/pay
  *   Fail:      https://app.successkod.com/api/webhooks/cloudpayments/fail
  *   Refund:    https://app.successkod.com/api/webhooks/cloudpayments/refund
@@ -20,11 +20,14 @@ import Elysia from 'elysia';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { db } from '@/db';
 import { users, payments, paymentAnalytics } from '@/db/schema';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { config } from '@/config';
 import { subscriptionGuardService } from '@/services/subscription-guard.service';
 import { startOnboardingAfterPayment } from '@/modules/bot/post-payment-funnels';
+import { energiesService } from '@/modules/energy-points/service';
+import { processReferralBonus } from '@/modules/bot/referral-funnel';
+import { decadesService } from '@/services/decades.service';
 
 // ============================================================================
 // HELPERS
@@ -49,9 +52,7 @@ function verifyHmac(rawBody: string, signature: string | null): boolean {
   }
 }
 
-/**
- * Парсит JsonData / Data из тела вебхука — строка с JSON от CloudPayments.
- */
+/** Парсит JsonData / Data из тела вебхука — строка с JSON от CloudPayments. */
 function parseJsonData(raw: string | undefined): Record<string, any> {
   if (!raw) return {};
   try {
@@ -61,7 +62,7 @@ function parseJsonData(raw: string | undefined): Record<string, any> {
   }
 }
 
-/** Расширяет дату подписки на 30 дней от текущей даты или от текущего срока (берёт максимум) */
+/** Расширяет дату подписки на 30 дней — от текущего срока или от сегодня (берёт максимум) */
 function calcNewExpiry(current: Date | null): Date {
   const base = current && current > new Date() ? current : new Date();
   const next = new Date(base);
@@ -150,19 +151,21 @@ export const cloudpaymentsWebhook = new Elysia({ prefix: '/webhooks/cloudpayment
       const isFirstPurchase = !user.isPro && !user.firstPurchaseDate;
       const newExpiry = calcNewExpiry(user.subscriptionExpires ? new Date(user.subscriptionExpires) : null);
 
-      // 6. Обновляем подписку
+      // 6. Обновляем подписку + сохраняем subscriptionId как типизированную колонку
       await db
         .update(users)
         .set({
           isPro: true,
           subscriptionExpires: newExpiry,
+          autoRenewalEnabled: true,
           updatedAt: new Date(),
+          ...(subscriptionId ? { cloudpaymentsSubscriptionId: subscriptionId } : {}),
           ...(isFirstPurchase ? { firstPurchaseDate: new Date() } : {}),
         })
         .where(eq(users.id, user.id));
 
       // 7. Записываем в payments
-      await db.insert(payments).values({
+      const [newPayment] = await db.insert(payments).values({
         userId: user.id,
         amount: String(amount),
         currency: b.Currency || 'RUB',
@@ -180,16 +183,19 @@ export const cloudpaymentsWebhook = new Elysia({ prefix: '/webhooks/cloudpayment
           utmMedium: jsonData.utm_medium || null,
           utmSource: jsonData.utm_source || null,
           period: jsonData.period || 'monthly',
+          isFirstPurchase,
         },
-      });
+      }).returning();
 
       // 8. Записываем в payment_analytics
       await db.insert(paymentAnalytics).values({
         telegramId,
         eventType: 'payment_success',
+        paymentProvider: 'cloudpayments',
         paymentMethod: 'RUB',
         amount: String(amount),
         currency: b.Currency || 'RUB',
+        paymentId: newPayment.id,
         name: jsonData.name || null,
         email: jsonData.email || null,
         phone: jsonData.phone || null,
@@ -199,7 +205,6 @@ export const cloudpaymentsWebhook = new Elysia({ prefix: '/webhooks/cloudpayment
         utmContent: jsonData.utm_content || null,
         metka: jsonData.metka || null,
         metadata: {
-          provider: 'cloudpayments',
           transactionId,
           subscriptionId,
           period: jsonData.period || 'monthly',
@@ -207,18 +212,47 @@ export const cloudpaymentsWebhook = new Elysia({ prefix: '/webhooks/cloudpayment
       });
 
       logger.info(
-        { telegramId, newExpiry, transactionId, isFirstPurchase },
+        { telegramId, newExpiry, transactionId, isFirstPurchase, subscriptionId },
         '[CloudPayments /pay] Subscription extended successfully'
       );
 
-      // 9. Разбаниваем из защищённых чатов
+      // 9. +500 энергий (как у Lava)
+      try {
+        await energiesService.award(user.id, 500, 'Продление подписки', {
+          source: 'cloudpayments_payment',
+          transactionId,
+        });
+      } catch (e) {
+        logger.warn({ e, telegramId }, '[CloudPayments /pay] Failed to award energies');
+      }
+
+      // 10. Реферальный бонус
+      try {
+        const userMeta = (user.metadata as Record<string, any>) || {};
+        const refCode = userMeta.ref_code || jsonData.ref_code || null;
+        if (refCode) {
+          await processReferralBonus(telegramId, user.id, newPayment.id, refCode);
+          logger.info({ telegramId, refCode }, '[CloudPayments /pay] Referral bonus processed');
+        }
+      } catch (e) {
+        logger.warn({ e, telegramId }, '[CloudPayments /pay] Failed to process referral bonus');
+      }
+
+      // 11. Разбаниваем из защищённых чатов
       try {
         await subscriptionGuardService.unbanUserFromAllChats(telegramId, user.id);
       } catch (e) {
         logger.warn({ e }, '[CloudPayments /pay] Failed to unban user');
       }
 
-      // 10. Онбординг для новых пользователей
+      // 12. Восстанавливаем в десятке
+      try {
+        await decadesService.restoreUserToDecade(user.id, telegramId);
+      } catch (e) {
+        logger.warn({ e, telegramId }, '[CloudPayments /pay] Failed to restore decade');
+      }
+
+      // 13. Онбординг для новых пользователей
       if (isFirstPurchase) {
         try {
           await startOnboardingAfterPayment(user.id, telegramId);
@@ -251,6 +285,23 @@ export const cloudpaymentsWebhook = new Elysia({ prefix: '/webhooks/cloudpayment
       { transactionId: b.TransactionId, accountId: b.AccountId, reason: b.Reason },
       '[CloudPayments /fail] Payment failed'
     );
+
+    // Логируем в payment_analytics
+    const telegramId = b.AccountId ? Number(b.AccountId) : null;
+    if (telegramId && !isNaN(telegramId)) {
+      try {
+        await db.insert(paymentAnalytics).values({
+          telegramId,
+          eventType: 'payment_failed',
+          paymentProvider: 'cloudpayments',
+          paymentMethod: 'RUB',
+          metadata: { transactionId: b.TransactionId, reason: b.Reason },
+        });
+      } catch (e) {
+        logger.warn({ e }, '[CloudPayments /fail] Failed to log to analytics');
+      }
+    }
+
     return { code: 0 };
   })
 
@@ -273,12 +324,9 @@ export const cloudpaymentsWebhook = new Elysia({ prefix: '/webhooks/cloudpayment
 
     logger.info({ transactionId, telegramId }, '[CloudPayments /refund] Refund received');
 
-    if (!telegramId || isNaN(telegramId)) {
-      return { code: 0 };
-    }
+    if (!telegramId || isNaN(telegramId)) return { code: 0 };
 
     try {
-      // Отзываем подписку при возврате
       const [user] = await db
         .select({ id: users.id, isPro: users.isPro })
         .from(users)
@@ -288,10 +336,15 @@ export const cloudpaymentsWebhook = new Elysia({ prefix: '/webhooks/cloudpayment
       if (user) {
         await db
           .update(users)
-          .set({ isPro: false, subscriptionExpires: null, updatedAt: new Date() })
+          .set({
+            isPro: false,
+            subscriptionExpires: null,
+            cloudpaymentsSubscriptionId: null,
+            autoRenewalEnabled: false,
+            updatedAt: new Date(),
+          })
           .where(eq(users.id, user.id));
 
-        // Обновляем статус платежа
         await db
           .update(payments)
           .set({ status: 'refunded' })
@@ -301,6 +354,13 @@ export const cloudpaymentsWebhook = new Elysia({ prefix: '/webhooks/cloudpayment
               eq(payments.externalPaymentId, String(transactionId))
             )
           );
+
+        await db.insert(paymentAnalytics).values({
+          telegramId,
+          eventType: 'payment_refunded',
+          paymentProvider: 'cloudpayments',
+          metadata: { transactionId },
+        });
 
         logger.info({ telegramId, transactionId }, '[CloudPayments /refund] Subscription revoked');
       }
@@ -327,8 +387,16 @@ export const cloudpaymentsWebhook = new Elysia({ prefix: '/webhooks/cloudpayment
   // ============================================================================
   // POST /cancel — Платёж отменён
   // ============================================================================
-  .post('/cancel', async ({ body }) => {
+  .post('/cancel', async ({ body, headers }) => {
     const b = body as Record<string, string>;
+    const rawBody: string = b.__rawBody || '';
+    const hmacHeader = headers['content-hmac'] ?? null;
+
+    if (!verifyHmac(rawBody, hmacHeader)) {
+      logger.warn('[CloudPayments /cancel] Invalid HMAC signature');
+      return { code: 13 };
+    }
+
     logger.info(
       { transactionId: b.TransactionId, accountId: b.AccountId },
       '[CloudPayments /cancel] Payment cancelled'
@@ -339,8 +407,16 @@ export const cloudpaymentsWebhook = new Elysia({ prefix: '/webhooks/cloudpayment
   // ============================================================================
   // POST /recurrent — Изменение статуса рекуррентной подписки
   // ============================================================================
-  .post('/recurrent', async ({ body }) => {
+  .post('/recurrent', async ({ body, headers }) => {
     const b = body as Record<string, string>;
+    const rawBody: string = b.__rawBody || '';
+    const hmacHeader = headers['content-hmac'] ?? null;
+
+    if (!verifyHmac(rawBody, hmacHeader)) {
+      logger.warn('[CloudPayments /recurrent] Invalid HMAC signature');
+      return { code: 13 };
+    }
+
     const cpSubscriptionId = b.Id;
     const accountId = b.AccountId;
     const status = b.Status;
@@ -359,41 +435,36 @@ export const cloudpaymentsWebhook = new Elysia({ prefix: '/webhooks/cloudpayment
 
       if (!user) return { code: 0 };
 
-      const currentMeta = (user.metadata as Record<string, any>) || {};
-
       if (status === 'Active') {
-        // Активная рекуррентная подписка — сохраняем ID
+        // Сохраняем subscriptionId в типизированную колонку
         await db
           .update(users)
-          .set({
-            metadata: { ...currentMeta, cpSubscriptionId, cpRecurrentStatus: 'active' },
-            updatedAt: new Date(),
-          })
+          .set({ cloudpaymentsSubscriptionId: cpSubscriptionId, updatedAt: new Date() })
           .where(eq(users.id, user.id));
 
       } else if (status === 'PastDue') {
-        // Просрочен платёж — предупреждаем
-        await db
-          .update(users)
-          .set({
-            metadata: { ...currentMeta, cpRecurrentStatus: 'past_due' },
-            updatedAt: new Date(),
-          })
-          .where(eq(users.id, user.id));
         logger.warn({ telegramId, cpSubscriptionId }, '[CloudPayments /recurrent] Subscription past due');
 
       } else if (['Cancelled', 'Rejected', 'Expired'].includes(status)) {
         // Подписка завершена — снимаем флаг
-        const { cpSubscriptionId: _removed, ...restMeta } = currentMeta;
         await db
           .update(users)
           .set({
             isPro: false,
             subscriptionExpires: null,
-            metadata: { ...restMeta, cpRecurrentStatus: status.toLowerCase() },
+            cloudpaymentsSubscriptionId: null,
+            autoRenewalEnabled: false,
             updatedAt: new Date(),
           })
           .where(eq(users.id, user.id));
+
+        await db.insert(paymentAnalytics).values({
+          telegramId,
+          eventType: 'subscription_cancelled',
+          paymentProvider: 'cloudpayments',
+          metadata: { cpSubscriptionId, status, reason: 'recurrent_status_change' },
+        });
+
         logger.info({ telegramId, cpSubscriptionId, status }, '[CloudPayments /recurrent] Subscription ended');
       }
     } catch (error) {
