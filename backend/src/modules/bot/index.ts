@@ -181,7 +181,7 @@ function parseUtmFromPayload(payload: string | undefined): UtmData {
 
   // Зарезервированные payload'ы - НЕ парсим как UTM
   const reservedPayloads = [
-    'club', 'women', 'probudis', 'march', 'test_start_full', 'test_club_full', 'test_women_full', 'test_probudis_full', 'test_start', 'test_club', 'test_women', 'test_probudis', 'test', 'invite_friend'
+    'club', 'women', 'probudis', 'march', 'test_start_full', 'test_club_full', 'test_women_full', 'test_probudis_full', 'test_start', 'test_club', 'test_women', 'test_probudis', 'test', 'invite_friend', 'refferalka'
   ];
 
   // Проверяем на зарезервированные префиксы
@@ -2479,9 +2479,9 @@ bot.command('start', async (ctx) => {
       // Continue with normal /start flow below (don't return)
     }
 
-    // 🤝 Invite friend deep link: /start invite_friend
-    if (startPayload === 'invite_friend') {
-      logger.info({ userId }, 'User opened invite_friend deep link');
+    // 🤝 Invite friend deep link: /start invite_friend or /start refferalka
+    if (startPayload === 'invite_friend' || startPayload === 'refferalka') {
+      logger.info({ userId, startPayload }, 'User opened referral deep link');
       await referralFunnel.sendReferralProgramIntro(chatId, userId);
       return;
     }
