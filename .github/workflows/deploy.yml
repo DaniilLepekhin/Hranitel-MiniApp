@@ -199,6 +199,10 @@ jobs:
             echo "📊 Applying migration 0015_add_user_sessions.sql..."
             psql "$DATABASE_URL" -f drizzle/migrations/0015_add_user_sessions.sql && echo "✅ Migration 0015 completed"
 
+            # Apply migration 0018 (add year to weekly_reports, fix uniqueIndex - idempotent via IF NOT EXISTS)
+            echo "📊 Applying migration 0018_add_year_to_weekly_reports.sql..."
+            psql "$DATABASE_URL" -f drizzle/migrations/0018_add_year_to_weekly_reports.sql && echo "✅ Migration 0018 completed"
+
             echo "✅ All migrations applied successfully!"
 
             # 🔍 Pre-deployment health check

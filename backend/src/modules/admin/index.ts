@@ -10,6 +10,7 @@
  */
 
 import { Elysia, t } from 'elysia';
+import { timingSafeEqual } from 'crypto';
 import { db, rawDb } from '@/db';
 import { users, paymentAnalytics, clubFunnelProgress, videos, contentItems, decades, decadeMembers, leaderTestResults } from '@/db/schema';
 import { eq, desc, and, isNull, sql } from 'drizzle-orm';
@@ -22,12 +23,23 @@ import { energiesService } from '@/modules/energy-points/service';
 // n8n webhook для генерации ссылки на оплату Lava
 const N8N_LAVA_WEBHOOK_URL = 'https://n8n4.daniillepekhin.ru/webhook/lava_club2';
 
-// Хелпер для проверки авторизации
-const checkAdminAuth = (headers: Record<string, string | undefined>) => {
+// Хелпер для проверки авторизации (timing-safe сравнение)
+const checkAdminAuth = (headers: Record<string, string | undefined>): boolean => {
   const adminSecret = headers['x-admin-secret'];
-  if (adminSecret === process.env.ADMIN_SECRET) return true;
+  if (!adminSecret) return false;
+
+  const expected = process.env.ADMIN_SECRET;
+  if (expected) {
+    try {
+      if (timingSafeEqual(Buffer.from(adminSecret), Buffer.from(expected))) return true;
+    } catch {
+      // Buffer.lengths differ — значит не равны
+    }
+  }
+
   // local-dev-secret разрешён только вне production
   if (process.env.NODE_ENV !== 'production' && adminSecret === 'local-dev-secret') return true;
+
   return false;
 };
 

@@ -59,6 +59,8 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
   } | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     const checkLeaderTestCompletion = async () => {
       const initData = typeof window !== 'undefined'
         ? window.Telegram?.WebApp?.initData
@@ -71,6 +73,7 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ initData }),
+          signal: controller.signal,
         });
 
         if (response.ok) {
@@ -86,11 +89,15 @@ export function HomeTab({ onProfileClick }: HomeTabProps) {
           }
         }
       } catch (error) {
-        console.error('Failed to check leader test completion:', error);
+        if ((error as Error).name !== 'AbortError') {
+          // fetch aborted on unmount — игнорируем, иначе логируем
+          console.warn('Failed to check leader test completion:', error);
+        }
       }
     };
 
     checkLeaderTestCompletion();
+    return () => controller.abort();
   }, [user?.telegramId]);
 
   // Тест недоступен если уже пройден ИЛИ квота города исчерпана

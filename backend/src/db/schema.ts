@@ -415,6 +415,7 @@ export const weeklyReports = pgTable('weekly_reports', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   weekNumber: integer('week_number').notNull(), // Номер недели в году
+  year: integer('year').notNull(), // Год (чтобы не было коллизий week 1 разных лет)
   content: text('content').notNull(),
   submittedAt: timestamp('submitted_at').defaultNow().notNull(),
   deadline: timestamp('deadline').notNull(), // Воскресенье 23:59 МСК
@@ -422,7 +423,7 @@ export const weeklyReports = pgTable('weekly_reports', {
 }, (table) => [
   index('weekly_reports_user_id_idx').on(table.userId),
   index('weekly_reports_week_number_idx').on(table.weekNumber),
-  uniqueIndex('weekly_reports_user_week_idx').on(table.userId, table.weekNumber),
+  uniqueIndex('weekly_reports_user_week_year_idx').on(table.userId, table.weekNumber, table.year),
 ]);
 
 // User Keys (прогресс по 12 ключам)

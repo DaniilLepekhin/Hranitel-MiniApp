@@ -1,7 +1,22 @@
 import { Elysia, t } from 'elysia';
+import { timingSafeEqual } from 'crypto';
 import { streamsService } from './service';
 import { logger } from '@/utils/logger';
-import { authMiddleware } from '@/middlewares/auth';
+import { getUserFromToken } from '@/middlewares/auth';
+
+// Admin auth check (timing-safe) — shared with admin/index.ts pattern
+const checkAdminAuth = (headers: Record<string, string | undefined>): boolean => {
+  const adminSecret = headers['x-admin-secret'];
+  if (!adminSecret) return false;
+  const expected = process.env.ADMIN_SECRET;
+  if (expected) {
+    try {
+      if (timingSafeEqual(Buffer.from(adminSecret), Buffer.from(expected))) return true;
+    } catch { /* length mismatch — not equal */ }
+  }
+  if (process.env.NODE_ENV !== 'production' && adminSecret === 'local-dev-secret') return true;
+  return false;
+};
 
 export const streamsRoutes = new Elysia({ prefix: '/api/streams' })
   /**
@@ -127,16 +142,17 @@ export const streamsRoutes = new Elysia({ prefix: '/api/streams' })
    * POST /api/streams/:id/attend
    * Отметить просмотр записи (начисляет энергии) — требует JWT авторизации
    */
-  .use(authMiddleware)
   .post(
     '/:id/attend',
-    async ({ params, user }) => {
-      try {
-        const result = await streamsService.markWatched(
-          user!.id,
-          params.id
-        );
+    async ({ params, headers, set }) => {
+      const user = await getUserFromToken(headers.authorization);
+      if (!user) {
+        set.status = 401;
+        return { success: false, error: 'Authentication required' };
+      }
 
+      try {
+        const result = await streamsService.markWatched(user.id, params.id);
         return result;
       } catch (error) {
         logger.error('[Streams API] Error marking watched:', error);
@@ -293,7 +309,12 @@ export const streamsRoutes = new Elysia({ prefix: '/api/streams' })
    */
   .post(
     '/',
-    async ({ body }) => {
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers as any)) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
       try {
         const { title, scheduledAt, host, description, streamUrl, epReward } = body;
 
@@ -336,7 +357,12 @@ export const streamsRoutes = new Elysia({ prefix: '/api/streams' })
    */
   .patch(
     '/:id/status',
-    async ({ params, body }) => {
+    async ({ params, body, headers, set }) => {
+      if (!checkAdminAuth(headers as any)) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
       try {
         const { status } = body;
 

@@ -15,6 +15,13 @@ export class ReportsService {
   }
 
   /**
+   * Получить текущий год
+   */
+  private getCurrentYear(date: Date = new Date()): number {
+    return date.getFullYear();
+  }
+
+  /**
    * Получить дедлайн текущей недели (воскресенье 23:59 МСК = воскресенье 20:59 UTC).
    * Вычисление ведётся в UTC с явным смещением +3 часа для МСК.
    */
@@ -59,16 +66,18 @@ export class ReportsService {
   async submitReport(userId: string, content: string) {
     try {
       const weekNumber = this.getWeekNumber();
+      const year = this.getCurrentYear();
       const deadline = this.getWeekDeadline();
 
-      // Проверяем, не сдавал ли уже отчет на этой неделе
+      // Проверяем, не сдавал ли уже отчет на этой неделе этого года
       const existingReport = await db
         .select()
         .from(weeklyReports)
         .where(
           and(
             eq(weeklyReports.userId, userId),
-            eq(weeklyReports.weekNumber, weekNumber)
+            eq(weeklyReports.weekNumber, weekNumber),
+            eq(weeklyReports.year, year)
           )
         )
         .limit(1);
@@ -89,6 +98,7 @@ export class ReportsService {
           .values({
             userId,
             weekNumber,
+            year,
             content,
             deadline,
             energiesEarned: 100, // По ТЗ: +100 Энергии за отчет
@@ -101,7 +111,7 @@ export class ReportsService {
         return report;
       });
 
-      logger.info(`[Reports] User ${userId} submitted report for week ${weekNumber}`);
+      logger.info(`[Reports] User ${userId} submitted report for week ${weekNumber}/${year}`);
 
       return {
         success: true,
@@ -161,6 +171,7 @@ export class ReportsService {
   async hasSubmittedThisWeek(userId: string): Promise<boolean> {
     try {
       const weekNumber = this.getWeekNumber();
+      const year = this.getCurrentYear();
 
       const report = await db
         .select()
@@ -168,7 +179,8 @@ export class ReportsService {
         .where(
           and(
             eq(weeklyReports.userId, userId),
-            eq(weeklyReports.weekNumber, weekNumber)
+            eq(weeklyReports.weekNumber, weekNumber),
+            eq(weeklyReports.year, year)
           )
         )
         .limit(1);
@@ -186,6 +198,7 @@ export class ReportsService {
   async getCurrentWeekReport(userId: string) {
     try {
       const weekNumber = this.getWeekNumber();
+      const year = this.getCurrentYear();
 
       const report = await db
         .select()
@@ -193,7 +206,8 @@ export class ReportsService {
         .where(
           and(
             eq(weeklyReports.userId, userId),
-            eq(weeklyReports.weekNumber, weekNumber)
+            eq(weeklyReports.weekNumber, weekNumber),
+            eq(weeklyReports.year, year)
           )
         )
         .limit(1);

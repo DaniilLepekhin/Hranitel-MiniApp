@@ -250,27 +250,21 @@ export class EnergyPointsService {
         userAmounts.set(tx.userId, (userAmounts.get(tx.userId) || 0) + tx.amount);
       }
 
-      // 3. Помечаем транзакции как expired и уменьшаем балансы
+      // 3. Помечаем транзакции как expired и уменьшаем балансы атомарно
       await db.transaction(async (dbTx) => {
-        // Пометить все просроченные
+        // Пометить все просроченные одним UPDATE
         const expiredIds = expired.map((tx) => tx.id);
         await dbTx
           .update(energyTransactions)
           .set({ isExpired: true })
           .where(inArray(energyTransactions.id, expiredIds));
 
-        // Уменьшить балансы пользователей (с блокировкой строки)
+        // Уменьшить балансы пользователей одним SQL-выражением на пользователя
+        // GREATEST(..., 0) предотвращает отрицательный баланс без SELECT FOR UPDATE
         for (const [userId, expiredAmount] of userAmounts) {
-          const result = await dbTx.execute(
-            sql`SELECT id, energies FROM users WHERE id = ${userId} FOR UPDATE`
+          await dbTx.execute(
+            sql`UPDATE users SET energies = GREATEST(energies - ${expiredAmount}, 0) WHERE id = ${userId}`
           );
-          const row = (result.rows?.[0] ?? result[0]) as any;
-
-          const newBalance = Math.max(0, (row?.energies || 0) - expiredAmount);
-          await dbTx
-            .update(users)
-            .set({ energies: newBalance })
-            .where(eq(users.id, userId));
         }
       });
 
