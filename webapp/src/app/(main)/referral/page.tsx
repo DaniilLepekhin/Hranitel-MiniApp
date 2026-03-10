@@ -150,7 +150,7 @@ export default function ReferralPage() {
             </Card>
 
             {/* CTA */}
-            <Card className="bg-gradient-to-br from-[#d93547] to-[#9c1723] p-4">
+            <div className="rounded-xl bg-gradient-to-br from-[#d93547] to-[#9c1723] p-4">
               <p className="text-white text-sm font-semibold mb-1">Хочешь участвовать?</p>
               <p className="text-white/80 text-xs mb-3">
                 Открой бота и нажми «пригласить друга» — регистрация займёт 2 минуты.
@@ -159,7 +159,7 @@ export default function ReferralPage() {
                 <ChevronRight className="w-4 h-4" />
                 <span>Меню бота → «пригласить друга»</span>
               </div>
-            </Card>
+            </div>
           </>
 
         ) : (
