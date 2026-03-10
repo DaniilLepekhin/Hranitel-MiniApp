@@ -2479,11 +2479,15 @@ bot.command('start', async (ctx) => {
       // Continue with normal /start flow below (don't return)
     }
 
-    // 🤝 Invite friend deep link: /start invite_friend or /start refferalka
+    // 🤝 Invite friend deep link: /start invite_friend or /start refferalka or /start invitefriend
     if (startPayload === 'invite_friend' || startPayload === 'refferalka' || startPayload === 'invitefriend') {
       logger.info({ userId, startPayload }, 'User opened referral deep link');
-      await referralFunnel.sendReferralProgramIntro(chatId, userId);
-      return;
+      const referralUser = await funnels.getUserByTgId(userId);
+      if (referralUser?.isPro) {
+        await referralFunnel.sendReferralProgramIntro(chatId, userId);
+        return;
+      }
+      // Нет подписки — продолжаем обычную воронку /start (не делаем return)
     }
 
     // Legacy: Check for old gift activation link (start=gift_{token})
