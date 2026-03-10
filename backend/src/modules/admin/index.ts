@@ -12,6 +12,8 @@
 import { Elysia, t } from 'elysia';
 import { timingSafeEqual } from 'crypto';
 import { db, rawDb } from '@/db';
+import { lavaTopService } from '@/services/lavatop.service';
+import { config } from '@/config';
 import { users, paymentAnalytics, clubFunnelProgress, videos, contentItems, decades, decadeMembers, leaderTestResults } from '@/db/schema';
 import { eq, desc, and, isNull, sql } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
@@ -158,6 +160,119 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       detail: {
         summary: 'Генерация ссылки на оплату',
         description: 'Создает payment_attempt в базе и возвращает ссылку на виджет Lava с предзаполненными данными. После оплаты подписка активируется автоматически через webhook.',
+      },
+    }
+  )
+
+  /**
+   * 💳 Генерация ссылки на оплату через LavaTop (новый провайдер, параллельно n8n)
+   * Создаёт invoice через LavaTop API напрямую (без n8n).
+   * Текущая схема через n8n остаётся рабочей — этот endpoint только для LavaTop.
+   */
+  .post(
+    '/generate-lavatop-payment-link',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      if (!config.LAVATOP_API_KEY || !config.LAVATOP_OFFER_ID) {
+        set.status = 503;
+        return {
+          success: false,
+          error: 'LavaTop не настроен. Добавьте LAVATOP_API_KEY и LAVATOP_OFFER_ID в переменные окружения.',
+        };
+      }
+
+      const {
+        telegram_id: rawTelegramId,
+        email,
+        name,
+        phone,
+        currency = 'RUB',
+        amount = '2000',
+        periodicity = 'ONE_TIME',
+        utm_source = 'admin',
+        utm_campaign = 'manual',
+      } = body;
+
+      const telegram_id = typeof rawTelegramId === 'string' ? parseInt(rawTelegramId, 10) : rawTelegramId;
+      const normalizedEmail = email.toLowerCase().trim();
+
+      // Сохраняем payment_attempt (telegram_id нужен для поиска пользователя при webhook)
+      await db.insert(paymentAnalytics).values({
+        telegramId: telegram_id,
+        eventType: 'payment_attempt',
+        paymentProvider: 'lavatop',
+        paymentMethod: currency,
+        amount: amount,
+        currency: currency,
+        name: name || null,
+        email: normalizedEmail,
+        phone: phone || null,
+        utmSource: utm_source,
+        utmCampaign: utm_campaign,
+        metka: `${utm_campaign}_${utm_source}`,
+        metadata: {
+          source: 'admin_generated_lavatop',
+          generated_at: new Date().toISOString(),
+        },
+      });
+
+      // Вызываем LavaTop API напрямую
+      const invoice = await lavaTopService.createInvoice({
+        email: normalizedEmail,
+        offerId: config.LAVATOP_OFFER_ID,
+        currency: currency as 'RUB' | 'USD' | 'EUR',
+        periodicity: periodicity as 'ONE_TIME' | 'MONTHLY' | 'PERIOD_90_DAYS' | 'PERIOD_180_DAYS',
+        buyerLanguage: 'ru',
+        clientUtm: {
+          utm_source: utm_source || null,
+          utm_campaign: utm_campaign || null,
+          utm_medium: null,
+          utm_content: null,
+          utm_term: null,
+        },
+      });
+
+      logger.info(
+        { telegram_id, email: normalizedEmail, invoiceId: invoice.id, paymentUrl: invoice.paymentUrl },
+        'Admin generated LavaTop payment link'
+      );
+
+      return {
+        success: true,
+        payment_url: invoice.paymentUrl,
+        invoice_id: invoice.id,
+        message: `Ссылка LavaTop создана для ${normalizedEmail}. После оплаты подписка активируется автоматически.`,
+        data: {
+          telegram_id,
+          email: normalizedEmail,
+          name,
+          phone,
+          amount,
+          currency,
+          periodicity,
+          invoice_id: invoice.id,
+        },
+      };
+    },
+    {
+      body: t.Object({
+        telegram_id: t.Union([t.Number(), t.String()], { description: 'Telegram ID пользователя' }),
+        email: t.String({ description: 'Email пользователя' }),
+        name: t.Optional(t.String({ description: 'Имя пользователя' })),
+        phone: t.Optional(t.String({ description: 'Телефон пользователя' })),
+        currency: t.Optional(t.String({ description: 'Валюта: RUB, USD, EUR. По умолчанию RUB' })),
+        amount: t.Optional(t.String({ description: 'Сумма (справочно, реальная цена берётся из оффера LavaTop)' })),
+        periodicity: t.Optional(t.String({ description: 'ONE_TIME | MONTHLY | PERIOD_90_DAYS | PERIOD_180_DAYS. По умолчанию ONE_TIME' })),
+        utm_source: t.Optional(t.String({ description: 'UTM source' })),
+        utm_campaign: t.Optional(t.String({ description: 'UTM campaign' })),
+      }),
+      detail: {
+        summary: 'Генерация ссылки на оплату через LavaTop',
+        description: 'Создаёт invoice через LavaTop API и возвращает ссылку на виджет оплаты. После оплаты подписка активируется через webhook /webhooks/lavatop/payment.',
       },
     }
   )

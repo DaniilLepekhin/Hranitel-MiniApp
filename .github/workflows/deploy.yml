@@ -100,6 +100,9 @@ jobs:
             export GETCOURSE_SECRET="${{ secrets.GETCOURSE_SECRET }}"
             export ADMIN_SECRET="${{ secrets.ADMIN_SECRET }}"
             export CLOUDPAYMENTS_API_SECRET="${{ secrets.CLOUDPAYMENTS_API_SECRET }}"
+            export LAVATOP_API_KEY="${{ secrets.LAVATOP_API_KEY }}"
+            export LAVATOP_WEBHOOK_SECRET="${{ secrets.LAVATOP_WEBHOOK_SECRET }}"
+            export LAVATOP_OFFER_ID="${{ secrets.LAVATOP_OFFER_ID }}"
 
             # Also create .env file for PM2 persistence (Bun auto-loads .env)
             echo "DATABASE_URL=$DATABASE_URL" > .env
@@ -119,6 +122,9 @@ jobs:
             echo "TELEGRAM_WEBHOOK_URL=https://app.successkod.com" >> .env
             echo "ADMIN_SECRET=$ADMIN_SECRET" >> .env
             echo "CLOUDPAYMENTS_API_SECRET=$CLOUDPAYMENTS_API_SECRET" >> .env
+            echo "LAVATOP_API_KEY=$LAVATOP_API_KEY" >> .env
+            echo "LAVATOP_WEBHOOK_SECRET=$LAVATOP_WEBHOOK_SECRET" >> .env
+            echo "LAVATOP_OFFER_ID=$LAVATOP_OFFER_ID" >> .env
 
             # Install Bun if not exists
             if ! command -v bun &> /dev/null; then
