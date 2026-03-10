@@ -167,22 +167,16 @@ export const authMiddleware = new Elysia({ name: 'auth' })
   .derive(async ({ headers, jwt, cookie }) => {
     // Try to get token from httpOnly cookie first
     let token: string | undefined = cookie?.auth_token?.value;
-    
-    // DEBUG: Log token sources
-    logger.info('[authMiddleware.derive] Cookie token:', token ? `${token.substring(0, 20)}...` : 'NULL');
-    logger.info('[authMiddleware.derive] Authorization header:', headers.authorization || 'NULL');
 
     // Fallback to Authorization header
     if (!token) {
       const authHeader = headers.authorization;
       if (authHeader?.startsWith('Bearer ')) {
         token = authHeader.substring(7);
-        logger.info('[authMiddleware.derive] Token from header:', token ? `${token.substring(0, 20)}...` : 'NULL');
       }
     }
 
     if (!token) {
-      logger.warn('[authMiddleware.derive] No token found in cookie or header');
       return { user: null as User | null, authError: 'No token provided' };
     }
 
@@ -190,11 +184,8 @@ export const authMiddleware = new Elysia({ name: 'auth' })
       const payload = await jwt.verify(token);
 
       if (!payload || typeof payload.userId !== 'string') {
-        logger.warn('[authMiddleware.derive] Invalid token payload:', payload);
         return { user: null as User | null, authError: 'Invalid token' };
       }
-      
-      logger.info('[authMiddleware.derive] Token verified, userId:', payload.userId);
 
       // Load user from database
       const [user] = await db
@@ -204,11 +195,9 @@ export const authMiddleware = new Elysia({ name: 'auth' })
         .limit(1);
 
       if (!user) {
-        logger.warn('[authMiddleware.derive] User not found in DB, userId:', payload.userId);
+        logger.warn({ userId: payload.userId }, 'authMiddleware: User not found in DB');
         return { user: null as User | null, authError: 'User not found' };
       }
-      
-      logger.info('[authMiddleware.derive] User loaded successfully:', { id: user.id, telegramId: user.telegramId });
 
       // Update lastActiveDate (max once per hour to reduce DB writes)
       const now = new Date();
@@ -230,9 +219,6 @@ export const authMiddleware = new Elysia({ name: 'auth' })
     }
   })
   .onBeforeHandle(({ user, authError, set }) => {
-    // DEBUG: Логируем для отладки
-    logger.info('[authMiddleware] onBeforeHandle called, user:', user ? { id: user.id } : 'NULL', 'authError:', authError);
-    
     if (!user) {
       set.status = 401;
       return {

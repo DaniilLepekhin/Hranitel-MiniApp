@@ -37,6 +37,9 @@ const envSchema = v.object({
   // CloudPayments (optional - second payment provider)
   CLOUDPAYMENTS_PUBLIC_ID: v.optional(v.string(), ''),
   CLOUDPAYMENTS_API_SECRET: v.optional(v.string(), ''),
+
+  // Admin API secret
+  ADMIN_SECRET: v.optional(v.string(), ''),
 });
 
 type EnvConfig = v.InferOutput<typeof envSchema>;

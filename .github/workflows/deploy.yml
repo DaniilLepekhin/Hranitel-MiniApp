@@ -98,6 +98,8 @@ jobs:
             export TELEGRAM_BOT_USERNAME="${{ secrets.TELEGRAM_BOT_USERNAME }}"
             export OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}"
             export GETCOURSE_SECRET="${{ secrets.GETCOURSE_SECRET }}"
+            export ADMIN_SECRET="${{ secrets.ADMIN_SECRET }}"
+            export CLOUDPAYMENTS_API_SECRET="${{ secrets.CLOUDPAYMENTS_API_SECRET }}"
 
             # Also create .env file for PM2 persistence (Bun auto-loads .env)
             echo "DATABASE_URL=$DATABASE_URL" > .env
@@ -115,6 +117,8 @@ jobs:
             echo "OLD_DATABASE_URL=${{ secrets.OLD_DATABASE_URL }}" >> .env
             echo "GETCOURSE_SECRET=$GETCOURSE_SECRET" >> .env
             echo "TELEGRAM_WEBHOOK_URL=https://app.successkod.com" >> .env
+            echo "ADMIN_SECRET=$ADMIN_SECRET" >> .env
+            echo "CLOUDPAYMENTS_API_SECRET=$CLOUDPAYMENTS_API_SECRET" >> .env
 
             # Install Bun if not exists
             if ! command -v bun &> /dev/null; then
@@ -209,22 +213,38 @@ jobs:
             # Check Redis connection
             redis-cli ping > /dev/null && echo "✅ Redis connection OK" || echo "⚠️ Redis not available (optional)"
 
+            # 💾 Pre-deploy DB backup (keeps last 7 backups)
+            echo "💾 Creating pre-deploy DB backup..."
+            BACKUP_DIR="/var/backups/hranitel"
+            mkdir -p "$BACKUP_DIR"
+            BACKUP_FILE="$BACKUP_DIR/pre-deploy-$(date +%Y%m%d-%H%M%S).sql.gz"
+            pg_dump "$DATABASE_URL" | gzip > "$BACKUP_FILE" && echo "✅ DB backup saved: $BACKUP_FILE" || echo "⚠️ DB backup failed (non-fatal)"
+            # Keep only last 7 backups
+            ls -t "$BACKUP_DIR"/pre-deploy-*.sql.gz 2>/dev/null | tail -n +8 | xargs rm -f 2>/dev/null || true
+
+            # Setup PM2 log rotation (idempotent)
+            pm2 install pm2-logrotate 2>/dev/null || true
+            pm2 set pm2-logrotate:max_size 50M 2>/dev/null || true
+            pm2 set pm2-logrotate:retain 7 2>/dev/null || true
+            pm2 set pm2-logrotate:compress true 2>/dev/null || true
+
             # Backup current backend process (for rollback)
             echo "💾 Creating backup of current backend..."
             pm2 save --force
 
-            # Restart backend service (port 3002)
-            echo "🔄 Restarting backend..."
-            pm2 delete hranitel-backend 2>/dev/null || true
+            # Restart backend service with zero-downtime reload (port 3002)
+            echo "🔄 Reloading backend (zero-downtime)..."
             cd /var/www/hranitel/backend
-
-            # Use ecosystem file for proper env loading
-            pm2 start ecosystem.config.cjs
+            if pm2 describe hranitel-backend > /dev/null 2>&1; then
+              pm2 reload hranitel-backend --update-env
+            else
+              pm2 start ecosystem.config.cjs
+            fi
             pm2 save
 
             # Wait for backend to start
             echo "⏳ Waiting for backend to start..."
-            sleep 5
+            sleep 10
 
             # 🏥 Post-deployment health check
             echo "🏥 Running post-deployment health checks..."

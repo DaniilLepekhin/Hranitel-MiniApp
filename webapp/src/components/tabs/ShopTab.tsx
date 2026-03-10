@@ -45,7 +45,7 @@ export function ShopTab() {
   // 🚀 МГНОВЕННЫЙ РЕНДЕР: Fetch shop items by category
   const { data: shopData, isLoading: itemsLoading } = useQuery({
     queryKey: ['shop', 'items-by-category'],
-    queryFn: () => fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/shop/items/by-category`).then(r => r.json()),
+    queryFn: () => apiShop.getAllItemsByCategory(),
     enabled: !!user && !!token,
     retry: false,
     staleTime: 60 * 1000,
@@ -57,9 +57,8 @@ export function ShopTab() {
     queryKey: ['energies-balance', user?.id],
     queryFn: () => energiesApi.getBalance(),
     enabled: !!user && !!token,
-    refetchInterval: 10000,
     retry: 2,
-    staleTime: 0,
+    staleTime: 30 * 1000,
     refetchOnMount: 'always',
   });
 

@@ -332,6 +332,8 @@ export const shopApi = {
     api.get<{ success: boolean; items: ShopItem[] }>(`/shop/items/by-category`, {
       params: { category }
     }),
+  getAllItemsByCategory: () =>
+    api.get<{ success: boolean; categories: { elite: ShopItem[]; secret: ShopItem[]; savings: ShopItem[] } }>('/shop/items/by-category'),
   getItem: (itemId: string) =>
     api.get<{ success: boolean; item: ShopItem }>(`/shop/items/${itemId}`),
   purchaseItem: (itemId: string) =>

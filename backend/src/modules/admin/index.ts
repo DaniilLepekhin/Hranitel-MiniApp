@@ -25,7 +25,10 @@ const N8N_LAVA_WEBHOOK_URL = 'https://n8n4.daniillepekhin.ru/webhook/lava_club2'
 // Хелпер для проверки авторизации
 const checkAdminAuth = (headers: Record<string, string | undefined>) => {
   const adminSecret = headers['x-admin-secret'];
-  return adminSecret === process.env.ADMIN_SECRET || adminSecret === 'local-dev-secret';
+  if (adminSecret === process.env.ADMIN_SECRET) return true;
+  // local-dev-secret разрешён только вне production
+  if (process.env.NODE_ENV !== 'production' && adminSecret === 'local-dev-secret') return true;
+  return false;
 };
 
 export const adminRoutes = new Elysia({ prefix: '/admin' })
@@ -35,7 +38,11 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
    */
   .post(
     '/generate-payment-link',
-    async ({ body }) => {
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
       const {
         telegram_id: rawTelegramId,
         email,
@@ -892,6 +899,14 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       if (!isSafe) {
         set.status = 400;
         return { success: false, error: 'Только SELECT, INSERT, UPDATE, DELETE, ALTER TABLE и CREATE TABLE/INDEX запросы разрешены' };
+      }
+
+      // Запрещаем множественные выражения (SQL injection через точку с запятой)
+      const withoutStrings = sqlQuery.replace(/'[^']*'/g, "''").replace(/"[^"]*"/g, '""');
+      const withoutTrailingSemicolon = withoutStrings.trimEnd().replace(/;$/, '');
+      if (withoutTrailingSemicolon.includes(';')) {
+        set.status = 400;
+        return { success: false, error: 'Множественные SQL выражения не разрешены' };
       }
 
       try {

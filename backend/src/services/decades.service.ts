@@ -1190,20 +1190,22 @@ class DecadesService {
 
     if (!decade) return;
 
-    // Деактивировать
-    await db
-      .update(decades)
-      .set({
-        isActive: false,
-        updatedAt: new Date(),
-      })
-      .where(eq(decades.id, decade.id));
+    await db.transaction(async (tx) => {
+      // Деактивировать
+      await tx
+        .update(decades)
+        .set({
+          isActive: false,
+          updatedAt: new Date(),
+        })
+        .where(eq(decades.id, decade.id));
 
-    // Отметить всех участников как вышедших
-    await db
-      .update(decadeMembers)
-      .set({ leftAt: new Date() })
-      .where(and(eq(decadeMembers.decadeId, decade.id), isNull(decadeMembers.leftAt)));
+      // Отметить всех участников как вышедших
+      await tx
+        .update(decadeMembers)
+        .set({ leftAt: new Date() })
+        .where(and(eq(decadeMembers.decadeId, decade.id), isNull(decadeMembers.leftAt)));
+    });
 
     logger.info(
       { decadeId: decade.id, city: decade.city, number: decade.number },

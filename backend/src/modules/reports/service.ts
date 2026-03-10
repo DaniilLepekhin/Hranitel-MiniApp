@@ -82,26 +82,30 @@ export class ReportsService {
         throw new Error('Deadline has passed');
       }
 
-      // Создаем отчет
-      const newReport = await db
-        .insert(weeklyReports)
-        .values({
-          userId,
-          weekNumber,
-          content,
-          deadline,
-          energiesEarned: 100, // По ТЗ: +100 Энергииза отчет
-        })
-        .returning();
+      // Атомарно создаём отчёт и начисляем энергии в одной транзакции
+      const newReport = await db.transaction(async (tx) => {
+        const [report] = await tx
+          .insert(weeklyReports)
+          .values({
+            userId,
+            weekNumber,
+            content,
+            deadline,
+            energiesEarned: 100, // По ТЗ: +100 Энергии за отчет
+          })
+          .returning();
 
-      // Начисляем EP
-      await energyPointsService.awardWeeklyReport(userId, weekNumber);
+        // Начисляем EP внутри транзакции
+        await energyPointsService.awardWeeklyReport(userId, weekNumber);
+
+        return report;
+      });
 
       logger.info(`[Reports] User ${userId} submitted report for week ${weekNumber}`);
 
       return {
         success: true,
-        report: newReport[0],
+        report: newReport,
         energiesEarned: 100,
       };
     } catch (error) {

@@ -607,7 +607,7 @@ class SubscriptionGuardService {
         JOIN decades d ON d.id = dm.decade_id
         LEFT JOIN energy_transactions et
           ON et.user_id = dm.user_id
-          AND et.reason = 'Ежедневный отчет'
+          AND et.reason = 'Сдача отчета недели'
           AND et.type = 'income'
         WHERE dm.left_at IS NULL
           AND dm.is_leader = false

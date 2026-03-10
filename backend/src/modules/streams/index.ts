@@ -1,6 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { streamsService } from './service';
 import { logger } from '@/utils/logger';
+import { authMiddleware } from '@/middlewares/auth';
 
 export const streamsRoutes = new Elysia({ prefix: '/api/streams' })
   /**
@@ -124,16 +125,15 @@ export const streamsRoutes = new Elysia({ prefix: '/api/streams' })
 
   /**
    * POST /api/streams/:id/attend
-   * Отметить просмотр записи (начисляет энергии)
+   * Отметить просмотр записи (начисляет энергии) — требует JWT авторизации
    */
+  .use(authMiddleware)
   .post(
     '/:id/attend',
-    async ({ params, body }) => {
+    async ({ params, user }) => {
       try {
-        const { userId } = body;
-
         const result = await streamsService.markWatched(
-          userId,
+          user!.id,
           params.id
         );
 
@@ -149,10 +149,6 @@ export const streamsRoutes = new Elysia({ prefix: '/api/streams' })
     {
       params: t.Object({
         id: t.String(),
-      }),
-      body: t.Object({
-        userId: t.String(),
-        watchedOnline: t.Optional(t.Boolean()),
       }),
     }
   )

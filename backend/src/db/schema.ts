@@ -571,7 +571,7 @@ export const payments = pgTable('payments', {
 }, (table) => [
   index('payments_user_id_idx').on(table.userId),
   index('payments_status_idx').on(table.status),
-  index('payments_external_id_idx').on(table.externalPaymentId),
+  uniqueIndex('payments_external_id_unique_idx').on(table.externalPaymentId),
   index('payments_created_at_idx').on(table.createdAt),
   index('payments_lava_contact_id_idx').on(table.lavaContactId),
 ]);

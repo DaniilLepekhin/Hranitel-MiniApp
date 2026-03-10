@@ -106,23 +106,7 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
   // Инвалидируем кэш баланса при смене пользователя
   useEffect(() => {
     if (user?.id && token) {
-      console.log('[RatingsTab] User loaded, invalidating balance cache');
       queryClient.invalidateQueries({ queryKey: ['energies-balance'] });
-      
-      // TEST: Проверяем, работает ли authMiddleware вообще
-      fetch('https://app.successkod.com/users/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-        .then(r => r.json())
-        .then(data => {
-          console.log('[RatingsTab] TEST /users/me response:', data);
-          if (!data.success) {
-            console.error('[RatingsTab] /users/me failed, auth is broken!');
-          }
-        })
-        .catch(err => console.error('[RatingsTab] /users/me error:', err));
     }
   }, [user?.id, token, queryClient]);
 
@@ -142,14 +126,9 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
   };
 
   // 🚀 ОПТИМИЗАЦИЯ: Batch API - все данные рейтингов в одном запросе
-  const { data: ratingsData, isLoading: ratingsLoading, error: ratingsError } = useQuery({
+  const { data: ratingsData, isLoading: ratingsLoading } = useQuery({
     queryKey: ['ratingsAllData', user?.id],
-    queryFn: async () => {
-      console.log('[RatingsTab] Fetching all ratings data for user:', user?.id);
-      const result = await ratingsApi.getAllData(user!.id);
-      console.log('[RatingsTab] All ratings data response:', result);
-      return result;
-    },
+    queryFn: () => ratingsApi.getAllData(user!.id),
     enabled: !!user && !!token,
     retry: 2,
     staleTime: 0, // ВСЕГДА обновляем баланс
@@ -157,16 +136,6 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
     refetchOnMount: 'always', // ВСЕГДА обновлять при монтировании
     refetchOnWindowFocus: true, // Обновлять при возврате в приложение
   });
-
-  // Логирование для отладки
-  useEffect(() => {
-    if (ratingsData) {
-      console.log('[RatingsTab] Ratings data updated:', ratingsData);
-    }
-    if (ratingsError) {
-      console.error('[RatingsTab] Ratings error:', ratingsError);
-    }
-  }, [ratingsData, ratingsError]);
 
   // Извлекаем данные из batch API
   const userBalance = ratingsData?.data?.balance ?? 0;
@@ -177,34 +146,6 @@ export function RatingsTab({ onShopClick }: RatingsTabProps) {
   const teamRatings = ratingsData?.data?.teamRatings ?? [];
   const userPosition = ratingsData?.data?.userPosition;
   const balanceLoading = ratingsLoading;
-
-  // DEBUG: Детальное логирование баланса
-  console.log('[RatingsTab] DEBUG ratingsData FULL:', JSON.stringify(ratingsData, null, 2));
-  console.log('[RatingsTab] DEBUG user:', user);
-  console.log('[RatingsTab] DEBUG user.id:', user?.id);
-  console.log('[RatingsTab] DEBUG token:', token ? 'EXISTS (length: ' + token.length + ')' : 'NULL');
-  console.log('[RatingsTab] DEBUG token first 50 chars:', token ? token.substring(0, 50) + '...' : 'NULL');
-  
-  // Debug: показываем user ID и баланс
-  console.log('[RatingsTab] Current user:', {
-    userId: user?.id,
-    username: user?.username,
-    firstName: user?.firstName,
-    balance: userBalance,
-    ratingsData,
-  });
-  
-  // Debug: показываем статус загрузки
-  if (ratingsLoading) {
-    console.log('[RatingsTab] Ratings are loading...');
-  }
-  
-  // Показываем ошибку, если есть
-  if (ratingsData && !ratingsData.success) {
-    console.error('[RatingsTab] API returned error:', (ratingsData as any).error);
-  }
-  
-  console.log('[RatingsTab] DEBUG userBalance (final):', userBalance);
 
   // Находим позицию пользователя в рейтинге
   const userRank = userPosition?.globalRank || 0;
