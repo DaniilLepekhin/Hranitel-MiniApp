@@ -8,7 +8,6 @@ import { db, rawDb } from '@/db';
 import { users } from '@/db/schema';
 import { eq, lt, and, isNotNull, gte, sql } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
-import postgres from 'postgres';
 import { config } from '@/config';
 import { cache } from '@/utils/redis';
 import { decadesService } from '@/services/decades.service';
@@ -19,11 +18,6 @@ const PROTECTED_CHANNEL_IDS = [
   -1002580645337,  // Основной канал клуба
   -1003590120817,  // Дополнительный канал
 ];
-
-// Подключение к старой БД для city_chats_ik (через переменную окружения)
-const oldDbConnection = config.OLD_DATABASE_URL
-  ? postgres(config.OLD_DATABASE_URL, { ssl: false })
-  : null;
 
 interface CityChat {
   id: number;
@@ -64,13 +58,8 @@ class SubscriptionGuardService {
       return cityChatIdsCache;
     }
 
-    if (!oldDbConnection) {
-      logger.warn('OLD_DATABASE_URL not configured — city chat IDs unavailable');
-      return cityChatIdsCache || [];
-    }
-
     try {
-      const result = await oldDbConnection<{ platform_id: number | null }[]>`
+      const result = await rawDb<{ platform_id: number | null }[]>`
         SELECT platform_id
         FROM city_chats_ik
         WHERE platform_id IS NOT NULL
