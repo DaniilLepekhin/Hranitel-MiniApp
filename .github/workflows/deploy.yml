@@ -270,9 +270,9 @@ jobs:
             # Remove .env.local to use .env.production from repo
             rm -f .env.local
 
-            # Clean build artifacts (keep node_modules for faster builds)
+            # Clean build artifacts and node_modules
             echo "🧹 Cleaning build artifacts..."
-            rm -rf .next
+            rm -rf .next node_modules
             
             # Install/update dependencies
             echo "📦 Installing dependencies..."
