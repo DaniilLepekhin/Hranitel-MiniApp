@@ -102,7 +102,6 @@ jobs:
             export CLOUDPAYMENTS_API_SECRET="${{ secrets.CLOUDPAYMENTS_API_SECRET }}"
             export LAVATOP_API_KEY="${{ secrets.LAVATOP_API_KEY }}"
             export LAVATOP_WEBHOOK_SECRET="${{ secrets.LAVATOP_WEBHOOK_SECRET }}"
-            export LAVATOP_OFFER_ID="${{ secrets.LAVATOP_OFFER_ID }}"
 
             # Also create .env file for PM2 persistence (Bun auto-loads .env)
             echo "DATABASE_URL=$DATABASE_URL" > .env
@@ -124,7 +123,6 @@ jobs:
             echo "CLOUDPAYMENTS_API_SECRET=$CLOUDPAYMENTS_API_SECRET" >> .env
             echo "LAVATOP_API_KEY=$LAVATOP_API_KEY" >> .env
             echo "LAVATOP_WEBHOOK_SECRET=$LAVATOP_WEBHOOK_SECRET" >> .env
-            echo "LAVATOP_OFFER_ID=$LAVATOP_OFFER_ID" >> .env
 
             # Install Bun if not exists
             if ! command -v bun &> /dev/null; then
@@ -208,6 +206,10 @@ jobs:
             # Apply migration 0018 (add year to weekly_reports, fix uniqueIndex - idempotent via IF NOT EXISTS)
             echo "📊 Applying migration 0018_add_year_to_weekly_reports.sql..."
             psql "$DATABASE_URL" -f drizzle/migrations/0018_add_year_to_weekly_reports.sql && echo "✅ Migration 0018 completed"
+
+            # Apply migration 0019 (create lavatop_offers table - idempotent via IF NOT EXISTS)
+            echo "📊 Applying migration 0019_create_lavatop_offers.sql..."
+            psql "$DATABASE_URL" -f drizzle/migrations/0019_create_lavatop_offers.sql && echo "✅ Migration 0019 completed"
 
             echo "✅ All migrations applied successfully!"
 

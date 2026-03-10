@@ -1360,3 +1360,27 @@ export const geographySurveyResponses = pgTable('geography_survey_responses', {
 
 export type GeographySurveyResponse = typeof geographySurveyResponses.$inferSelect;
 export type NewGeographySurveyResponse = typeof geographySurveyResponses.$inferInsert;
+
+// ============================================================
+// 💳 LAVATOP OFFERS — каталог офферов LavaTop
+// Хранит UUID офферов из ЛК LavaTop, управляется через admin API без деплоя.
+// ============================================================
+export const lavatopOffers = pgTable('lavatop_offers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  key: text('key').notNull(),                          // slug: monthly_rub_2000, gift_rub_990
+  offerId: text('offer_id').notNull(),                 // UUID оффера из ЛК LavaTop
+  label: text('label').notNull(),                      // "Подписка 1 месяц (2000 ₽)"
+  currency: text('currency').notNull().default('RUB'), // RUB | USD | EUR
+  periodicity: text('periodicity').notNull().default('ONE_TIME'), // ONE_TIME | MONTHLY | PERIOD_90_DAYS | PERIOD_180_DAYS
+  amount: numeric('amount', { precision: 10, scale: 2 }), // справочно (реальная цена в LavaTop)
+  isActive: boolean('is_active').notNull().default(true),
+  isGift: boolean('is_gift').notNull().default(false),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('lavatop_offers_key_idx').on(table.key),
+  index('lavatop_offers_active_idx').on(table.isActive),
+]);
+
+export type LavaTopOffer = typeof lavatopOffers.$inferSelect;
+export type NewLavaTopOffer = typeof lavatopOffers.$inferInsert;

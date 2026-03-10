@@ -42,9 +42,9 @@ const envSchema = v.object({
   ADMIN_SECRET: v.optional(v.string(), ''),
 
   // LavaTop payment provider (new, parallel to n8n/lava)
+  // Офферы хранятся в таблице lavatop_offers (управляются через /admin/lavatop-offers)
   LAVATOP_API_KEY: v.optional(v.string(), ''),
   LAVATOP_WEBHOOK_SECRET: v.optional(v.string(), ''),
-  LAVATOP_OFFER_ID: v.optional(v.string(), ''), // UUID продукта в ЛК LavaTop
 });
 
 type EnvConfig = v.InferOutput<typeof envSchema>;

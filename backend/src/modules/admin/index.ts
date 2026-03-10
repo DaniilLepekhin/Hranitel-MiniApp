@@ -14,7 +14,7 @@ import { timingSafeEqual } from 'crypto';
 import { db, rawDb } from '@/db';
 import { lavaTopService } from '@/services/lavatop.service';
 import { config } from '@/config';
-import { users, paymentAnalytics, clubFunnelProgress, videos, contentItems, decades, decadeMembers, leaderTestResults } from '@/db/schema';
+import { users, paymentAnalytics, clubFunnelProgress, videos, contentItems, decades, decadeMembers, leaderTestResults, lavatopOffers } from '@/db/schema';
 import { eq, desc, and, isNull, sql } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { startOnboardingAfterPayment } from '@/modules/bot/post-payment-funnels';
@@ -177,11 +177,11 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         throw new Error('Unauthorized');
       }
 
-      if (!config.LAVATOP_API_KEY || !config.LAVATOP_OFFER_ID) {
+      if (!config.LAVATOP_API_KEY) {
         set.status = 503;
         return {
           success: false,
-          error: 'LavaTop не настроен. Добавьте LAVATOP_API_KEY и LAVATOP_OFFER_ID в переменные окружения.',
+          error: 'LavaTop не настроен. Добавьте LAVATOP_API_KEY в GitHub Secrets.',
         };
       }
 
@@ -190,9 +190,7 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         email,
         name,
         phone,
-        currency = 'RUB',
-        amount = '2000',
-        periodicity = 'ONE_TIME',
+        offer_key,
         utm_source = 'admin',
         utm_campaign = 'manual',
       } = body;
@@ -200,14 +198,37 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       const telegram_id = typeof rawTelegramId === 'string' ? parseInt(rawTelegramId, 10) : rawTelegramId;
       const normalizedEmail = email.toLowerCase().trim();
 
+      // Ищем оффер в БД по ключу
+      const [offer] = await db
+        .select()
+        .from(lavatopOffers)
+        .where(eq(lavatopOffers.key, offer_key))
+        .limit(1);
+
+      if (!offer) {
+        set.status = 404;
+        return {
+          success: false,
+          error: `Оффер с ключом '${offer_key}' не найден. Используйте GET /admin/lavatop-offers чтобы увидеть доступные офферы.`,
+        };
+      }
+
+      if (!offer.isActive) {
+        set.status = 400;
+        return {
+          success: false,
+          error: `Оффер '${offer_key}' деактивирован.`,
+        };
+      }
+
       // Сохраняем payment_attempt (telegram_id нужен для поиска пользователя при webhook)
       await db.insert(paymentAnalytics).values({
         telegramId: telegram_id,
         eventType: 'payment_attempt',
         paymentProvider: 'lavatop',
-        paymentMethod: currency,
-        amount: amount,
-        currency: currency,
+        paymentMethod: offer.currency,
+        amount: offer.amount ?? '0',
+        currency: offer.currency,
         name: name || null,
         email: normalizedEmail,
         phone: phone || null,
@@ -216,6 +237,8 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         metka: `${utm_campaign}_${utm_source}`,
         metadata: {
           source: 'admin_generated_lavatop',
+          offer_key,
+          offer_id: offer.offerId,
           generated_at: new Date().toISOString(),
         },
       });
@@ -223,9 +246,9 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       // Вызываем LavaTop API напрямую
       const invoice = await lavaTopService.createInvoice({
         email: normalizedEmail,
-        offerId: config.LAVATOP_OFFER_ID,
-        currency: currency as 'RUB' | 'USD' | 'EUR',
-        periodicity: periodicity as 'ONE_TIME' | 'MONTHLY' | 'PERIOD_90_DAYS' | 'PERIOD_180_DAYS',
+        offerId: offer.offerId,
+        currency: offer.currency as 'RUB' | 'USD' | 'EUR',
+        periodicity: offer.periodicity as 'ONE_TIME' | 'MONTHLY' | 'PERIOD_90_DAYS' | 'PERIOD_180_DAYS',
         buyerLanguage: 'ru',
         clientUtm: {
           utm_source: utm_source || null,
@@ -237,7 +260,7 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       });
 
       logger.info(
-        { telegram_id, email: normalizedEmail, invoiceId: invoice.id, paymentUrl: invoice.paymentUrl },
+        { telegram_id, email: normalizedEmail, offer_key, invoiceId: invoice.id, paymentUrl: invoice.paymentUrl },
         'Admin generated LavaTop payment link'
       );
 
@@ -245,15 +268,17 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         success: true,
         payment_url: invoice.paymentUrl,
         invoice_id: invoice.id,
-        message: `Ссылка LavaTop создана для ${normalizedEmail}. После оплаты подписка активируется автоматически.`,
+        message: `Ссылка LavaTop создана для ${normalizedEmail} (оффер: ${offer.label}). После оплаты подписка активируется автоматически.`,
         data: {
           telegram_id,
           email: normalizedEmail,
           name,
           phone,
-          amount,
-          currency,
-          periodicity,
+          offer_key,
+          offer_label: offer.label,
+          currency: offer.currency,
+          amount: offer.amount,
+          periodicity: offer.periodicity,
           invoice_id: invoice.id,
         },
       };
@@ -262,17 +287,15 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       body: t.Object({
         telegram_id: t.Union([t.Number(), t.String()], { description: 'Telegram ID пользователя' }),
         email: t.String({ description: 'Email пользователя' }),
+        offer_key: t.String({ description: 'Ключ оффера из таблицы lavatop_offers (например: monthly_rub_2000). GET /admin/lavatop-offers — список.' }),
         name: t.Optional(t.String({ description: 'Имя пользователя' })),
         phone: t.Optional(t.String({ description: 'Телефон пользователя' })),
-        currency: t.Optional(t.String({ description: 'Валюта: RUB, USD, EUR. По умолчанию RUB' })),
-        amount: t.Optional(t.String({ description: 'Сумма (справочно, реальная цена берётся из оффера LavaTop)' })),
-        periodicity: t.Optional(t.String({ description: 'ONE_TIME | MONTHLY | PERIOD_90_DAYS | PERIOD_180_DAYS. По умолчанию ONE_TIME' })),
         utm_source: t.Optional(t.String({ description: 'UTM source' })),
         utm_campaign: t.Optional(t.String({ description: 'UTM campaign' })),
       }),
       detail: {
         summary: 'Генерация ссылки на оплату через LavaTop',
-        description: 'Создаёт invoice через LavaTop API и возвращает ссылку на виджет оплаты. После оплаты подписка активируется через webhook /webhooks/lavatop/payment.',
+        description: 'Создаёт invoice через LavaTop API и возвращает ссылку на виджет оплаты. Оффер выбирается по ключу из таблицы lavatop_offers (GET /admin/lavatop-offers). После оплаты подписка активируется через webhook /webhooks/lavatop/payment.',
       },
     }
   )
@@ -2203,6 +2226,196 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       detail: {
         summary: 'Чистка неактивных участников десяток',
         description: 'Находит и удаляет участников без #отчет за 30 дней. dry_run=true — только просмотр.',
+      },
+    }
+  )
+
+  // ============================================================================
+  // 💳 LAVATOP OFFERS — CRUD без деплоя
+  // ============================================================================
+
+  /**
+   * 📋 Список всех офферов LavaTop
+   */
+  .get(
+    '/lavatop-offers',
+    async ({ headers, set, query }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const onlyActive = (query as any)?.active === 'true';
+
+      const offers = await db
+        .select()
+        .from(lavatopOffers)
+        .orderBy(lavatopOffers.createdAt);
+
+      const filtered = onlyActive ? offers.filter(o => o.isActive) : offers;
+
+      return { success: true, offers: filtered };
+    },
+    {
+      detail: {
+        summary: 'Список офферов LavaTop',
+        description: 'Возвращает все офферы. ?active=true — только активные.',
+      },
+    }
+  )
+
+  /**
+   * ➕ Создать оффер LavaTop
+   */
+  .post(
+    '/lavatop-offers',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { key, offer_id, label, currency = 'RUB', periodicity = 'ONE_TIME', amount, is_gift = false } = body;
+
+      // Проверяем уникальность ключа
+      const [existing] = await db
+        .select({ id: lavatopOffers.id })
+        .from(lavatopOffers)
+        .where(eq(lavatopOffers.key, key))
+        .limit(1);
+
+      if (existing) {
+        set.status = 409;
+        return { success: false, error: `Оффер с ключом '${key}' уже существует.` };
+      }
+
+      const [created] = await db
+        .insert(lavatopOffers)
+        .values({
+          key,
+          offerId: offer_id,
+          label,
+          currency,
+          periodicity,
+          amount: amount ? String(amount) : null,
+          isGift: is_gift,
+        })
+        .returning();
+
+      logger.info({ key, offer_id, label }, 'Admin created LavaTop offer');
+
+      return { success: true, offer: created };
+    },
+    {
+      body: t.Object({
+        key: t.String({ description: 'Уникальный slug, например: monthly_rub_2000, gift_rub_990' }),
+        offer_id: t.String({ description: 'UUID оффера из ЛК LavaTop' }),
+        label: t.String({ description: 'Человекочитаемое название: "Подписка 1 месяц (2000 ₽)"' }),
+        currency: t.Optional(t.String({ description: 'RUB | USD | EUR. По умолчанию RUB' })),
+        periodicity: t.Optional(t.String({ description: 'ONE_TIME | MONTHLY | PERIOD_90_DAYS | PERIOD_180_DAYS. По умолчанию ONE_TIME' })),
+        amount: t.Optional(t.Union([t.Number(), t.String()], { description: 'Сумма для отображения (справочно)' })),
+        is_gift: t.Optional(t.Boolean({ description: 'Это подарочный оффер? По умолчанию false' })),
+      }),
+      detail: {
+        summary: 'Создать оффер LavaTop',
+        description: 'Добавляет новый оффер. offer_id берётся из ЛК LavaTop → Products/Offers.',
+      },
+    }
+  )
+
+  /**
+   * ✏️ Обновить оффер LavaTop
+   */
+  .patch(
+    '/lavatop-offers/:key',
+    async ({ params, body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { key } = params;
+      const [existing] = await db
+        .select()
+        .from(lavatopOffers)
+        .where(eq(lavatopOffers.key, key))
+        .limit(1);
+
+      if (!existing) {
+        set.status = 404;
+        return { success: false, error: `Оффер '${key}' не найден.` };
+      }
+
+      const updates: Record<string, unknown> = { updatedAt: new Date() };
+      const b = body as Record<string, any>;
+
+      if (b.offer_id !== undefined) updates.offerId = b.offer_id;
+      if (b.label !== undefined) updates.label = b.label;
+      if (b.currency !== undefined) updates.currency = b.currency;
+      if (b.periodicity !== undefined) updates.periodicity = b.periodicity;
+      if (b.amount !== undefined) updates.amount = b.amount !== null ? String(b.amount) : null;
+      if (b.is_active !== undefined) updates.isActive = b.is_active;
+      if (b.is_gift !== undefined) updates.isGift = b.is_gift;
+
+      const [updated] = await db
+        .update(lavatopOffers)
+        .set(updates)
+        .where(eq(lavatopOffers.key, key))
+        .returning();
+
+      logger.info({ key, updates }, 'Admin updated LavaTop offer');
+
+      return { success: true, offer: updated };
+    },
+    {
+      params: t.Object({ key: t.String({ description: 'Ключ оффера' }) }),
+      body: t.Object({
+        offer_id: t.Optional(t.String()),
+        label: t.Optional(t.String()),
+        currency: t.Optional(t.String()),
+        periodicity: t.Optional(t.String()),
+        amount: t.Optional(t.Union([t.Number(), t.String(), t.Null()])),
+        is_active: t.Optional(t.Boolean()),
+        is_gift: t.Optional(t.Boolean()),
+      }),
+      detail: {
+        summary: 'Обновить оффер LavaTop',
+        description: 'Обновляет поля оффера. is_active=false — деактивация без удаления.',
+      },
+    }
+  )
+
+  /**
+   * 🗑️ Удалить оффер LavaTop
+   */
+  .delete(
+    '/lavatop-offers/:key',
+    async ({ params, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { key } = params;
+      const deleted = await db
+        .delete(lavatopOffers)
+        .where(eq(lavatopOffers.key, key))
+        .returning();
+
+      if (deleted.length === 0) {
+        set.status = 404;
+        return { success: false, error: `Оффер '${key}' не найден.` };
+      }
+
+      logger.info({ key }, 'Admin deleted LavaTop offer');
+
+      return { success: true, message: `Оффер '${key}' удалён.` };
+    },
+    {
+      params: t.Object({ key: t.String({ description: 'Ключ оффера' }) }),
+      detail: {
+        summary: 'Удалить оффер LavaTop',
+        description: 'Полное удаление оффера. Рекомендуется использовать PATCH is_active=false вместо удаления.',
       },
     }
   );
