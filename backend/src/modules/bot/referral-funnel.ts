@@ -645,7 +645,7 @@ export async function processReferralBonus(
               offerId: offerId,
               currency: 'RUB',
               periodicity: 'ONE_TIME',
-              buyerLanguage: 'ru',
+              buyerLanguage: 'RU',
               clientUtm: {
                 utm_source: 'referral_reward',
                 utm_campaign: `referral_discount_${discountAmount}`,

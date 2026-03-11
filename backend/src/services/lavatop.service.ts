@@ -36,7 +36,7 @@ export interface CreateInvoiceParams {
   periodicity?: LavaTopPeriodicity;
   paymentProvider?: LavaTopPaymentProvider;
   paymentMethod?: LavaTopPaymentMethod;
-  buyerLanguage?: 'ru' | 'en';
+  buyerLanguage?: 'RU' | 'EN' | 'ES';
   clientUtm?: {
     utm_source?: string | null;
     utm_medium?: string | null;

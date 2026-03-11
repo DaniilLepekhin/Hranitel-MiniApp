@@ -249,7 +249,7 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         offerId: offer.offerId,
         currency: offer.currency as 'RUB' | 'USD' | 'EUR',
         periodicity: offer.periodicity as 'ONE_TIME' | 'MONTHLY' | 'PERIOD_90_DAYS' | 'PERIOD_180_DAYS',
-        buyerLanguage: 'ru',
+        buyerLanguage: 'RU',
         clientUtm: {
           utm_source: utm_source || null,
           utm_campaign: utm_campaign || null,
