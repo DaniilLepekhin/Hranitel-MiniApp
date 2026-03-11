@@ -252,9 +252,9 @@ export const analyticsModule = new Elysia({ prefix: '/analytics', tags: ['Analyt
             userId: tgIdNum,
             chatId: tgIdNum, // В личных чатах chatId = telegramId
           },
-          10 * 60 * 1000 // 10 минут
+          3 * 60 * 1000 // 3 минуты
         );
-        logger.info({ telegram_id: tgIdNum }, 'Scheduled payment_not_completed check in 10 min');
+        logger.info({ telegram_id: tgIdNum }, 'Scheduled payment_not_completed check in 3 min');
 
         return {
           success: true,
