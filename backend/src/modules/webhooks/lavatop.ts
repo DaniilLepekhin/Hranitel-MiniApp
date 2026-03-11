@@ -413,6 +413,15 @@ export const lavatopWebhook = new Elysia({ prefix: '/webhooks/lavatop' })
     const isFirstPaymentOfSubscription = status === 'subscription-active';
     const periodicity = await getPeriodicityByOfferId(payload.product.id);
 
+    // Предупреждение если оффер не найден в нашей таблице lavatop_offers —
+    // возможно платёж за другой продукт на том же LavaTop-аккаунте
+    if (!periodicity) {
+      logger.warn(
+        { productId: payload.product.id, productTitle: payload.product.title, contractId, email: buyer.email, amount },
+        '[LavaTop /payment] ⚠️ Unknown offer — product not in lavatop_offers table. Processing with default 30-day periodicity. Verify this payment belongs to Khranitelnitsa.'
+      );
+    }
+
     try {
       await withLock(`payment:lavatop:${contractId}`, async () => {
         await activateSubscription({
@@ -498,11 +507,25 @@ export const lavatopWebhook = new Elysia({ prefix: '/webhooks/lavatop' })
                 .where(eq(users.id, found.user.id));
               logger.info({ telegramId: found.telegramId }, '[LavaTop /recurring] Subscription deactivated (willExpireAt passed)');
             } else {
-              // Иначе просто снимаем autoRenewal — подписка будет активна до willExpireAt
+              // willExpireAt в будущем — снимаем autoRenewal и обновляем subscription_expires
+              // до willExpireAt если он раньше текущего (LavaTop говорит когда реально кончится)
+              const willExpireAtDate = payload.willExpireAt ? new Date(payload.willExpireAt) : null;
+              const currentExpiry = found.user.subscriptionExpires ? new Date(found.user.subscriptionExpires) : null;
+              const shouldUpdateExpiry = willExpireAtDate && (!currentExpiry || willExpireAtDate < currentExpiry);
+
               await db
                 .update(users)
-                .set({ autoRenewalEnabled: false, updatedAt: new Date() })
+                .set({
+                  autoRenewalEnabled: false,
+                  updatedAt: new Date(),
+                  ...(shouldUpdateExpiry ? { subscriptionExpires: willExpireAtDate } : {}),
+                })
                 .where(eq(users.id, found.user.id));
+
+              logger.info(
+                { telegramId: found.telegramId, willExpireAt: payload.willExpireAt, updatedExpiry: shouldUpdateExpiry },
+                '[LavaTop /recurring] Subscription cancelled — autoRenewal off, expiry updated to willExpireAt'
+              );
             }
           }
         }
@@ -548,6 +571,13 @@ export const lavatopWebhook = new Elysia({ prefix: '/webhooks/lavatop' })
       }
 
       const recurringPeriodicity = await getPeriodicityByOfferId(payload.product.id);
+
+      if (!recurringPeriodicity) {
+        logger.warn(
+          { productId: payload.product.id, productTitle: payload.product.title, contractId, email: buyer.email, amount },
+          '[LavaTop /recurring] ⚠️ Unknown offer — product not in lavatop_offers table. Processing with default 30-day periodicity. Verify this payment belongs to Khranitelnitsa.'
+        );
+      }
 
       try {
         await withLock(`payment:lavatop:${contractId}`, async () => {
