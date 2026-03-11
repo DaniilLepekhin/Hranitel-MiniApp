@@ -30,7 +30,7 @@ import { config } from '@/config';
 import { withLock } from '@/utils/distributed-lock';
 import { lavatopOffers } from '@/db/schema';
 import { subscriptionGuardService } from '@/services/subscription-guard.service';
-import { startOnboardingAfterPayment } from '@/modules/bot/post-payment-funnels';
+import { startOnboardingAfterPayment, sendRenewalConfirmation } from '@/modules/bot/post-payment-funnels';
 import { energiesService } from '@/modules/energy-points/service';
 import { processReferralBonus } from '@/modules/bot/referral-funnel';
 import { decadesService } from '@/services/decades.service';
@@ -82,7 +82,7 @@ interface LavaTopRecurringWebhook {
 // ============================================================================
 
 /** Timing-safe проверка X-Api-Key заголовка */
-function verifyApiKey(header: string | undefined): boolean {
+export function verifyApiKey(header: string | undefined): boolean {
   if (!header || !config.LAVATOP_WEBHOOK_SECRET) return false;
   try {
     return timingSafeEqual(
@@ -96,7 +96,7 @@ function verifyApiKey(header: string | undefined): boolean {
 }
 
 /** Количество дней по periodicity из LavaTop */
-function periodicityToDays(periodicity: string | null | undefined): number {
+export function periodicityToDays(periodicity: string | null | undefined): number {
   switch (periodicity) {
     case 'PERIOD_90_DAYS':  return 90;
     case 'PERIOD_180_DAYS': return 180;
@@ -107,7 +107,7 @@ function periodicityToDays(periodicity: string | null | undefined): number {
 }
 
 /** Расширяет дату подписки на нужное количество дней от текущего срока или от сегодня */
-function calcNewExpiry(current: Date | null, days = 30): Date {
+export function calcNewExpiry(current: Date | null, days = 30): Date {
   const base = current && current > new Date() ? current : new Date();
   const next = new Date(base);
   next.setDate(next.getDate() + days);
@@ -227,9 +227,16 @@ async function activateSubscription(opts: {
   }
   const { user, telegramId } = found;
 
-  const isFirstPurchase = !user.isPro && !user.firstPurchaseDate;
+  // Первая покупка = никогда не покупал (firstPurchaseDate не установлен).
+  // isPro не учитываем: если подписка истекла (isPro=false) — это продление, а не первая покупка.
+  const isFirstPurchase = !user.firstPurchaseDate;
   const days = periodicityToDays(periodicity);
   const newExpiry = calcNewExpiry(user.subscriptionExpires ? new Date(user.subscriptionExpires) : null, days);
+
+  logger.info(
+    { telegramId, email, contractId, isFirstPurchase, isRecurring, isFirstPaymentOfSubscription, days, newExpiry, currentExpiry: user.subscriptionExpires },
+    '[LavaTop] activateSubscription started'
+  );
 
   // 3. Обновляем подписку
   await db
@@ -242,6 +249,8 @@ async function activateSubscription(opts: {
       ...(isFirstPurchase ? { firstPurchaseDate: new Date() } : {}),
     })
     .where(eq(users.id, user.id));
+
+  logger.info({ telegramId, newExpiry, isPro: true, autoRenewalEnabled: isFirstPaymentOfSubscription || isRecurring }, '[LavaTop] Step 3: user subscription updated');
 
   // 4. Записываем в payments
   const [newPayment] = await db
@@ -288,7 +297,7 @@ async function activateSubscription(opts: {
 
   logger.info(
     { telegramId, newExpiry, contractId, isFirstPurchase, isFirstPaymentOfSubscription, isRecurring },
-    '[LavaTop] Subscription extended'
+    '[LavaTop] Subscription extended — payments & analytics recorded'
   );
 
   // 6. +500 энергий
@@ -297,6 +306,7 @@ async function activateSubscription(opts: {
       source: 'lavatop_payment',
       contractId,
     });
+    logger.info({ telegramId }, '[LavaTop] Step 6: 500 energies awarded');
   } catch (e) {
     logger.warn({ e, telegramId }, '[LavaTop] Failed to award energies');
   }
@@ -318,6 +328,7 @@ async function activateSubscription(opts: {
   // 8. Разбаниваем из защищённых чатов
   try {
     await subscriptionGuardService.unbanUserFromAllChats(telegramId);
+    logger.info({ telegramId }, '[LavaTop] Step 8: unbanned from all chats');
   } catch (e) {
     logger.warn({ e }, '[LavaTop] Failed to unban user');
   }
@@ -325,16 +336,27 @@ async function activateSubscription(opts: {
   // 9. Восстанавливаем в десятке
   try {
     await decadesService.restoreUserToDecade(user.id, telegramId);
+    logger.info({ telegramId }, '[LavaTop] Step 9: decade restore attempted');
   } catch (e) {
     logger.warn({ e, telegramId }, '[LavaTop] Failed to restore decade');
   }
 
-  // 10. Онбординг (только первая покупка, не рекуррентные)
-  if (isFirstPurchase && !isRecurring) {
+  // 10. Онбординг / подтверждение продления
+  if (isFirstPurchase) {
+    // Первая покупка — запускаем полный онбординг с кодовым словом
     try {
       await startOnboardingAfterPayment(user.id, telegramId);
+      logger.info({ telegramId }, '[LavaTop] Step 10: onboarding started (first purchase)');
     } catch (e) {
       logger.warn({ e }, '[LavaTop] Failed to start onboarding');
+    }
+  } else {
+    // Повторная покупка / продление — отправляем подтверждение с меню
+    try {
+      await sendRenewalConfirmation(telegramId);
+      logger.info({ telegramId }, '[LavaTop] Step 10: renewal confirmation sent');
+    } catch (e) {
+      logger.warn({ e }, '[LavaTop] Failed to send renewal confirmation');
     }
   }
 }

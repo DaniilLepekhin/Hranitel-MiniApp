@@ -641,7 +641,7 @@ export async function sendGiftExpiry1Day(userId: number, chatId: number) {
  * Показать форму оплаты продления после подарочной подписки
  */
 export async function showGiftContinuePayment(userId: number, chatId: number) {
-  const user = await getUserById(userId);
+  const user = await getUserByTgId(userId);
   if (!user) return;
 
   const keyboard = new InlineKeyboard()
@@ -1075,6 +1075,42 @@ export async function activateGiftForUser(recipientTgId: number, token: string, 
       await startOnboardingAfterPayment(user.id, chatId);
     }
   });
+}
+
+// ============================================================================
+// ВОРОНКА 7: ПОДТВЕРЖДЕНИЕ ПРОДЛЕНИЯ ПОДПИСКИ
+// ============================================================================
+
+/**
+ * Отправить подтверждение продления подписки (повторные покупки / рекуррентные платежи).
+ * Вызывается из lavatop webhook когда isFirstPurchase = false.
+ */
+export async function sendRenewalConfirmation(chatId: number) {
+  // Групповые чаты и каналы игнорируем
+  if (chatId < 0) {
+    logger.info({ chatId }, '[RenewalConfirmation] Ignoring group chat/channel');
+    return;
+  }
+
+  try {
+    await getTelegramService().sendMessage(
+      chatId,
+      `✅ <b>Подписка на КОД УСПЕХА продлена!</b>\n\nДобро пожаловать обратно 💫`,
+      { parse_mode: 'HTML' }
+    );
+  } catch (e) {
+    logger.error({ e, chatId }, '[RenewalConfirmation] Failed to send renewal confirmation message');
+    throw e;
+  }
+
+  // Отправить меню с небольшой задержкой
+  try {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await sendMenuMessage(chatId);
+  } catch (e) {
+    logger.warn({ e, chatId }, '[RenewalConfirmation] Failed to send menu after renewal confirmation');
+    // Не пробрасываем — подтверждение уже отправлено
+  }
 }
 
 // ============================================================================
