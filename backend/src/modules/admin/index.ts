@@ -47,28 +47,6 @@ const checkAdminAuth = (headers: Record<string, string | undefined>): boolean =>
 
 export const adminRoutes = new Elysia({ prefix: '/admin' })
   /**
-   * 🔑 ВРЕМЕННЫЙ endpoint для получения ADMIN_SECRET (защищён LAVATOP_WEBHOOK_SECRET)
-   * УДАЛИТЬ ПОСЛЕ ИСПОЛЬЗОВАНИЯ
-   */
-  .get(
-    '/bootstrap-reveal',
-    async ({ headers, set }) => {
-      const token = (headers as Record<string, string | undefined>)['x-bootstrap-token'];
-      const expected = process.env.LAVATOP_WEBHOOK_SECRET;
-      if (!token || !expected || token !== expected) {
-        set.status = 401;
-        return { error: 'Unauthorized' };
-      }
-      return {
-        ADMIN_SECRET: process.env.ADMIN_SECRET || '(not set)',
-        JWT_SECRET: process.env.JWT_SECRET || '(not set)',
-        TELEGRAM_WEBHOOK_SECRET: process.env.TELEGRAM_WEBHOOK_SECRET || '(not set)',
-        CORS_ORIGIN: process.env.CORS_ORIGIN || '(not set)',
-      };
-    }
-  )
-
-  /**
    * 📝 Генерация ссылки на оплату (БЕЗ АВТОРИЗАЦИИ)
    * Создает payment_attempt и возвращает ссылку на виджет Lava
    */

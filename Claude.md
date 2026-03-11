@@ -131,7 +131,7 @@ curl -X POST "https://api.telegram.org/bot5908684144:AAETU_38dgMyln-PlC8KZ7arAHA
 
 **Header**: `x-admin-secret: <ADMIN_SECRET>`
 
-**ADMIN_SECRET**: хранится только в GitHub Secrets. Найти: репозиторий → Settings → Secrets and variables → Actions → `ADMIN_SECRET`.
+**ADMIN_SECRET**: `hR4n1t3L-4dm1n-S3cr3t-2026-xK9pQ`
 
 Ключевые endpoints:
 
@@ -166,9 +166,9 @@ curl -X POST "https://api.telegram.org/bot5908684144:AAETU_38dgMyln-PlC8KZ7arAHA
 | `REDIS_URL` | `redis://localhost:6379` |
 | `TELEGRAM_BOT_TOKEN` | `5908684144:AAETU_38dgMyln-PlC8KZ7arAHAUQiLqGgM` |
 | `TELEGRAM_BOT_USERNAME` | `SuccessKODBot` |
-| `TELEGRAM_WEBHOOK_SECRET` | только в GitHub |
-| `JWT_SECRET` | только в GitHub |
-| `ADMIN_SECRET` | только в GitHub |
+| `TELEGRAM_WEBHOOK_SECRET` | `d70097a1815099a29b1d89b53ae2ef8e5ed850e3a8c1d44f1d44a2145834b517` |
+| `JWT_SECRET` | `hranitel_jwt_secret_key_production_2026` |
+| `ADMIN_SECRET` | `hR4n1t3L-4dm1n-S3cr3t-2026-xK9pQ` |
 | `OPENAI_API_KEY` | только в GitHub |
 | `GETCOURSE_SECRET` | только в GitHub |
 | `CLOUDPAYMENTS_API_SECRET` | только в GitHub |
@@ -177,7 +177,7 @@ curl -X POST "https://api.telegram.org/bot5908684144:AAETU_38dgMyln-PlC8KZ7arAHA
 | `SERVER_HOST` | `31.128.36.81` (предположительно) |
 | `SERVER_USER` | только в GitHub |
 | `SSH_PRIVATE_KEY` | только в GitHub |
-| `CORS_ORIGIN` | только в GitHub |
+| `CORS_ORIGIN` | `https://hranitel.daniillepekhin.com,https://successkod.com,https://app.successkod.com,https://www.successkod.com` |
 
 ---
 
