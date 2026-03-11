@@ -2230,6 +2230,136 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
     }
   )
 
+  /**
+   * 📨 Массовая рассылка invite-ссылок в десятки восстановленным участникам
+   * Используется после аварийного восстановления, когда людей физически выкинули из Telegram-чата.
+   * dry_run=true (по умолчанию) — только показывает кому будет отправлено, без отправки.
+   */
+  .post(
+    '/send-decade-reinvites',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { dry_run = true, kicked_after = '2026-03-11T03:20:00Z', kicked_before = '2026-03-11T03:35:00Z' } = body as {
+        dry_run?: boolean;
+        kicked_after?: string;
+        kicked_before?: string;
+      };
+
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      if (!botToken) {
+        set.status = 503;
+        return { success: false, error: 'TELEGRAM_BOT_TOKEN не настроен' };
+      }
+
+      // Находим всех участников, которых восстановили в этом окне
+      // (joined_at < kicked_after - 30 дней = они точно попали под баговый cron)
+      const cutoff = new Date(new Date(kicked_after).getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+      const affected = await rawDb<{
+        telegram_id: string;
+        first_name: string | null;
+        username: string | null;
+        city: string;
+        number: number;
+        invite_link: string | null;
+      }[]>`
+        SELECT
+          dm.telegram_id::text,
+          u.first_name,
+          u.username,
+          d.city,
+          d.number,
+          d.invite_link
+        FROM decade_members dm
+        JOIN users u ON u.id = dm.user_id
+        JOIN decades d ON d.id = dm.decade_id
+        WHERE dm.left_at IS NULL
+          AND dm.is_leader = false
+          AND u.is_pro = true
+          AND d.is_active = true
+          AND d.invite_link IS NOT NULL
+          AND dm.joined_at < ${cutoff}
+        ORDER BY d.city, d.number
+      `;
+
+      logger.info({ total: affected.length, dry_run, cutoff }, 'send-decade-reinvites: found affected members');
+
+      if (dry_run) {
+        return {
+          success: true,
+          dry_run: true,
+          total: affected.length,
+          message: `dry_run=true. Будет отправлено ${affected.length} приглашений. Запусти с dry_run=false для реальной отправки.`,
+          sample: affected.slice(0, 10).map(m => ({
+            telegram_id: m.telegram_id,
+            name: m.first_name,
+            city: m.city,
+            decade: m.number,
+          })),
+        };
+      }
+
+      // Реальная рассылка
+      let sent = 0;
+      let failed = 0;
+      const errors: string[] = [];
+
+      for (const member of affected) {
+        if (!member.invite_link) continue;
+
+        const text = `⚠️ Из-за технической ошибки вы были случайно исключены из вашей Десятки №${member.number} (${member.city}).\n\nПриносим свои извинения! Вернитесь по ссылке:\n${member.invite_link}`;
+
+        try {
+          const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: Number(member.telegram_id),
+              text,
+              disable_web_page_preview: true,
+            }),
+          });
+
+          const json = await res.json() as { ok: boolean; description?: string };
+          if (json.ok) {
+            sent++;
+          } else {
+            failed++;
+            errors.push(`${member.telegram_id}: ${json.description}`);
+          }
+        } catch (e: any) {
+          failed++;
+          errors.push(`${member.telegram_id}: ${e.message}`);
+        }
+
+        // Задержка чтобы не попасть под rate limit Telegram (30 msg/sec)
+        await new Promise(r => setTimeout(r, 40));
+      }
+
+      logger.info({ sent, failed, total: affected.length }, 'send-decade-reinvites: done');
+
+      return {
+        success: true,
+        dry_run: false,
+        total: affected.length,
+        sent,
+        failed,
+        errors: errors.slice(0, 20),
+        message: `Отправлено ${sent} из ${affected.length}. Ошибок: ${failed}.`,
+      };
+    },
+    {
+      detail: {
+        summary: 'Разослать invite-ссылки восстановленным участникам десяток',
+        description: 'После аварийного восстановления отправляет каждому участнику ссылку на вход в его десятку. dry_run=true (по умолчанию) — только предпросмотр.',
+      },
+    }
+  )
+
   // ============================================================================
   // 💳 LAVATOP OFFERS — CRUD без деплоя
   // ============================================================================
