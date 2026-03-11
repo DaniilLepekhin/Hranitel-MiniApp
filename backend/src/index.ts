@@ -44,6 +44,7 @@ import { cityChatModule } from '@/modules/city-chats';
 import { contentModule } from '@/modules/content';
 import { ratingsRoutes } from '@/modules/ratings';
 import { analyticsModule } from '@/modules/analytics';
+import { paymentsModule } from '@/modules/payments';
 import { lavaPaymentWebhook } from '@/modules/webhooks/lava-payment';
 import { cloudpaymentsWebhook } from '@/modules/webhooks/cloudpayments';
 import { lavatopWebhook } from '@/modules/webhooks/lavatop';
@@ -222,6 +223,8 @@ const app = new Elysia()
   )
   // Analytics module (no auth required for tracking, but rate limited)
   .group('/api', (app) => app.use(paymentRateLimiter).use(analyticsModule))
+  // Payments module — публичная генерация LavaTop ссылок из Mini App (rate limited)
+  .group('/api', (app) => app.use(paymentRateLimiter).use(paymentsModule))
   // Webhooks (no auth required)
   .group('/api', (app) => app.use(lavaPaymentWebhook).use(cloudpaymentsWebhook).use(lavatopWebhook))
   // Admin API (secret header auth)

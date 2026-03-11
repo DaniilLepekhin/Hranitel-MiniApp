@@ -23,8 +23,10 @@ import { stateService } from '@/services/state.service';
 import { TelegramService } from '@/services/telegram.service';
 import { logger } from '@/utils/logger';
 import { getWebAppUrl } from '@/config';
+import { lavaTopService } from '@/services/lavatop.service';
 
-const N8N_LAVA_WEBHOOK_URL = 'https://n8n4.daniillepekhin.ru/webhook/lava_club2';
+// [OLD] n8n URL для генерации реферальных ссылок — заменён на прямой вызов LavaTop API
+// const N8N_LAVA_WEBHOOK_URL = 'https://n8n4.daniillepekhin.ru/webhook/lava_club2';
 
 // Telegram service instance (initialized from bot/index.ts)
 let telegramService: TelegramService | null = null;
@@ -637,26 +639,25 @@ export async function processReferralBonus(
               },
             });
 
-            // Вызываем n8n для генерации персональной ссылки, передаём offer_id
-            const n8nResponse = await fetch(N8N_LAVA_WEBHOOK_URL, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                email: agentEmail.toLowerCase().trim(),
-                name: agentName,
-                phone: agentPhone || '',
-                payment_method: 'RUB',
-                telegram_id: agent.telegramId.toString(),
-                offer_id: offerId,
-              }),
+            // Вызываем LavaTop напрямую для генерации персональной ссылки
+            const invoice = await lavaTopService.createInvoice({
+              email: agentEmail.toLowerCase().trim(),
+              offerId: offerId,
+              currency: 'RUB',
+              periodicity: 'ONE_TIME',
+              buyerLanguage: 'ru',
+              clientUtm: {
+                utm_source: 'referral_reward',
+                utm_campaign: `referral_discount_${discountAmount}`,
+                utm_medium: null,
+                utm_content: null,
+                utm_term: null,
+              },
             });
-
-            if (n8nResponse.ok) {
-              const n8nResult = await n8nResponse.json() as { paymentUrl?: string; payment_url?: string; url?: string; link?: string };
-              personalPaymentUrl = n8nResult.paymentUrl || n8nResult.payment_url || n8nResult.url || n8nResult.link || null;
-            }
+            personalPaymentUrl = invoice.paymentUrl;
+            logger.info({ agentId: agent.id, invoiceId: invoice.id }, 'Generated LavaTop referral discount link');
           } catch (linkError) {
-            logger.warn({ linkError, agentId: agent.id }, 'Failed to generate personal payment link, falling back to Lava product URL');
+            logger.warn({ linkError, agentId: agent.id }, 'Failed to generate LavaTop referral link, falling back to lavaUrl');
           }
         }
 

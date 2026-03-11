@@ -702,79 +702,57 @@
 
       const params = getUrlParams();
 
-      // Определяем payment_method для API
-      let apiPaymentMethod;
-      if (paymentMethod === 'bank-rf') {
-        apiPaymentMethod = 'RUB';
-      } else if (currency === 'paypal') {
-        apiPaymentMethod = 'PAYPAL';
-      } else {
-        apiPaymentMethod = currency === 'usd' ? 'USD' : 'EUR';
-      }
+      // [OLD LAVA] Определяем payment_method для API — оставлено для совместимости с аналитикой
+      const apiPaymentMethod = 'RUB'; // LavaTop работает только с RUB
 
-      const payload = {
-        email: email,
-        name: name,
-        phone: phone,
-        payment_method: apiPaymentMethod,
-        telegram_id: tgId ? tgId.toString() : null,
-        source: 'telegram_webapp',
-        tariff: 'club2000',
-        offer_id: '2ef82531-0bda-4c1d-822c-74ee941634f6',
-        ...params
-      };
+      // [OLD LAVA] payload для n8n — больше не используется, закомментирован
+      // const payload = { email, name, phone, payment_method: apiPaymentMethod, telegram_id, ... };
 
-      // Log payment attempt - КРИТИЧЕСКИ ВАЖНО для обработки webhook'а от Lava
-      // Без этой записи webhook не сможет найти пользователя
-      const attemptResponse = await fetchWithTimeout(API_URL + '/api/analytics/payment-attempt', {
+      // Логируем payment_attempt в аналитику (опционально — backend тоже сохраняет)
+      fetchWithTimeout(API_URL + '/api/analytics/payment-attempt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           telegram_id: tgId ? tgId.toString() : null,
           payment_method: apiPaymentMethod,
-          amount: apiPaymentMethod === 'RUB' ? '2000' : (currency === 'eur' ? '22' : '26'),
-          currency: apiPaymentMethod,
+          amount: '2000',
+          currency: 'RUB',
           name: name,
           email: email,
           phone: phone,
           code_word: codeWord || null,
           ...params
         })
-      }, { timeout: 15000, retries: 3 });
+      }, { timeout: 10000, retries: 1 }).catch(e => console.warn('analytics attempt failed:', e));
 
-      if (!attemptResponse.ok) {
-        console.error('Failed to log payment attempt:', attemptResponse.status);
-        throw new Error('Ошибка сохранения данных. Попробуйте ещё раз.');
-      }
-
-      // Generate payment link - выбираем webhook в зависимости от метода оплаты
-      const webhookUrl = currency === 'paypal'
-        ? 'https://n8n4.daniillepekhin.ru/webhook/lava_club2_paypal'
-        : 'https://n8n4.daniillepekhin.ru/webhook/lava_club2';
-
-      const response = await fetchWithTimeout(webhookUrl, {
+      // Generate payment link — через LavaTop API (наш backend /api/payments/generate-link)
+      const response = await fetchWithTimeout(API_URL + '/api/payments/generate-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          telegram_id: tgId ? tgId.toString() : null,
+          email: email,
+          name: name,
+          phone: phone,
+          offer_key: 'monthly_rub_2000',
+          utm_source: params.utm_source || null,
+          utm_medium: params.utm_medium || null,
+          utm_campaign: params.utm_campaign || null,
+          utm_content: params.utm_content || null,
+        })
       }, { timeout: 30000, retries: 2 });
 
       if (!response.ok) {
-        throw new Error('Не удалось получить ссылку на оплату');
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || 'Не удалось получить ссылку на оплату');
       }
 
       const data = await response.json();
-      let paymentUrl;
-      if (Array.isArray(data) && data.length > 0) {
-        paymentUrl = data[0].paymentUrl;
-      } else if (data && data.paymentUrl) {
-        paymentUrl = data.paymentUrl;
+      if (!data.success || !data.payment_url) {
+        throw new Error(data.error || 'Не удалось получить ссылку на оплату');
       }
 
-      if (!paymentUrl) {
-        throw new Error('Не удалось получить ссылку на оплату');
-      }
-
-      return paymentUrl;
+      return data.payment_url;
     }
 
     // Отправка формы
