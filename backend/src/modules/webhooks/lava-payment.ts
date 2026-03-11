@@ -12,11 +12,24 @@ import { getcourseService } from '@/services/getcourse.service';
 import { energiesService } from '@/modules/energy-points/service';
 import { nanoid } from 'nanoid';
 
+// ============================================================================
+// FEATURE FLAG — старый Lava webhook отключён. Платежи теперь обрабатываются
+// через LavaTop (POST /webhooks/lavatop/payment).
+// Установить в true чтобы вернуть обработку.
+// ============================================================================
+const LAVA_PROCESSING_ENABLED = false;
+
 export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
   // Lava payment success webhook
   .post(
     '/lava-payment-success',
     async ({ body, set }) => {
+      // Режим паузы — логируем payload, не обрабатываем
+      if (!LAVA_PROCESSING_ENABLED) {
+        logger.info({ body }, '[Lava /lava-payment-success] PROCESSING DISABLED — payload logged, no action taken');
+        return { success: true, processing: false, note: 'Processing disabled' };
+      }
+
       const {
         email,
         payment_method,
