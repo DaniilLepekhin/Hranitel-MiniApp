@@ -393,22 +393,46 @@ if (!isDevelopment) {
   };
 
   // 🧹 CRON: Чистка неактивных участников десяток (каждый день в 06:00 по МСК)
-  // Удаляет участников без 'Ежедневный отчет' за 30 дней
-  // ВАЖНО: ОТКЛЮЧЁН до ручной проверки корректности — запускать только через /admin/cleanup-inactive-decade-members
-  // const cleanupInactiveDecadeMembersDaily = async () => { ... };
+  // Удаляет участников без 'Ежедневный отчет' за 30 дней (с grace period для новых)
+  const cleanupInactiveDecadeMembersDaily = async () => {
+    const now = new Date();
+    const moscowHour = (now.getUTCHours() + 3) % 24; // UTC+3 = Moscow time
+
+    // Запускаем в 06:00 по МСК (03:00 UTC)
+    if (moscowHour === 6) {
+      const mskOffset = 3 * 60 * 60 * 1000;
+      const todayMskStr = new Date(now.getTime() + mskOffset).toISOString().slice(0, 10);
+      const redisKey = `cron:decade-cleanup:${todayMskStr}`;
+
+      const alreadyRan = await cache.exists(redisKey);
+      if (alreadyRan) {
+        logger.info({ date: todayMskStr, redisKey }, 'Decade cleanup already ran today (Redis), skipping');
+        return;
+      }
+
+      logger.info('Running daily inactive decade members cleanup...');
+      try {
+        const result = await subscriptionGuardService.removeInactiveDecadeMembers(false);
+        logger.info({ removed: result.total }, 'Daily inactive decade cleanup completed');
+        await cache.set(redisKey, { total: result.total, ranAt: now.toISOString() }, 25 * 3600);
+      } catch (error) {
+        logger.error({ error }, 'Daily inactive decade cleanup failed');
+      }
+    }
+  };
 
   // Проверяем каждый час (в :00 минут)
   const HOURLY_CHECK = 60 * 60 * 1000; // 1 час
   setInterval(checkExpiredSubscriptionsDaily, HOURLY_CHECK);
   setInterval(sendRenewalRemindersDaily, HOURLY_CHECK);
   setInterval(syncDecadeMembershipDaily, HOURLY_CHECK);
-  // setInterval(cleanupInactiveDecadeMembersDaily, HOURLY_CHECK); // ОТКЛЮЧЁН
+  setInterval(cleanupInactiveDecadeMembersDaily, HOURLY_CHECK);
 
-  // Первая проверка через 5 минут после старта (если сейчас 00:xx / 09:xx / 05:xx МСК)
+  // Первая проверка через 5 минут после старта (если сейчас 00:xx / 09:xx / 05:xx / 06:xx МСК)
   setTimeout(checkExpiredSubscriptionsDaily, 5 * 60 * 1000);
   setTimeout(sendRenewalRemindersDaily, 5 * 60 * 1000);
   setTimeout(syncDecadeMembershipDaily, 5 * 60 * 1000);
-  // setTimeout(cleanupInactiveDecadeMembersDaily, 5 * 60 * 1000); // ОТКЛЮЧЁН
+  setTimeout(cleanupInactiveDecadeMembersDaily, 5 * 60 * 1000);
 }
 
 // Graceful shutdown with timeout

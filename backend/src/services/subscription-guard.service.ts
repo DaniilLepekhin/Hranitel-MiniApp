@@ -615,8 +615,8 @@ class SubscriptionGuardService {
           AND d.is_active = true
         GROUP BY dm.telegram_id, u.username, u.first_name, d.city, d.number, dm.joined_at
         HAVING
-          (MAX(et.created_at) IS NULL AND dm.joined_at < NOW() - INTERVAL '30 days')
-          OR MAX(et.created_at) < NOW() - INTERVAL '30 days'
+          dm.joined_at < NOW() - INTERVAL '30 days'
+          AND (MAX(et.created_at) IS NULL OR MAX(et.created_at) < NOW() - INTERVAL '30 days')
         ORDER BY d.city, d.number, dm.joined_at
       `;
 
