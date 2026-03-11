@@ -68,8 +68,10 @@ export function ProfileTab() {
     const diffTime = expiresDate.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    // Проверяем, истекла ли подписка сегодня или вчера
-    const isExpiredRecently = diffDays >= -1 && diffDays <= 0;
+    // isExpiredRecently — не используется для блокировки кнопки отмены.
+    // Бот закрывает доступ на следующий день (cron в 00:00 МСК), поэтому
+    // кнопка должна быть доступна пока isPro=true, независимо от даты.
+    const isExpiredRecently = false;
 
     // Форматируем дату как ДД.ММ.ГГГГ
     const day = expiresDate.getDate().toString().padStart(2, '0');
@@ -580,7 +582,7 @@ export function ProfileTab() {
                   >
                     Автопродление отключено
                   </p>
-                ) : subscriptionInfo.isActive ? (
+                ) : user?.isPro ? (
                   <button
                     onClick={() => {
                       haptic.impact('medium');

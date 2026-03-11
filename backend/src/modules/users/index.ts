@@ -1,10 +1,12 @@
 import { Elysia, t } from 'elysia';
-import { eq } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { db, users } from '@/db';
+import { payments } from '@/db/schema';
 import { authMiddleware, getUserFromToken } from '@/middlewares/auth';
 import { logger } from '@/utils/logger';
+import { lavaTopService } from '@/services/lavatop.service';
 
-// N8N webhook for Lava subscription cancellation
+// N8N webhook for old Lava subscription cancellation (legacy users with lavaContactId)
 const CANCEL_SUBSCRIPTION_WEBHOOK = 'https://n8n4.daniillepekhin.ru/webhook/deletelava_miniapp';
 
 // CloudPayments API for subscription cancellation
@@ -184,7 +186,35 @@ export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
 
       try {
         const cpSubscriptionId = (user as any).cloudpaymentsSubscriptionId as string | null;
-        const provider = cpSubscriptionId ? 'cloudpayments' : 'lava';
+
+        // Определяем провайдера:
+        // 1. CloudPayments — есть cloudpaymentsSubscriptionId
+        // 2. LavaTop — есть платёж provider=lavatop с isFirstPaymentOfSubscription=true
+        // 3. Lava (старый) — fallback через n8n
+
+        // Ищем LavaTop contractId первого платежа подписки (isFirstPaymentOfSubscription=true)
+        // Это тот contractId, который нужно передать в LavaTop API для отмены
+        const lavatopRows = await db
+          .select({ externalPaymentId: payments.externalPaymentId, metadata: payments.metadata })
+          .from(payments)
+          .where(
+            and(
+              eq(payments.userId, user.id),
+              eq(payments.paymentProvider, 'lavatop'),
+              eq(payments.status, 'completed')
+            )
+          )
+          .orderBy(desc(payments.completedAt))
+          .limit(50);
+
+        const lavatopFirstPayment = lavatopRows.find(r => {
+          const meta = r.metadata as Record<string, any> | null;
+          return meta?.isFirstPaymentOfSubscription === true;
+        });
+
+        const provider = cpSubscriptionId ? 'cloudpayments'
+          : lavatopFirstPayment ? 'lavatop'
+          : 'lava';
 
         if (provider === 'cloudpayments') {
           // --- CloudPayments: отменяем рекуррентную подписку через API ---
@@ -213,14 +243,27 @@ export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
             { userId: user.id, telegramId: user.telegramId, cpSubscriptionId },
             'CloudPayments subscription cancellation requested'
           );
+
+        } else if (provider === 'lavatop') {
+          // --- LavaTop: отменяем через LavaTop API напрямую ---
+          const contractId = lavatopFirstPayment.externalPaymentId!;
+          const email = user.email.toLowerCase();
+
+          await lavaTopService.cancelSubscription(contractId, email);
+
+          logger.info(
+            { userId: user.id, telegramId: user.telegramId, contractId, email },
+            'LavaTop subscription cancellation requested'
+          );
+
         } else {
-          // --- Lava: отменяем через n8n webhook ---
+          // --- Lava (старый): отменяем через n8n webhook ---
           const response = await fetch(CANCEL_SUBSCRIPTION_WEBHOOK, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               email: user.email.toLowerCase(),
-              contactid: user.lavaContactId || '',
+              contactid: (user as any).lavaContactId || '',
             }),
           });
 
@@ -236,7 +279,7 @@ export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
 
           logger.info(
             { userId: user.id, telegramId: user.telegramId, email: user.email },
-            'Lava subscription cancellation requested'
+            'Lava subscription cancellation requested via n8n'
           );
         }
 
