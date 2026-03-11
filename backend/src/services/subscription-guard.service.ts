@@ -441,7 +441,7 @@ class SubscriptionGuardService {
     try {
       // За 2 дня — используем Drizzle ORM (как checkExpiredSubscriptions)
       const users2days = await db
-        .select({ telegramId: users.telegramId, gifted: users.gifted })
+        .select({ telegramId: users.telegramId, gifted: users.gifted, cloudpaymentsSubscriptionId: users.cloudpaymentsSubscriptionId })
         .from(users)
         .where(
           and(
@@ -455,12 +455,13 @@ class SubscriptionGuardService {
       for (const u of users2days) {
         try {
           const tgId = u.telegramId!;
+          const hasCpSubscription = !!u.cloudpaymentsSubscriptionId;
           if (u.gifted) {
             await sendGiftExpiry2Days(tgId, tgId);
             logger.info({ telegramId: tgId }, '🔔 Gift expiry reminder sent: 2 days');
           } else {
-            await sendRenewal2Days(tgId, tgId);
-            logger.info({ telegramId: tgId }, '🔔 Renewal reminder sent: 2 days');
+            await sendRenewal2Days(tgId, tgId, hasCpSubscription);
+            logger.info({ telegramId: tgId, hasCpSubscription }, '🔔 Renewal reminder sent: 2 days');
           }
           sent2days++;
         } catch (e) {
@@ -470,7 +471,7 @@ class SubscriptionGuardService {
 
       // За 1 день
       const users1day = await db
-        .select({ telegramId: users.telegramId, gifted: users.gifted })
+        .select({ telegramId: users.telegramId, gifted: users.gifted, cloudpaymentsSubscriptionId: users.cloudpaymentsSubscriptionId })
         .from(users)
         .where(
           and(
@@ -484,12 +485,13 @@ class SubscriptionGuardService {
       for (const u of users1day) {
         try {
           const tgId = u.telegramId!;
+          const hasCpSubscription = !!u.cloudpaymentsSubscriptionId;
           if (u.gifted) {
             await sendGiftExpiry1Day(tgId, tgId);
             logger.info({ telegramId: tgId }, '🔔 Gift expiry reminder sent: 1 day');
           } else {
-            await sendRenewal1Day(tgId, tgId);
-            logger.info({ telegramId: tgId }, '🔔 Renewal reminder sent: 1 day');
+            await sendRenewal1Day(tgId, tgId, hasCpSubscription);
+            logger.info({ telegramId: tgId, hasCpSubscription }, '🔔 Renewal reminder sent: 1 day');
           }
           sent1day++;
         } catch (e) {
@@ -499,7 +501,7 @@ class SubscriptionGuardService {
 
       // Сегодня — только не-подарочные (для gifted нет отдельного уведомления в день X)
       const usersToday = await db
-        .select({ telegramId: users.telegramId })
+        .select({ telegramId: users.telegramId, cloudpaymentsSubscriptionId: users.cloudpaymentsSubscriptionId })
         .from(users)
         .where(
           and(
@@ -514,9 +516,10 @@ class SubscriptionGuardService {
       for (const u of usersToday) {
         try {
           const tgId = u.telegramId!;
-          await sendRenewalToday(tgId, tgId);
+          const hasCpSubscription = !!u.cloudpaymentsSubscriptionId;
+          await sendRenewalToday(tgId, tgId, hasCpSubscription);
           sentToday++;
-          logger.info({ telegramId: tgId }, '🔔 Renewal reminder sent: today');
+          logger.info({ telegramId: tgId, hasCpSubscription }, '🔔 Renewal reminder sent: today');
         } catch (e) {
           logger.error({ err: e, telegramId: u.telegramId }, 'Failed to send today renewal reminder');
         }

@@ -13,7 +13,7 @@
 
 import Elysia from 'elysia';
 import { db } from '@/db';
-import { lavatopOffers, paymentAnalytics } from '@/db/schema';
+import { lavatopOffers, paymentAnalytics, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { lavaTopService } from '@/services/lavatop.service';
@@ -58,6 +58,24 @@ export const paymentsModule = new Elysia({ prefix: '/payments' })
     if (isNaN(telegram_id) || telegram_id <= 0) {
       set.status = 400;
       return { success: false, error: 'Некорректный telegram_id' };
+    }
+
+    // Определяем провайдера пользователя по cloudpaymentsSubscriptionId
+    const [userRecord] = await db
+      .select({ cloudpaymentsSubscriptionId: users.cloudpaymentsSubscriptionId })
+      .from(users)
+      .where(eq(users.telegramId, telegram_id))
+      .limit(1);
+
+    if (userRecord?.cloudpaymentsSubscriptionId) {
+      // CloudPayments-пользователь — подписка продлевается автоматически через CP.
+      // Создавать LavaTop инвойс нельзя — возникнет параллельная подписка.
+      logger.info({ telegram_id }, '[payments/generate-link] CP user — auto_renewal active, skipping LavaTop invoice');
+      return {
+        success: true,
+        provider: 'cloudpayments',
+        auto_renewal: true,
+      };
     }
 
     // Ищем оффер в БД

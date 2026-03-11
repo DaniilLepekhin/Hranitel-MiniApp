@@ -748,6 +748,12 @@
       }
 
       const data = await response.json();
+
+      // CloudPayments: подписка продлевается автоматически — не нужна новая ссылка
+      if (data.success && data.auto_renewal && data.provider === 'cloudpayments') {
+        return { autoRenewal: true };
+      }
+
       if (!data.success || !data.payment_url) {
         throw new Error(data.error || 'Не удалось получить ссылку на оплату');
       }
@@ -809,9 +815,22 @@
       try {
         showLoading(true, 'Генерируем ссылку на оплату...');
 
-        const redirectUrl = await generatePaymentLink(email, name, phone, selectedPaymentMethod, selectedCurrency, codeWord);
+        const result = await generatePaymentLink(email, name, phone, selectedPaymentMethod, selectedCurrency, codeWord);
 
-        if (redirectUrl && redirectUrl.startsWith('http')) {
+        // CloudPayments: авторенивал активен — показываем сообщение
+        if (result && typeof result === 'object' && result.autoRenewal) {
+          showLoading(false);
+          showNotification('Ваша подписка продлевается автоматически 🤍');
+          submitBtn.disabled = false;
+          submitBtn.style.pointerEvents = 'auto';
+          submitBtn.textContent = 'Подписка активна';
+          submitBtn.style.background = '#2e7d32';
+          isSubmitting = false;
+          return;
+        }
+
+        const redirectUrl = result;
+        if (typeof redirectUrl === 'string' && redirectUrl.startsWith('http')) {
           showLoading(true, 'Переходим на страницу оплаты...');
           setTimeout(() => {
             window.location.href = redirectUrl;

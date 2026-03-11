@@ -495,13 +495,18 @@ export async function sendDay28Renewal(userId: number, chatId: number) {
 // ВОРОНКА 4: ПРОДЛЕНИЕ ПОДПИСКИ (за 2/1/0 дней)
 // ============================================================================
 
-export async function sendRenewal2Days(userId: number, chatId: number) {
-  const keyboard = new InlineKeyboard()
-    .text('навигация клуба', 'menu_back')
-    .row()
-    .webApp('оплатить ❤️', 'https://app.successkod.com/payment_form_club.html')
-    .row()
-    .url('Служба заботы', 'https://t.me/Egiazarova_support_bot');
+export async function sendRenewal2Days(userId: number, chatId: number, hasCpSubscription = false) {
+  const keyboard = hasCpSubscription
+    ? new InlineKeyboard()
+        .text('навигация клуба', 'menu_back')
+        .row()
+        .url('Служба заботы', 'https://t.me/Egiazarova_support_bot')
+    : new InlineKeyboard()
+        .text('навигация клуба', 'menu_back')
+        .row()
+        .webApp('оплатить ❤️', 'https://app.successkod.com/payment_form_club.html')
+        .row()
+        .url('Служба заботы', 'https://t.me/Egiazarova_support_bot');
 
   await getTelegramService().sendPhoto(
     chatId,
@@ -521,15 +526,18 @@ export async function sendRenewal2Days(userId: number, chatId: number) {
   );
 }
 
-export async function sendRenewal1Day(userId: number, chatId: number) {
+export async function sendRenewal1Day(userId: number, chatId: number, hasCpSubscription = false) {
   const user = await getUserByTgId(userId);
   if (!user) return;
 
   const firstName = user.firstName || 'дорогая';
-  const keyboard = new InlineKeyboard()
-    .webApp('оплатить ❤️', 'https://app.successkod.com/payment_form_club.html')
-    .row()
-    .url('Служба заботы', 'https://t.me/Egiazarova_support_bot');
+  const keyboard = hasCpSubscription
+    ? new InlineKeyboard()
+        .url('Служба заботы', 'https://t.me/Egiazarova_support_bot')
+    : new InlineKeyboard()
+        .webApp('оплатить ❤️', 'https://app.successkod.com/payment_form_club.html')
+        .row()
+        .url('Служба заботы', 'https://t.me/Egiazarova_support_bot');
 
   await getTelegramService().sendPhoto(
     chatId,
@@ -549,15 +557,18 @@ export async function sendRenewal1Day(userId: number, chatId: number) {
   );
 }
 
-export async function sendRenewalToday(userId: number, chatId: number) {
+export async function sendRenewalToday(userId: number, chatId: number, hasCpSubscription = false) {
   const user = await getUserByTgId(userId);
   if (!user) return;
 
   const firstName = user.firstName || 'дорогая';
-  const keyboard = new InlineKeyboard()
-    .webApp('оплатить ❤️', 'https://app.successkod.com/payment_form_club.html')
-    .row()
-    .url('Служба заботы', 'https://t.me/Egiazarova_support_bot');
+  const keyboard = hasCpSubscription
+    ? new InlineKeyboard()
+        .url('Служба заботы', 'https://t.me/Egiazarova_support_bot')
+    : new InlineKeyboard()
+        .webApp('оплатить ❤️', 'https://app.successkod.com/payment_form_club.html')
+        .row()
+        .url('Служба заботы', 'https://t.me/Egiazarova_support_bot');
 
   await getTelegramService().sendPhoto(
     chatId,
