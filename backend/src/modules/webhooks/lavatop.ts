@@ -365,7 +365,7 @@ async function activateSubscription(opts: {
 // FEATURE FLAG — временно отключить обработку платежей (только логирование)
 // Установить в true когда готовы принимать платежи через LavaTop
 // ============================================================================
-const LAVATOP_PROCESSING_ENABLED = false;
+const LAVATOP_PROCESSING_ENABLED = true;
 
 // ============================================================================
 // MODULE
