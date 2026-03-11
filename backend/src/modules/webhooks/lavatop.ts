@@ -28,6 +28,7 @@ import { eq, desc } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { config } from '@/config';
 import { withLock } from '@/utils/distributed-lock';
+import { lavatopOffers } from '@/db/schema';
 import { subscriptionGuardService } from '@/services/subscription-guard.service';
 import { startOnboardingAfterPayment } from '@/modules/bot/post-payment-funnels';
 import { energiesService } from '@/modules/energy-points/service';
@@ -94,12 +95,33 @@ function verifyApiKey(header: string | undefined): boolean {
   }
 }
 
-/** Расширяет дату подписки на 30 дней от текущего срока или от сегодня */
-function calcNewExpiry(current: Date | null): Date {
+/** Количество дней по periodicity из LavaTop */
+function periodicityToDays(periodicity: string | null | undefined): number {
+  switch (periodicity) {
+    case 'PERIOD_90_DAYS':  return 90;
+    case 'PERIOD_180_DAYS': return 180;
+    case 'MONTHLY':
+    case 'ONE_TIME':
+    default:                return 30;
+  }
+}
+
+/** Расширяет дату подписки на нужное количество дней от текущего срока или от сегодня */
+function calcNewExpiry(current: Date | null, days = 30): Date {
   const base = current && current > new Date() ? current : new Date();
   const next = new Date(base);
-  next.setDate(next.getDate() + 30);
+  next.setDate(next.getDate() + days);
   return next;
+}
+
+/** Ищет periodicity оффера по offer_id (product.id из webhook) в таблице lavatop_offers */
+async function getPeriodicityByOfferId(offerId: string): Promise<string | null> {
+  const [offer] = await db
+    .select({ periodicity: lavatopOffers.periodicity })
+    .from(lavatopOffers)
+    .where(eq(lavatopOffers.offerId, offerId))
+    .limit(1);
+  return offer?.periodicity ?? null;
 }
 
 /**
@@ -165,6 +187,7 @@ async function activateSubscription(opts: {
   email: string;
   amount: number;
   currency: string;
+  periodicity: string | null | undefined;
   isFirstPaymentOfSubscription: boolean;
   isRecurring: boolean;
   parentContractId: string | null;
@@ -176,6 +199,7 @@ async function activateSubscription(opts: {
     email,
     amount,
     currency,
+    periodicity,
     isFirstPaymentOfSubscription,
     isRecurring,
     parentContractId,
@@ -204,7 +228,8 @@ async function activateSubscription(opts: {
   const { user, telegramId } = found;
 
   const isFirstPurchase = !user.isPro && !user.firstPurchaseDate;
-  const newExpiry = calcNewExpiry(user.subscriptionExpires ? new Date(user.subscriptionExpires) : null);
+  const days = periodicityToDays(periodicity);
+  const newExpiry = calcNewExpiry(user.subscriptionExpires ? new Date(user.subscriptionExpires) : null, days);
 
   // 3. Обновляем подписку
   await db
@@ -374,6 +399,7 @@ export const lavatopWebhook = new Elysia({ prefix: '/webhooks/lavatop' })
     // status === 'completed'        → разовая покупка
     // status === 'subscription-active' → первый платёж подписки
     const isFirstPaymentOfSubscription = status === 'subscription-active';
+    const periodicity = await getPeriodicityByOfferId(payload.product.id);
 
     try {
       await withLock(`payment:lavatop:${contractId}`, async () => {
@@ -382,6 +408,7 @@ export const lavatopWebhook = new Elysia({ prefix: '/webhooks/lavatop' })
           email: buyer.email,
           amount,
           currency,
+          periodicity,
           isFirstPaymentOfSubscription,
           isRecurring: false,
           parentContractId: parentContractId ?? null,
@@ -502,6 +529,8 @@ export const lavatopWebhook = new Elysia({ prefix: '/webhooks/lavatop' })
         return { success: false, error: 'Missing email or contractId' };
       }
 
+      const recurringPeriodicity = await getPeriodicityByOfferId(payload.product.id);
+
       try {
         await withLock(`payment:lavatop:${contractId}`, async () => {
           await activateSubscription({
@@ -509,6 +538,7 @@ export const lavatopWebhook = new Elysia({ prefix: '/webhooks/lavatop' })
             email: buyer.email,
             amount,
             currency,
+            periodicity: recurringPeriodicity,
             isFirstPaymentOfSubscription: false,
             isRecurring: true,
             parentContractId: parentContractId ?? null,
