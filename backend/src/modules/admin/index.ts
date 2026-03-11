@@ -2243,10 +2243,25 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         throw new Error('Unauthorized');
       }
 
-      const { dry_run = true, kicked_after = '2026-03-11T03:20:00Z', kicked_before = '2026-03-11T03:35:00Z' } = body as {
+      const {
+        dry_run = true,
+        kicked_after = '2026-03-11T03:20:00Z',
+        kicked_before = '2026-03-11T03:35:00Z',
+        telegram_ids,
+        mode = 'time-window',
+      } = body as {
         dry_run?: boolean;
         kicked_after?: string;
         kicked_before?: string;
+        telegram_ids?: string[];
+        /**
+         * mode:
+         *   "time-window"       — искать по joined_at < kicked_after - 30 дней (старый режим)
+         *   "explicit-ids"      — явный список telegram_ids
+         *   "incorrectly-kicked" — все активные участники с joined_at > 30 дней назад И имеющие
+         *                          'Ежедневный отчет' за последние 30 дней (ошибочно выкинутые багом)
+         */
+        mode?: 'time-window' | 'explicit-ids' | 'incorrectly-kicked';
       };
 
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -2255,38 +2270,102 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         return { success: false, error: 'TELEGRAM_BOT_TOKEN не настроен' };
       }
 
-      // Находим всех участников, которых восстановили в этом окне
-      // (joined_at < kicked_after - 30 дней = они точно попали под баговый cron)
-      const cutoff = new Date(new Date(kicked_after).getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
-
-      const affected = await rawDb<{
+      let affected: {
         telegram_id: string;
         first_name: string | null;
         username: string | null;
         city: string;
         number: number;
         invite_link: string | null;
-      }[]>`
-        SELECT
-          dm.telegram_id::text,
-          u.first_name,
-          u.username,
-          d.city,
-          d.number,
-          d.invite_link
-        FROM decade_members dm
-        JOIN users u ON u.id = dm.user_id
-        JOIN decades d ON d.id = dm.decade_id
-        WHERE dm.left_at IS NULL
-          AND dm.is_leader = false
-          AND u.is_pro = true
-          AND d.is_active = true
-          AND d.invite_link IS NOT NULL
-          AND dm.joined_at < ${cutoff}
-        ORDER BY d.city, d.number
-      `;
+        tg_chat_id: string | null;
+      }[];
 
-      logger.info({ total: affected.length, dry_run, cutoff }, 'send-decade-reinvites: found affected members');
+      if (mode === 'incorrectly-kicked') {
+        // Режим: ошибочно выкинутые багом cron.
+        // Определение: сейчас активны в десятке (left_at IS NULL) + вступили 30+ дней назад
+        // + есть 'Ежедневный отчет' за последние 30 дней (= были активны, но всё равно выкинуты).
+        // Включает всех жертв бага с Feb 24 по March 11 которые уже восстановлены.
+        affected = await rawDb<typeof affected>`
+          SELECT
+            dm.telegram_id::text,
+            u.first_name,
+            u.username,
+            d.city,
+            d.number,
+            d.invite_link,
+            d.tg_chat_id::text
+          FROM decade_members dm
+          JOIN users u ON u.id = dm.user_id
+          JOIN decades d ON d.id = dm.decade_id
+          WHERE dm.left_at IS NULL
+            AND dm.is_leader = false
+            AND u.is_pro = true
+            AND d.is_active = true
+            AND d.invite_link IS NOT NULL
+            AND dm.joined_at < NOW() - INTERVAL '30 days'
+            AND EXISTS (
+              SELECT 1 FROM energy_transactions et
+              WHERE et.user_id = dm.user_id
+                AND et.reason = 'Ежедневный отчет'
+                AND et.created_at >= NOW() - INTERVAL '30 days'
+            )
+          ORDER BY d.city, d.number
+        `;
+      } else if (mode === 'explicit-ids' || (telegram_ids && telegram_ids.length > 0)) {
+        // Режим: явный список telegram_id (для точечной рассылки)
+        if (!telegram_ids || telegram_ids.length === 0) {
+          set.status = 400;
+          return { success: false, error: 'telegram_ids обязателен для mode=explicit-ids' };
+        }
+        const idsStr = telegram_ids.map(id => `'${id.replace(/'/g, '')}'`).join(',');
+        affected = await rawDb<typeof affected>`
+          SELECT
+            dm.telegram_id::text,
+            u.first_name,
+            u.username,
+            d.city,
+            d.number,
+            d.invite_link,
+            d.tg_chat_id::text
+          FROM decade_members dm
+          JOIN users u ON u.id = dm.user_id
+          JOIN decades d ON d.id = dm.decade_id
+          WHERE dm.left_at IS NULL
+            AND dm.is_leader = false
+            AND d.is_active = true
+            AND d.invite_link IS NOT NULL
+            AND dm.telegram_id::text = ANY(ARRAY[${rawDb.unsafe(idsStr)}])
+          ORDER BY d.city, d.number
+        `;
+      } else {
+        // Режим: поиск по временному окну выкидывания (kicked_after/kicked_before)
+        // (joined_at < kicked_after - 30 дней = они точно попали под баговый cron)
+        const cutoff = new Date(new Date(kicked_after).getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        logger.info({ cutoff, kicked_after, kicked_before }, 'send-decade-reinvites: using time-window mode');
+
+        affected = await rawDb<typeof affected>`
+          SELECT
+            dm.telegram_id::text,
+            u.first_name,
+            u.username,
+            d.city,
+            d.number,
+            d.invite_link,
+            d.tg_chat_id::text
+          FROM decade_members dm
+          JOIN users u ON u.id = dm.user_id
+          JOIN decades d ON d.id = dm.decade_id
+          WHERE dm.left_at IS NULL
+            AND dm.is_leader = false
+            AND u.is_pro = true
+            AND d.is_active = true
+            AND d.invite_link IS NOT NULL
+            AND dm.joined_at < ${cutoff}
+          ORDER BY d.city, d.number
+        `;
+      }
+
+      logger.info({ total: affected.length, dry_run, mode }, 'send-decade-reinvites: found affected members');
 
       if (dry_run) {
         return {
@@ -2306,11 +2385,31 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       // Реальная рассылка
       let sent = 0;
       let failed = 0;
+      let unbanned = 0;
       const errors: string[] = [];
 
       for (const member of affected) {
         if (!member.invite_link) continue;
 
+        // Шаг 1: разбанить в чате десятки (safety — на случай если unban при kick не прошёл)
+        if (member.tg_chat_id) {
+          try {
+            await fetch(`https://api.telegram.org/bot${botToken}/unbanChatMember`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: Number(member.tg_chat_id),
+                user_id: Number(member.telegram_id),
+                only_if_banned: true,
+              }),
+            });
+            unbanned++;
+          } catch {
+            // Не критично, логируем и продолжаем
+          }
+        }
+
+        // Шаг 2: отправить сообщение с invite-ссылкой
         const text = `⚠️ Из-за технической ошибки вы были случайно исключены из вашей Десятки №${member.number} (${member.city}).\n\nПриносим свои извинения! Вернитесь по ссылке:\n${member.invite_link}`;
 
         try {
@@ -2340,7 +2439,7 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         await new Promise(r => setTimeout(r, 40));
       }
 
-      logger.info({ sent, failed, total: affected.length }, 'send-decade-reinvites: done');
+      logger.info({ sent, failed, unbanned, total: affected.length }, 'send-decade-reinvites: done');
 
       return {
         success: true,
@@ -2348,8 +2447,9 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         total: affected.length,
         sent,
         failed,
+        unbanned,
         errors: errors.slice(0, 20),
-        message: `Отправлено ${sent} из ${affected.length}. Ошибок: ${failed}.`,
+        message: `Разбанено: ${unbanned}. Отправлено ${sent} из ${affected.length}. Ошибок: ${failed}.`,
       };
     },
     {
