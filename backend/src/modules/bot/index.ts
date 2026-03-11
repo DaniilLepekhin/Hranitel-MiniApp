@@ -3332,6 +3332,56 @@ bot.command('start', async (ctx) => {
       }
     }
 
+    // ====================================================================
+    // oplatasup — ссылка для службы поддержки: https://t.me/SuccessKODBot?start=oplatasup
+    // Показывает приветственное видео + кнопку оплаты.
+    // Провайдер: LavaTop по умолчанию; CloudPayments если есть cloudpaymentsSubscriptionId.
+    // ====================================================================
+    if (startPayload === 'oplatasup') {
+      // Уже подписан → меню
+      if (user?.isPro) {
+        await funnels.sendMenuMessage(chatId);
+        return;
+      }
+
+      // Определяем форму оплаты
+      const cpSubId = user?.cloudpaymentsSubscriptionId;
+      const paymentBaseUrl = cpSubId
+        ? 'https://app.successkod.com/payment_form_club.html' // CloudPayments-пользователи тоже идут через LavaTop (по умолчанию лава)
+        : 'https://app.successkod.com/payment_form_club.html';
+      const paymentUrl = addUtmToPaymentUrl(paymentBaseUrl, {
+        utm_source: 'support',
+        utm_medium: 'direct',
+        utm_campaign: 'oplatasup',
+      });
+
+      const keyboard = new InlineKeyboard()
+        .webApp('ОПЛАТИТЬ ПОДПИСКУ', paymentUrl);
+
+      await telegramService.sendVideo(
+        chatId,
+        'https://t.me/mate_bot_open/10040',
+        {
+          caption:
+            `✨ Добро пожаловать в клуб <b>«КОД УСПЕХА»</b>\n\n` +
+            `Здесь вы получите доступ к:\n\n` +
+            `— марафонам с Кристиной Егиазаровой\n` +
+            `— эфирам приглашённых экспертов\n` +
+            `— мини-курсам\n` +
+            `— работе в десятках\n` +
+            `— чатам по городам и встречам участников\n` +
+            `— челленджам и практикам развития\n\n` +
+            `Нажмите кнопку ниже, чтобы <b>оформить доступ к клубу.</b>\n\n` +
+            `👇`,
+          parse_mode: 'HTML',
+          reply_markup: keyboard,
+        }
+      );
+
+      logger.info({ userId, cpSubId: !!cpSubId }, 'oplatasup: payment video sent');
+      return;
+    }
+
     // ✅ Если пользователь с подпиской зашёл по обычному /start без параметров - показываем меню
     // (обработка onboardingStep уже была выше, тут ловим случай когда onboarding_complete)
     if (user && user.isPro && !startPayload) {
