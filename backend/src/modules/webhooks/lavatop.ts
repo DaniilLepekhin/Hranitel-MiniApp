@@ -340,6 +340,12 @@ async function activateSubscription(opts: {
 }
 
 // ============================================================================
+// FEATURE FLAG — временно отключить обработку платежей (только логирование)
+// Установить в true когда готовы принимать платежи через LavaTop
+// ============================================================================
+const LAVATOP_PROCESSING_ENABLED = false;
+
+// ============================================================================
 // MODULE
 // ============================================================================
 
@@ -360,7 +366,13 @@ export const lavatopWebhook = new Elysia({ prefix: '/webhooks/lavatop' })
     const payload = body as LavaTopPaymentWebhook;
     const { eventType, buyer, contractId, parentContractId, amount, currency, status, clientUtm } = payload;
 
-    logger.info({ eventType, contractId, email: buyer?.email, status }, '[LavaTop /payment] received');
+    logger.info({ eventType, contractId, email: buyer?.email, status, processing_enabled: LAVATOP_PROCESSING_ENABLED }, '[LavaTop /payment] received');
+
+    // Режим паузы — только логируем, не обрабатываем
+    if (!LAVATOP_PROCESSING_ENABLED) {
+      logger.info({ payload }, '[LavaTop /payment] PROCESSING PAUSED — payload logged, no action taken');
+      return { success: true, processing: false, note: 'Processing paused' };
+    }
 
     // Логируем ошибочные платежи
     if (eventType === 'payment.failed' || status === 'failed' || status === 'subscription-failed') {
@@ -445,7 +457,13 @@ export const lavatopWebhook = new Elysia({ prefix: '/webhooks/lavatop' })
     const payload = body as LavaTopRecurringWebhook;
     const { eventType, buyer, contractId, parentContractId, amount, currency, status } = payload;
 
-    logger.info({ eventType, contractId, parentContractId, email: buyer?.email, status }, '[LavaTop /recurring] received');
+    logger.info({ eventType, contractId, parentContractId, email: buyer?.email, status, processing_enabled: LAVATOP_PROCESSING_ENABLED }, '[LavaTop /recurring] received');
+
+    // Режим паузы — только логируем, не обрабатываем
+    if (!LAVATOP_PROCESSING_ENABLED) {
+      logger.info({ payload }, '[LavaTop /recurring] PROCESSING PAUSED — payload logged, no action taken');
+      return { success: true, processing: false, note: 'Processing paused' };
+    }
 
     // ---- subscription.cancelled ----
     if (eventType === 'subscription.cancelled') {
