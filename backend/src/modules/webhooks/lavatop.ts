@@ -267,6 +267,8 @@ async function activateSubscription(opts: {
       updatedAt: new Date(),
       ...(isFirstPurchase ? { firstPurchaseDate: new Date() } : {}),
       ...(codeWord ? { codeWord } : {}),
+      // Сохраняем contractId первого платежа — нужен для отмены подписки через LavaTop API
+      ...(isFirstPaymentOfSubscription ? { lavatopContractId: contractId } : {}),
     })
     .where(eq(users.id, user.id));
 

@@ -65,7 +65,8 @@ export const users = pgTable('users', {
   // Subscription
   isPro: boolean('is_pro').default(false).notNull(),
   subscriptionExpires: timestamp('subscription_expires'),
-  lavaContactId: text('lava_contact_id'), // Lava contact_id for subscription management
+  lavaContactId: text('lava_contact_id'), // Lava contact_id for subscription management (старый Lava)
+  lavatopContractId: text('lavatop_contract_id'), // LavaTop contractId первого платежа (для отмены подписки)
   cloudpaymentsSubscriptionId: text('cloudpayments_subscription_id'), // CloudPayments recurrent subscription ID
   autoRenewalEnabled: boolean('auto_renewal_enabled').default(true).notNull(), // Автопродление включено
 
