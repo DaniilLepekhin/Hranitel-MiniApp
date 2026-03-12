@@ -120,9 +120,17 @@ export const paymentsModule = new Elysia({ prefix: '/payments' })
       return { success: false, error: 'Некорректный telegram_id' };
     }
 
-    // Определяем провайдера пользователя по cloudpaymentsSubscriptionId
+    // Проверяем статус подписки пользователя
     const [userRecord] = await db
-      .select({ cloudpaymentsSubscriptionId: users.cloudpaymentsSubscriptionId })
+      .select({
+        id: users.id,
+        isPro: users.isPro,
+        subscriptionExpires: users.subscriptionExpires,
+        lavatopContractId: users.lavatopContractId,
+        cloudpaymentsSubscriptionId: users.cloudpaymentsSubscriptionId,
+        autoRenewalEnabled: users.autoRenewalEnabled,
+        email: users.email,
+      })
       .from(users)
       .where(eq(users.telegramId, telegram_id))
       .limit(1);
@@ -135,6 +143,23 @@ export const paymentsModule = new Elysia({ prefix: '/payments' })
         success: true,
         provider: 'cloudpayments',
         auto_renewal: true,
+      };
+    }
+
+    // Если подписка активна и есть lavatop_contract_id — предупреждаем фронтенд.
+    // Фронтенд покажет диалог: «Продлить вперёд / Отменить подписку / Закрыть».
+    // Исключение: force_renew=true — пользователь явно подтвердил продление.
+    const forceRenew = (body as any).force_renew === true;
+    if (!forceRenew && userRecord?.isPro && userRecord?.lavatopContractId) {
+      const expires = userRecord.subscriptionExpires
+        ? new Date(userRecord.subscriptionExpires).toLocaleDateString('ru-RU')
+        : null;
+      logger.info({ telegram_id }, '[payments/generate-link] active subscription detected, prompting user');
+      return {
+        success: true,
+        active_subscription: true,
+        expires_at: expires,
+        subscription_expires: userRecord.subscriptionExpires,
       };
     }
 
@@ -254,7 +279,13 @@ export const paymentsModule = new Elysia({ prefix: '/payments' })
 
     // Ищем пользователя и его последний завершённый платёж
     const [user] = await db
-      .select({ id: users.id, cloudpaymentsSubscriptionId: users.cloudpaymentsSubscriptionId })
+      .select({
+        id: users.id,
+        isPro: users.isPro,
+        subscriptionExpires: users.subscriptionExpires,
+        lavatopContractId: users.lavatopContractId,
+        cloudpaymentsSubscriptionId: users.cloudpaymentsSubscriptionId,
+      })
       .from(users)
       .where(eq(users.telegramId, telegram_id))
       .limit(1);
@@ -276,6 +307,15 @@ export const paymentsModule = new Elysia({ prefix: '/payments' })
     const useLavaTop = lastProvider === 'lavatop' || lastProvider === 'lava' || lastProvider === 'manual';
 
     logger.info({ telegram_id, email, lastProvider, useLavaTop }, '[payments/generate-link-support] provider resolved');
+
+    // Защита от дублей: если подписка активна и есть lavatop_contract_id — предупреждаем
+    const forceRenew = (body as any).force_renew === true;
+    if (!forceRenew && user?.isPro && user?.lavatopContractId) {
+      const expires = user.subscriptionExpires
+        ? new Date(user.subscriptionExpires).toLocaleDateString('ru-RU')
+        : null;
+      return { success: true, active_subscription: true, expires_at: expires, subscription_expires: user.subscriptionExpires };
+    }
 
     // Сохраняем payment_attempt
     try {
@@ -337,6 +377,77 @@ export const paymentsModule = new Elysia({ prefix: '/payments' })
         return { success: false, error: 'Не удалось создать ссылку на оплату. Попробуйте ещё раз.' };
       }
     }
+  })
+
+  // ============================================================================
+  // POST /payments/cancel-subscription
+  // Отменяет подписку LavaTop пользователя. Доступ остаётся до конца оплаченного периода.
+  // ============================================================================
+  .post('/cancel-subscription', async ({ body, set }) => {
+    const { telegram_id: rawTelegramId } = body as { telegram_id: string | number };
+
+    if (!rawTelegramId) {
+      set.status = 400;
+      return { success: false, error: 'Обязательное поле: telegram_id' };
+    }
+
+    const telegram_id = typeof rawTelegramId === 'string' ? parseInt(rawTelegramId, 10) : rawTelegramId;
+    if (isNaN(telegram_id) || telegram_id <= 0) {
+      set.status = 400;
+      return { success: false, error: 'Некорректный telegram_id' };
+    }
+
+    const [user] = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        lavatopContractId: users.lavatopContractId,
+        subscriptionExpires: users.subscriptionExpires,
+        autoRenewalEnabled: users.autoRenewalEnabled,
+      })
+      .from(users)
+      .where(eq(users.telegramId, telegram_id))
+      .limit(1);
+
+    if (!user) {
+      set.status = 404;
+      return { success: false, error: 'Пользователь не найден' };
+    }
+
+    if (!user.lavatopContractId) {
+      // Нет активной LavaTop подписки — просто снимаем флаг автопродления
+      await db.update(users).set({ autoRenewalEnabled: false }).where(eq(users.telegramId, telegram_id));
+      const expires = user.subscriptionExpires
+        ? new Date(user.subscriptionExpires).toLocaleDateString('ru-RU')
+        : null;
+      return { success: true, message: 'Автопродление отключено', expires_at: expires };
+    }
+
+    const email = user.email ?? `${telegram_id}@unknown.local`;
+
+    try {
+      await lavaTopService.cancelSubscription(user.lavatopContractId, email);
+    } catch (e: any) {
+      // Если подписка уже отменена в LavaTop — не падаем, просто логируем
+      logger.warn({ e: e?.message, telegram_id, contractId: user.lavatopContractId }, '[payments/cancel-subscription] LavaTop cancel failed (may already be cancelled)');
+    }
+
+    // Снимаем автопродление в нашей БД (доступ остаётся до subscriptionExpires)
+    await db.update(users)
+      .set({ autoRenewalEnabled: false })
+      .where(eq(users.telegramId, telegram_id));
+
+    const expires = user.subscriptionExpires
+      ? new Date(user.subscriptionExpires).toLocaleDateString('ru-RU')
+      : null;
+
+    logger.info({ telegram_id, contractId: user.lavatopContractId }, '[payments/cancel-subscription] subscription cancelled');
+
+    return {
+      success: true,
+      message: 'Подписка отменена',
+      expires_at: expires,
+    };
   })
 
   // ============================================================================

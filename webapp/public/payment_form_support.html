@@ -156,6 +156,30 @@
       z-index: 1001; display: none;
     }
     .notification.show { display: block !important; }
+    /* === Диалог активной подписки === */
+    .active-sub-dialog {
+      display: none;
+      background: linear-gradient(135deg, rgba(139,0,0,0.06) 0%, rgba(255,255,255,0.7) 100%);
+      border: 2px solid var(--kod-accent); border-radius: 12px;
+      padding: 20px; margin-bottom: 16px; text-align: center;
+    }
+    .active-sub-dialog.show { display: block; }
+    .active-sub-dialog h3 { font-size: 17px; margin-bottom: 8px; color: var(--kod-accent); }
+    .active-sub-dialog p { font-size: 14px; color: var(--kod-text); margin-bottom: 16px; line-height: 1.5; }
+    .dialog-btn {
+      display: block; width: 100%; margin-bottom: 10px;
+      padding: 13px 20px; font-size: 15px; font-weight: 700;
+      border-radius: 8px; cursor: pointer; font-family: inherit;
+      border: 1px solid var(--kod-border); transition: all 0.2s;
+    }
+    .dialog-btn-renew { background: var(--kod-accent); color: #fff; }
+    .dialog-btn-renew:hover { background: #a00000; }
+    .dialog-btn-cancel { background: #fff; color: var(--kod-accent); border-color: var(--kod-accent); }
+    .dialog-btn-cancel:hover { background: rgba(139,0,0,0.06); }
+    .dialog-btn-close { background: #f0f0f0; color: #555; border-color: #ccc; }
+    .dialog-btn-close:hover { background: #e0e0e0; }
+    .dialog-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
     @media (max-width: 768px) {
       body { padding: 10px; }
       .container { padding: 20px 15px; }
@@ -166,6 +190,15 @@
 <body>
   <div class="container">
     <div class="title">Оформление подписки</div>
+
+    <!-- Диалог: активная подписка обнаружена -->
+    <div class="active-sub-dialog" id="active-sub-dialog">
+      <h3>⚠️ Подписка уже активна</h3>
+      <p id="active-sub-text">У вас уже есть активная подписка. Что вы хотите сделать?</p>
+      <button class="dialog-btn dialog-btn-renew" id="btn-renew">Продлить вперёд</button>
+      <button class="dialog-btn dialog-btn-cancel" id="btn-cancel-sub">Отменить подписку</button>
+      <button class="dialog-btn dialog-btn-close" id="btn-close-dialog">Закрыть</button>
+    </div>
 
     <div class="feature-card">
       <span class="feature-icon">✓</span>
@@ -349,6 +382,7 @@
             name,
             phone,
             code_word: codeWord,
+            force_renew: activeSubConfirmed || false,
           })
         }, { timeout: 30000, retries: 2 });
 
@@ -376,6 +410,76 @@
         submitBtn.style.pointerEvents = 'auto';
       }
     });
+
+    // === Диалог активной подписки ===
+    let activeSubConfirmed = false;
+
+    function showActiveSubDialog(expiresAt) {
+      const dialog = document.getElementById('active-sub-dialog');
+      const text = document.getElementById('active-sub-text');
+      if (expiresAt) text.textContent = `Ваша подписка активна до ${expiresAt}. Что вы хотите сделать?`;
+      dialog.classList.add('show');
+      document.getElementById('paymentForm').style.display = 'none';
+    }
+
+    function hideActiveSubDialog() {
+      document.getElementById('active-sub-dialog').classList.remove('show');
+      document.getElementById('paymentForm').style.display = '';
+    }
+
+    document.getElementById('btn-renew').addEventListener('click', function() {
+      activeSubConfirmed = true;
+      hideActiveSubDialog();
+    });
+
+    document.getElementById('btn-close-dialog').addEventListener('click', function() {
+      if (window.Telegram?.WebApp) window.Telegram.WebApp.close();
+    });
+
+    document.getElementById('btn-cancel-sub').addEventListener('click', async function() {
+      const tgId = getTGId();
+      if (!tgId) return;
+      const btn = this;
+      btn.disabled = true;
+      btn.textContent = 'Отменяем...';
+      try {
+        const res = await fetchWithTimeout(API_URL + '/api/payments/cancel-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegram_id: tgId.toString() }),
+        }, { timeout: 15000, retries: 1 });
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('active-sub-dialog').innerHTML = `
+            <h3 style="color:#2e7d32;">✅ Автопродление отключено</h3>
+            <p>Доступ к клубу сохранится${data.expires_at ? ' до ' + data.expires_at : ''}. После этой даты списаний не будет.</p>
+            <button class="dialog-btn dialog-btn-close" onclick="window.Telegram?.WebApp?.close()">Закрыть</button>
+          `;
+        } else {
+          btn.disabled = false;
+          btn.textContent = 'Отменить подписку';
+          showNotification(data.error || 'Ошибка отмены. Попробуйте ещё раз.');
+        }
+      } catch (e) {
+        btn.disabled = false;
+        btn.textContent = 'Отменить подписку';
+        showNotification('Ошибка сети. Попробуйте ещё раз.');
+      }
+    });
+
+    async function checkActiveSubscription() {
+      const tgId = getTGId();
+      if (!tgId) return;
+      try {
+        const res = await fetchWithTimeout(API_URL + '/api/payments/generate-link-support', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegram_id: tgId.toString(), email: 'check@check.local' }),
+        }, { timeout: 10000, retries: 1 });
+        const data = await res.json();
+        if (data.active_subscription) showActiveSubDialog(data.expires_at);
+      } catch (e) {}
+    }
 
     async function trackFormOpen(tgId) {
       try {
@@ -412,6 +516,7 @@
       } else {
         trackFormOpen(tgId);
         detectProvider();
+        checkActiveSubscription();
       }
     }
 

@@ -257,7 +257,23 @@ async function activateSubscription(opts: {
     '[LavaTop] activateSubscription started'
   );
 
-  // 3. Обновляем подписку
+  // 3. Если у пользователя уже был другой lavatop_contract_id — отменяем старую подписку.
+  // Это защита от дублей: человек оформил новую подписку поверх старой.
+  if (isFirstPaymentOfSubscription && user.lavatopContractId && user.lavatopContractId !== contractId) {
+    const oldContractId = user.lavatopContractId;
+    const userEmail = user.email ?? email;
+    logger.info({ telegramId, oldContractId, newContractId: contractId }, '[LavaTop] Cancelling old subscription before activating new one');
+    try {
+      const { lavaTopService } = await import('@/services/lavatop.service');
+      await lavaTopService.cancelSubscription(oldContractId, userEmail);
+      logger.info({ telegramId, oldContractId }, '[LavaTop] Old subscription cancelled successfully');
+    } catch (e: any) {
+      // Не блокируем активацию если отмена не прошла (подписка могла быть уже отменена)
+      logger.warn({ e: e?.message, telegramId, oldContractId }, '[LavaTop] Failed to cancel old subscription (may already be cancelled)');
+    }
+  }
+
+  // 4. Обновляем подписку
   await db
     .update(users)
     .set({
@@ -272,7 +288,7 @@ async function activateSubscription(opts: {
     })
     .where(eq(users.id, user.id));
 
-  logger.info({ telegramId, newExpiry, isPro: true, autoRenewalEnabled: isFirstPaymentOfSubscription || isRecurring }, '[LavaTop] Step 3: user subscription updated');
+  logger.info({ telegramId, newExpiry, isPro: true, autoRenewalEnabled: isFirstPaymentOfSubscription || isRecurring }, '[LavaTop] Step 4: user subscription updated');
 
   // Сбрасываем Redis-кеш чтобы /auth/me и /users/me сразу вернули актуальные данные
   invalidateUserCache(user.id).catch(() => {});

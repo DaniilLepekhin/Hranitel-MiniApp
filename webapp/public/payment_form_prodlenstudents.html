@@ -156,6 +156,21 @@
       z-index: 1001; display: none;
     }
     .notification.show { display: block !important; }
+    .cancel-link {
+      display: block; text-align: center; margin-top: 12px;
+      font-size: 13px; color: #999; cursor: pointer;
+      text-decoration: underline;
+    }
+    .cancel-link:hover { color: var(--kod-accent); }
+    .cancel-result {
+      display: none; margin-top: 16px; padding: 16px;
+      background: linear-gradient(135deg, rgba(46,125,50,0.08) 0%, rgba(255,255,255,0.7) 100%);
+      border: 2px solid #2e7d32; border-radius: 12px; text-align: center;
+    }
+    .cancel-result.show { display: block; }
+    .cancel-result h3 { font-size: 16px; color: #2e7d32; margin-bottom: 8px; }
+    .cancel-result p { font-size: 14px; color: var(--kod-text); line-height: 1.5; }
+
     @media (max-width: 768px) {
       body { padding: 10px; }
       .container { padding: 20px 15px; }
@@ -208,6 +223,12 @@
 
       <button type="submit" class="submit-btn">Перейти к оплате</button>
     </form>
+
+    <span class="cancel-link" id="cancel-link">Хочу отменить автопродление</span>
+    <div class="cancel-result" id="cancel-result">
+      <h3>✅ Автопродление отключено</h3>
+      <p id="cancel-result-text">Доступ к клубу сохранится до конца оплаченного периода. Списаний больше не будет.</p>
+    </div>
   </div>
 
   <div class="loading-overlay" id="loading-overlay">
@@ -366,6 +387,41 @@
         isSubmitting = false;
         submitBtn.disabled = false;
         submitBtn.style.pointerEvents = 'auto';
+      }
+    });
+
+    // Отмена подписки
+    document.getElementById('cancel-link').addEventListener('click', async function() {
+      const tgId = getTGId();
+      if (!tgId) { showNotification('Откройте форму через Telegram'); return; }
+      const link = this;
+      link.textContent = 'Отменяем...';
+      link.style.pointerEvents = 'none';
+      try {
+        const res = await fetchWithTimeout(API_URL + '/api/payments/cancel-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegram_id: tgId.toString() }),
+        }, { timeout: 15000, retries: 1 });
+        const data = await res.json();
+        if (data.success) {
+          link.style.display = 'none';
+          document.getElementById('paymentForm').style.display = 'none';
+          const result = document.getElementById('cancel-result');
+          if (data.expires_at) {
+            document.getElementById('cancel-result-text').textContent =
+              `Доступ к клубу сохранится до ${data.expires_at}. Списаний больше не будет.`;
+          }
+          result.classList.add('show');
+        } else {
+          link.textContent = 'Хочу отменить автопродление';
+          link.style.pointerEvents = 'auto';
+          showNotification(data.error || 'Ошибка отмены. Попробуйте ещё раз.');
+        }
+      } catch (e) {
+        link.textContent = 'Хочу отменить автопродление';
+        link.style.pointerEvents = 'auto';
+        showNotification('Ошибка сети. Попробуйте ещё раз.');
       }
     });
 
