@@ -1,12 +1,12 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useAuthStore } from '@/store/auth';
-import { energiesApi, usersApi } from '@/lib/api';
+import { authApi, energiesApi, usersApi } from '@/lib/api';
 import { OptimizedBackground } from '@/components/ui/OptimizedBackground';
 import { Edit2, X, Check } from 'lucide-react';
 
@@ -29,6 +29,24 @@ export function ProfileTab() {
   const [editCity, setEditCity] = useState('');
   const [isCancellingSubscription, setIsCancellingSubscription] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+
+  // Актуальные данные пользователя (подписка, isPro) — свежие при каждом открытии вкладки
+  const { data: meData } = useQuery({
+    queryKey: ['auth-me'],
+    queryFn: () => authApi.me(),
+    enabled: !!user && !!token,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+  });
+
+  // Синхронизируем store с актуальными данными из /auth/me
+  useEffect(() => {
+    if (meData?.user) {
+      setUser({ ...user!, ...meData.user });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meData?.user?.subscriptionExpires, meData?.user?.isPro]);
 
   // Баланс энергий из API (общий кэш с HomeTab)
   const { data: balanceData } = useQuery({

@@ -11,6 +11,7 @@ import { withLock } from '@/utils/distributed-lock';
 import { getcourseService } from '@/services/getcourse.service';
 import { energiesService } from '@/modules/energy-points/service';
 import { nanoid } from 'nanoid';
+import { invalidateUserCache } from '@/utils/cache-invalidation';
 
 // ============================================================================
 // FEATURE FLAG — старый Lava webhook отключён. Платежи теперь обрабатываются

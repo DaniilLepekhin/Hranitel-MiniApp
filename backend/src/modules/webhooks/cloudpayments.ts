@@ -28,6 +28,7 @@ import { startOnboardingAfterPayment } from '@/modules/bot/post-payment-funnels'
 import { energiesService } from '@/modules/energy-points/service';
 import { processReferralBonus } from '@/modules/bot/referral-funnel';
 import { decadesService } from '@/services/decades.service';
+import { invalidateUserCache } from '@/utils/cache-invalidation';
 
 // ============================================================================
 // HELPERS
@@ -166,6 +167,9 @@ export const cloudpaymentsWebhook = new Elysia({ prefix: '/webhooks/cloudpayment
           ...(codeWord ? { codeWord } : {}),
         })
         .where(eq(users.id, user.id));
+
+      // Сбрасываем Redis-кеш чтобы /auth/me и /users/me сразу вернули актуальные данные
+      invalidateUserCache(user.id).catch(() => {});
 
       // 7. Записываем в payments
       const [newPayment] = await db.insert(payments).values({

@@ -34,6 +34,7 @@ import { startOnboardingAfterPayment, sendRenewalConfirmation } from '@/modules/
 import { energiesService } from '@/modules/energy-points/service';
 import { processReferralBonus } from '@/modules/bot/referral-funnel';
 import { decadesService } from '@/services/decades.service';
+import { invalidateUserCache } from '@/utils/cache-invalidation';
 
 // ============================================================================
 // TYPES — LavaTop webhook payloads
@@ -270,6 +271,9 @@ async function activateSubscription(opts: {
     .where(eq(users.id, user.id));
 
   logger.info({ telegramId, newExpiry, isPro: true, autoRenewalEnabled: isFirstPaymentOfSubscription || isRecurring }, '[LavaTop] Step 3: user subscription updated');
+
+  // Сбрасываем Redis-кеш чтобы /auth/me и /users/me сразу вернули актуальные данные
+  invalidateUserCache(user.id).catch(() => {});
 
   // 4. Записываем в payments
   const [newPayment] = await db
