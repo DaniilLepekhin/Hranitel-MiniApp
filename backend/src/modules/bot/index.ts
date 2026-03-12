@@ -3344,11 +3344,47 @@ bot.command('start', async (ctx) => {
     }
 
     // ====================================================================
-    // oplatasup — ссылка для службы поддержки: https://t.me/SuccessKODBot?start=oplatasup
-    // Показывает приветственное видео + кнопку оплаты.
-    // Провайдер: LavaTop по умолчанию; CloudPayments если есть cloudpaymentsSubscriptionId.
-    // ====================================================================
-    if (startPayload === 'oplatasup') {
+     // prodlenstudents — ссылка для продления подписки студентам: https://t.me/SuccessKODBot?start=prodlenstudents
+     // Показывает сообщение + кнопку формы оплаты LavaTop. Форма показывается всегда (даже isPro=true — продление вперёд).
+     // ====================================================================
+     if (startPayload === 'prodlenstudents') {
+       // Логируем переход по ссылке
+       db.insert(paymentAnalytics).values({
+         telegramId: chatId,
+         eventType: 'link_click',
+         utmSource: 'bot',
+         utmMedium: 'bot',
+         utmCampaign: 'prodlenstudents',
+         metadata: { source: 'prodlenstudents_form' },
+       }).catch(e => logger.warn({ e, chatId }, 'prodlenstudents: failed to log link_click'));
+
+       const paymentUrl = 'https://app.successkod.com/payment_form_prodlenstudents.html';
+
+       const keyboard = new InlineKeyboard()
+         .webApp('ПРОДЛИТЬ ПОДПИСКУ', paymentUrl);
+
+       await telegramService.sendVideo(
+         chatId,
+         'https://t.me/mate_bot_open/10040',
+         {
+           caption:
+             `✨ <b>Продление подписки «КОД УСПЕХА»</b>\n\n` +
+             `Нажмите кнопку ниже, чтобы продлить доступ к клубу на 30 дней.\n\n` +
+             `После оплаты доступ откроется автоматически. 👇`,
+           parse_mode: 'HTML',
+           reply_markup: keyboard,
+         }
+       );
+
+       logger.info({ userId }, 'prodlenstudents: payment form sent');
+       return;
+     }
+
+     // oplatasup — ссылка для службы поддержки: https://t.me/SuccessKODBot?start=oplatasup
+     // Показывает приветственное видео + кнопку оплаты.
+     // Провайдер: LavaTop по умолчанию; CloudPayments если есть cloudpaymentsSubscriptionId.
+     // ====================================================================
+     if (startPayload === 'oplatasup') {
       // Уже подписан → меню
       if (user?.isPro) {
         await funnels.sendMenuMessage(chatId);
