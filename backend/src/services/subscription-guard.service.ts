@@ -622,6 +622,7 @@ class SubscriptionGuardService {
         WHERE dm.left_at IS NULL
           AND dm.is_leader = false
           AND u.is_pro = true
+          AND u.is_ambassador = false
           AND d.is_active = true
         GROUP BY dm.telegram_id, u.username, u.first_name, d.city, d.number, dm.joined_at
         HAVING
