@@ -350,6 +350,7 @@
         }, { timeout: 10000, retries: 1 }).catch(() => {});
 
         // Генерируем ссылку через LavaTop (тот же эндпоинт что и обычная форма клуба)
+        // force_renew: true — форма prodlenstudents всегда разрешает оплату, даже при активной подписке
         const response = await fetchWithTimeout(API_URL + '/api/payments/generate-link', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -363,6 +364,7 @@
             utm_medium: 'bot',
             utm_campaign: UTM_CAMPAIGN,
             utm_content: null,
+            force_renew: true,
           })
         }, { timeout: 30000, retries: 2 });
 
