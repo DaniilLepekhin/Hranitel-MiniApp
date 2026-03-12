@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Оформление подписки - Служба заботы</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --kod-bg: #f5f3f0;
+      --kod-text: #3d2f1f;
+      --kod-border: #8b4513;
+      --kod-accent: #8b0000;
+      --kod-white: #ffffff;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: linear-gradient(135deg, #f8f6f0 0%, #ede8d8 50%, #f5f3f0 100%);
+      color: var(--kod-text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(255,255,255,0.1) 0%, transparent 50%),
+        linear-gradient(135deg, #f8f6f0 0%, #ede8d8 25%, #f5f3f0 50%, #e8dcc6 75%, #f8f6f0 100%);
+      border: 2px solid var(--kod-border);
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .title {
+      font-size: 22px;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid var(--kod-accent);
+      padding-bottom: 12px;
+      margin: 0 0 18px;
+      font-weight: 700;
+    }
+    .feature-card {
+      font-size: 13px;
+      margin: 8px 0;
+      padding: 12px 14px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.5) 100%);
+      border: 1.5px solid rgba(139,69,19,0.25);
+      border-radius: 10px;
+      line-height: 1.4;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .feature-icon {
+      font-size: 16px;
+      flex-shrink: 0;
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--kod-accent);
+      color: var(--kod-white);
+      border-radius: 50%;
+      font-weight: bold;
+    }
+    .form-label {
+      font-size: 14px;
+      margin: 16px 0 5px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      display: block;
+    }
+    .form-label:first-of-type { margin-top: 12px; }
+    .input-wrapper { position: relative; margin-bottom: 8px; }
+    input[type="email"], input[type="text"], input[type="tel"] {
+      font-size: 14px;
+      padding: 12px 15px 12px 40px;
+      width: 100%;
+      border: 1px solid var(--kod-border);
+      border-radius: 8px;
+      background: var(--kod-white);
+      color: var(--kod-text);
+      font-family: inherit;
+      transition: all 0.3s ease;
+    }
+    input[type="email"]::placeholder, input[type="text"]::placeholder, input[type="tel"]::placeholder {
+      color: var(--kod-text); opacity: 0.5;
+    }
+    input[type="email"]:focus, input[type="text"]:focus, input[type="tel"]:focus {
+      outline: none;
+      border-color: var(--kod-accent);
+      box-shadow: 0 0 0 2px rgba(139,0,0,0.1);
+    }
+    .input-icon {
+      position: absolute; left: 12px; top: 50%;
+      transform: translateY(-50%);
+      width: 20px; height: 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: bold;
+      color: #2e7d32; opacity: 0;
+      transition: all 0.3s ease; pointer-events: none;
+    }
+    .input-icon.show { opacity: 1; }
+    input.filled { border-color: #2e7d32; }
+    .cost-container {
+      margin: 10px 0; padding: 20px;
+      background: linear-gradient(135deg, rgba(139,0,0,0.08) 0%, rgba(139,69,19,0.05) 100%);
+      border: 2px solid var(--kod-accent);
+      border-radius: 12px;
+      text-align: center;
+    }
+    .cost-amount {
+      font-size: 48px; font-weight: 800;
+      color: var(--kod-accent);
+      letter-spacing: -1px; line-height: 1;
+    }
+    .cost-note { font-size: 13px; color: #666; margin-top: 6px; }
+    .submit-btn {
+      margin-top: 15px; padding: 15px 30px;
+      width: 100%; font-size: 16px;
+      background: var(--kod-accent); color: var(--kod-white);
+      border: 1px solid var(--kod-border);
+      border-radius: 8px; cursor: pointer;
+      font-weight: 700; font-family: inherit;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      transition: all 0.3s ease;
+    }
+    .submit-btn:hover { background: #a00000; transform: translateY(-2px); }
+    .submit-btn:active { transform: translateY(0); }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .loading-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7); color: #fff;
+      display: none; align-items: center; justify-content: center;
+      flex-direction: column; gap: 15px; font-size: 18px; z-index: 1000;
+    }
+    .loading-overlay.show { display: flex !important; }
+    .loading-spinner {
+      width: 50px; height: 50px;
+      border: 4px solid rgba(255,255,255,0.3);
+      border-top: 4px solid #fff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .loading-text { font-size: 18px; font-weight: 600; text-align: center; line-height: 1.5; }
+    .notification {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -70%);
+      padding: 15px 25px; background: var(--kod-white);
+      color: var(--kod-text); border: 1px solid var(--kod-border);
+      border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      font-size: 15px; font-weight: 600; text-align: center;
+      z-index: 1001; display: none;
+    }
+    .notification.show { display: block !important; }
+    @media (max-width: 768px) {
+      body { padding: 10px; }
+      .container { padding: 20px 15px; }
+      .cost-amount { font-size: 42px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="title">Оформление подписки</div>
+
+    <div class="feature-card">
+      <span class="feature-icon">✓</span>
+      <span>Доступ в закрытое сообщество «Код Успеха»</span>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">↻</span>
+      <span>Подписка на 30 дней с автопродлением</span>
+    </div>
+
+    <form id="paymentForm">
+      <label class="form-label" for="name">Имя и фамилия</label>
+      <div class="input-wrapper">
+        <span class="input-icon">✓</span>
+        <input type="text" id="name" placeholder="Иван Иванов" required>
+      </div>
+
+      <label class="form-label" for="phone">Телефон</label>
+      <div class="input-wrapper">
+        <span class="input-icon">✓</span>
+        <input type="tel" id="phone" placeholder="+7 999 123-45-67" required>
+      </div>
+
+      <label class="form-label" for="email">Ваш e-mail</label>
+      <div class="input-wrapper">
+        <span class="input-icon">✓</span>
+        <input type="email" id="email" placeholder="example@gmail.com" required>
+      </div>
+
+      <label class="form-label">Стоимость</label>
+      <div class="cost-container">
+        <div class="cost-amount">2 000₽</div>
+        <div class="cost-note" id="cost-note">Определяется автоматически</div>
+      </div>
+
+      <div class="feature-card" style="margin-top: 15px; background: linear-gradient(135deg, rgba(139,0,0,0.08) 0%, rgba(255,255,255,0.6) 100%);">
+        <span class="feature-icon" style="background: #e91e63;">❤</span>
+        <span>После оплаты вернитесь в бот — там откроется доступ к клубу «КОД УСПЕХА»</span>
+      </div>
+
+      <button type="submit" class="submit-btn">Перейти к оплате</button>
+    </form>
+  </div>
+
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loading-text">Подбираем способ оплаты...</div>
+  </div>
+  <div class="notification" id="notification"></div>
+
+  <script>
+    'use strict';
+
+    let isSubmitting = false;
+    const API_URL = 'https://app.successkod.com';
+
+    function getTGId() {
+      const tg = window.Telegram?.WebApp;
+      if (tg?.initDataUnsafe?.user?.id) return tg.initDataUnsafe.user.id;
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('platform_id') || urlParams.get('tg_id') || '';
+    }
+
+    async function fetchWithTimeout(url, options, { timeout = 30000, retries = 2 } = {}) {
+      for (let attempt = 1; attempt <= retries; attempt++) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        try {
+          const response = await fetch(url, { ...options, signal: controller.signal });
+          clearTimeout(timeoutId);
+          return response;
+        } catch (error) {
+          clearTimeout(timeoutId);
+          if (attempt < retries) { await new Promise(r => setTimeout(r, 1000 * attempt)); continue; }
+          throw new Error('Ошибка сети. Проверьте интернет-соединение.');
+        }
+      }
+    }
+
+    function showNotification(message) {
+      const n = document.getElementById('notification');
+      n.textContent = message;
+      n.classList.add('show');
+      setTimeout(() => n.classList.remove('show'), 2000);
+    }
+
+    function showLoading(show, text) {
+      const loading = document.getElementById('loading-overlay');
+      const loadingText = document.getElementById('loading-text');
+      if (show) {
+        if (text && loadingText) loadingText.textContent = text;
+        loading.classList.add('show');
+      } else {
+        loading.classList.remove('show');
+        if (loadingText) loadingText.textContent = 'Подбираем способ оплаты...';
+      }
+    }
+
+    function validateEmail(email) {
+      return /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/.test(email) && email.length <= 254;
+    }
+    function validateName(name) { const t = name.trim(); return t.length >= 2 && t.length <= 100; }
+    function validatePhone(phone) { const d = phone.replace(/\D/g, ''); return d.length >= 10 && d.length <= 15; }
+    function sanitize(str, max = 200) { return str.trim().slice(0, max).replace(/[<>]/g, ''); }
+
+    function setupFieldValidation(fieldId, validationFn) {
+      const input = document.getElementById(fieldId);
+      if (!input) return;
+      const wrapper = input.closest('.input-wrapper');
+      const icon = wrapper ? wrapper.querySelector('.input-icon') : null;
+      input.addEventListener('input', function() {
+        const isValid = validationFn(this.value);
+        this.classList.toggle('filled', isValid);
+        if (icon) icon.classList.toggle('show', isValid);
+      });
+    }
+
+    // Подставить провайдера в подсказку под ценой
+    async function detectProvider() {
+      const tgId = getTGId();
+      if (!tgId) return;
+      try {
+        const res = await fetch(`${API_URL}/api/payments/detect-provider?telegram_id=${tgId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const note = document.getElementById('cost-note');
+        if (note) {
+          if (data.provider === 'lavatop' || data.provider === 'lava') {
+            note.textContent = 'Оплата через LavaTop (ваш предыдущий способ)';
+          } else if (data.provider === 'cloudpayments') {
+            note.textContent = 'Оплата через CloudPayments / СБП';
+          } else {
+            note.textContent = 'Оплата через CloudPayments / СБП';
+          }
+        }
+      } catch (_) {}
+    }
+
+    document.getElementById('paymentForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      if (isSubmitting) return;
+
+      const submitBtn = this.querySelector('.submit-btn');
+      const tgId = getTGId();
+
+      if (!tgId) {
+        showNotification('Откройте форму через Telegram');
+        return;
+      }
+
+      const name = sanitize(document.getElementById('name').value, 100);
+      const phone = sanitize(document.getElementById('phone').value, 20);
+      const email = sanitize(document.getElementById('email').value.toLowerCase(), 254);
+
+      if (!name || !validateName(name)) { showNotification('Введите имя и фамилию (минимум 2 символа)'); return; }
+      if (!phone || !validatePhone(phone)) { showNotification('Введите корректный номер телефона'); return; }
+      if (!email || !validateEmail(email)) { showNotification('Введите корректный email'); return; }
+
+      isSubmitting = true;
+      submitBtn.disabled = true;
+      submitBtn.style.pointerEvents = 'none';
+
+      try {
+        showLoading(true, 'Подбираем способ оплаты...');
+
+        const response = await fetchWithTimeout(API_URL + '/api/payments/generate-link-support', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            telegram_id: tgId ? tgId.toString() : null,
+            email,
+            name,
+            phone,
+          })
+        }, { timeout: 30000, retries: 2 });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || 'Не удалось получить ссылку на оплату');
+        }
+
+        const data = await response.json();
+        if (!data.success || !data.payment_url) {
+          throw new Error(data.error || 'Не удалось получить ссылку на оплату');
+        }
+
+        const providerText = data.provider === 'lavatop' ? 'LavaTop' : 'CloudPayments';
+        showLoading(true, `Переходим к оплате через ${providerText}...`);
+
+        setTimeout(() => { window.location.href = data.payment_url; }, 500);
+
+      } catch (error) {
+        console.error('Ошибка:', error);
+        showNotification(error.message || 'Произошла ошибка, попробуйте снова');
+        showLoading(false);
+        isSubmitting = false;
+        submitBtn.disabled = false;
+        submitBtn.style.pointerEvents = 'auto';
+      }
+    });
+
+    function initializeTelegramWebApp() {
+      setupFieldValidation('name', validateName);
+      setupFieldValidation('phone', validatePhone);
+      setupFieldValidation('email', validateEmail);
+
+      if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+      }
+
+      const tgId = getTGId();
+      if (!tgId) {
+        const submitBtn = document.querySelector('.submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Откройте через Telegram';
+        submitBtn.style.background = '#999';
+        submitBtn.style.cursor = 'not-allowed';
+      } else {
+        detectProvider();
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeTelegramWebApp);
+    } else {
+      initializeTelegramWebApp();
+    }
+  </script>
+</body>
+</html>

@@ -3344,16 +3344,9 @@ bot.command('start', async (ctx) => {
         return;
       }
 
-      // Определяем форму оплаты
-      const cpSubId = user?.cloudpaymentsSubscriptionId;
-      const paymentBaseUrl = cpSubId
-        ? 'https://app.successkod.com/payment_form_club.html' // CloudPayments-пользователи тоже идут через LavaTop (по умолчанию лава)
-        : 'https://app.successkod.com/payment_form_club.html';
-      const paymentUrl = addUtmToPaymentUrl(paymentBaseUrl, {
-        utm_source: 'support',
-        utm_medium: 'direct',
-        utm_campaign: 'oplatasup',
-      });
+      // Форма поддержки — определяет провайдера сама по истории платежей:
+      // LavaTop/Lava → LavaTop инвойс, новый пользователь/CP → CloudPayments SBP.
+      const paymentUrl = 'https://app.successkod.com/payment_form_support.html';
 
       const keyboard = new InlineKeyboard()
         .webApp('ОПЛАТИТЬ ПОДПИСКУ', paymentUrl);
