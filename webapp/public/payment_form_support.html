@@ -487,9 +487,13 @@
         showLoading(true, 'Подбираем способ оплаты...');
 
         // При иностранном банке передаём currency для LavaTop
+        // PayPal: currency USD + payment_provider PAYPAL
         const ltCurrency = selectedPaymentMethod === 'foreign-bank'
           ? (selectedCurrency === 'eur' ? 'EUR' : 'USD')
           : 'RUB';
+        const ltPaymentProvider = (selectedPaymentMethod === 'foreign-bank' && selectedCurrency === 'paypal')
+          ? 'PAYPAL'
+          : undefined;
 
         const response = await fetchWithTimeout(API_URL + '/api/payments/generate-link-support', {
           method: 'POST',
@@ -502,6 +506,7 @@
             code_word: codeWord,
             payment_method: selectedPaymentMethod,
             currency: ltCurrency,
+            ...(ltPaymentProvider ? { payment_provider: ltPaymentProvider } : {}),
             force_renew: activeSubConfirmed || false,
           })
         }, { timeout: 30000, retries: 2 });

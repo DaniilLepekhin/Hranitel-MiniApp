@@ -95,6 +95,7 @@ export const paymentsModule = new Elysia({ prefix: '/payments' })
       utm_campaign,
       utm_content,
       currency: rawCurrency,
+      payment_provider: rawPaymentProvider,
     } = body as {
       telegram_id: string | number;
       email: string;
@@ -106,6 +107,7 @@ export const paymentsModule = new Elysia({ prefix: '/payments' })
       utm_campaign?: string;
       utm_content?: string;
       currency?: string;
+      payment_provider?: string; // 'PAYPAL' для PayPal, иначе не передаётся
     };
 
     // Нормализуем валюту — только RUB / USD / EUR, default RUB
@@ -224,6 +226,7 @@ export const paymentsModule = new Elysia({ prefix: '/payments' })
         // Если передана валюта (иностранный банк) — используем её, иначе берём из оффера
         currency: currency !== 'RUB' ? currency : (offer.currency as 'RUB' | 'USD' | 'EUR'),
         periodicity: offer.periodicity as 'ONE_TIME' | 'MONTHLY' | 'PERIOD_90_DAYS' | 'PERIOD_180_DAYS',
+        paymentProvider: rawPaymentProvider === 'PAYPAL' ? 'PAYPAL' : undefined,
         buyerLanguage: 'RU',
         clientUtm: {
           utm_source: utm_source || null,
@@ -268,14 +271,16 @@ export const paymentsModule = new Elysia({ prefix: '/payments' })
       code_word,
       payment_method: rawPaymentMethod,
       currency: rawSupportCurrency,
+      payment_provider: rawSupportPaymentProvider,
     } = body as {
       telegram_id: string | number;
       email: string;
       name?: string;
       phone?: string;
       code_word?: string;
-      payment_method?: string; // 'bank-rf' | 'foreign-bank'
-      currency?: string;       // 'USD' | 'EUR' | 'paypal' → USD
+      payment_method?: string;  // 'bank-rf' | 'foreign-bank'
+      currency?: string;        // 'USD' | 'EUR' (PayPal → USD)
+      payment_provider?: string; // 'PAYPAL' для PayPal
     };
 
     // Нормализуем currency для LavaTop: paypal → USD, EUR → EUR, иначе RUB
@@ -380,6 +385,7 @@ export const paymentsModule = new Elysia({ prefix: '/payments' })
           offerId: offer.offerId,
           currency: supportCurrency,
           periodicity: 'MONTHLY',
+          paymentProvider: rawSupportPaymentProvider === 'PAYPAL' ? 'PAYPAL' : undefined,
           buyerLanguage: 'RU',
           clientUtm: { utm_source: 'support', utm_medium: 'direct', utm_campaign: 'oplatasup', utm_content: null, utm_term: null },
         });

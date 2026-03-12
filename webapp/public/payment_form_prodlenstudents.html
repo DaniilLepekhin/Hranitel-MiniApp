@@ -547,9 +547,13 @@
 
         // force_renew: true — форма prodlenstudents всегда разрешает оплату
         // При иностранном банке передаём currency для LavaTop, offer_key всегда monthly_rub_2000
+        // PayPal: currency USD + payment_provider PAYPAL
         const ltCurrency = selectedPaymentMethod === 'foreign-bank'
           ? (selectedCurrency === 'eur' ? 'EUR' : 'USD')
           : 'RUB';
+        const ltPaymentProvider = (selectedPaymentMethod === 'foreign-bank' && selectedCurrency === 'paypal')
+          ? 'PAYPAL'
+          : undefined;
 
         const response = await fetchWithTimeout(API_URL + '/api/payments/generate-link', {
           method: 'POST',
@@ -559,6 +563,7 @@
             email, name, phone,
             offer_key: 'monthly_rub_2000',
             currency: ltCurrency,
+            ...(ltPaymentProvider ? { payment_provider: ltPaymentProvider } : {}),
             utm_source: UTM_SOURCE,
             utm_medium: UTM_MEDIUM,
             utm_campaign: UTM_CAMPAIGN,
