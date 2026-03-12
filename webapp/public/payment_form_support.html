@@ -273,10 +273,13 @@
         <input type="text" id="code_word" placeholder="Введите кодовое слово" required>
       </div>
 
-      <label class="form-label">Способ оплаты</label>
-      <div class="payment-methods">
-        <div class="payment-method active" id="bank-rf">Банк РФ</div>
-        <div class="payment-method" id="foreign-bank">Иностранный банк</div>
+      <!-- Блок выбора банка/валюты — скрыт по умолчанию, показывается только для LavaTop-пользователей -->
+      <div id="payment-method-container" style="display:none">
+        <label class="form-label">Способ оплаты</label>
+        <div class="payment-methods">
+          <div class="payment-method active" id="bank-rf">Банк РФ</div>
+          <div class="payment-method" id="foreign-bank">Иностранный банк</div>
+        </div>
       </div>
 
       <div id="currency-container">
@@ -344,13 +347,16 @@
         document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('active'));
         this.classList.add('active');
         selectedPaymentMethod = this.id;
+        const note = document.getElementById('cost-note');
         if (selectedPaymentMethod === 'foreign-bank') {
           selectedCurrency = 'usd';
           document.querySelectorAll('.currency-option').forEach(o => o.classList.remove('active'));
           document.getElementById('usd').classList.add('active');
-          // Скрываем подсказку провайдера — при иностранном банке всегда LavaTop
-          const note = document.getElementById('cost-note');
+          // При иностранном банке — всегда LavaTop, подсказку скрываем
           if (note) note.style.display = 'none';
+        } else {
+          // Банк РФ — восстанавливаем подсказку (она уже выставлена detectProvider)
+          if (note && note.textContent) note.style.display = 'block';
         }
         updateCurrencyVisibility();
         updateCost();
@@ -429,7 +435,9 @@
       });
     }
 
-    // Подставить провайдера в подсказку под ценой (только для Банк РФ)
+    // Определяем провайдера при загрузке и адаптируем форму:
+    // — LavaTop / Lava история → показываем выбор банка/валюты (может платить иностранной картой)
+    // — CP / новый пользователь → форма простая, без выбора (идёт через CP)
     async function detectProvider() {
       const tgId = getTGId();
       if (!tgId) return;
@@ -437,12 +445,21 @@
         const res = await fetch(`${API_URL}/api/payments/detect-provider?telegram_id=${tgId}`);
         if (!res.ok) return;
         const data = await res.json();
+        const isLavaTop = data.provider === 'lavatop' || data.provider === 'lava' || data.provider === 'manual';
+        const pmContainer = document.getElementById('payment-method-container');
         const note = document.getElementById('cost-note');
-        if (note && selectedPaymentMethod === 'bank-rf') {
-          if (data.provider === 'lavatop' || data.provider === 'lava') {
-            note.textContent = 'Оплата через LavaTop (ваш предыдущий способ)';
+
+        if (isLavaTop) {
+          // Показываем выбор банка — пользователь может платить иностранной картой
+          if (pmContainer) pmContainer.style.display = 'block';
+          if (note) {
+            note.textContent = 'Банк РФ — оплата через LavaTop';
             note.style.display = 'block';
-          } else if (data.provider === 'cloudpayments') {
+          }
+        } else {
+          // CP или новый — блок скрыт, подсказка «СБП/CloudPayments»
+          if (pmContainer) pmContainer.style.display = 'none';
+          if (note) {
             note.textContent = 'Оплата через CloudPayments / СБП';
             note.style.display = 'block';
           }
