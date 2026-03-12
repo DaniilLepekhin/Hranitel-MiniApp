@@ -125,6 +125,7 @@ jobs:
             echo "CLOUDPAYMENTS_API_SECRET=$CLOUDPAYMENTS_API_SECRET" >> .env
             echo "LAVATOP_API_KEY=$LAVATOP_API_KEY" >> .env
             echo "LAVATOP_WEBHOOK_SECRET=$LAVATOP_WEBHOOK_SECRET" >> .env
+            echo "NUMSCHOOL_TOKEN=${{ secrets.NUMSCHOOL_TOKEN }}" >> .env
 
             # Install Bun if not exists
             if ! command -v bun &> /dev/null; then
