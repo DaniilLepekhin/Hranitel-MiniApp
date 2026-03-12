@@ -2497,6 +2497,49 @@ bot.command('start', async (ctx) => {
       return;
     }
 
+    // 🔍 Диагностика: /start checkid — показывает статус подписки пользователя
+    if (startPayload === 'checkid') {
+      const [checkUser] = await db.select().from(users).where(eq(users.telegramId, userId)).limit(1);
+
+      if (!checkUser) {
+        await ctx.reply(
+          `🔍 <b>Диагностика аккаунта</b>\n\n` +
+          `Telegram ID: <code>${userId}</code>\n\n` +
+          `❌ Аккаунт не найден в базе данных.\n` +
+          `Возможно, вы ещё не взаимодействовали с ботом ранее.`,
+          { parse_mode: 'HTML' }
+        );
+        return;
+      }
+
+      const isPro = checkUser.isPro;
+      const expires = checkUser.subscriptionExpires
+        ? new Date(checkUser.subscriptionExpires).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        : null;
+      const isExpired = checkUser.subscriptionExpires
+        ? new Date(checkUser.subscriptionExpires) < new Date()
+        : true;
+      const onboardingStep = checkUser.onboardingStep || 'не начат';
+
+      const statusIcon = isPro && !isExpired ? '✅' : '❌';
+      const statusText = isPro && !isExpired
+        ? `Активна до ${expires}`
+        : isPro && isExpired
+        ? `Истекла ${expires}`
+        : 'Нет подписки';
+
+      await ctx.reply(
+        `🔍 <b>Диагностика аккаунта</b>\n\n` +
+        `Telegram ID: <code>${userId}</code>\n` +
+        `Имя: ${checkUser.firstName || '—'}\n\n` +
+        `${statusIcon} Подписка: ${statusText}\n` +
+        `📋 Онбординг: ${onboardingStep}\n` +
+        `📅 Аккаунт создан: ${new Date(checkUser.createdAt!).toLocaleDateString('ru-RU')}`,
+        { parse_mode: 'HTML' }
+      );
+      return;
+    }
+
     // 🧪 Deep link для тестовой обычной воронки (start=test_start_full)
     // ВАЖНО: Проверяем ДО isPro, чтобы оплаченные пользователи тоже могли тестировать
     if (startPayload === 'test_start_full') {
