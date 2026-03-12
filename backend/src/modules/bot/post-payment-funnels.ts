@@ -587,6 +587,35 @@ export async function sendRenewalToday(userId: number, chatId: number, hasCpSubs
 }
 
 // ============================================================================
+// ВОРОНКА: ДОСТУП ЗАКРЫТ — подписка истекла (отправляется после фактического выгона из чатов)
+// ============================================================================
+
+export async function sendSubscriptionExpired(chatId: number) {
+  const user = await getUserByTgId(chatId);
+  const firstName = user?.firstName || 'дорогая';
+
+  const keyboard = new InlineKeyboard()
+    .webApp('оплатить ❤️', 'https://app.successkod.com/payment_form_club.html')
+    .row()
+    .url('Служба заботы', 'https://t.me/Egiazarova_support_bot');
+
+  await getTelegramService().sendPhoto(
+    chatId,
+    'https://t.me/mate_bot_open/9875',
+    {
+      caption:
+        `<b>${firstName}, доступ к клубу закрыт 🔒</b>\n\n` +
+        `Ваша подписка истекла — вы покинули каналы и чаты <b>КОД УСПЕХА</b>.\n\n` +
+        `Чтобы восстановить доступ — оформите подписку снова.\n\n` +
+        `❗️ Следующую оплату можно совершить только через 3 месяца после отмены — если вы отменяли подписку самостоятельно.\n\n` +
+        `Если возникли вопросы — <b>Служба Заботы</b> рядом 💬`,
+      parse_mode: 'HTML',
+      reply_markup: keyboard,
+    }
+  );
+}
+
+// ============================================================================
 // ВОРОНКА 5: ПОДАРОЧНАЯ ПОДПИСКА - ИСТЕЧЕНИЕ (за 3/2/1 день)
 // ============================================================================
 

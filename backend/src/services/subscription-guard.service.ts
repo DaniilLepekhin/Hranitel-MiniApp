@@ -11,7 +11,7 @@ import { logger } from '@/utils/logger';
 import { config } from '@/config';
 import { cache } from '@/utils/redis';
 import { decadesService } from '@/services/decades.service';
-import { sendRenewal2Days, sendRenewal1Day, sendRenewalToday, sendGiftExpiry3Days, sendGiftExpiry2Days, sendGiftExpiry1Day } from '@/modules/bot/post-payment-funnels';
+import { sendRenewal2Days, sendRenewal1Day, sendRenewalToday, sendGiftExpiry3Days, sendGiftExpiry2Days, sendGiftExpiry1Day, sendSubscriptionExpired } from '@/modules/bot/post-payment-funnels';
 
 // Защищённые каналы клуба
 const PROTECTED_CHANNEL_IDS = [
@@ -331,6 +331,13 @@ class SubscriptionGuardService {
 
           removed++;
           logger.info({ telegramId: user.telegramId, subscriptionExpires: user.subscriptionExpires }, 'User removed due to expired subscription');
+
+          // Уведомляем пользователя что доступ закрыт (единый синхрон: выгнали → сразу сообщили)
+          if (user.telegramId) {
+            sendSubscriptionExpired(user.telegramId).catch(e =>
+              logger.warn({ e, telegramId: user.telegramId }, 'Failed to send subscription expired notification')
+            );
+          }
         } catch (error) {
           logger.error({ error, telegramId: user.telegramId }, 'Error processing expired user');
         }
