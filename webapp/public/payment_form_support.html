@@ -294,7 +294,6 @@
       <label class="form-label">Стоимость</label>
       <div class="cost-container">
         <div class="cost-amount" id="cost-amount">2 000₽</div>
-        <div class="cost-note" id="cost-note" style="display:none"></div>
       </div>
 
       <div class="feature-card" style="margin-top: 15px; background: linear-gradient(135deg, rgba(139,0,0,0.08) 0%, rgba(255,255,255,0.6) 100%);">
@@ -355,8 +354,7 @@
           // При иностранном банке — всегда LavaTop, подсказку скрываем
           if (note) note.style.display = 'none';
         } else {
-          // Банк РФ — восстанавливаем подсказку (она уже выставлена detectProvider)
-          if (note && note.textContent) note.style.display = 'block';
+          if (note) note.style.display = 'none';
         }
         updateCurrencyVisibility();
         updateCost();
@@ -452,17 +450,9 @@
         if (isLavaTop) {
           // Показываем выбор банка — пользователь может платить иностранной картой
           if (pmContainer) pmContainer.style.display = 'block';
-          if (note) {
-            note.textContent = 'Банк РФ — оплата через LavaTop';
-            note.style.display = 'block';
-          }
         } else {
-          // CP или новый — блок скрыт, подсказка «СБП/CloudPayments»
+          // CP или новый — блок скрыт
           if (pmContainer) pmContainer.style.display = 'none';
-          if (note) {
-            note.textContent = 'Оплата через CloudPayments / СБП';
-            note.style.display = 'block';
-          }
         }
       } catch (_) {}
     }
