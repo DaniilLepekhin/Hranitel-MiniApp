@@ -88,6 +88,7 @@ export const users = pgTable('users', {
 
   // Ambassador
   isAmbassador: boolean('is_ambassador').default(false).notNull(),
+  isStudent: boolean('is_student').default(false),
 
   // Settings
   role: userRoleEnum('role').default('user').notNull(),

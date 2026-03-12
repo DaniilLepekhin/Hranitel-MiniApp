@@ -217,6 +217,10 @@ jobs:
             echo "📊 Applying migration 0020_add_lavatop_contract_id.sql..."
             psql "$DATABASE_URL" -f drizzle/migrations/0020_add_lavatop_contract_id.sql && echo "✅ Migration 0020 completed"
 
+            # Apply migration 0021 (add is_student to users - idempotent via IF NOT EXISTS)
+            echo "📊 Applying migration 0021_add_is_student.sql..."
+            psql "$DATABASE_URL" -f drizzle/migrations/0021_add_is_student.sql && echo "✅ Migration 0021 completed"
+
             echo "✅ All migrations applied successfully!"
 
             # 🔍 Pre-deployment health check
