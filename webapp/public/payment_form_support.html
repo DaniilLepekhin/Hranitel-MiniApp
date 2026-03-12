@@ -377,6 +377,20 @@
       }
     });
 
+    async function trackFormOpen(tgId) {
+      try {
+        await fetch(API_URL + '/api/analytics/form-open', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            telegram_id: String(tgId),
+            utm_source: 'support',
+            utm_campaign: 'oplatasup',
+          }),
+        });
+      } catch (_) {}
+    }
+
     function initializeTelegramWebApp() {
       setupFieldValidation('name', validateName);
       setupFieldValidation('phone', validatePhone);
@@ -396,6 +410,7 @@
         submitBtn.style.background = '#999';
         submitBtn.style.cursor = 'not-allowed';
       } else {
+        trackFormOpen(tgId);
         detectProvider();
       }
     }

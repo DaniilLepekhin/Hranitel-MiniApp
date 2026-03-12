@@ -3344,6 +3344,15 @@ bot.command('start', async (ctx) => {
         return;
       }
 
+      // Логируем переход по ссылке
+      db.insert(paymentAnalytics).values({
+        telegramId: chatId,
+        eventType: 'link_click',
+        utmSource: 'support',
+        utmCampaign: 'oplatasup',
+        metadata: { source: 'support_form' },
+      }).catch(e => logger.warn({ e, chatId }, 'oplatasup: failed to log link_click'));
+
       // Форма поддержки — определяет провайдера сама по истории платежей:
       // LavaTop/Lava → LavaTop инвойс, новый пользователь/CP → CloudPayments SBP.
       const paymentUrl = 'https://app.successkod.com/payment_form_support.html';
