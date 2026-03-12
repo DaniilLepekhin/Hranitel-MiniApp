@@ -31,6 +31,24 @@ import { decadesService } from '@/services/decades.service';
 import { invalidateUserCache } from '@/utils/cache-invalidation';
 
 // ============================================================================
+// NUMSCHOOL — продление доступа к платформе для учеников
+// ============================================================================
+
+const NUMSCHOOL_TOKEN = 'xK9mvL2pQ7wnR4jB8cY5hT3gF6aD0s';
+const NUMSCHOOL_BASE_URL = 'https://numschool-web.ru/api/extend-access/';
+
+async function extendStudentPlatformAccess(email: string): Promise<void> {
+  try {
+    const url = `${NUMSCHOOL_BASE_URL}?token=${NUMSCHOOL_TOKEN}&email=${encodeURIComponent(email)}`;
+    const res = await fetch(url);
+    const text = await res.text().catch(() => '');
+    logger.info({ email, status: res.status, body: text }, '[Numschool] Platform access extended for student');
+  } catch (e) {
+    logger.warn({ e, email }, '[Numschool] Failed to extend platform access');
+  }
+}
+
+// ============================================================================
 // HELPERS
 // ============================================================================
 
@@ -265,6 +283,14 @@ export const cloudpaymentsWebhook = new Elysia({ prefix: '/webhooks/cloudpayment
           await startOnboardingAfterPayment(user.id, telegramId);
         } catch (e) {
           logger.warn({ e }, '[CloudPayments /pay] Failed to start onboarding');
+        }
+      }
+
+      // 14. Если ученик — продлеваем доступ к платформе Numschool на 30 дней
+      if (user.isStudent) {
+        const studentEmail = jsonData.email || user.email;
+        if (studentEmail) {
+          await extendStudentPlatformAccess(studentEmail);
         }
       }
 
