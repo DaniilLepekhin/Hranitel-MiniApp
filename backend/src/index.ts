@@ -330,14 +330,15 @@ if (!isDevelopment) {
     await alertsService.checkWebhookHealth();
   }, 60 * 1000);
 
-  // 🔒 CRON: Проверка истекших подписок (каждый день в 00:00 по МСК)
-  // Выгоняет из каналов и чатов пользователей с истекшей подпиской
+  // 🔒 CRON: Проверка истекших подписок (каждый день в 09:00 по МСК)
+  // Выгоняет из каналов и чатов пользователей с истекшей подпиской + уведомляет их
+  // Единый синхрон с sendRenewalRemindersDaily: оба крона в 09:00 МСК
   const checkExpiredSubscriptionsDaily = async () => {
     const now = new Date();
     const moscowHour = (now.getUTCHours() + 3) % 24; // UTC+3 = Moscow time
 
-    // Запускаем в 00:00 по МСК (21:00 UTC предыдущего дня)
-    if (moscowHour === 0) {
+    // Запускаем в 09:00 по МСК (06:00 UTC)
+    if (moscowHour === 9) {
       logger.info('Running daily expired subscriptions check...');
       try {
         const result = await subscriptionGuardService.checkExpiredSubscriptions();
