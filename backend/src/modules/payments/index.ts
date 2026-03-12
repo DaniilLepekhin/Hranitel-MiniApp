@@ -94,6 +94,7 @@ export const paymentsModule = new Elysia({ prefix: '/payments' })
       utm_medium,
       utm_campaign,
       utm_content,
+      currency: rawCurrency,
     } = body as {
       telegram_id: string | number;
       email: string;
@@ -104,7 +105,15 @@ export const paymentsModule = new Elysia({ prefix: '/payments' })
       utm_medium?: string;
       utm_campaign?: string;
       utm_content?: string;
+      currency?: string;
     };
+
+    // Нормализуем валюту — только RUB / USD / EUR, default RUB
+    const allowedCurrencies = ['RUB', 'USD', 'EUR'] as const;
+    type AllowedCurrency = typeof allowedCurrencies[number];
+    const currency: AllowedCurrency = (rawCurrency && allowedCurrencies.includes(rawCurrency.toUpperCase() as AllowedCurrency))
+      ? rawCurrency.toUpperCase() as AllowedCurrency
+      : 'RUB';
 
     // Валидация обязательных полей
     if (!rawTelegramId || !rawEmail || !offer_key) {
@@ -212,7 +221,8 @@ export const paymentsModule = new Elysia({ prefix: '/payments' })
       const invoice = await lavaTopService.createInvoice({
         email,
         offerId: offer.offerId,
-        currency: offer.currency as 'RUB' | 'USD' | 'EUR',
+        // Если передана валюта (иностранный банк) — используем её, иначе берём из оффера
+        currency: currency !== 'RUB' ? currency : (offer.currency as 'RUB' | 'USD' | 'EUR'),
         periodicity: offer.periodicity as 'ONE_TIME' | 'MONTHLY' | 'PERIOD_90_DAYS' | 'PERIOD_180_DAYS',
         buyerLanguage: 'RU',
         clientUtm: {
@@ -256,13 +266,28 @@ export const paymentsModule = new Elysia({ prefix: '/payments' })
       name,
       phone,
       code_word,
+      payment_method: rawPaymentMethod,
+      currency: rawSupportCurrency,
     } = body as {
       telegram_id: string | number;
       email: string;
       name?: string;
       phone?: string;
       code_word?: string;
+      payment_method?: string; // 'bank-rf' | 'foreign-bank'
+      currency?: string;       // 'USD' | 'EUR' | 'paypal' → USD
     };
+
+    // Нормализуем currency для LavaTop: paypal → USD, EUR → EUR, иначе RUB
+    const supportAllowedCurrencies = ['RUB', 'USD', 'EUR'] as const;
+    type SupportAllowedCurrency = typeof supportAllowedCurrencies[number];
+    const rawSupportCurrencyUpper = rawSupportCurrency?.toUpperCase();
+    const supportCurrency: SupportAllowedCurrency =
+      rawSupportCurrencyUpper === 'EUR' ? 'EUR'
+      : rawSupportCurrencyUpper === 'USD' || rawSupportCurrency === 'paypal' ? 'USD'
+      : 'RUB';
+
+    const isForeignBank = rawPaymentMethod === 'foreign-bank';
 
     if (!rawTelegramId || !rawEmail) {
       set.status = 400;
@@ -302,9 +327,10 @@ export const paymentsModule = new Elysia({ prefix: '/payments' })
     }
 
     // Логика выбора провайдера:
-    // • LavaTop / Lava (старый) → LavaTop инвойс
+    // • Иностранный банк (foreign-bank) → всегда LavaTop (независимо от истории)
+    // • LavaTop / Lava история → LavaTop инвойс
     // • CP история / новый пользователь → CloudPayments SBP
-    const useLavaTop = lastProvider === 'lavatop' || lastProvider === 'lava' || lastProvider === 'manual';
+    const useLavaTop = isForeignBank || lastProvider === 'lavatop' || lastProvider === 'lava' || lastProvider === 'manual';
 
     logger.info({ telegram_id, email, lastProvider, useLavaTop }, '[payments/generate-link-support] provider resolved');
 
@@ -352,7 +378,7 @@ export const paymentsModule = new Elysia({ prefix: '/payments' })
         const invoice = await lavaTopService.createInvoice({
           email,
           offerId: offer.offerId,
-          currency: 'RUB',
+          currency: supportCurrency,
           periodicity: 'MONTHLY',
           buyerLanguage: 'RU',
           clientUtm: { utm_source: 'support', utm_medium: 'direct', utm_campaign: 'oplatasup', utm_content: null, utm_term: null },

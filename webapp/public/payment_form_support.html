@@ -104,6 +104,45 @@
     }
     .input-icon.show { opacity: 1; }
     input.filled { border-color: #2e7d32; }
+    .payment-methods {
+      margin: 8px 0;
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 6px;
+    }
+    .currency-options {
+      margin: 8px 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    .payment-method, .currency-option {
+      font-size: 14px;
+      padding: 12px 16px;
+      border: 1px solid var(--kod-border);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.6);
+      color: var(--kod-text);
+      cursor: pointer;
+      text-align: center;
+      white-space: nowrap;
+      flex: 1;
+      transition: all 0.2s ease;
+      font-weight: 600;
+    }
+    .payment-method:hover, .currency-option:hover {
+      background: rgba(139,69,19,0.08);
+      transform: translateY(-1px);
+    }
+    .payment-method.active, .currency-option.active {
+      background: var(--kod-accent) !important;
+      color: var(--kod-white) !important;
+      border-color: var(--kod-accent);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(139,0,0,0.2);
+    }
+    #currency-container { display: none; }
+    #currency-container.show { display: block; }
     .cost-container {
       margin: 10px 0; padding: 20px;
       background: linear-gradient(135deg, rgba(139,0,0,0.08) 0%, rgba(139,69,19,0.05) 100%);
@@ -234,9 +273,24 @@
         <input type="text" id="code_word" placeholder="Введите кодовое слово" required>
       </div>
 
+      <label class="form-label">Способ оплаты</label>
+      <div class="payment-methods">
+        <div class="payment-method active" id="bank-rf">Банк РФ</div>
+        <div class="payment-method" id="foreign-bank">Иностранный банк</div>
+      </div>
+
+      <div id="currency-container">
+        <label class="form-label">Валюта</label>
+        <div class="currency-options">
+          <div class="currency-option active" id="usd">USD</div>
+          <div class="currency-option" id="eur">EUR</div>
+          <div class="currency-option" id="paypal">PayPal</div>
+        </div>
+      </div>
+
       <label class="form-label">Стоимость</label>
       <div class="cost-container">
-        <div class="cost-amount">2 000₽</div>
+        <div class="cost-amount" id="cost-amount">2 000₽</div>
         <div class="cost-note" id="cost-note" style="display:none"></div>
       </div>
 
@@ -259,7 +313,59 @@
     'use strict';
 
     let isSubmitting = false;
+    let selectedPaymentMethod = 'bank-rf';
+    let selectedCurrency = 'usd';
     const API_URL = 'https://app.successkod.com';
+
+    const prices = {
+      'bank-rf': '2 000₽',
+      'foreign-bank': { 'usd': '26$', 'eur': '22€', 'paypal': '26$' }
+    };
+
+    function updateCost() {
+      const costEl = document.getElementById('cost-amount');
+      costEl.textContent = selectedPaymentMethod === 'foreign-bank'
+        ? prices['foreign-bank'][selectedCurrency]
+        : prices['bank-rf'];
+    }
+
+    function updateCurrencyVisibility() {
+      const container = document.getElementById('currency-container');
+      if (selectedPaymentMethod === 'bank-rf') {
+        container.classList.remove('show');
+      } else {
+        container.classList.add('show');
+      }
+    }
+
+    // Способ оплаты
+    document.querySelectorAll('.payment-method').forEach(method => {
+      method.addEventListener('click', function() {
+        document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('active'));
+        this.classList.add('active');
+        selectedPaymentMethod = this.id;
+        if (selectedPaymentMethod === 'foreign-bank') {
+          selectedCurrency = 'usd';
+          document.querySelectorAll('.currency-option').forEach(o => o.classList.remove('active'));
+          document.getElementById('usd').classList.add('active');
+          // Скрываем подсказку провайдера — при иностранном банке всегда LavaTop
+          const note = document.getElementById('cost-note');
+          if (note) note.style.display = 'none';
+        }
+        updateCurrencyVisibility();
+        updateCost();
+      });
+    });
+
+    // Валюта
+    document.querySelectorAll('.currency-option').forEach(option => {
+      option.addEventListener('click', function() {
+        document.querySelectorAll('.currency-option').forEach(o => o.classList.remove('active'));
+        this.classList.add('active');
+        selectedCurrency = this.id;
+        updateCost();
+      });
+    });
 
     function getTGId() {
       const tg = window.Telegram?.WebApp;
@@ -323,7 +429,7 @@
       });
     }
 
-    // Подставить провайдера в подсказку под ценой
+    // Подставить провайдера в подсказку под ценой (только для Банк РФ)
     async function detectProvider() {
       const tgId = getTGId();
       if (!tgId) return;
@@ -332,13 +438,13 @@
         if (!res.ok) return;
         const data = await res.json();
         const note = document.getElementById('cost-note');
-        if (note) {
+        if (note && selectedPaymentMethod === 'bank-rf') {
           if (data.provider === 'lavatop' || data.provider === 'lava') {
             note.textContent = 'Оплата через LavaTop (ваш предыдущий способ)';
+            note.style.display = 'block';
           } else if (data.provider === 'cloudpayments') {
             note.textContent = 'Оплата через CloudPayments / СБП';
-          } else {
-            note.textContent = 'Оплата через CloudPayments / СБП';
+            note.style.display = 'block';
           }
         }
       } catch (_) {}
@@ -373,6 +479,11 @@
       try {
         showLoading(true, 'Подбираем способ оплаты...');
 
+        // При иностранном банке передаём currency для LavaTop
+        const ltCurrency = selectedPaymentMethod === 'foreign-bank'
+          ? (selectedCurrency === 'eur' ? 'EUR' : 'USD')
+          : 'RUB';
+
         const response = await fetchWithTimeout(API_URL + '/api/payments/generate-link-support', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -382,6 +493,8 @@
             name,
             phone,
             code_word: codeWord,
+            payment_method: selectedPaymentMethod,
+            currency: ltCurrency,
             force_renew: activeSubConfirmed || false,
           })
         }, { timeout: 30000, retries: 2 });

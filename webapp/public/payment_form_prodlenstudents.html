@@ -13,7 +13,9 @@
       --kod-accent: #8b0000;
       --kod-white: #ffffff;
     }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
       background: linear-gradient(135deg, #f8f6f0 0%, #ede8d8 50%, #f5f3f0 100%);
       color: var(--kod-text);
@@ -21,17 +23,23 @@
       padding: 20px;
       min-height: 100vh;
     }
+
     .container {
       max-width: 480px;
       margin: 0 auto;
       background:
-        radial-gradient(circle at 30% 20%, rgba(255,255,255,0.1) 0%, transparent 50%),
+        radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 70% 80%, rgba(139, 69, 19, 0.05) 0%, transparent 50%),
         linear-gradient(135deg, #f8f6f0 0%, #ede8d8 25%, #f5f3f0 50%, #e8dcc6 75%, #f8f6f0 100%);
       border: 2px solid var(--kod-border);
       border-radius: 12px;
       padding: 25px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2);
+      box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(139, 69, 19, 0.1);
     }
+
     .title {
       font-size: 22px;
       text-align: center;
@@ -42,22 +50,29 @@
       margin: 0 0 18px;
       font-weight: 700;
     }
+
     .feature-card {
       font-size: 13px;
       margin: 8px 0;
       padding: 12px 14px;
-      background: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.5) 100%);
-      border: 1.5px solid rgba(139,69,19,0.25);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.5) 100%);
+      border: 1.5px solid rgba(139, 69, 19, 0.25);
       border-radius: 10px;
       line-height: 1.4;
       font-weight: 600;
       display: flex;
       align-items: center;
       gap: 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      transition: all 0.2s ease;
     }
+
+    .feature-card:hover { transform: translateX(2px); box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08); }
+
     .feature-icon {
       font-size: 16px;
       flex-shrink: 0;
+      line-height: 1;
       width: 28px; height: 28px;
       display: flex; align-items: center; justify-content: center;
       background: var(--kod-accent);
@@ -65,6 +80,7 @@
       border-radius: 50%;
       font-weight: bold;
     }
+
     .form-label {
       font-size: 14px;
       margin: 16px 0 5px;
@@ -73,7 +89,9 @@
       display: block;
     }
     .form-label:first-of-type { margin-top: 12px; }
+
     .input-wrapper { position: relative; margin-bottom: 8px; }
+
     input[type="email"], input[type="text"], input[type="tel"] {
       font-size: 14px;
       padding: 12px 15px 12px 40px;
@@ -85,14 +103,17 @@
       font-family: inherit;
       transition: all 0.3s ease;
     }
+
     input[type="email"]::placeholder, input[type="text"]::placeholder, input[type="tel"]::placeholder {
       color: var(--kod-text); opacity: 0.5;
     }
+
     input[type="email"]:focus, input[type="text"]:focus, input[type="tel"]:focus {
       outline: none;
       border-color: var(--kod-accent);
-      box-shadow: 0 0 0 2px rgba(139,0,0,0.1);
+      box-shadow: 0 0 0 2px rgba(139, 0, 0, 0.1);
     }
+
     .input-icon {
       position: absolute; left: 12px; top: 50%;
       transform: translateY(-50%);
@@ -102,21 +123,78 @@
       color: #2e7d32; opacity: 0;
       transition: all 0.3s ease; pointer-events: none;
     }
-    .input-icon.show { opacity: 1; }
+
+    .input-icon.show { opacity: 1; animation: checkPop 0.3s ease-out; }
+
+    @keyframes checkPop {
+      0% { transform: translateY(-50%) scale(0); }
+      50% { transform: translateY(-50%) scale(1.2); }
+      100% { transform: translateY(-50%) scale(1); }
+    }
+
     input.filled { border-color: #2e7d32; }
+
+    .payment-methods {
+      margin: 8px 0;
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 6px;
+    }
+
+    .currency-options {
+      margin: 8px 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .payment-method, .currency-option {
+      font-size: 14px;
+      padding: 12px 16px;
+      border: 1px solid var(--kod-border);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.6);
+      color: var(--kod-text);
+      cursor: pointer;
+      text-align: center;
+      white-space: nowrap;
+      flex: 1;
+      transition: all 0.2s ease;
+      font-weight: 600;
+    }
+
+    .payment-method:hover, .currency-option:hover {
+      background: rgba(139, 69, 19, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .payment-method.active, .currency-option.active {
+      background: var(--kod-accent) !important;
+      color: var(--kod-white) !important;
+      border-color: var(--kod-accent);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(139, 0, 0, 0.2);
+    }
+
+    #currency-container { display: none; }
+    #currency-container.show { display: block; }
+
     .cost-container {
       margin: 10px 0; padding: 20px;
-      background: linear-gradient(135deg, rgba(139,0,0,0.08) 0%, rgba(139,69,19,0.05) 100%);
+      background: linear-gradient(135deg, rgba(139, 0, 0, 0.08) 0%, rgba(139, 69, 19, 0.05) 100%);
       border: 2px solid var(--kod-accent);
       border-radius: 12px;
-      text-align: center;
+      box-shadow: 0 4px 12px rgba(139, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3);
     }
+
     .cost-amount {
-      font-size: 48px; font-weight: 800;
+      font-size: 48px; font-weight: 800; margin: 0;
       color: var(--kod-accent);
-      letter-spacing: -1px; line-height: 1;
+      text-align: center; letter-spacing: -1px;
+      text-shadow: 0 2px 4px rgba(139, 0, 0, 0.1);
+      line-height: 1;
     }
-    .cost-note { font-size: 13px; color: #666; margin-top: 6px; }
+
     .submit-btn {
       margin-top: 15px; padding: 15px 30px;
       width: 100%; font-size: 16px;
@@ -127,41 +205,53 @@
       text-transform: uppercase; letter-spacing: 0.5px;
       transition: all 0.3s ease;
     }
-    .submit-btn:hover { background: #a00000; transform: translateY(-2px); }
-    .submit-btn:active { transform: translateY(0); }
+
+    .submit-btn:hover { background: #a00000; transform: translateY(-2px); box-shadow: 0 6px 12px rgba(139, 0, 0, 0.3); }
+    .submit-btn:active { transform: translateY(0); box-shadow: 0 2px 4px rgba(139, 0, 0, 0.2); }
     .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
     .loading-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.7); color: #fff;
+      background: rgba(0, 0, 0, 0.7); color: #FFFFFF;
       display: none; align-items: center; justify-content: center;
       flex-direction: column; gap: 15px; font-size: 18px; z-index: 1000;
     }
     .loading-overlay.show { display: flex !important; }
+
     .loading-spinner {
       width: 50px; height: 50px;
-      border: 4px solid rgba(255,255,255,0.3);
-      border-top: 4px solid #fff;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top: 4px solid #ffffff;
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
+
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
     .loading-text { font-size: 18px; font-weight: 600; text-align: center; line-height: 1.5; }
+
     .notification {
       position: fixed; top: 50%; left: 50%;
       transform: translate(-50%, -70%);
       padding: 15px 25px; background: var(--kod-white);
       color: var(--kod-text); border: 1px solid var(--kod-border);
-      border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
       font-size: 15px; font-weight: 600; text-align: center;
       z-index: 1001; display: none;
     }
-    .notification.show { display: block !important; }
+    .notification.show { display: block !important; animation: notificationSlide 0.3s ease-out; }
+
+    @keyframes notificationSlide {
+      from { transform: translate(-50%, -100px); opacity: 0; }
+      to { transform: translate(-50%, -70%); opacity: 1; }
+    }
+
     .cancel-link {
-      display: block; text-align: center; margin-top: 12px;
-      font-size: 13px; color: #999; cursor: pointer;
-      text-decoration: underline;
+      display: block; text-align: center; margin-top: 14px;
+      font-size: 13px; color: #999; cursor: pointer; text-decoration: underline;
     }
     .cancel-link:hover { color: var(--kod-accent); }
+
     .cancel-result {
       display: none; margin-top: 16px; padding: 16px;
       background: linear-gradient(135deg, rgba(46,125,50,0.08) 0%, rgba(255,255,255,0.7) 100%);
@@ -174,6 +264,8 @@
     @media (max-width: 768px) {
       body { padding: 10px; }
       .container { padding: 20px 15px; }
+      .payment-method, .currency-option { font-size: 12px; padding: 10px 8px; }
+      .cost-container { padding: 16px; }
       .cost-amount { font-size: 42px; }
     }
   </style>
@@ -186,6 +278,7 @@
       <span class="feature-icon">✓</span>
       <span>Доступ в закрытое сообщество «Код Успеха»</span>
     </div>
+
     <div class="feature-card">
       <span class="feature-icon">↻</span>
       <span>Подписка на 30 дней с автопродлением</span>
@@ -210,15 +303,29 @@
         <input type="email" id="email" placeholder="example@gmail.com" required>
       </div>
 
-      <label class="form-label">Стоимость</label>
-      <div class="cost-container">
-        <div class="cost-amount">2 000₽</div>
-        <div class="cost-note">Оплата через LavaTop</div>
+      <label class="form-label">Способ оплаты</label>
+      <div class="payment-methods">
+        <div class="payment-method active" id="bank-rf">Банк РФ</div>
+        <div class="payment-method" id="foreign-bank">Иностранный банк</div>
       </div>
 
-      <div class="feature-card" style="margin-top: 15px; background: linear-gradient(135deg, rgba(139,0,0,0.08) 0%, rgba(255,255,255,0.6) 100%);">
+      <div id="currency-container">
+        <label class="form-label">Валюта</label>
+        <div class="currency-options">
+          <div class="currency-option active" id="usd">USD</div>
+          <div class="currency-option" id="eur">EUR</div>
+          <div class="currency-option" id="paypal">PayPal</div>
+        </div>
+      </div>
+
+      <label class="form-label">Стоимость</label>
+      <div class="cost-container">
+        <div class="cost-amount" id="cost-amount">2 000₽</div>
+      </div>
+
+      <div class="feature-card" style="margin-top: 15px; background: linear-gradient(135deg, rgba(139, 0, 0, 0.08) 0%, rgba(255, 255, 255, 0.6) 100%);">
         <span class="feature-icon" style="background: #e91e63;">❤</span>
-        <span>После оплаты вернитесь в бот — доступ к клубу откроется автоматически</span>
+        <span>После оплаты вернитесь в бот — там откроется доступ к клубу «КОД УСПЕХА»</span>
       </div>
 
       <button type="submit" class="submit-btn">Перейти к оплате</button>
@@ -233,7 +340,7 @@
 
   <div class="loading-overlay" id="loading-overlay">
     <div class="loading-spinner"></div>
-    <div class="loading-text" id="loading-text">Создаём ссылку на оплату...</div>
+    <div class="loading-text" id="loading-text">Генерируем ссылку на оплату...</div>
   </div>
   <div class="notification" id="notification"></div>
 
@@ -242,15 +349,18 @@
 
     const UTM_CAMPAIGN = 'prodlenstudents';
     const UTM_SOURCE = 'bot';
-    const API_URL = 'https://app.successkod.com';
+    const UTM_MEDIUM = 'bot';
+
+    let selectedPaymentMethod = 'bank-rf';
+    let selectedCurrency = 'usd';
     let isSubmitting = false;
 
-    function getTGId() {
-      const tg = window.Telegram?.WebApp;
-      if (tg?.initDataUnsafe?.user?.id) return tg.initDataUnsafe.user.id;
-      const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get('platform_id') || urlParams.get('tg_id') || '';
-    }
+    const prices = {
+      'bank-rf': '2 000₽',
+      'foreign-bank': { 'usd': '26$', 'eur': '22€', 'paypal': '26$' }
+    };
+
+    const API_URL = 'https://app.successkod.com';
 
     async function fetchWithTimeout(url, options, { timeout = 30000, retries = 2 } = {}) {
       for (let attempt = 1; attempt <= retries; attempt++) {
@@ -268,11 +378,34 @@
       }
     }
 
+    function getTGId() {
+      const tg = window.Telegram?.WebApp;
+      if (tg?.initDataUnsafe?.user?.id) return tg.initDataUnsafe.user.id;
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('platform_id') || urlParams.get('tg_id') || '';
+    }
+
+    function updateCost() {
+      const costEl = document.getElementById('cost-amount');
+      costEl.textContent = selectedPaymentMethod === 'foreign-bank'
+        ? prices['foreign-bank'][selectedCurrency]
+        : prices['bank-rf'];
+    }
+
+    function updateCurrencyVisibility() {
+      const container = document.getElementById('currency-container');
+      if (selectedPaymentMethod === 'bank-rf') {
+        container.classList.remove('show');
+      } else {
+        container.classList.add('show');
+      }
+    }
+
     function showNotification(message) {
       const n = document.getElementById('notification');
       n.textContent = message;
       n.classList.add('show');
-      setTimeout(() => n.classList.remove('show'), 2000);
+      setTimeout(() => n.classList.remove('show'), 1500);
     }
 
     function showLoading(show, text) {
@@ -283,16 +416,16 @@
         loading.classList.add('show');
       } else {
         loading.classList.remove('show');
-        if (loadingText) loadingText.textContent = 'Создаём ссылку на оплату...';
+        if (loadingText) loadingText.textContent = 'Генерируем ссылку на оплату...';
       }
     }
 
     function validateEmail(email) {
       return /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/.test(email) && email.length <= 254;
     }
-    function validateName(name) { const t = name.trim(); return t.length >= 2 && t.length <= 100; }
+    function validateName(name) { return name.trim().length >= 2 && name.trim().length <= 100; }
     function validatePhone(phone) { const d = phone.replace(/\D/g, ''); return d.length >= 10 && d.length <= 15; }
-    function sanitize(str, max = 200) { return str.trim().slice(0, max).replace(/[<>]/g, ''); }
+    function sanitizeInput(str, max = 200) { return str.trim().slice(0, max).replace(/[<>]/g, ''); }
 
     function setupFieldValidation(fieldId, validationFn) {
       const input = document.getElementById(fieldId);
@@ -306,90 +439,30 @@
       });
     }
 
-    document.getElementById('paymentForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      if (isSubmitting) return;
-
-      const submitBtn = this.querySelector('.submit-btn');
-      const tgId = getTGId();
-
-      if (!tgId) {
-        showNotification('Откройте форму через Telegram');
-        return;
-      }
-
-      const name = sanitize(document.getElementById('name').value, 100);
-      const phone = sanitize(document.getElementById('phone').value, 20);
-      const email = sanitize(document.getElementById('email').value.toLowerCase(), 254);
-
-      if (!name || !validateName(name)) { showNotification('Введите имя и фамилию (минимум 2 символа)'); return; }
-      if (!phone || !validatePhone(phone)) { showNotification('Введите корректный номер телефона'); return; }
-      if (!email || !validateEmail(email)) { showNotification('Введите корректный email'); return; }
-
-      isSubmitting = true;
-      submitBtn.disabled = true;
-      submitBtn.style.pointerEvents = 'none';
-
-      try {
-        showLoading(true, 'Создаём ссылку на оплату...');
-
-        // Логируем попытку оплаты
-        fetchWithTimeout(API_URL + '/api/analytics/payment-attempt', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            telegram_id: tgId.toString(),
-            payment_method: 'RUB',
-            amount: '2000',
-            currency: 'RUB',
-            name, email, phone,
-            utm_campaign: UTM_CAMPAIGN,
-            utm_source: UTM_SOURCE,
-            metadata: { source: 'prodlenstudents_form' },
-          })
-        }, { timeout: 10000, retries: 1 }).catch(() => {});
-
-        // Генерируем ссылку через LavaTop (тот же эндпоинт что и обычная форма клуба)
-        // force_renew: true — форма prodlenstudents всегда разрешает оплату, даже при активной подписке
-        const response = await fetchWithTimeout(API_URL + '/api/payments/generate-link', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            telegram_id: tgId.toString(),
-            email,
-            name,
-            phone,
-            offer_key: 'monthly_rub_2000',
-            utm_source: UTM_SOURCE,
-            utm_medium: 'bot',
-            utm_campaign: UTM_CAMPAIGN,
-            utm_content: null,
-            force_renew: true,
-          })
-        }, { timeout: 30000, retries: 2 });
-
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(errData.error || 'Не удалось получить ссылку на оплату');
+    // Способ оплаты
+    document.querySelectorAll('.payment-method').forEach(method => {
+      method.addEventListener('click', function() {
+        document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('active'));
+        this.classList.add('active');
+        selectedPaymentMethod = this.id;
+        if (selectedPaymentMethod === 'foreign-bank') {
+          selectedCurrency = 'usd';
+          document.querySelectorAll('.currency-option').forEach(o => o.classList.remove('active'));
+          document.getElementById('usd').classList.add('active');
         }
+        updateCurrencyVisibility();
+        updateCost();
+      });
+    });
 
-        const data = await response.json();
-
-        if (!data.success || !data.payment_url) {
-          throw new Error(data.error || 'Не удалось получить ссылку на оплату');
-        }
-
-        showLoading(true, 'Переходим к оплате...');
-        setTimeout(() => { window.location.href = data.payment_url; }, 500);
-
-      } catch (error) {
-        console.error('Ошибка:', error);
-        showNotification(error.message || 'Произошла ошибка, попробуйте снова');
-        showLoading(false);
-        isSubmitting = false;
-        submitBtn.disabled = false;
-        submitBtn.style.pointerEvents = 'auto';
-      }
+    // Валюта
+    document.querySelectorAll('.currency-option').forEach(option => {
+      option.addEventListener('click', function() {
+        document.querySelectorAll('.currency-option').forEach(o => o.classList.remove('active'));
+        this.classList.add('active');
+        selectedCurrency = this.id;
+        updateCost();
+      });
     });
 
     // Отмена подписки
@@ -427,19 +500,107 @@
       }
     });
 
-    async function trackFormOpen(tgId) {
+    // Отправка формы
+    document.getElementById('paymentForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      if (isSubmitting) return;
+
+      const submitBtn = this.querySelector('.submit-btn');
+      const tgId = getTGId();
+
+      if (!tgId) {
+        showNotification('Откройте форму через Telegram');
+        return;
+      }
+
+      const name = sanitizeInput(document.getElementById('name').value, 100);
+      const phone = sanitizeInput(document.getElementById('phone').value, 20);
+      const email = sanitizeInput(document.getElementById('email').value.toLowerCase(), 254);
+
+      if (!name || !validateName(name)) { showNotification('Введите имя и фамилию (минимум 2 символа)'); return; }
+      if (!phone || !validatePhone(phone)) { showNotification('Введите корректный номер телефона'); return; }
+      if (!email || !validateEmail(email)) { showNotification('Введите корректный email'); return; }
+
+      isSubmitting = true;
+      submitBtn.disabled = true;
+      submitBtn.style.pointerEvents = 'none';
+
       try {
-        await fetch(API_URL + '/api/analytics/form-open', {
+        showLoading(true, 'Генерируем ссылку на оплату...');
+
+        // Логируем payment_attempt
+        fetchWithTimeout(API_URL + '/api/analytics/payment-attempt', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            telegram_id: String(tgId),
-            utm_source: UTM_SOURCE,
+            telegram_id: tgId.toString(),
+            payment_method: 'RUB',
+            amount: '2000',
+            currency: 'RUB',
+            name, email, phone,
             utm_campaign: UTM_CAMPAIGN,
-          }),
-        });
-      } catch (_) {}
-    }
+            utm_source: UTM_SOURCE,
+            utm_medium: UTM_MEDIUM,
+            metadata: { source: 'prodlenstudents_form' },
+          })
+        }, { timeout: 10000, retries: 1 }).catch(() => {});
+
+        // force_renew: true — форма prodlenstudents всегда разрешает оплату
+        // При иностранном банке передаём currency для LavaTop, offer_key всегда monthly_rub_2000
+        const ltCurrency = selectedPaymentMethod === 'foreign-bank'
+          ? (selectedCurrency === 'eur' ? 'EUR' : 'USD')
+          : 'RUB';
+
+        const response = await fetchWithTimeout(API_URL + '/api/payments/generate-link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            telegram_id: tgId.toString(),
+            email, name, phone,
+            offer_key: 'monthly_rub_2000',
+            currency: ltCurrency,
+            utm_source: UTM_SOURCE,
+            utm_medium: UTM_MEDIUM,
+            utm_campaign: UTM_CAMPAIGN,
+            utm_content: null,
+            force_renew: true,
+          })
+        }, { timeout: 30000, retries: 2 });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || 'Не удалось получить ссылку на оплату');
+        }
+
+        const data = await response.json();
+
+        if (data.success && data.auto_renewal && data.provider === 'cloudpayments') {
+          showLoading(false);
+          showNotification('Ваша подписка продлевается автоматически 🤍');
+          submitBtn.disabled = false;
+          submitBtn.style.pointerEvents = 'auto';
+          submitBtn.textContent = 'Подписка активна';
+          submitBtn.style.background = '#2e7d32';
+          isSubmitting = false;
+          return;
+        }
+
+        if (!data.success || !data.payment_url) {
+          throw new Error(data.error || 'Не удалось получить ссылку на оплату');
+        }
+
+        showLoading(true, 'Переходим на страницу оплаты...');
+        setTimeout(() => { window.location.href = data.payment_url; }, 500);
+
+      } catch (error) {
+        console.error('Ошибка:', error);
+        showNotification(error.message || 'Произошла ошибка, попробуйте снова');
+        showLoading(false);
+        isSubmitting = false;
+        submitBtn.disabled = false;
+        submitBtn.style.pointerEvents = 'auto';
+      }
+    });
 
     function initializeTelegramWebApp() {
       setupFieldValidation('name', validateName);
@@ -458,8 +619,24 @@
         submitBtn.textContent = 'Откройте через Telegram';
         submitBtn.style.background = '#999';
         submitBtn.style.cursor = 'not-allowed';
+        const container = document.querySelector('.container');
+        const warning = document.createElement('div');
+        warning.className = 'feature-card';
+        warning.style.background = 'linear-gradient(135deg, rgba(255, 193, 7, 0.2) 0%, rgba(255, 255, 255, 0.6) 100%)';
+        warning.style.borderColor = '#ffc107';
+        warning.innerHTML = '<span class="feature-icon" style="background: #ffc107;">⚠</span><span>Откройте форму через Telegram бот для оформления подписки</span>';
+        container.insertBefore(warning, container.querySelector('.feature-card'));
       } else {
-        trackFormOpen(tgId);
+        // Трекинг открытия формы
+        fetch(API_URL + '/api/analytics/form-open', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            telegram_id: tgId.toString(),
+            utm_source: UTM_SOURCE,
+            utm_campaign: UTM_CAMPAIGN,
+          }),
+        }).catch(() => {});
       }
     }
 
