@@ -229,11 +229,13 @@ export const paymentsModule = new Elysia({ prefix: '/payments' })
       email: rawEmail,
       name,
       phone,
+      code_word,
     } = body as {
       telegram_id: string | number;
       email: string;
       name?: string;
       phone?: string;
+      code_word?: string;
     };
 
     if (!rawTelegramId || !rawEmail) {
@@ -286,7 +288,7 @@ export const paymentsModule = new Elysia({ prefix: '/payments' })
         name: name || null,
         email,
         phone: phone || null,
-        metadata: { source: 'support_form', lastProvider },
+        metadata: { source: 'support_form', lastProvider, code_word: code_word || null },
       });
     } catch (e) {
       logger.warn({ e, telegram_id }, '[payments/generate-link-support] Failed to save payment_attempt');

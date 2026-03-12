@@ -195,10 +195,16 @@
         <input type="email" id="email" placeholder="example@gmail.com" required>
       </div>
 
+      <label class="form-label" for="code_word">Кодовое слово</label>
+      <div class="input-wrapper">
+        <span class="input-icon">✓</span>
+        <input type="text" id="code_word" placeholder="Введите кодовое слово" required>
+      </div>
+
       <label class="form-label">Стоимость</label>
       <div class="cost-container">
         <div class="cost-amount">2 000₽</div>
-        <div class="cost-note" id="cost-note">Определяется автоматически</div>
+        <div class="cost-note" id="cost-note" style="display:none"></div>
       </div>
 
       <div class="feature-card" style="margin-top: 15px; background: linear-gradient(135deg, rgba(139,0,0,0.08) 0%, rgba(255,255,255,0.6) 100%);">
@@ -269,6 +275,7 @@
     }
     function validateName(name) { const t = name.trim(); return t.length >= 2 && t.length <= 100; }
     function validatePhone(phone) { const d = phone.replace(/\D/g, ''); return d.length >= 10 && d.length <= 15; }
+    function validateCodeWord(cw) { const t = cw.trim(); return t.length >= 1 && t.length <= 200; }
     function sanitize(str, max = 200) { return str.trim().slice(0, max).replace(/[<>]/g, ''); }
 
     function setupFieldValidation(fieldId, validationFn) {
@@ -319,10 +326,12 @@
       const name = sanitize(document.getElementById('name').value, 100);
       const phone = sanitize(document.getElementById('phone').value, 20);
       const email = sanitize(document.getElementById('email').value.toLowerCase(), 254);
+      const codeWord = sanitize(document.getElementById('code_word').value, 200);
 
       if (!name || !validateName(name)) { showNotification('Введите имя и фамилию (минимум 2 символа)'); return; }
       if (!phone || !validatePhone(phone)) { showNotification('Введите корректный номер телефона'); return; }
       if (!email || !validateEmail(email)) { showNotification('Введите корректный email'); return; }
+      if (!codeWord || !validateCodeWord(codeWord)) { showNotification('Введите кодовое слово'); return; }
 
       isSubmitting = true;
       submitBtn.disabled = true;
@@ -339,6 +348,7 @@
             email,
             name,
             phone,
+            code_word: codeWord,
           })
         }, { timeout: 30000, retries: 2 });
 
@@ -371,6 +381,7 @@
       setupFieldValidation('name', validateName);
       setupFieldValidation('phone', validatePhone);
       setupFieldValidation('email', validateEmail);
+      setupFieldValidation('code_word', validateCodeWord);
 
       if (window.Telegram?.WebApp) {
         window.Telegram.WebApp.ready();
