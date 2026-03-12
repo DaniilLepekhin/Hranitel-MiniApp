@@ -449,12 +449,15 @@ export const cloudpaymentsWebhook = new Elysia({ prefix: '/webhooks/cloudpayment
         logger.warn({ telegramId, cpSubscriptionId }, '[CloudPayments /recurrent] Subscription past due');
 
       } else if (['Cancelled', 'Rejected', 'Expired'].includes(status)) {
-        // Подписка завершена — снимаем флаг
+        // Подписка отменена — отключаем автопродление и снимаем subscriptionId,
+        // но сохраняем isPro=true до конца оплаченного периода (subscriptionExpires).
+        // checkExpiredSubscriptionsDaily cron обнулит isPro когда срок истечёт.
+        // Только для Expired/Rejected — сразу снимаем isPro (платёж не прошёл).
+        const isHardEnd = status === 'Rejected' || status === 'Expired';
         await db
           .update(users)
           .set({
-            isPro: false,
-            subscriptionExpires: null,
+            ...(isHardEnd ? { isPro: false, subscriptionExpires: null } : {}),
             cloudpaymentsSubscriptionId: null,
             autoRenewalEnabled: false,
             updatedAt: new Date(),
@@ -468,7 +471,7 @@ export const cloudpaymentsWebhook = new Elysia({ prefix: '/webhooks/cloudpayment
           metadata: { cpSubscriptionId, status, reason: 'recurrent_status_change' },
         });
 
-        logger.info({ telegramId, cpSubscriptionId, status }, '[CloudPayments /recurrent] Subscription ended');
+        logger.info({ telegramId, cpSubscriptionId, status, isHardEnd }, '[CloudPayments /recurrent] Subscription ended');
       }
     } catch (error) {
       logger.error({ error, telegramId, cpSubscriptionId }, '[CloudPayments /recurrent] Error');
