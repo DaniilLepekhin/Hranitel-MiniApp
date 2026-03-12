@@ -151,6 +151,8 @@ export const cloudpaymentsWebhook = new Elysia({ prefix: '/webhooks/cloudpayment
       const isFirstPurchase = !user.isPro && !user.firstPurchaseDate;
       const newExpiry = calcNewExpiry(user.subscriptionExpires ? new Date(user.subscriptionExpires) : null);
 
+      const codeWord: string | null = jsonData.code_word || null;
+
       // 6. Обновляем подписку + сохраняем subscriptionId как типизированную колонку
       await db
         .update(users)
@@ -161,6 +163,7 @@ export const cloudpaymentsWebhook = new Elysia({ prefix: '/webhooks/cloudpayment
           updatedAt: new Date(),
           ...(subscriptionId ? { cloudpaymentsSubscriptionId: subscriptionId } : {}),
           ...(isFirstPurchase ? { firstPurchaseDate: new Date() } : {}),
+          ...(codeWord ? { codeWord } : {}),
         })
         .where(eq(users.id, user.id));
 

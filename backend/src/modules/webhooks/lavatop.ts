@@ -24,7 +24,7 @@ import Elysia from 'elysia';
 import { timingSafeEqual } from 'crypto';
 import { db } from '@/db';
 import { users, payments, paymentAnalytics } from '@/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { config } from '@/config';
 import { withLock } from '@/utils/distributed-lock';
@@ -231,6 +231,24 @@ async function activateSubscription(opts: {
   // isPro не учитываем: если подписка истекла (isPro=false) — это продление, а не первая покупка.
   const isFirstPurchase = !user.firstPurchaseDate;
   const days = periodicityToDays(periodicity);
+
+  // Ищем code_word в последнем payment_attempt для этого email
+  let codeWord: string | null = null;
+  try {
+    const [attempt] = await db
+      .select({ metadata: paymentAnalytics.metadata })
+      .from(paymentAnalytics)
+      .where(and(
+        eq(paymentAnalytics.email, email.toLowerCase().trim()),
+        eq(paymentAnalytics.eventType, 'payment_attempt'),
+      ))
+      .orderBy(desc(paymentAnalytics.createdAt))
+      .limit(1);
+    const meta = attempt?.metadata as Record<string, any> | null;
+    codeWord = meta?.code_word || null;
+  } catch (e) {
+    logger.warn({ e, email }, '[LavaTop] Failed to read code_word from payment_analytics');
+  }
   const newExpiry = calcNewExpiry(user.subscriptionExpires ? new Date(user.subscriptionExpires) : null, days);
 
   logger.info(
@@ -247,6 +265,7 @@ async function activateSubscription(opts: {
       autoRenewalEnabled: isFirstPaymentOfSubscription || isRecurring,
       updatedAt: new Date(),
       ...(isFirstPurchase ? { firstPurchaseDate: new Date() } : {}),
+      ...(codeWord ? { codeWord } : {}),
     })
     .where(eq(users.id, user.id));
 

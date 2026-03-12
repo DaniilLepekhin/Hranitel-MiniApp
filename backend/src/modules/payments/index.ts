@@ -31,8 +31,9 @@ async function createCloudPaymentsOrder(params: {
   name?: string;
   phone?: string;
   telegramId: number;
+  codeWord?: string;
 }): Promise<string> {
-  const { email, name, phone, telegramId } = params;
+  const { email, name, phone, telegramId, codeWord } = params;
 
   if (!config.CLOUDPAYMENTS_PUBLIC_ID || !config.CLOUDPAYMENTS_API_SECRET) {
     throw new Error('CloudPayments не настроен (нет PUBLIC_ID или API_SECRET)');
@@ -51,7 +52,7 @@ async function createCloudPaymentsOrder(params: {
     SendEmail: false,
     AccountId: String(telegramId),
     InvoiceId: `support_${telegramId}_${Date.now()}`,
-    Data: JSON.stringify({ telegram_id: telegramId, source: 'support_form' }),
+    Data: JSON.stringify({ telegram_id: telegramId, source: 'support_form', ...(codeWord ? { code_word: codeWord } : {}) }),
   };
 
   if (name) body.Name = name;
@@ -327,7 +328,7 @@ export const paymentsModule = new Elysia({ prefix: '/payments' })
     } else {
       // --- CloudPayments SBP ---
       try {
-        const paymentUrl = await createCloudPaymentsOrder({ email, name, phone, telegramId: telegram_id });
+        const paymentUrl = await createCloudPaymentsOrder({ email, name, phone, telegramId: telegram_id, codeWord: code_word || undefined });
         logger.info({ telegram_id, email }, '[payments/generate-link-support] CloudPayments order created');
         return { success: true, provider: 'cloudpayments', payment_url: paymentUrl };
       } catch (e) {
