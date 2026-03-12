@@ -1090,15 +1090,17 @@ class DecadesService {
       // Grace period — недавно восстановленные/добавленные участники могут ещё не вступить в чат.
       const gracePeriodDate = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
       const members = await db
-        .select()
+        .select({ member: decadeMembers, isAmbassador: users.isAmbassador })
         .from(decadeMembers)
+        .innerJoin(users, eq(users.id, decadeMembers.userId))
         .where(and(
           eq(decadeMembers.decadeId, decade.id),
           isNull(decadeMembers.leftAt),
-          lt(decadeMembers.joinedAt, gracePeriodDate)
+          lt(decadeMembers.joinedAt, gracePeriodDate),
+          sql`NOT COALESCE(${users.isAmbassador}, false)`
         ));
 
-      for (const member of members) {
+      for (const { member } of members) {
         if (!member.telegramId) continue;
         stats.checked++;
 
