@@ -40,12 +40,16 @@ import { invalidateUserCache } from '@/utils/cache-invalidation';
 // NUMSCHOOL — продление доступа к платформе для учеников
 // ============================================================================
 
-const NUMSCHOOL_TOKEN = 'xK9mvL2pQ7wnR4jB8cY5hT3gF6aD0s';
 const NUMSCHOOL_BASE_URL = 'https://numschool-web.ru/api/extend-access/';
 
 async function extendStudentPlatformAccess(email: string): Promise<void> {
   try {
-    const url = `${NUMSCHOOL_BASE_URL}?token=${NUMSCHOOL_TOKEN}&email=${encodeURIComponent(email)}`;
+    const token = config.NUMSCHOOL_TOKEN;
+    if (!token) {
+      logger.warn({ email }, '[Numschool] NUMSCHOOL_TOKEN not set, skipping');
+      return;
+    }
+    const url = `${NUMSCHOOL_BASE_URL}?token=${token}&email=${encodeURIComponent(email)}`;
     const res = await fetch(url);
     const text = await res.text().catch(() => '');
     logger.info({ email, status: res.status, body: text }, '[Numschool] Platform access extended for student');

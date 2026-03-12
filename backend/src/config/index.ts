@@ -45,6 +45,9 @@ const envSchema = v.object({
   // Офферы хранятся в таблице lavatop_offers (управляются через /admin/lavatop-offers)
   LAVATOP_API_KEY: v.optional(v.string(), ''),
   LAVATOP_WEBHOOK_SECRET: v.optional(v.string(), ''),
+
+  // Numschool platform — продление доступа для учеников при оплате
+  NUMSCHOOL_TOKEN: v.optional(v.string(), ''),
 });
 
 type EnvConfig = v.InferOutput<typeof envSchema>;
