@@ -3177,6 +3177,17 @@ bot.command('start', async (ctx) => {
         return;
       }
 
+      // Пользователь застрял на выборе получателя подарка (передумал / закрыл бот)
+      // Сбрасываем шаг и показываем меню
+      if (user.onboardingStep === 'selecting_gift_user') {
+        await db
+          .update(users)
+          .set({ onboardingStep: 'onboarding_complete' })
+          .where(eq(users.telegramId, userId));
+        await funnels.sendMenuMessage(chatId);
+        return;
+      }
+
       // 🆕 Пользователь с подпиской, но БЕЗ онбординга (onboardingStep = null)
       // Устанавливаем awaiting_keyword и показываем первое сообщение онбординга
       if (!user.onboardingStep) {
