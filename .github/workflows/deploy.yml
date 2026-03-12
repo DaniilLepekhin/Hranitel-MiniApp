@@ -99,6 +99,7 @@ jobs:
             export OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}"
             export GETCOURSE_SECRET="${{ secrets.GETCOURSE_SECRET }}"
             export ADMIN_SECRET="${{ secrets.ADMIN_SECRET }}"
+            export CLOUDPAYMENTS_PUBLIC_ID="${{ secrets.CLOUDPAYMENTS_PUBLIC_ID }}"
             export CLOUDPAYMENTS_API_SECRET="${{ secrets.CLOUDPAYMENTS_API_SECRET }}"
             export LAVATOP_API_KEY="${{ secrets.LAVATOP_API_KEY }}"
             export LAVATOP_WEBHOOK_SECRET="${{ secrets.LAVATOP_WEBHOOK_SECRET }}"
@@ -120,6 +121,7 @@ jobs:
             echo "GETCOURSE_SECRET=$GETCOURSE_SECRET" >> .env
             echo "TELEGRAM_WEBHOOK_URL=https://app.successkod.com" >> .env
             echo "ADMIN_SECRET=$ADMIN_SECRET" >> .env
+            echo "CLOUDPAYMENTS_PUBLIC_ID=$CLOUDPAYMENTS_PUBLIC_ID" >> .env
             echo "CLOUDPAYMENTS_API_SECRET=$CLOUDPAYMENTS_API_SECRET" >> .env
             echo "LAVATOP_API_KEY=$LAVATOP_API_KEY" >> .env
             echo "LAVATOP_WEBHOOK_SECRET=$LAVATOP_WEBHOOK_SECRET" >> .env
