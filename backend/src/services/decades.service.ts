@@ -1086,11 +1086,17 @@ class DecadesService {
     for (const decade of activeDecades) {
       if (!decade.tgChatId) continue;
 
-      // Получить активных участников этой десятки
+      // Получить активных участников этой десятки, которые состоят 3+ дней.
+      // Grace period — недавно восстановленные/добавленные участники могут ещё не вступить в чат.
+      const gracePeriodDate = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
       const members = await db
         .select()
         .from(decadeMembers)
-        .where(and(eq(decadeMembers.decadeId, decade.id), isNull(decadeMembers.leftAt)));
+        .where(and(
+          eq(decadeMembers.decadeId, decade.id),
+          isNull(decadeMembers.leftAt),
+          lt(decadeMembers.joinedAt, gracePeriodDate)
+        ));
 
       for (const member of members) {
         if (!member.telegramId) continue;
@@ -1114,24 +1120,27 @@ class DecadesService {
             stats.fixed++;
           }
         } catch (error: any) {
-          // Telegram возвращает 400 если пользователь не найден в чате
+          // Telegram возвращает 400 если пользователь не найден в чате.
+          // Проверяем только конкретные ошибки "пользователя нет в чате".
+          // НЕ ловим широкий 'Bad Request' — это может быть временный сбой Telegram,
+          // и выкидывать участника из-за сбоя API нельзя.
           const msg: string = error?.message ?? '';
-          const isNotInChat =
+          const isDefinitelyNotInChat =
             msg.includes('user not found') ||
-            msg.includes('PARTICIPANT_ID_INVALID') ||
-            msg.includes('Bad Request');
+            msg.includes('PARTICIPANT_ID_INVALID');
 
-          if (isNotInChat) {
+          if (isDefinitelyNotInChat) {
             logger.info(
               { telegramId: member.telegramId, decadeId: decade.id, error: msg },
-              'syncDecadeMembership: user not found in chat (400), fixing DB'
+              'syncDecadeMembership: user definitively not in chat, fixing DB'
             );
             await this.removeUserFromDecade(Number(member.telegramId));
             stats.fixed++;
           } else {
+            // Любые другие ошибки (временный сбой, Bad Request, etc.) — пропускаем, не выкидываем
             logger.warn(
               { telegramId: member.telegramId, decadeId: decade.id, error: msg },
-              'syncDecadeMembership: unexpected error checking chat member'
+              'syncDecadeMembership: API error checking chat member, skipping (not kicking)'
             );
             stats.errors++;
           }
