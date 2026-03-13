@@ -5,19 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth';
 import { useTelegram } from '@/hooks/useTelegram';
 import { Check, ChevronDown } from 'lucide-react';
-
-const getApiUrl = (): string => {
-  if (typeof window === 'undefined') {
-    return process.env.NEXT_PUBLIC_API_URL || 'https://app.successkod.com';
-  }
-  const hostname = window.location.hostname;
-  if (hostname.includes('successkod.com')) {
-    return `https://${hostname}`;
-  }
-  return process.env.NEXT_PUBLIC_API_URL || 'https://app.successkod.com';
-};
-
-const API_URL = getApiUrl();
+import { api } from '@/lib/api';
 
 interface SurveyOption {
   key: string;
@@ -80,9 +68,7 @@ export function LeaderSurvey() {
   const { data, isLoading } = useQuery<SurveyData>({
     queryKey: ['leader-survey', user?.telegramId],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/api/v1/leader-survey/current?telegram_id=${user?.telegramId}`);
-      if (!res.ok) throw new Error('Failed to fetch survey');
-      return res.json();
+      return api.get<SurveyData>('/api/v1/leader-survey/current');
     },
     enabled: !!user?.telegramId,
     staleTime: 30_000,
@@ -91,20 +77,10 @@ export function LeaderSurvey() {
 
   const voteMutation = useMutation({
     mutationFn: async ({ questionId, answer }: { questionId: string; answer: string }) => {
-      const res = await fetch(`${API_URL}/api/v1/leader-survey/vote`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          telegram_id: user?.telegramId?.toString(),
-          question_id: questionId,
-          answer,
-        }),
+      return api.post('/api/v1/leader-survey/vote', {
+        question_id: questionId,
+        answer,
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Vote failed');
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leader-survey'] });
