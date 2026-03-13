@@ -5,8 +5,8 @@
 
 import { Elysia, t } from 'elysia';
 import { db } from '@/db';
-import { leaderSurveyQuestions, leaderSurveyVotes, decadeMembers, users } from '@/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { leaderSurveyQuestions, leaderSurveyVotes, decadeMembers } from '@/db/schema';
+import { eq, and, isNull } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { authMiddleware } from '@/middlewares/auth';
 
@@ -30,12 +30,15 @@ function getCurrentWeekStart(): Date {
 
 // Проверить, является ли пользователь лидером десятки
 async function isUserLeader(userId: string): Promise<boolean> {
-  const membership = await db.query.decadeMembers.findFirst({
-    where: and(
+  const [membership] = await db
+    .select({ id: decadeMembers.id })
+    .from(decadeMembers)
+    .where(and(
       eq(decadeMembers.userId, userId),
       eq(decadeMembers.isLeader, true),
-    ),
-  });
+      isNull(decadeMembers.leftAt),
+    ))
+    .limit(1);
   return !!membership;
 }
 
