@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { eq, desc, asc, and } from 'drizzle-orm';
 import { db, meditations, meditationHistory } from '@/db';
-import { authMiddleware, optionalAuthMiddleware } from '@/middlewares/auth';
+import { optionalAuthMiddleware, getUserFromToken } from '@/middlewares/auth';
 import { logger } from '@/utils/logger';
 import { cache } from '@/utils/redis';
 import { gamificationService } from '@/modules/gamification/service';
@@ -112,12 +112,17 @@ export const meditationsModule = new Elysia({ prefix: '/meditations', tags: ['Me
       },
     }
   )
-  // Protected routes
-  .use(authMiddleware)
+  // Protected routes (use getUserFromToken directly — authMiddleware deduplicates in Elysia)
   // Log meditation session
   .post(
     '/:id/session',
-    async ({ params, body, user }) => {
+    async ({ params, body, headers, set }) => {
+      const user = await getUserFromToken(headers.authorization);
+      if (!user) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
       const { id } = params;
       const { durationListened, completed } = body;
 
@@ -137,7 +142,7 @@ export const meditationsModule = new Elysia({ prefix: '/meditations', tags: ['Me
 
       // Log the session
       await db.insert(meditationHistory).values({
-        userId: user!.id,
+        userId: user.id,
         meditationId: id,
         durationListened,
         completed: completed || false,
@@ -149,17 +154,17 @@ export const meditationsModule = new Elysia({ prefix: '/meditations', tags: ['Me
       if (completed) {
         // Full meditation completed
         xpAwarded = 50;
-        await gamificationService.addXP(user!.id, 50, 'meditation_completed', {
+        await gamificationService.addXP(user.id, 50, 'meditation_completed', {
           meditationId: id,
           meditationTitle: meditation.title,
         });
 
         // Update streak
-        await gamificationService.updateStreak(user!.id);
+        await gamificationService.updateStreak(user.id);
       } else if (durationListened >= 60) {
         // Partial meditation (at least 1 minute)
         xpAwarded = Math.min(25, Math.floor(durationListened / 60) * 5);
-        await gamificationService.addXP(user!.id, xpAwarded, 'meditation_partial', {
+        await gamificationService.addXP(user.id, xpAwarded, 'meditation_partial', {
           meditationId: id,
           durationListened,
         });
@@ -187,7 +192,13 @@ export const meditationsModule = new Elysia({ prefix: '/meditations', tags: ['Me
   // Get user meditation history
   .get(
     '/history/list',
-    async ({ user, query }) => {
+    async ({ headers, set, query }) => {
+      const user = await getUserFromToken(headers.authorization);
+      if (!user) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
       const { limit = 20, offset = 0 } = query;
 
       const history = await db
@@ -205,7 +216,7 @@ export const meditationsModule = new Elysia({ prefix: '/meditations', tags: ['Me
         })
         .from(meditationHistory)
         .innerJoin(meditations, eq(meditationHistory.meditationId, meditations.id))
-        .where(eq(meditationHistory.userId, user!.id))
+        .where(eq(meditationHistory.userId, user.id))
         .orderBy(desc(meditationHistory.createdAt))
         .limit(limit)
         .offset(offset);
@@ -228,14 +239,20 @@ export const meditationsModule = new Elysia({ prefix: '/meditations', tags: ['Me
   // Get meditation stats
   .get(
     '/stats/summary',
-    async ({ user }) => {
+    async ({ headers, set }) => {
+      const user = await getUserFromToken(headers.authorization);
+      if (!user) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
       const history = await db
         .select({
           durationListened: meditationHistory.durationListened,
           completed: meditationHistory.completed,
         })
         .from(meditationHistory)
-        .where(eq(meditationHistory.userId, user!.id));
+        .where(eq(meditationHistory.userId, user.id));
 
       const totalSessions = history.length;
       const completedSessions = history.filter((h) => h.completed).length;

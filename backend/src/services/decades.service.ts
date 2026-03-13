@@ -466,13 +466,32 @@ class DecadesService {
               };
             }
 
-            // ✅ Добавить амбассадора в decade_members БЕЗ увеличения счётчика
-            await tx.insert(decadeMembers).values({
-              decadeId: ambassadorDecade.id,
-              userId: user.id,
-              telegramId,
-              isLeader: false,
-            });
+            // ✅ Добавить амбассадора в decade_members БЕЗ увеличения счётчика (upsert)
+            const [ambassadorLeft] = await tx
+              .select({ id: decadeMembers.id })
+              .from(decadeMembers)
+              .where(
+                and(
+                  eq(decadeMembers.decadeId, ambassadorDecade.id),
+                  eq(decadeMembers.userId, user.id),
+                  isNotNull(decadeMembers.leftAt)
+                )
+              )
+              .limit(1);
+
+            if (ambassadorLeft) {
+              await tx
+                .update(decadeMembers)
+                .set({ leftAt: null, joinedAt: new Date(), isLeader: false })
+                .where(eq(decadeMembers.id, ambassadorLeft.id));
+            } else {
+              await tx.insert(decadeMembers).values({
+                decadeId: ambassadorDecade.id,
+                userId: user.id,
+                telegramId,
+                isLeader: false,
+              });
+            }
 
             logger.info(
               { userId: user.id, telegramId, decadeId: ambassadorDecade.id, city: ambassadorDecade.city },
@@ -547,13 +566,32 @@ class DecadesService {
             };
           }
 
-          // ✅ Добавить участника
-          await tx.insert(decadeMembers).values({
-            decadeId: decade.id,
-            userId: user.id,
-            telegramId,
-            isLeader: false,
-          });
+          // ✅ Добавить участника (upsert: если был ранее в этой десятке — восстановить)
+          const [existingLeft] = await tx
+            .select({ id: decadeMembers.id })
+            .from(decadeMembers)
+            .where(
+              and(
+                eq(decadeMembers.decadeId, decade.id),
+                eq(decadeMembers.userId, user.id),
+                isNotNull(decadeMembers.leftAt)
+              )
+            )
+            .limit(1);
+
+          if (existingLeft) {
+            await tx
+              .update(decadeMembers)
+              .set({ leftAt: null, joinedAt: new Date(), isLeader: false })
+              .where(eq(decadeMembers.id, existingLeft.id));
+          } else {
+            await tx.insert(decadeMembers).values({
+              decadeId: decade.id,
+              userId: user.id,
+              telegramId,
+              isLeader: false,
+            });
+          }
 
           // ✅ Обновить счётчик атомарно
           const newCount = decade.currentMembers + 1;
