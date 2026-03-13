@@ -52,7 +52,15 @@ async function createCloudPaymentsOrder(params: {
     SendEmail: false,
     AccountId: String(telegramId),
     InvoiceId: `support_${telegramId}_${Date.now()}`,
-    Data: JSON.stringify({ telegram_id: telegramId, source: 'support_form', ...(codeWord ? { code_word: codeWord } : {}) }),
+    // Передаём email/name/phone в Data чтобы они вернулись в JsonData вебхука
+    Data: JSON.stringify({
+      telegram_id: telegramId,
+      source: 'support_form',
+      email,
+      ...(name ? { name } : {}),
+      ...(phone ? { phone } : {}),
+      ...(codeWord ? { code_word: codeWord } : {}),
+    }),
   };
 
   if (name) body.Name = name;

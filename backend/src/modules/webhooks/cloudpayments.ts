@@ -177,6 +177,7 @@ export const cloudpaymentsWebhook = new Elysia({ prefix: '/webhooks/cloudpayment
       const codeWord: string | null = jsonData.code_word || null;
 
       // 6. Обновляем подписку + сохраняем subscriptionId как типизированную колонку
+      const webhookEmail = b.Email || jsonData.email || null;
       await db
         .update(users)
         .set({
@@ -187,11 +188,21 @@ export const cloudpaymentsWebhook = new Elysia({ prefix: '/webhooks/cloudpayment
           ...(subscriptionId ? { cloudpaymentsSubscriptionId: subscriptionId } : {}),
           ...(isFirstPurchase ? { firstPurchaseDate: new Date() } : {}),
           ...(codeWord ? { codeWord } : {}),
+          // Сохраняем email в профиль если ещё не был установлен
+          ...(!user.email && webhookEmail ? { email: webhookEmail } : {}),
         })
         .where(eq(users.id, user.id));
 
       // Сбрасываем Redis-кеш чтобы /auth/me и /users/me сразу вернули актуальные данные
       invalidateUserCache(user.id).catch(() => {});
+
+      // CloudPayments передаёт email/phone/name двумя путями:
+      // 1) Корневые поля вебхука: b.Email, b.Phone, b.Name (всегда при наличии)
+      // 2) JsonData: jsonData.email, jsonData.phone, jsonData.name (если мы сами положили в Data)
+      // Используем корневые поля как приоритет, JsonData — как fallback для старых ордеров.
+      const paymentEmail = b.Email || jsonData.email || null;
+      const paymentPhone = b.Phone || jsonData.phone || null;
+      const paymentName  = b.Name  || jsonData.name  || null;
 
       // 7. Записываем в payments
       const [newPayment] = await db.insert(payments).values({
@@ -201,9 +212,9 @@ export const cloudpaymentsWebhook = new Elysia({ prefix: '/webhooks/cloudpayment
         status: 'completed',
         paymentProvider: 'cloudpayments',
         externalPaymentId: String(transactionId),
-        name: jsonData.name || null,
-        email: jsonData.email || null,
-        phone: jsonData.phone || null,
+        name: paymentName,
+        email: paymentEmail,
+        phone: paymentPhone,
         completedAt: new Date(),
         metadata: {
           subscriptionId,
@@ -225,9 +236,9 @@ export const cloudpaymentsWebhook = new Elysia({ prefix: '/webhooks/cloudpayment
         amount: String(amount),
         currency: b.Currency || 'RUB',
         paymentId: newPayment.id,
-        name: jsonData.name || null,
-        email: jsonData.email || null,
-        phone: jsonData.phone || null,
+        name: paymentName,
+        email: paymentEmail,
+        phone: paymentPhone,
         utmSource: jsonData.utm_source || null,
         utmMedium: jsonData.utm_medium || null,
         utmCampaign: jsonData.utm_campaign || null,
