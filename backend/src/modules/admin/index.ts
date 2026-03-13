@@ -1472,6 +1472,95 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
   )
 
   /**
+   * 📅 Установить точную дату окончания подписки
+   */
+  .post(
+    '/set-subscription-date',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { telegram_id: rawTelegramId, expires_at } = body;
+      const telegram_id = typeof rawTelegramId === 'string' ? parseInt(rawTelegramId, 10) : rawTelegramId;
+
+      // Валидация: дата не может быть раньше сегодня
+      const newDate = new Date(expires_at);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (newDate < today) {
+        set.status = 400;
+        return { success: false, error: 'Дата не может быть раньше сегодняшнего дня' };
+      }
+
+      const [user] = await db.select().from(users).where(eq(users.telegramId, telegram_id)).limit(1);
+      if (!user) {
+        set.status = 404;
+        return { success: false, error: 'Пользователь не найден' };
+      }
+
+      await db.update(users)
+        .set({ subscriptionExpires: newDate, isPro: true, updatedAt: new Date() })
+        .where(eq(users.id, user.id));
+
+      logger.info({ telegram_id, expires_at }, 'Admin set subscription date');
+
+      return {
+        success: true,
+        message: `Дата подписки установлена: ${newDate.toLocaleDateString('ru-RU')}`,
+        expires_at: newDate.toISOString(),
+      };
+    },
+    {
+      body: t.Object({
+        telegram_id: t.Union([t.Number(), t.String()]),
+        expires_at: t.String({ description: 'ISO дата окончания подписки (не раньше сегодня)' }),
+      }),
+    }
+  )
+
+  /**
+   * 🎓 Пометить / снять метку ученика
+   */
+  .post(
+    '/toggle-student',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { telegram_id: rawTelegramId, is_student } = body;
+      const telegram_id = typeof rawTelegramId === 'string' ? parseInt(rawTelegramId, 10) : rawTelegramId;
+
+      const [user] = await db.select().from(users).where(eq(users.telegramId, telegram_id)).limit(1);
+      if (!user) {
+        set.status = 404;
+        return { success: false, error: 'Пользователь не найден' };
+      }
+
+      await db.update(users)
+        .set({ isStudent: is_student, updatedAt: new Date() })
+        .where(eq(users.id, user.id));
+
+      logger.info({ telegram_id, is_student }, 'Admin toggled student status');
+
+      return {
+        success: true,
+        message: is_student ? `Пользователь ${telegram_id} помечен как ученик` : `Метка ученика снята`,
+        is_student,
+      };
+    },
+    {
+      body: t.Object({
+        telegram_id: t.Union([t.Number(), t.String()]),
+        is_student: t.Boolean(),
+      }),
+    }
+  )
+
+  /**
    * 🔄 Восстановить пользователя в десятку (после оплаты)
    */
   .post(
