@@ -136,11 +136,11 @@ export const coursesModule = new Elysia({ prefix: '/courses', tags: ['Courses'] 
         };
       }
 
-      // Get course days
+      // Get course days (exclude hidden lessons)
       const days = await db
         .select()
         .from(courseDays)
-        .where(eq(courseDays.courseId, id))
+        .where(and(eq(courseDays.courseId, id), eq(courseDays.isHidden, false)))
         .orderBy(asc(courseDays.dayNumber));
 
       // Get user progress
@@ -252,11 +252,11 @@ export const coursesModule = new Elysia({ prefix: '/courses', tags: ['Courses'] 
         };
       }
 
-      // Get total days for this course
+      // Get total days for this course (exclude hidden lessons)
       const [totalDaysResult] = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(courseDays)
-        .where(eq(courseDays.courseId, id));
+        .where(and(eq(courseDays.courseId, id), eq(courseDays.isHidden, false)));
 
       const totalDays = totalDaysResult?.count || 0;
 

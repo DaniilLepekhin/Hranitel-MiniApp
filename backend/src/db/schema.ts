@@ -156,6 +156,7 @@ export const courseDays = pgTable('course_days', {
   streamLink: text('stream_link'),
 
   isPremium: boolean('is_premium').default(false).notNull(),
+  isHidden: boolean('is_hidden').default(false).notNull(),
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
