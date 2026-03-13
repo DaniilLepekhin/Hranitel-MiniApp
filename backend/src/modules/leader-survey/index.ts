@@ -128,12 +128,14 @@ export const leaderSurveyRoutes = new Elysia({ prefix: '/leader-survey' })
         }
 
         // Проверить, существует ли вопрос
-        const question = await db.query.leaderSurveyQuestions.findFirst({
-          where: and(
+        const [question] = await db
+          .select()
+          .from(leaderSurveyQuestions)
+          .where(and(
             eq(leaderSurveyQuestions.id, question_id),
             eq(leaderSurveyQuestions.isActive, true),
-          ),
-        });
+          ))
+          .limit(1);
 
         if (!question) {
           set.status = 404;
@@ -151,13 +153,15 @@ export const leaderSurveyRoutes = new Elysia({ prefix: '/leader-survey' })
         const weekStart = getCurrentWeekStart();
 
         // Проверить, не голосовал ли уже
-        const existingVote = await db.query.leaderSurveyVotes.findFirst({
-          where: and(
+        const [existingVote] = await db
+          .select()
+          .from(leaderSurveyVotes)
+          .where(and(
             eq(leaderSurveyVotes.userId, user!.id),
             eq(leaderSurveyVotes.questionId, question_id),
             eq(leaderSurveyVotes.weekStart, weekStart),
-          ),
-        });
+          ))
+          .limit(1);
 
         if (existingVote) {
           set.status = 409;
