@@ -14,7 +14,7 @@ import { timingSafeEqual } from 'crypto';
 import { db, rawDb } from '@/db';
 import { lavaTopService } from '@/services/lavatop.service';
 import { config } from '@/config';
-import { users, paymentAnalytics, clubFunnelProgress, videos, contentItems, decades, decadeMembers, leaderTestResults, lavatopOffers } from '@/db/schema';
+import { users, payments, paymentAnalytics, clubFunnelProgress, videos, contentItems, decades, decadeMembers, leaderTestResults, lavatopOffers } from '@/db/schema';
 import { eq, desc, and, isNull, sql } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { startOnboardingAfterPayment } from '@/modules/bot/post-payment-funnels';
@@ -24,6 +24,12 @@ import { energiesService } from '@/modules/energy-points/service';
 
 // n8n webhook для генерации ссылки на оплату Lava
 const N8N_LAVA_WEBHOOK_URL = 'https://n8n4.daniillepekhin.ru/webhook/lava_club2';
+
+// n8n webhook для отмены подписки Lava (старый)
+const CANCEL_SUBSCRIPTION_WEBHOOK = 'https://n8n4.daniillepekhin.ru/webhook/deletelava_miniapp';
+
+// CloudPayments API base
+const CP_API_BASE = 'https://api.cloudpayments.ru';
 
 // Хелпер для проверки авторизации (timing-safe сравнение)
 const checkAdminAuth = (headers: Record<string, string | undefined>): boolean => {
@@ -449,6 +455,144 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       detail: {
         summary: 'Отзыв подписки',
         description: 'Устанавливает дату окончания подписки в прошлое. Пользователь будет удален из всех каналов и чатов при следующем cron (6:00 МСК) или сразу, если kick_immediately=true.',
+      },
+    }
+  )
+
+  /**
+   * ❌ Отмена рекуррентной подписки (LavaTop / CloudPayments / Lava)
+   * Отменяет автопродление у провайдера и ставит autoRenewalEnabled=false в БД.
+   * При revoke=true дополнительно переводит subscription_expires в прошлое.
+   */
+  .post(
+    '/cancel-subscription',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { telegram_id: rawId, revoke = false } = body;
+      const telegram_id = typeof rawId === 'string' ? parseInt(rawId, 10) : rawId;
+
+      // Находим пользователя
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.telegramId, telegram_id))
+        .limit(1);
+
+      if (!user) {
+        return { success: false, error: 'Пользователь не найден' };
+      }
+
+      const cpSubscriptionId = (user as any).cloudpaymentsSubscriptionId as string | null;
+      const lavatopContractId = (user as any).lavatopContractId as string | null;
+      const lavaContactId = (user as any).lavaContactId as string | null;
+
+      // Определяем провайдера: CP → LavaTop → Lava (старый)
+      const provider = cpSubscriptionId ? 'cloudpayments'
+        : lavatopContractId ? 'lavatop'
+        : lavaContactId ? 'lava'
+        : null;
+
+      let cancelDetails = '';
+
+      try {
+        if (provider === 'cloudpayments') {
+          // --- CloudPayments: отменяем рекуррент ---
+          const authHeader = 'Basic ' + Buffer.from(
+            `${config.CLOUDPAYMENTS_PUBLIC_ID}:${config.CLOUDPAYMENTS_API_SECRET}`
+          ).toString('base64');
+
+          const cpResponse = await fetch(`${CP_API_BASE}/subscriptions/cancel`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+            body: JSON.stringify({ Id: cpSubscriptionId }),
+          });
+
+          if (!cpResponse.ok) {
+            const errorText = await cpResponse.text();
+            logger.error(
+              { telegram_id, cpSubscriptionId, error: errorText },
+              'Admin: failed to cancel CloudPayments subscription'
+            );
+            return { success: false, error: `CloudPayments API error: ${errorText}` };
+          }
+
+          cancelDetails = `CloudPayments subscriptionId=${cpSubscriptionId}`;
+          logger.info({ telegram_id, cpSubscriptionId }, 'Admin: cancelled CloudPayments subscription');
+
+        } else if (provider === 'lavatop') {
+          // --- LavaTop: отменяем через LavaTop API ---
+          if (!user.email) {
+            return { success: false, error: 'У пользователя не указан email — необходим для отмены LavaTop подписки' };
+          }
+          await lavaTopService.cancelSubscription(lavatopContractId!, user.email.toLowerCase());
+          cancelDetails = `LavaTop contractId=${lavatopContractId}`;
+          logger.info({ telegram_id, lavatopContractId }, 'Admin: cancelled LavaTop subscription');
+
+        } else if (provider === 'lava') {
+          // --- Lava (старый): отменяем через n8n ---
+          const response = await fetch(CANCEL_SUBSCRIPTION_WEBHOOK, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: user.email?.toLowerCase() ?? '',
+              contactid: lavaContactId,
+            }),
+          });
+          if (!response.ok) {
+            const errorText = await response.text();
+            logger.error({ telegram_id, lavaContactId, error: errorText }, 'Admin: failed to cancel Lava subscription');
+            return { success: false, error: `Lava n8n webhook error: ${errorText}` };
+          }
+          cancelDetails = `Lava contactId=${lavaContactId}`;
+          logger.info({ telegram_id, lavaContactId }, 'Admin: cancelled Lava subscription via n8n');
+
+        } else {
+          // Нет рекуррентных данных — просто ставим флаг
+          cancelDetails = 'no recurring provider found, only disabling autorenew';
+          logger.warn({ telegram_id }, 'Admin: cancel-subscription — no recurring provider found');
+        }
+
+        // Обновляем флаг autoRenewalEnabled и опционально отзываем подписку
+        const dbUpdate: Record<string, any> = {
+          autoRenewalEnabled: false,
+          updatedAt: new Date(),
+        };
+        if (revoke) {
+          dbUpdate.subscriptionExpires = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+        }
+
+        const [updated] = await db
+          .update(users)
+          .set(dbUpdate)
+          .where(eq(users.id, user.id))
+          .returning();
+
+        return {
+          success: true,
+          provider: provider ?? 'none',
+          cancel_details: cancelDetails,
+          auto_renewal_enabled: updated.autoRenewalEnabled,
+          subscription_expires: updated.subscriptionExpires,
+          revoked: revoke,
+        };
+
+      } catch (error) {
+        logger.error({ error, telegram_id }, 'Admin: error in cancel-subscription');
+        return { success: false, error: String(error) };
+      }
+    },
+    {
+      body: t.Object({
+        telegram_id: t.Union([t.Number(), t.String()], { description: 'Telegram ID пользователя' }),
+        revoke: t.Optional(t.Boolean({ description: 'Дополнительно перевести subscription_expires в прошлое (default: false)' })),
+      }),
+      detail: {
+        summary: 'Отмена рекуррентной подписки',
+        description: 'Отменяет автопродление у провайдера (CloudPayments / LavaTop / Lava) и ставит autoRenewalEnabled=false. При revoke=true также переводит subscription_expires в прошлое.',
       },
     }
   )
