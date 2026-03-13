@@ -562,7 +562,7 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
           updatedAt: new Date(),
         };
         if (revoke) {
-          dbUpdate.subscriptionExpires = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+          dbUpdate.subscriptionExpires = new Date(); // текущий момент — cron выкинет на следующем прогоне
         }
 
         const [updated] = await db
