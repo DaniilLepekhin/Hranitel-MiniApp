@@ -8,7 +8,7 @@ import { db } from '@/db';
 import { leaderSurveyQuestions, leaderSurveyVotes, decadeMembers } from '@/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
-import { authMiddleware } from '@/middlewares/auth';
+import { getUserFromToken } from '@/middlewares/auth';
 
 // Получить начало текущей недели (Пн 00:00 МСК)
 function getCurrentWeekStart(): Date {
@@ -43,19 +43,23 @@ async function isUserLeader(userId: string): Promise<boolean> {
 }
 
 export const leaderSurveyRoutes = new Elysia({ prefix: '/leader-survey' })
-  .use(authMiddleware)
 
   /**
    * GET /current — получить текущий опрос и голоса пользователя за эту неделю
    */
   .get(
     '/current',
-    async ({ user, set }) => {
-      try {
-        // Используем пользователя из JWT (игнорируем telegram_id из query)
+    async ({ headers, set }) => {
+      const user = await getUserFromToken(headers.authorization);
 
+      if (!user) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
+      try {
         // Проверить, лидер ли
-        const leader = await isUserLeader(user!.id);
+        const leader = await isUserLeader(user.id);
         if (!leader) {
           return { success: true, isLeader: false, questions: [], votes: [] };
         }
@@ -74,7 +78,7 @@ export const leaderSurveyRoutes = new Elysia({ prefix: '/leader-survey' })
           .from(leaderSurveyVotes)
           .where(
             and(
-              eq(leaderSurveyVotes.userId, user!.id),
+              eq(leaderSurveyVotes.userId, user.id),
               eq(leaderSurveyVotes.weekStart, weekStart),
             )
           );
@@ -98,17 +102,11 @@ export const leaderSurveyRoutes = new Elysia({ prefix: '/leader-survey' })
           votes: votesMap,
         };
       } catch (error) {
-        logger.error({ error }, 'Failed to get leader survey');
+        logger.error({ error, userId: user.id }, 'Failed to get leader survey');
         set.status = 500;
         return { success: false, error: 'Internal error' };
       }
     },
-    {
-      // telegram_id в query больше не используется — пользователь берётся из JWT
-      query: t.Optional(t.Object({
-        telegram_id: t.Optional(t.String()),
-      })),
-    }
   )
 
   /**
@@ -116,12 +114,19 @@ export const leaderSurveyRoutes = new Elysia({ prefix: '/leader-survey' })
    */
   .post(
     '/vote',
-    async ({ body, user, set }) => {
+    async ({ headers, body, set }) => {
+      const user = await getUserFromToken(headers.authorization);
+
+      if (!user) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
       try {
         const { question_id, answer } = body;
 
         // Проверить, лидер ли
-        const leader = await isUserLeader(user!.id);
+        const leader = await isUserLeader(user.id);
         if (!leader) {
           set.status = 403;
           return { success: false, error: 'Not a leader' };
@@ -157,7 +162,7 @@ export const leaderSurveyRoutes = new Elysia({ prefix: '/leader-survey' })
           .select()
           .from(leaderSurveyVotes)
           .where(and(
-            eq(leaderSurveyVotes.userId, user!.id),
+            eq(leaderSurveyVotes.userId, user.id),
             eq(leaderSurveyVotes.questionId, question_id),
             eq(leaderSurveyVotes.weekStart, weekStart),
           ))
@@ -172,14 +177,14 @@ export const leaderSurveyRoutes = new Elysia({ prefix: '/leader-survey' })
         const [vote] = await db
           .insert(leaderSurveyVotes)
           .values({
-            userId: user!.id,
+            userId: user.id,
             questionId: question_id,
             answer,
             weekStart,
           })
           .returning();
 
-        logger.info({ userId: user!.id, telegramId: user!.telegramId, questionId: question_id, answer, weekStart }, 'Leader survey vote recorded');
+        logger.info({ userId: user.id, telegramId: user.telegramId, questionId: question_id, answer, weekStart }, 'Leader survey vote recorded');
 
         return {
           success: true,
@@ -196,13 +201,12 @@ export const leaderSurveyRoutes = new Elysia({ prefix: '/leader-survey' })
           set.status = 409;
           return { success: false, error: 'Already voted this week' };
         }
-        logger.error({ error }, 'Failed to record leader survey vote');
+        logger.error({ error, userId: user.id }, 'Failed to record leader survey vote');
         set.status = 500;
         return { success: false, error: 'Internal error' };
       }
     },
     {
-      // telegram_id убран из body — пользователь берётся из JWT
       body: t.Object({
         question_id: t.String(),
         answer: t.String(),

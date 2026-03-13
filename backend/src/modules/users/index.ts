@@ -2,7 +2,7 @@ import { Elysia, t } from 'elysia';
 import { eq, and, desc } from 'drizzle-orm';
 import { db, users } from '@/db';
 import { payments } from '@/db/schema';
-import { authMiddleware, getUserFromToken } from '@/middlewares/auth';
+import { getUserFromToken } from '@/middlewares/auth';
 import { logger } from '@/utils/logger';
 import { lavaTopService } from '@/services/lavatop.service';
 
@@ -13,31 +13,38 @@ const CANCEL_SUBSCRIPTION_WEBHOOK = 'https://n8n4.daniillepekhin.ru/webhook/dele
 const CP_API_BASE = 'https://api.cloudpayments.ru';
 
 export const usersModule = new Elysia({ prefix: '/users', tags: ['Users'] })
-  .use(authMiddleware)
   // Get current user profile
   .get(
     '/me',
-    async ({ user }) => {
+    async ({ headers, set }) => {
+      // ✅ ПРЯМАЯ ПРОВЕРКА - работает всегда (authMiddleware дедуплицируется Elysia)
+      const user = await getUserFromToken(headers.authorization);
+
+      if (!user) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
+
       return {
         success: true,
         user: {
-          id: user!.id,
-          telegramId: user!.telegramId,
-          username: user!.username,
-          firstName: user!.firstName,
-          lastName: user!.lastName,
-          photoUrl: user!.photoUrl,
-          languageCode: user!.languageCode,
-          level: user!.level,
-          experience: user!.experience,
-          streak: user!.streak,
-          lastActiveDate: user!.lastActiveDate,
-          isPro: user!.isPro,
-          subscriptionExpires: user!.subscriptionExpires,
-          autoRenewalEnabled: user!.autoRenewalEnabled,
-          settings: user!.settings,
-          createdAt: user!.createdAt,
-          updatedAt: user!.updatedAt,
+          id: user.id,
+          telegramId: user.telegramId,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          photoUrl: user.photoUrl,
+          languageCode: user.languageCode,
+          level: user.level,
+          experience: user.experience,
+          streak: user.streak,
+          lastActiveDate: user.lastActiveDate,
+          isPro: user.isPro,
+          subscriptionExpires: user.subscriptionExpires,
+          autoRenewalEnabled: user.autoRenewalEnabled,
+          settings: user.settings,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
         },
       };
     },
