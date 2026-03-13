@@ -58,7 +58,9 @@ export default function LessonPage({
   });
 
   const course = data?.course;
-  const lesson = course?.days?.find((d) => d.dayNumber === parseInt(dayNumber));
+  const lessonIndex = course?.days?.findIndex((d) => d.dayNumber === parseInt(dayNumber)) ?? -1;
+  const lesson = lessonIndex >= 0 ? course?.days?.[lessonIndex] : undefined;
+  const lessonSequentialNumber = lessonIndex >= 0 ? lessonIndex + 1 : lesson?.dayNumber;
 
   const handleComplete = () => {
     if (lesson) {
@@ -130,7 +132,7 @@ export default function LessonPage({
             <ArrowLeft className="w-5 h-5 text-[#2b2520]" />
           </button>
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-[#6b5a4a]">Урок {lesson.dayNumber}</p>
+            <p className="text-xs text-[#6b5a4a]">Урок {lessonSequentialNumber}</p>
             <h1 className="text-sm font-bold text-[#2b2520] truncate">{lesson.title}</h1>
           </div>
           {isCompleted && (

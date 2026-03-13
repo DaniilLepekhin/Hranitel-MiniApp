@@ -121,7 +121,7 @@ export default function CoursePage({ params }: { params: Promise<{ id: string }>
                   ) : isCompleted ? (
                     <CheckCircle className="w-5 h-5 text-white" />
                   ) : (
-                    <span className="text-white font-bold">{day.dayNumber}</span>
+                    <span className="text-white font-bold">{index + 1}</span>
                   )}
                 </div>
 
