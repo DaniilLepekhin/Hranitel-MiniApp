@@ -695,6 +695,9 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
 
       const subscriptionExpires = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
+      // Был ли без активной подписки — для запуска онбординга
+      const wasNotPro = !user || !user.isPro || !user.subscriptionExpires || user.subscriptionExpires < new Date();
+
       if (!user) {
         // Создаем нового пользователя
         const [newUser] = await db
@@ -723,6 +726,15 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         user = updated;
 
         logger.info({ telegram_id, days, source, previous_expires: user.subscriptionExpires }, 'Admin granted subscription');
+      }
+
+      // Запускаем онбординг если до этого подписки не было
+      if (wasNotPro) {
+        try {
+          await startOnboardingAfterPayment(user.id, telegram_id);
+        } catch (e) {
+          logger.warn({ e, telegram_id }, 'Failed to start onboarding after grant-subscription');
+        }
       }
 
       return {
@@ -1644,16 +1656,29 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         return { success: false, error: 'Пользователь не найден' };
       }
 
+      // Был ли без активной подписки — для запуска онбординга
+      const wasNotPro = !user.isPro || !user.subscriptionExpires || user.subscriptionExpires < new Date();
+
       await db.update(users)
         .set({ subscriptionExpires: newDate, isPro: true, updatedAt: new Date() })
         .where(eq(users.id, user.id));
 
       logger.info({ telegram_id, expires_at }, 'Admin set subscription date');
 
+      // Запускаем онбординг если до этого подписки не было
+      if (wasNotPro) {
+        try {
+          await startOnboardingAfterPayment(user.id, telegram_id);
+        } catch (e) {
+          logger.warn({ e, telegram_id }, 'Failed to start onboarding after set-subscription-date');
+        }
+      }
+
       return {
         success: true,
         message: `Дата подписки установлена: ${newDate.toLocaleDateString('ru-RU')}`,
         expires_at: newDate.toISOString(),
+        onboarding_sent: wasNotPro,
       };
     },
     {
