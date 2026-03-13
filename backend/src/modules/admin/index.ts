@@ -1764,12 +1764,33 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       // Попробовать восстановить в десятку
       const restoreResult = await decadesService.restoreUserToDecade(user.id, telegram_id);
 
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+
+      const sendInviteMessage = async (inviteLink: string, decadeName: string) => {
+        if (!botToken || !inviteLink) return;
+        try {
+          await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: telegram_id,
+              text: `✅ Вас восстановили в ${decadeName}!\n\nСсылка для входа в чат десятки:\n${inviteLink}`,
+              disable_web_page_preview: true,
+            }),
+          });
+        } catch (e) {
+          logger.warn({ e, telegram_id }, 'restore-to-decade: failed to send invite message');
+        }
+      };
+
       if (restoreResult.restored) {
         logger.info({ telegram_id, decadeName: restoreResult.decadeName }, 'Admin restored user to decade');
+        await sendInviteMessage(restoreResult.inviteLink || '', restoreResult.decadeName || '');
         return {
           success: true,
           message: `Пользователь ${telegram_id} восстановлен в ${restoreResult.decadeName}`,
           decade_name: restoreResult.decadeName,
+          invite_link: restoreResult.inviteLink,
         };
       }
 
@@ -1779,6 +1800,7 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       // Попробовать назначить в любую доступную десятку в городе
       const assignResult = await decadesService.assignUserToDecade(telegram_id);
       if (assignResult.success) {
+        await sendInviteMessage(assignResult.inviteLink || '', assignResult.decadeName || '');
         return {
           success: true,
           message: `Пользователь ${telegram_id} назначен в ${assignResult.decadeName}`,
