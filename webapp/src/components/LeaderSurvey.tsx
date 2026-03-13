@@ -68,7 +68,7 @@ export function LeaderSurvey() {
   const { data, isLoading } = useQuery<SurveyData>({
     queryKey: ['leader-survey', user?.telegramId],
     queryFn: async () => {
-      return api.get<SurveyData>('/api/v1/leader-survey/current');
+      return api.get<SurveyData>('/leader-survey/current');
     },
     enabled: !!user?.telegramId,
     staleTime: 30_000,
@@ -77,7 +77,7 @@ export function LeaderSurvey() {
 
   const voteMutation = useMutation({
     mutationFn: async ({ questionId, answer }: { questionId: string; answer: string }) => {
-      return api.post('/api/v1/leader-survey/vote', {
+      return api.post('/leader-survey/vote', {
         question_id: questionId,
         answer,
       });
