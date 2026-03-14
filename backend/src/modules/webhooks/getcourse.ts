@@ -32,15 +32,15 @@ function parseGetCourseDate(raw: string): Date | null {
 
 export const getcourseWebhook = new Elysia({ prefix: '/webhooks' })
   /**
-   * GET /api/webhooks/getcourse/payment
+   * POST /api/webhooks/getcourse/payment
    *
    * Входящий хук от GetCourse после успешной оплаты.
-   * Параметры: hash, order_id, email, phone, tarif, period, current_date
+   * Параметры передаются в query string: hash, order_id, email, phone, tarif, period, current_date
    * current_date формат: "13 марта" (URL-encoded)
    *
    * Новый URL для GetCourse: https://app.successkod.com/api/webhooks/getcourse/payment
    */
-  .get(
+  .post(
     '/getcourse/payment',
     async ({ query, set }) => {
       const { hash, order_id, email, phone, tarif, period, current_date } = query;
