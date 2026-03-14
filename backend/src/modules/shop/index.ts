@@ -9,7 +9,7 @@ const checkAdminAuth = (headers: Record<string, string | undefined>) => {
   return adminSecret === process.env.ADMIN_SECRET || adminSecret === 'local-dev-secret';
 };
 
-export const shopRoutes = new Elysia({ prefix: '/api/shop' })
+export const shopRoutes = new Elysia({ prefix: '/api/v1/shop' })
   /**
    * GET /api/shop/items
    * Получить все товары магазина (публичный — каталог)
