@@ -48,6 +48,7 @@ import { paymentsModule } from '@/modules/payments';
 import { lavaPaymentWebhook } from '@/modules/webhooks/lava-payment';
 import { cloudpaymentsWebhook } from '@/modules/webhooks/cloudpayments';
 import { lavatopWebhook } from '@/modules/webhooks/lavatop';
+import { getcourseWebhook } from '@/modules/webhooks/getcourse';
 import { adminRoutes } from '@/modules/admin';
 import { leaderTestModule } from '@/modules/leader-test';
 import { leaderSurveyRoutes } from '@/modules/leader-survey';
@@ -226,7 +227,7 @@ const app = new Elysia()
   // Payments module — публичная генерация LavaTop ссылок из Mini App (rate limited)
   .group('/api', (app) => app.use(paymentRateLimiter).use(paymentsModule))
   // Webhooks (no auth required)
-  .group('/api', (app) => app.use(lavaPaymentWebhook).use(cloudpaymentsWebhook).use(lavatopWebhook))
+  .group('/api', (app) => app.use(lavaPaymentWebhook).use(cloudpaymentsWebhook).use(lavatopWebhook).use(getcourseWebhook))
   // Admin API (secret header auth)
   .group('/api', (app) => app.use(adminRoutes))
   // Content module (Путь - educational content system)
