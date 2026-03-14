@@ -45,9 +45,9 @@ export const getcourseWebhook = new Elysia({ prefix: '/webhooks' })
     async ({ query, set }) => {
       const { hash, order_id, email, phone, tarif, period, current_date } = query;
 
-      // 1. Валидация секрета
-      const expectedHash = process.env.GETCOURSE_SECRET;
-      if (!expectedHash || hash !== expectedHash) {
+      // 1. Валидация хеша (фиксированный shared secret из URL GetCourse)
+      const GETCOURSE_WEBHOOK_HASH = '8170c6c60274414632db7a';
+      if (hash !== GETCOURSE_WEBHOOK_HASH) {
         logger.warn({ hash }, '[GetCourse] Invalid hash — rejected');
         set.status = 403;
         return { success: false, error: 'Invalid hash' };
