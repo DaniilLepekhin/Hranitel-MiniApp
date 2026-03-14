@@ -14,11 +14,11 @@ import { nanoid } from 'nanoid';
 import { invalidateUserCache } from '@/utils/cache-invalidation';
 
 // ============================================================================
-// FEATURE FLAG — старый Lava webhook отключён. Платежи теперь обрабатываются
-// через LavaTop (POST /webhooks/lavatop/payment).
-// Установить в true чтобы вернуть обработку.
+// FEATURE FLAG — управляет обработкой старого Lava webhook.
+// false = только логирование, без обработки (ждём LavaTop).
+// true  = полная обработка (энергия, payments, аналитика и т.д.)
 // ============================================================================
-const LAVA_PROCESSING_ENABLED = false;
+const LAVA_PROCESSING_ENABLED = true;
 
 export const lavaPaymentWebhook = new Elysia({ prefix: '/webhooks' })
   // Lava payment success webhook
