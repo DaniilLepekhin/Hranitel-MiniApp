@@ -305,6 +305,8 @@ async function activateSubscription(opts: {
       updatedAt: new Date(),
       ...(isFirstPurchase ? { firstPurchaseDate: new Date() } : {}),
       ...(codeWord ? { codeWord } : {}),
+      // Сохраняем email если у пользователя ещё не заполнен
+      ...(!user.email && email ? { email: email.toLowerCase().trim() } : {}),
       // Сохраняем contractId первого платежа — нужен для отмены подписки через LavaTop API
       ...(isFirstPaymentOfSubscription ? { lavatopContractId: contractId } : {}),
     })
