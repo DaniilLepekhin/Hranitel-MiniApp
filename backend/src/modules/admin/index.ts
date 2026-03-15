@@ -175,6 +175,57 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
    * Создаёт invoice через LavaTop API напрямую (без n8n).
    * Текущая схема через n8n остаётся рабочей — этот endpoint только для LavaTop.
    */
+
+  /**
+   * 💳 Сгенерировать ссылку CloudPayments с произвольной суммой
+   */
+  .post(
+    '/generate-cp-custom-link',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) { set.status = 401; throw new Error('Unauthorized'); }
+
+      const { amount, description = 'Доплата КОД УСПЕХА' } = body;
+
+      if (!config.CLOUDPAYMENTS_PUBLIC_ID || !config.CLOUDPAYMENTS_API_SECRET) {
+        set.status = 500;
+        return { success: false, error: 'CloudPayments не настроен' };
+      }
+
+      const authHeader = 'Basic ' + Buffer.from(
+        `${config.CLOUDPAYMENTS_PUBLIC_ID}:${config.CLOUDPAYMENTS_API_SECRET}`
+      ).toString('base64');
+
+      const res = await fetch('https://api.cloudpayments.ru/orders/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+        body: JSON.stringify({
+          Amount: amount,
+          Currency: 'RUB',
+          Description: description,
+          RequireConfirmation: false,
+          SendEmail: false,
+        }),
+      });
+
+      const data = await res.json() as { Success: boolean; Message?: string; Model?: { Url?: string; Id?: string } };
+
+      if (!data.Success || !data.Model?.Url) {
+        set.status = 500;
+        return { success: false, error: data.Message ?? 'CP error' };
+      }
+
+      logger.info({ amount, description, url: data.Model.Url }, '[admin] CP custom link generated');
+
+      return { success: true, url: data.Model.Url, order_id: data.Model.Id };
+    },
+    {
+      body: t.Object({
+        amount: t.Number(),
+        description: t.Optional(t.String()),
+      }),
+    }
+  )
+
   .post(
     '/generate-lavatop-payment-link',
     async ({ body, headers, set }) => {
