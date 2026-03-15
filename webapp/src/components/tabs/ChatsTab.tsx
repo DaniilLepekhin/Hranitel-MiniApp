@@ -19,7 +19,7 @@ const teamsApi = {
 
 export function ChatsTab() {
   const { haptic, webApp, user: tgUser, initData } = useTelegram();
-  const { user, setUser } = useAuthStore();
+  const { user, token, hasInitialized, setUser } = useAuthStore();
   const queryClient = useQueryClient();
 
   // 🔄 Обновляем user при каждом открытии вкладки (для актуального города)
@@ -35,7 +35,7 @@ export function ChatsTab() {
       const data = await response.json();
       return data;
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && !!token && hasInitialized,
     staleTime: 0, // Всегда обновляем при открытии вкладки
     refetchOnMount: 'always', // Перезапрашивать при каждом монтировании
   });

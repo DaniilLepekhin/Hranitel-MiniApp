@@ -19,7 +19,7 @@ const ConfirmModal = dynamic(
 export function ProfileTab() {
   const router = useRouter();
   const { haptic, webApp } = useTelegram();
-  const { user, token, setUser } = useAuthStore();
+  const { user, token, hasInitialized, setUser } = useAuthStore();
   const queryClient = useQueryClient();
   const [loadingLink, setLoadingLink] = useState<string | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
@@ -34,7 +34,7 @@ export function ProfileTab() {
   const { data: meData } = useQuery({
     queryKey: ['auth-me'],
     queryFn: () => authApi.me(),
-    enabled: !!user && !!token,
+    enabled: !!user && !!token && hasInitialized,
     staleTime: 0,
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
