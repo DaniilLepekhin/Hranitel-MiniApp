@@ -176,22 +176,26 @@ export const cloudpaymentsWebhook = new Elysia({ prefix: '/webhooks/cloudpayment
 
       const codeWord: string | null = jsonData.code_word || null;
 
-      // 6. Обновляем подписку + сохраняем subscriptionId как типизированную колонку
-      const webhookEmail = b.Email || jsonData.email || null;
-      await db
-        .update(users)
-        .set({
-          isPro: true,
-          subscriptionExpires: newExpiry,
-          autoRenewalEnabled: true,
-          updatedAt: new Date(),
-          ...(subscriptionId ? { cloudpaymentsSubscriptionId: subscriptionId } : {}),
-          ...(isFirstPurchase ? { firstPurchaseDate: new Date() } : {}),
-          ...(codeWord ? { codeWord } : {}),
-          // Сохраняем email в профиль если ещё не был установлен
-          ...(!user.email && webhookEmail ? { email: webhookEmail } : {}),
-        })
-        .where(eq(users.id, user.id));
+       // 6. Обновляем подписку + сохраняем subscriptionId как типизированную колонку
+       const webhookEmail = b.Email || jsonData.email || null;
+       const webhookPhone = b.Phone || jsonData.phone || null;
+       const webhookName  = b.Name  || jsonData.name  || null;
+       await db
+         .update(users)
+         .set({
+           isPro: true,
+           subscriptionExpires: newExpiry,
+           autoRenewalEnabled: true,
+           updatedAt: new Date(),
+           ...(subscriptionId ? { cloudpaymentsSubscriptionId: subscriptionId } : {}),
+           ...(isFirstPurchase ? { firstPurchaseDate: new Date() } : {}),
+           ...(codeWord ? { codeWord } : {}),
+           // Сохраняем контакты в профиль если ещё не заполнены
+           ...(!user.email    && webhookEmail ? { email: webhookEmail }         : {}),
+           ...(!user.phone    && webhookPhone ? { phone: webhookPhone }         : {}),
+           ...(!user.firstName && webhookName ? { firstName: webhookName }      : {}),
+         })
+         .where(eq(users.id, user.id));
 
       // Сбрасываем Redis-кеш чтобы /auth/me и /users/me сразу вернули актуальные данные
       invalidateUserCache(user.id).catch(() => {});

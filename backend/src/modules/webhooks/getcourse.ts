@@ -98,7 +98,14 @@ export const getcourseWebhook = new Elysia({ prefix: '/webhooks' })
 
       await db
         .update(users)
-        .set({ isPro: true, subscriptionExpires: newExpiry, updatedAt: new Date() })
+        .set({
+          isPro: true,
+          subscriptionExpires: newExpiry,
+          updatedAt: new Date(),
+          // Сохраняем контакты если ещё не заполнены
+          ...(!user.email && normalizedEmail ? { email: normalizedEmail } : {}),
+          ...(!user.phone && normalizedPhone ? { phone: normalizedPhone } : {}),
+        })
         .where(eq(users.id, user.id));
 
       // 6. Записываем платёж
