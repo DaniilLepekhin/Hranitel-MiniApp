@@ -184,7 +184,7 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
     async ({ body, headers, set }) => {
       if (!checkAdminAuth(headers)) { set.status = 401; throw new Error('Unauthorized'); }
 
-      const { amount, description = 'Доплата КОД УСПЕХА' } = body;
+      const { amount, description = 'Доплата КОД УСПЕХА', currency = 'RUB' } = body;
 
       if (!config.CLOUDPAYMENTS_PUBLIC_ID || !config.CLOUDPAYMENTS_API_SECRET) {
         set.status = 500;
@@ -200,7 +200,7 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         headers: { 'Content-Type': 'application/json', Authorization: authHeader },
         body: JSON.stringify({
           Amount: amount,
-          Currency: 'RUB',
+          Currency: currency,
           Description: description,
           RequireConfirmation: false,
           SendEmail: false,
@@ -214,7 +214,7 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         return { success: false, error: data.Message ?? 'CP error' };
       }
 
-      logger.info({ amount, description, url: data.Model.Url }, '[admin] CP custom link generated');
+      logger.info({ amount, currency, description, url: data.Model.Url }, '[admin] CP custom link generated');
 
       return { success: true, url: data.Model.Url, order_id: data.Model.Id };
     },
@@ -222,6 +222,7 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       body: t.Object({
         amount: t.Number(),
         description: t.Optional(t.String()),
+        currency: t.Optional(t.String()),
       }),
     }
   )
