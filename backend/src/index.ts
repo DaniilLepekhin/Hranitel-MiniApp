@@ -262,7 +262,7 @@ const app = new Elysia()
       return 'Failed to create payment order';
     }
     // редирект на страницу оплаты CloudPayments
-    set.redirect = data.Model.Url;
+    return new Response(null, { status: 302, headers: { Location: data.Model.Url } });
   })
   // Content module (Путь - educational content system)
   .use(contentModule)
