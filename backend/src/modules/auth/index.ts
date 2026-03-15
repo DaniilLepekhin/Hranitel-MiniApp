@@ -368,24 +368,28 @@ export const authModule = new Elysia({ prefix: '/auth', tags: ['Auth'] })
   .use(authMiddleware)
   .get(
     '/me',
-    async ({ user }) => {
+    async ({ user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return { success: false, error: 'Unauthorized' };
+      }
       return {
         success: true,
         user: {
-          id: user!.id,
-          telegramId: user!.telegramId,
-          username: user!.username,
-          firstName: user!.firstName,
-          lastName: user!.lastName,
-          photoUrl: user!.photoUrl,
-          city: user!.city,
-          level: user!.level,
-          experience: user!.experience,
-          streak: user!.streak,
-          isPro: user!.isPro,
-          subscriptionExpires: user!.subscriptionExpires,
-          autoRenewalEnabled: user!.autoRenewalEnabled,
-          createdAt: user!.createdAt,
+          id: user.id,
+          telegramId: user.telegramId,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          photoUrl: user.photoUrl,
+          city: user.city,
+          level: user.level,
+          experience: user.experience,
+          streak: user.streak,
+          isPro: user.isPro,
+          subscriptionExpires: user.subscriptionExpires,
+          autoRenewalEnabled: user.autoRenewalEnabled,
+          createdAt: user.createdAt,
         },
       };
     },
