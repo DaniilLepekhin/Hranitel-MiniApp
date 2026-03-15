@@ -230,6 +230,40 @@ const app = new Elysia()
   .group('/api', (app) => app.use(lavaPaymentWebhook).use(cloudpaymentsWebhook).use(lavatopWebhook).use(getcourseWebhook))
   // Admin API (secret header auth)
   .group('/api', (app) => app.use(adminRoutes))
+  // 💳 Публичная ссылка на оплату — каждый запрос создаёт свежий счёт в CP и редиректит
+  // Пример: GET /api/pay/889 → новый счёт на 889 ₽, redirect на страницу оплаты
+  .get('/api/pay/:amount', async ({ params, set }) => {
+    const amount = parseFloat(params.amount);
+    if (isNaN(amount) || amount <= 0 || amount > 1_000_000) {
+      set.status = 400;
+      return 'Invalid amount';
+    }
+    if (!config.CLOUDPAYMENTS_PUBLIC_ID || !config.CLOUDPAYMENTS_API_SECRET) {
+      set.status = 503;
+      return 'Payment system not configured';
+    }
+    const authHeader = 'Basic ' + Buffer.from(
+      `${config.CLOUDPAYMENTS_PUBLIC_ID}:${config.CLOUDPAYMENTS_API_SECRET}`
+    ).toString('base64');
+    const res = await fetch('https://api.cloudpayments.ru/orders/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+      body: JSON.stringify({
+        Amount: amount,
+        Currency: 'RUB',
+        Description: 'Оплата КОД УСПЕХА',
+        RequireConfirmation: false,
+        SendEmail: false,
+      }),
+    });
+    const data = await res.json() as any;
+    if (!data.Success || !data.Model?.Url) {
+      set.status = 502;
+      return 'Failed to create payment order';
+    }
+    // редирект на страницу оплаты CloudPayments
+    set.redirect = data.Model.Url;
+  })
   // Content module (Путь - educational content system)
   .use(contentModule)
   // PDF proxy — отдаёт PDF через наш домен, чтобы iframe работал внутри Telegram Mini App
