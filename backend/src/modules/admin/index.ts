@@ -14,8 +14,8 @@ import { timingSafeEqual } from 'crypto';
 import { db, rawDb } from '@/db';
 import { lavaTopService } from '@/services/lavatop.service';
 import { config } from '@/config';
-import { users, payments, paymentAnalytics, clubFunnelProgress, videos, contentItems, decades, decadeMembers, leaderTestResults, lavatopOffers } from '@/db/schema';
-import { eq, desc, and, isNull, sql } from 'drizzle-orm';
+import { users, payments, paymentAnalytics, clubFunnelProgress, videos, contentItems, decades, decadeMembers, leaderTestResults, lavatopOffers, energyTransactions } from '@/db/schema';
+import { eq, desc, and, isNull, sql, gte, lte } from 'drizzle-orm';
 import { logger } from '@/utils/logger';
 import { startOnboardingAfterPayment } from '@/modules/bot/post-payment-funnels';
 import { subscriptionGuardService } from '@/services/subscription-guard.service';
@@ -1629,6 +1629,105 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       detail: {
         summary: 'Начислить Энергию вручную',
         description: 'Начисляет указанное количество Энергии пользователю. Учитывается множитель x2 для лидеров.',
+      },
+    }
+  )
+
+  /**
+   * ⚡ Начислить 500 за последнее продление (с проверкой дубля)
+   */
+  .post(
+    '/award-renewal-energy',
+    async ({ body, headers, set }) => {
+      if (!checkAdminAuth(headers)) {
+        set.status = 401;
+        throw new Error('Unauthorized');
+      }
+
+      const { telegram_id: rawTelegramId } = body;
+      const telegram_id = typeof rawTelegramId === 'string' ? parseInt(rawTelegramId, 10) : rawTelegramId;
+
+      const [user] = await db.select().from(users).where(eq(users.telegramId, telegram_id)).limit(1);
+      if (!user) {
+        set.status = 404;
+        return { success: false, error: 'Пользователь не найден' };
+      }
+
+      // Последний платёж
+      const [lastPayment] = await db
+        .select()
+        .from(payments)
+        .where(and(eq(payments.userId, user.id), eq(payments.status, 'completed')))
+        .orderBy(desc(payments.createdAt))
+        .limit(1);
+
+      if (!lastPayment) {
+        set.status = 404;
+        return { success: false, error: 'Нет завершённых платежей у пользователя' };
+      }
+
+      // Проверяем — было ли начисление за этот платёж (в течение 24ч от даты платежа)
+      const paymentDate = new Date(lastPayment.createdAt);
+      const windowStart = new Date(paymentDate.getTime() - 24 * 60 * 60 * 1000);
+      const windowEnd = new Date(paymentDate.getTime() + 24 * 60 * 60 * 1000);
+
+      const [existing] = await db
+        .select()
+        .from(energyTransactions)
+        .where(
+          and(
+            eq(energyTransactions.userId, user.id),
+            eq(energyTransactions.reason, 'Продление подписки'),
+            gte(energyTransactions.createdAt, windowStart),
+            lte(energyTransactions.createdAt, windowEnd),
+          )
+        )
+        .limit(1);
+
+      if (existing) {
+        return {
+          success: false,
+          already_awarded: true,
+          error: `Энергия за это продление уже начислена (${existing.amount} EP, ${existing.createdAt})`,
+          payment_date: lastPayment.createdAt,
+        };
+      }
+
+      // Начисляем — лидеры получают x2
+      const [leaderCheck] = await db
+        .select()
+        .from(decadeMembers)
+        .where(and(eq(decadeMembers.userId, user.id), isNull(decadeMembers.leftAt), eq(decadeMembers.isLeader, true)))
+        .limit(1);
+
+      const baseAmount = 500;
+      const amount = leaderCheck ? baseAmount * 2 : baseAmount;
+
+      await energiesService.award(user.id, baseAmount, 'Продление подписки', {
+        source: 'admin_manual_renewal',
+        payment_id: lastPayment.id,
+      });
+
+      const newBalance = await energiesService.getBalance(user.id);
+
+      logger.info({ telegram_id, amount, isLeader: !!leaderCheck, paymentId: lastPayment.id }, 'Admin awarded renewal energy');
+
+      return {
+        success: true,
+        already_awarded: false,
+        awarded: amount,
+        is_leader: !!leaderCheck,
+        new_balance: newBalance,
+        payment_date: lastPayment.createdAt,
+      };
+    },
+    {
+      body: t.Object({
+        telegram_id: t.Union([t.Number(), t.String()]),
+      }),
+      detail: {
+        summary: 'Начислить энергию за последнее продление',
+        description: 'Проверяет было ли уже начислено за последний платёж. Если нет — начисляет 500 EP (1000 для лидеров).',
       },
     }
   )
