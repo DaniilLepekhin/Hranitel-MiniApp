@@ -255,11 +255,17 @@ async function activateSubscription(opts: {
   const isFirstPurchase = !user.firstPurchaseDate;
   const days = periodicityToDays(periodicity);
 
-  // Ищем code_word в последнем payment_attempt для этого email
+  // Ищем phone, name и code_word из последнего payment_attempt для этого email
   let codeWord: string | null = null;
+  let attemptPhone: string | null = null;
+  let attemptName: string | null = null;
   try {
     const [attempt] = await db
-      .select({ metadata: paymentAnalytics.metadata })
+      .select({
+        metadata: paymentAnalytics.metadata,
+        phone: paymentAnalytics.phone,
+        name: paymentAnalytics.name,
+      })
       .from(paymentAnalytics)
       .where(and(
         eq(paymentAnalytics.email, email.toLowerCase().trim()),
@@ -269,8 +275,10 @@ async function activateSubscription(opts: {
       .limit(1);
     const meta = attempt?.metadata as Record<string, any> | null;
     codeWord = meta?.code_word || null;
+    attemptPhone = attempt?.phone || null;
+    attemptName = attempt?.name || null;
   } catch (e) {
-    logger.warn({ e, email }, '[LavaTop] Failed to read code_word from payment_analytics');
+    logger.warn({ e, email }, '[LavaTop] Failed to read contact data from payment_analytics');
   }
   const newExpiry = calcNewExpiry(user.subscriptionExpires ? new Date(user.subscriptionExpires) : null, days);
 
@@ -305,8 +313,10 @@ async function activateSubscription(opts: {
       updatedAt: new Date(),
       ...(isFirstPurchase ? { firstPurchaseDate: new Date() } : {}),
       ...(codeWord ? { codeWord } : {}),
-      // Сохраняем email если у пользователя ещё не заполнен
+      // Сохраняем контакты из формы, только если ещё не заполнены у пользователя
       ...(!user.email && email ? { email: email.toLowerCase().trim() } : {}),
+      ...(!user.phone && attemptPhone ? { phone: attemptPhone } : {}),
+      ...(!user.firstName && attemptName ? { firstName: attemptName } : {}),
       // Сохраняем contractId первого платежа — нужен для отмены подписки через LavaTop API
       ...(isFirstPaymentOfSubscription ? { lavatopContractId: contractId } : {}),
     })
