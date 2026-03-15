@@ -1358,6 +1358,12 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
               { telegram_id, decadeName: restoreResult.decadeName },
               'User restored to decade after admin unban'
             );
+            // фиктивный отчёт чтоб крон не выкинул на следующий день
+            try {
+              await energiesService.award(user.id, 50, 'Ежедневный отчет', { source: 'admin_restore' });
+            } catch (e) {
+              logger.warn({ e, telegram_id }, 'Failed to award fake report energy after unban restore');
+            }
           }
         } catch (decadeError) {
           logger.warn({ error: decadeError, telegram_id }, 'Failed to restore decade after admin unban');
@@ -1786,6 +1792,12 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       if (restoreResult.restored) {
         logger.info({ telegram_id, decadeName: restoreResult.decadeName }, 'Admin restored user to decade');
         await sendInviteMessage(restoreResult.inviteLink || '', restoreResult.decadeName || '');
+        // фиктивный отчёт чтоб крон не выкинул на следующий день
+        try {
+          await energiesService.award(user.id, 50, 'Ежедневный отчет', { source: 'admin_restore' });
+        } catch (e) {
+          logger.warn({ e, telegram_id }, 'Failed to award fake report energy after restore');
+        }
         return {
           success: true,
           message: `Пользователь ${telegram_id} восстановлен в ${restoreResult.decadeName}`,
@@ -1801,6 +1813,12 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       const assignResult = await decadesService.assignUserToDecade(telegram_id);
       if (assignResult.success) {
         await sendInviteMessage(assignResult.inviteLink || '', assignResult.decadeName || '');
+        // фиктивный отчёт чтоб крон не выкинул на следующий день
+        try {
+          await energiesService.award(user.id, 50, 'Ежедневный отчет', { source: 'admin_restore' });
+        } catch (e) {
+          logger.warn({ e, telegram_id }, 'Failed to award fake report energy after assign');
+        }
         return {
           success: true,
           message: `Пользователь ${telegram_id} назначен в ${assignResult.decadeName}`,
